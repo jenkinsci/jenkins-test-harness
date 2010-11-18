@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
+ * Copyright (c) 2009, Yahoo!, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,23 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.htmlunit.DefaultPageCreator;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.WebWindow;
-import com.gargoylesoftware.htmlunit.PageCreator;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.tasks.Builder;
 
 import java.io.IOException;
-import java.util.Locale;
+import java.io.Serializable;
 
-/**
- * {@link PageCreator} that understands JNLP file.
- * 
- * @author Kohsuke Kawaguchi
- */
-public class HudsonPageCreator extends DefaultPageCreator {
-    @Override
-    public Page createPage(WebResponse webResponse, WebWindow webWindow) throws IOException {
-        String contentType = webResponse.getContentType().toLowerCase(Locale.ENGLISH);
-        if(contentType.equals("application/x-java-jnlp-file"))
-            return createXmlPage(webResponse, webWindow);
-        return super.createPage(webResponse, webWindow);
+public class TouchBuilder extends Builder implements Serializable {
+        @Override
+        public boolean perform(AbstractBuild<?, ?> build,
+                               Launcher launcher, BuildListener listener)
+                throws InterruptedException, IOException {
+            for (FilePath f : build.getWorkspace().list()) {
+                f.touch(System.currentTimeMillis());
+            }
+            return true;
+        }
     }
-
-    public static final HudsonPageCreator INSTANCE = new HudsonPageCreator();
-}

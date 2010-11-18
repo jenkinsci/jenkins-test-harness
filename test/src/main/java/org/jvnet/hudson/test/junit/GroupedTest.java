@@ -21,46 +21,51 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.junit;
 
-import hudson.Launcher;
-import hudson.Extension;
-import hudson.EnvVars;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.model.Descriptor;
-import hudson.tasks.Builder;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
-
-import java.io.IOException;
+import junit.framework.TestSuite;
+import junit.framework.TestResult;
 
 /**
- * {@link Builder} that captures the environment variables used during a build.
+ * {@link TestSuite} that requires some set up and tear down for executing nested tests.
+ *
+ * <p>
+ * The failure in the set up or tear down will be reported as a failure.
  *
  * @author Kohsuke Kawaguchi
  */
-public class CaptureEnvironmentBuilder extends Builder {
-	
-    private EnvVars envVars;
-
-	public EnvVars getEnvVars() {
-		return envVars;
-	}
-
-	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-    	envVars = build.getEnvironment(listener);
-        return true;
+public class GroupedTest extends TestSuite {
+    @Override
+    public int countTestCases() {
+        return super.countTestCases()+1;
     }
 
-    @Extension
-    public static final class DescriptorImpl extends Descriptor<Builder> {
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
-            throw new UnsupportedOperationException();
+    @Override
+    public void run(TestResult result) {
+        try {
+            setUp();
+            try {
+                runGroupedTests(result);
+            } finally {
+                tearDown();
+            }
+            // everything went smoothly. report a successful test to make the ends meet
+            runTest(new FailedTest(getClass(),null),result);
+        } catch (Throwable e) {
+            // something went wrong
+            runTest(new FailedTest(getClass(),e),result);
         }
+    }
 
-        public String getDisplayName() {
-            return "Capture Environment Variables";
-        }
+    /**
+     * Executes the nested tests.
+     */
+    protected void runGroupedTests(TestResult result) throws Exception {
+        super.run(result);
+    }
+
+    protected void setUp() throws Exception {
+    }
+    protected void tearDown() throws Exception {
     }
 }

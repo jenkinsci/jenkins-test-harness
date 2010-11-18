@@ -23,28 +23,38 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.htmlunit.DefaultPageCreator;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.WebWindow;
-import com.gargoylesoftware.htmlunit.PageCreator;
+import hudson.Launcher;
+import hudson.Extension;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.Descriptor;
+import hudson.model.Result;
+import hudson.tasks.Builder;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
-import java.util.Locale;
 
 /**
- * {@link PageCreator} that understands JNLP file.
- * 
+ * Mock {@link Builder} that always cause a build to fail.
+ *
  * @author Kohsuke Kawaguchi
  */
-public class HudsonPageCreator extends DefaultPageCreator {
-    @Override
-    public Page createPage(WebResponse webResponse, WebWindow webWindow) throws IOException {
-        String contentType = webResponse.getContentType().toLowerCase(Locale.ENGLISH);
-        if(contentType.equals("application/x-java-jnlp-file"))
-            return createXmlPage(webResponse, webWindow);
-        return super.createPage(webResponse, webWindow);
+public class UnstableBuilder extends Builder {
+    
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        listener.getLogger().println("Simulating an unstable build");
+        build.setResult(Result.UNSTABLE);
+        return true;
     }
 
-    public static final HudsonPageCreator INSTANCE = new HudsonPageCreator();
+    @Extension
+    public static final class DescriptorImpl extends Descriptor<Builder> {
+        public String getDisplayName() {
+            return "Make build unstable";
+        }
+        public UnstableBuilder newInstance(StaplerRequest req, JSONObject data) {
+            return new UnstableBuilder();
+        }
+    }
 }
