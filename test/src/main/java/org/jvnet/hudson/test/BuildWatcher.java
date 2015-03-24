@@ -45,7 +45,7 @@ import org.junit.rules.ExternalResource;
  * Should work in combination with {@link JenkinsRule} or {@link RestartableJenkinsRule}.
  * @see JenkinsRule#waitForCompletion
  * @see JenkinsRule#waitForMessage
- * @since TODO
+ * @since 1.607
  */
 public final class BuildWatcher extends ExternalResource {
 

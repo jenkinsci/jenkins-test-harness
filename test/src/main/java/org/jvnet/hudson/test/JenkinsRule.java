@@ -1152,7 +1152,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Waits for a build to complete.
      * Useful in conjunction with {@link BuildWatcher}.
      * @return the same build, once done
-     * @since TODO
+     * @since 1.607
      */
     public <R extends Run<?,?>> R waitForCompletion(R r) throws InterruptedException {
         // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
@@ -1166,7 +1166,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Waits for a build log to contain a specified string.
      * Useful in conjunction with {@link BuildWatcher}.
      * @return the same build, once it does
-     * @since TODO
+     * @since 1.607
      */
     public <R extends Run<?,?>> R waitForMessage(String message, R r) throws IOException, InterruptedException {
         while (!getLog(r).contains(message)) {
