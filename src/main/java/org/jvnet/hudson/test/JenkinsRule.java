@@ -1202,7 +1202,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link com.gargoylesoftware.htmlunit.html.HtmlForm#submit()} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form);
@@ -1212,7 +1212,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Submits the form by clikcing the submit button of the given name.
      *
      * @param name
-     *      This corresponds to the @name of &lt;f:submit />
+     *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
         for( HtmlElement e : form.getHtmlElementsByTagName("button")) {

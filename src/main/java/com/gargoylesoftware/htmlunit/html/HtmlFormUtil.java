@@ -95,7 +95,7 @@ public class HtmlFormUtil {
     }
 
     /**
-     * Returns all the &lt;input type="submit"> elements in this form.
+     * Returns all the {@code <input type="submit">} elements in this form.
      */
     public static List<HtmlElement> getSubmitButtons(final HtmlForm htmlForm) throws ElementNotFoundException {
         final List<HtmlElement> list = htmlForm.getElementsByAttribute("input", "type", "submit");
@@ -109,7 +109,7 @@ public class HtmlFormUtil {
     }
 
     /**
-     * Gets the first &lt;input type="submit"> element in this form.
+     * Gets the first {@code <input type="submit">} element in this form.
      */
     public static HtmlElement getSubmitButton(final HtmlForm htmlForm) throws ElementNotFoundException {
         List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
