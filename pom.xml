@@ -26,15 +26,23 @@ THE SOFTWARE.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.jenkins-ci.main</groupId>
-    <artifactId>pom</artifactId>
-    <version>1.645-SNAPSHOT</version>
+    <groupId>org.jenkins-ci</groupId>
+    <artifactId>jenkins</artifactId>
+    <version>1.35</version>
   </parent>
 
+  <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
+  <version>2.0-SNAPSHOT</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
+
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
+    <url>https://github.com/jenkinsci/${project.artifactId}</url>
+  </scm>
 
   <dependencies>
     <dependency>
@@ -42,7 +50,7 @@ THE SOFTWARE.
         put hudson.war in the classpath. we can't pull in the war artifact directly
         because Maven excludes all wars from classpath automatically. so we need a jar artifact.
       -->
-      <groupId>${project.groupId}</groupId>
+      <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
       <version>1.580.1</version>
       <classifier>war-for-test</classifier>
@@ -61,6 +69,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <version>4.12</version>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -109,6 +118,12 @@ THE SOFTWARE.
           <artifactId>sisu-guice</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>test-annotations</artifactId>
+      <version>1.2</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

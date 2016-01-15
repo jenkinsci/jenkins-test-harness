@@ -16,7 +16,7 @@ public interface WebResponseListener {
     public final class StatusListener implements WebResponseListener {
 
         private final int statusCode;
-        private final List<WebResponse> responses = new CopyOnWriteArrayList<>();
+        private final List<WebResponse> responses = new CopyOnWriteArrayList<WebResponse>();
 
         public StatusListener(final int statusCode) {
             this.statusCode = statusCode;

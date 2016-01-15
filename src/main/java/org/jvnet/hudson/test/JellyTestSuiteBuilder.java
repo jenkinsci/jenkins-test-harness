@@ -52,7 +52,7 @@ import java.util.jar.JarFile;
 public class JellyTestSuiteBuilder {
 
     static Map<URL,String> scan(File resources, String extension) throws IOException {
-        Map<URL,String> result = new HashMap<>();
+        Map<URL,String> result = new HashMap<URL,String>();
         if (resources.isDirectory()) {
             for (File f : FileUtils.listFiles(resources, new String[] {extension}, true)) {
                 result.put(f.toURI().toURL(), f.getAbsolutePath().substring((resources.getAbsolutePath() + File.separator).length()));

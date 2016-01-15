@@ -70,7 +70,7 @@ public class HtmlElementUtil {
      */
     public static boolean hasClassName(HtmlElement element, String className) {
         String classAttribute = element.getAttribute("class");
-        Set<String> classes = new HashSet<>(Arrays.asList(classAttribute.split(" ")));
+        Set<String> classes = new HashSet<String>(Arrays.asList(classAttribute.split(" ")));
         return classes.contains(className);
     }
 }
