@@ -75,7 +75,7 @@ public class TestPluginManager extends PluginManager {
 
     private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
         if (!fromDir.exists()) {
-            LOGGER.log(Level.INFO, "No plugins loaded from " + fromDir + ". Directory doesn't exist.");
+            LOGGER.log(Level.FINE, "No plugins loaded from " + fromDir + ". Directory doesn't exist.");
             return Collections.emptySet();
         }
         
