@@ -29,10 +29,12 @@ import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
+import com.gargoylesoftware.htmlunit.WebResponseData;
 import com.gargoylesoftware.htmlunit.WebResponseListener;
 import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
@@ -45,6 +47,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
 import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
+import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
@@ -111,6 +114,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -122,6 +126,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -149,6 +154,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
@@ -166,6 +172,7 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
 import org.hamcrest.Matchers;
@@ -301,6 +308,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public JenkinsComputerConnectorTester computerConnectorTester = new JenkinsComputerConnectorTester(this);
 
     private boolean origDefaultUseCache = true;
+
+    private static final Charset UTF8 = Charset.forName("UTF-8");
 
     public Jenkins getInstance() {
         return jenkins;
@@ -910,6 +919,114 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public Page search(String q) throws Exception {
         return new WebClient().search(q);
+    }
+
+    /**
+     * Get JSON from A Jenkins endpoint.
+     * @param path The endpoint URL.
+     * @return The JSON.
+     */
+    public JSONWebResponse getJSON(@Nonnull String path) throws IOException {
+        assert !path.startsWith("/");
+
+        JenkinsRule.WebClient webClient = createWebClient();
+        Page runsPage = null;
+        try {
+            runsPage = webClient.goTo(path, "application/json");
+        } catch (SAXException e) {
+            // goTo shouldn't be throwing a SAXException for JSON.
+            throw new IllegalStateException("Unexpected SAXException.", e);
+        }
+        WebResponse webResponse = runsPage.getWebResponse();
+
+        return new JSONWebResponse(webResponse);
+    }
+
+    /**
+     * POST a JSON payload to a URL on the underlying Jenkins instance.
+     * @param path The url path on Jenkins.
+     * @param json An object that produces a JSON string from it's {@code toString} method.
+     * @return A JSON response.
+     * @throws IOException
+     * @throws SAXException
+     */
+    public JSONWebResponse postJSON(@Nonnull String path, @Nonnull Object json) throws IOException, SAXException {
+        assert !path.startsWith("/");
+
+        URL postUrl = new URL(getURL().toExternalForm() + path);
+        HttpURLConnection conn = (HttpURLConnection) postUrl.openConnection();
+
+        conn.setDoOutput(true);
+        long startTime = System.currentTimeMillis();
+
+        try {
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            NameValuePair crumb = getCrumbHeaderNVP();
+            conn.setRequestProperty(crumb.getName(), crumb.getValue());
+
+            byte[] content = json.toString().getBytes(UTF8);
+            conn.setRequestProperty("Content-Length", String.valueOf(content.length));
+            final OutputStream os = conn.getOutputStream();
+            try {
+                os.write(content);
+                os.flush();
+            } finally {
+                os.close();
+            }
+
+            WebResponseData webResponseData;
+            InputStream responseStream = conn.getInputStream();
+            try {
+                if (responseStream != null) {
+                    byte[] bytes = IOUtils.toByteArray(responseStream);
+                    webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
+                } else {
+                    webResponseData = new WebResponseData(new byte[0], conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
+                }
+            } finally {
+                IOUtils.closeQuietly(responseStream);
+            }
+
+            WebResponse webResponse = new WebResponse(webResponseData, postUrl, HttpMethod.POST, (System.currentTimeMillis() - startTime));
+
+            return new JSONWebResponse(webResponse);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    private List<NameValuePair> extractHeaders(HttpURLConnection conn) {
+        List<NameValuePair> headers = new ArrayList<>();
+        Set<Map.Entry<String,List<String>>> headerFields = conn.getHeaderFields().entrySet();
+        for (Map.Entry<String,List<String>> headerField : headerFields) {
+            String name = headerField.getKey();
+            if (name != null) { // Yes, the header name can be null.
+                List<String> values = headerField.getValue();
+                for (String value : values) {
+                    if (value != null) {
+                        headers.add(new NameValuePair(name, value));
+                    }
+                }
+            }
+        }
+        return headers;
+    }
+
+    /**
+     * Convenience wrapper for JSON responses.
+     */
+    public static class JSONWebResponse extends WebResponseWrapper {
+
+        public JSONWebResponse(WebResponse webResponse) throws IllegalArgumentException {
+            super(webResponse);
+        }
+
+        public JSONObject getJSONObject() {
+            String json = getContentAsString();
+            return JSONObject.fromObject(json);
+        }
     }
 
     /**
@@ -2063,9 +2180,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Use {@link #createCrumbedUrl} instead if you intend to call {@link WebRequest#setRequestBody}, typical of a POST request.
          */
         public WebRequest addCrumb(WebRequest req) {
-            NameValuePair crumb = new NameValuePair(
-                    jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                    jenkins.getCrumbIssuer().getCrumb( null ));
+            NameValuePair crumb = getCrumbHeaderNVP();
             req.setRequestParameters(Arrays.asList(crumb));
             return req;
         }
@@ -2246,5 +2361,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return testDescription;
     }
 
+    private NameValuePair getCrumbHeaderNVP() {
+        return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
+                        jenkins.getCrumbIssuer().getCrumb( null ));
+    }
     public static final List<String> PLUGIN_GROUPIDS = new ArrayList<String>(Arrays.asList("org.jvnet.hudson.plugins", "org.jvnet.hudson.main"));
 }
