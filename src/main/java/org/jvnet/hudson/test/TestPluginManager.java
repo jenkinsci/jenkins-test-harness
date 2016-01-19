@@ -65,7 +65,7 @@ public class TestPluginManager extends PluginManager {
 
     @Override
     protected Collection<String> loadBundledPlugins() throws Exception {
-        Set<String> names = new HashSet<>();
+        Set<String> names = new HashSet<String>();
         
         names.addAll(loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins")));
         loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins"));

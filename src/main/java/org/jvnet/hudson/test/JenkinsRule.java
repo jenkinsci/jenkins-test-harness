@@ -998,7 +998,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     private List<NameValuePair> extractHeaders(HttpURLConnection conn) {
-        List<NameValuePair> headers = new ArrayList<>();
+        List<NameValuePair> headers = new ArrayList<NameValuePair>();
         Set<Map.Entry<String,List<String>>> headerFields = conn.getHeaderFields().entrySet();
         for (Map.Entry<String,List<String>> headerField : headerFields) {
             String name = headerField.getKey();
