@@ -135,7 +135,7 @@ public class TestPluginManager extends PluginManager {
      * @throws IOException Error copying plugin.
      */
     public void installResourcePlugin(String pluginName) throws Exception {
-        URL res = getClass().getClassLoader().getResource("plugins/" + pluginName);
+        URL res = TestPluginManager.class.getClassLoader().getResource("plugins/" + pluginName);
         if (res == null) {
             Assert.fail("Plugin '" + pluginName + "' not found in /resources/plugins.");
         }
