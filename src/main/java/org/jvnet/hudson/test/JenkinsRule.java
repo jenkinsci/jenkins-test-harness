@@ -1603,7 +1603,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         return Which.jarFile(manifest);
                 }
 
-                // For snapshot plugin dependencies, an IDE may have replaced ~/.m2/repository/…/${artifactId}.hpi with …/${artifactId}-plugin/target/classes/
+                // For snapshot plugin dependencies, an IDE may have replaced ~/.m2/repository/.../${artifactId}.hpi with .../${artifactId}-plugin/target/classes/
                 // which unfortunately lacks META-INF/MANIFEST.MF so try to find index.jelly (which every plugin should include) and thus the ${artifactId}.hpi:
                 Enumeration<URL> jellies = getClass().getClassLoader().getResources("index.jelly");
                 while (jellies.hasMoreElements()) {
