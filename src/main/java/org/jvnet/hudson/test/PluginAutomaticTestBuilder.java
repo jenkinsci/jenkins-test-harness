@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import hudson.PluginManager.FailedPlugin;
 import hudson.PluginWrapper;
 import hudson.cli.CLICommand;
 import java.io.File;
@@ -86,8 +87,13 @@ public class PluginAutomaticTestBuilder {
         public void testPluginActive() {
             String plugin = (String) params.get("artifactId");
             if (plugin != null) {
+                // did any plugin fail to start?
+                for (FailedPlugin fp : Jenkins.getInstance().getPluginManager().getFailedPlugins()) {
+                    throw new Error("Plugin "+fp.name+" failed to start", fp.cause);
+                }
+
                 PluginWrapper pw = Jenkins.getInstance().getPluginManager().getPlugin(plugin);
-                assertNotNull(pw);
+                assertNotNull(plugin+" failed to start", pw);
                 assertTrue(plugin + " was not active", pw.isActive());
             }
         }
