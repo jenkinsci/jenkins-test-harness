@@ -28,13 +28,16 @@ import hudson.Plugin;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
 import hudson.Util;
+import org.junit.Assert;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -55,7 +58,7 @@ import java.util.logging.Logger;
 public class TestPluginManager extends PluginManager {
     public static final PluginManager INSTANCE;
 
-    private TestPluginManager() throws IOException {
+    public TestPluginManager() throws IOException {
         // TestPluginManager outlives a Jetty server, so can't pass in ServletContext.
         super(null, Util.createTempDir());
     }
@@ -63,11 +66,24 @@ public class TestPluginManager extends PluginManager {
     @Override
     protected Collection<String> loadBundledPlugins() throws Exception {
         Set<String> names = new HashSet<String>();
+        
+        names.addAll(loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins")));
+        loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins"));
+                
+        return names;
+    }
 
-        File bundledPlugins = new File(WarExploder.getExplodedDir(), "WEB-INF/plugins");
-        File[] children = bundledPlugins.listFiles();
+    private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
+        if (!fromDir.exists()) {
+            LOGGER.log(Level.FINE, "No plugins loaded from " + fromDir + ". Directory doesn't exist.");
+            return Collections.emptySet();
+        }
+        
+        Set<String> names = new HashSet<String>();
+
+        File[] children = fromDir.listFiles();
         if (children==null)
-            throw new Error("Unable to find "+bundledPlugins);
+            throw new Error("Unable to find "+fromDir);
         for (File child : children) {
             try {
                 names.add(child.getName());
@@ -111,6 +127,19 @@ public class TestPluginManager extends PluginManager {
         }
 
         return names;
+    }
+    
+    /**
+     * Install a plugin from the resources directory.
+     * @param pluginName The plugin name.
+     * @throws IOException Error copying plugin.
+     */
+    public void installResourcePlugin(String pluginName) throws Exception {
+        URL res = TestPluginManager.class.getClassLoader().getResource("plugins/" + pluginName);
+        if (res == null) {
+            Assert.fail("Plugin '" + pluginName + "' not found in /resources/plugins.");
+        }
+        copyBundledPlugin(res, pluginName);
     }
     
     // Overwrite PluginManager#stop, not to release plugins in each tests.
