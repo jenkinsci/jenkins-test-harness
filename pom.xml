@@ -33,7 +33,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
-  <version>2.1-beta-1</version>
+  <version>2.2-SNAPSHOT</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
@@ -44,6 +44,24 @@ THE SOFTWARE.
     <url>https://github.com/jenkinsci/${project.artifactId}</url>
     <tag>HEAD</tag>
   </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>http://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencies>
     <dependency>
@@ -119,6 +137,11 @@ THE SOFTWARE.
           <artifactId>sisu-guice</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency> <!-- lib-jenkins-maven-embedder uses sisuInjectVersion=0.0.0.M2a which has uses ASM 3.0 which clashes with 4.0 on ClassVisitor -->
+      <groupId>org.eclipse.sisu</groupId>
+      <artifactId>org.eclipse.sisu.plexus</artifactId>
+      <version>0.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
