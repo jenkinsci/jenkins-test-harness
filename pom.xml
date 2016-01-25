@@ -138,6 +138,11 @@ THE SOFTWARE.
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency> <!-- lib-jenkins-maven-embedder uses sisuInjectVersion=0.0.0.M2a which has uses ASM 3.0 which clashes with 4.0 on ClassVisitor -->
+      <groupId>org.eclipse.sisu</groupId>
+      <artifactId>org.eclipse.sisu.plexus</artifactId>
+      <version>0.1.0</version>
+    </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
