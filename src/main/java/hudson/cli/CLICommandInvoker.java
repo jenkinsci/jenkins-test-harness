@@ -29,7 +29,11 @@ import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
+
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -44,6 +48,7 @@ import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
 
+import org.apache.maven.plugin.lifecycle.Execution;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -58,6 +63,9 @@ public class CLICommandInvoker {
     private static final String username = "user";
     private final JenkinsRule rule;
     private final CLICommand command;
+    private SecurityRealm originalSecurityRealm = null;
+    private AuthorizationStrategy originalAuthorizationStrategy = null;
+    private SecurityContext originalSecurityContext = null;
 
     private InputStream stdin;
     private List<String> args = Collections.emptyList();
@@ -112,6 +120,8 @@ public class CLICommandInvoker {
 
     public Result invoke() {
 
+        Result result;
+        Error executionError = null;
         setAuth();
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -121,7 +131,11 @@ public class CLICommandInvoker {
                 args, locale, stdin, new PrintStream(out), new PrintStream(err)
         );
 
-        return new Result(returnCode, out, err);
+        result = new Result(returnCode, out, err);
+
+        restoreAuth();
+
+        return result;
     }
 
     private static class GrantPermissions extends AuthorizationStrategy {
@@ -161,13 +175,33 @@ public class CLICommandInvoker {
 
         JenkinsRule.DummySecurityRealm realm = rule.createDummySecurityRealm();
         realm.addGroups(username, "group");
+
+        originalSecurityRealm = rule.jenkins.getSecurityRealm();
         rule.jenkins.setSecurityRealm(realm);
 
+        originalAuthorizationStrategy = rule.jenkins.getAuthorizationStrategy();
         rule.jenkins.setAuthorizationStrategy(new GrantPermissions(username, permissions));
 
         command.setTransportAuth(user().impersonate());
         // Otherwise it is SYSTEM, which would be relevant for a command overriding main:
-        ACL.impersonate(Jenkins.ANONYMOUS);
+        originalSecurityContext = ACL.impersonate(Jenkins.ANONYMOUS);
+    }
+
+    private void restoreAuth() {
+        if (originalSecurityRealm != null) {
+            rule.jenkins.setSecurityRealm(originalSecurityRealm);
+            originalSecurityRealm = null;
+        }
+
+        if (originalAuthorizationStrategy != null) {
+            rule.jenkins.setAuthorizationStrategy(originalAuthorizationStrategy);
+            originalAuthorizationStrategy = null;
+        }
+
+        if (originalSecurityContext != null) {
+            SecurityContextHolder.setContext(originalSecurityContext);
+            originalSecurityContext = null;
+        }
     }
 
     public User user() {
