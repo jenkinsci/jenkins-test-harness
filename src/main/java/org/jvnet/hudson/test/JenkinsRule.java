@@ -732,6 +732,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Creates a test {@link hudson.security.SecurityRealm} that recognizes username==password as valid.
+     * @see MockAuthorizationStrategy
      */
     public DummySecurityRealm createDummySecurityRealm() {
         return new DummySecurityRealm();
