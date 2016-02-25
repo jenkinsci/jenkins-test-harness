@@ -23,8 +23,9 @@
  */
 package org.jvnet.hudson.test;
 
-import org.mortbay.jetty.webapp.Configuration;
-import org.mortbay.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.webapp.AbstractConfiguration;
+import org.eclipse.jetty.webapp.WebAppContext;
 
 import javax.servlet.ServletContextListener;
 
@@ -37,27 +38,15 @@ import javax.servlet.ServletContextListener;
  *
  * @author Kohsuke Kawaguchi
  */
-final class NoListenerConfiguration implements Configuration {
-    private WebAppContext context;
+final class NoListenerConfiguration extends AbstractLifeCycle {
+    private final WebAppContext context;
 
-    public void setWebAppContext(WebAppContext context) {
+    NoListenerConfiguration(WebAppContext context) {
         this.context = context;
     }
 
-    public WebAppContext getWebAppContext() {
-        return context;
-    }
-
-    public void configureClassLoader() throws Exception {
-    }
-
-    public void configureDefaults() throws Exception {
-    }
-
-    public void configureWebApp() throws Exception {
+    @Override
+    protected void doStart() throws Exception {
         context.setEventListeners(null);
-    }
-
-    public void deconfigureWebApp() throws Exception {
     }
 }

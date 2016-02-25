@@ -1,9 +1,10 @@
 package org.jvnet.hudson.test;
 
-import org.mortbay.component.AbstractLifeCycle;
-import org.mortbay.thread.ThreadPool;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.thread.ThreadPool;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -16,12 +17,12 @@ public class ThreadPoolImpl extends AbstractLifeCycle implements ThreadPool {
         this.es = es;
     }
 
-    public boolean dispatch(Runnable job) {
+    @Override
+    public void execute(Runnable job) {
         if (!isRunning() || job==null)
-            return false;
+            throw new RejectedExecutionException();
 
         es.submit(job);
-        return true;
     }
 
     public void join() throws InterruptedException {
