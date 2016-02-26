@@ -649,9 +649,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     protected LoginService configureUserRealm() {
         HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
-        realm.update("alice", new Password("alice"), new String[]{"female"});
-        realm.update("bob", new Password("bob"), new String[]{"male"});
-        realm.update("charlie", new Password("charlie"), new String[]{"male"});
+        realm.update("alice", new Password("alice"), new String[]{"user","female"});
+        realm.update("bob", new Password("bob"), new String[]{"user","male"});
+        realm.update("charlie", new Password("charlie"), new String[]{"user","male"});
 
         return realm;
     }
