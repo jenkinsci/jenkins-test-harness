@@ -127,6 +127,17 @@ import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.security.HashLoginService;
+import org.eclipse.jetty.security.LoginService;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.util.security.Password;
+import org.eclipse.jetty.webapp.Configuration;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.webapp.WebXmlConfiguration;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
@@ -140,14 +151,6 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.mortbay.jetty.MimeTypes;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.security.HashUserRealm;
-import org.mortbay.jetty.security.UserRealm;
-import org.mortbay.jetty.webapp.Configuration;
-import org.mortbay.jetty.webapp.WebAppContext;
-import org.mortbay.jetty.webapp.WebXmlConfiguration;
 import org.mozilla.javascript.tools.debugger.Dim;
 import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
@@ -505,27 +508,32 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server();
-
-        explodedWarDir = WarExploder.getExplodedDir();
-        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);
-        context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration(), new NoListenerConfiguration()});
-        server.setHandler(context);
-        context.setMimeTypes(MIME_TYPES);
-
-        SocketConnector connector = new SocketConnector();
-        connector.setHeaderBufferSize(12*1024); // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-
-        server.setThreadPool(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
+        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setName("Jetty Thread Pool");
                 return t;
             }
         })));
+
+        explodedWarDir = WarExploder.getExplodedDir();
+        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);
+        context.setResourceBase(explodedWarDir.getPath());
+        context.setClassLoader(getClass().getClassLoader());
+        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
+        context.addBean(new NoListenerConfiguration(context));
+        server.setHandler(context);
+        context.setMimeTypes(MIME_TYPES);
+        context.getSecurityHandler().setLoginService(configureUserRealm());
+
+        ServerConnector connector = new ServerConnector(server);
+
+        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
+        config.setRequestHeaderSize(12 * 1024);
+        connector.setHost("localhost");
+
         server.addConnector(connector);
-        server.addUserRealm(configureUserRealm());
         server.start();
 
         localPort = connector.getLocalPort();
@@ -536,16 +544,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Configures a security realm for a test.
      */
-    protected UserRealm configureUserRealm() {
-        HashUserRealm realm = new HashUserRealm();
+    protected LoginService configureUserRealm() {
+        HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
-        realm.put("alice","alice");
-        realm.put("bob","bob");
-        realm.put("charlie","charlie");
-
-        realm.addUserToRole("alice","female");
-        realm.addUserToRole("bob","male");
-        realm.addUserToRole("charlie","male");
+        realm.update("alice", new Password("alice"), new String[]{"female"});
+        realm.update("bob", new Password("bob"), new String[]{"male"});
+        realm.update("charlie", new Password("charlie"), new String[]{"male"});
 
         return realm;
     }

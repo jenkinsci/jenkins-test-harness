@@ -3,11 +3,11 @@ package org.jvnet.hudson.test;
 import hudson.Util;
 import hudson.util.IOUtils;
 import org.apache.commons.io.FileUtils;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.bio.SocketConnector;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -40,10 +40,10 @@ public class JavaNetReverseProxy extends HttpServlet {
         ContextHandlerCollection contexts = new ContextHandlerCollection();
         server.setHandler(contexts);
 
-        Context root = new Context(contexts, "/", Context.SESSIONS);
+        ServletContextHandler root = new ServletContextHandler(contexts, "/", ServletContextHandler.SESSIONS);
         root.addServlet(new ServletHolder(this), "/");
 
-        SocketConnector connector = new SocketConnector();
+        ServerConnector connector = new ServerConnector(server);
         server.addConnector(connector);
         server.start();
 
