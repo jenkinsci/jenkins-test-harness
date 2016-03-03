@@ -85,6 +85,7 @@ import hudson.model.Result;
 import hudson.model.RootAction;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.TopLevelItem;
 import hudson.model.UpdateSite;
 import hudson.model.User;
 import hudson.model.View;
@@ -660,12 +661,33 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 // Convenience methods
 //
 
+    /**
+     * Creates a new job.
+     *
+     * @param type Top level item type.
+     * @param name Item name.
+     *
+     * @throws IllegalArgumentException if the project of the given name already exists.
+     */
+    public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
+        return jenkins.createProject(type, name);
+    }
+
+    /**
+     * Creates a new job with an unique name.
+     *
+     * @param type Top level item type.
+     */
+    public <T extends TopLevelItem> T createProject(Class<T> type) throws IOException {
+        return jenkins.createProject(type, createUniqueProjectName());
+    }
+
     public FreeStyleProject createFreeStyleProject() throws IOException {
         return createFreeStyleProject(createUniqueProjectName());
     }
 
     public FreeStyleProject createFreeStyleProject(String name) throws IOException {
-        return jenkins.createProject(FreeStyleProject.class, name);
+        return createProject(FreeStyleProject.class, name);
     }
 
     /**
@@ -673,7 +695,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since 1.494
      */
     public MockFolder createFolder(String name) throws IOException {
-        return jenkins.createProject(MockFolder.class, name);
+        return createProject(MockFolder.class, name);
     }
 
     protected String createUniqueProjectName() {
