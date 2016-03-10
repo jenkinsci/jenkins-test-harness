@@ -292,6 +292,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     @Override
     protected void  setUp() throws Exception {
+        if (Thread.interrupted()) { // JENKINS-30395
+            LOGGER.warning("was interrupted before start");
+        }
+
         if(Functions.isWindows()) {
             // JENKINS-4409.
             // URLConnection caches handles to jar files by default,
