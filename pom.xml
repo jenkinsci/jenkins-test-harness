@@ -87,6 +87,11 @@ THE SOFTWARE.
           <artifactId>sshd</artifactId>
         </exclusion>
       </exclusions>
+      <!--
+        To ensure consistent set of core artifacts are used, force the users to declare
+        a dependency to war-for-test
+      -->
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
