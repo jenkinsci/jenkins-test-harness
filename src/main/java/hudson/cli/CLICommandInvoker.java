@@ -120,8 +120,6 @@ public class CLICommandInvoker {
 
     public Result invoke() {
 
-        Result result;
-        Error executionError = null;
         setAuth();
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -131,11 +129,9 @@ public class CLICommandInvoker {
                 args, locale, stdin, new PrintStream(out), new PrintStream(err)
         );
 
-        result = new Result(returnCode, out, err);
-
         restoreAuth();
 
-        return result;
+        return new Result(returnCode, out, err);
     }
 
     private static class GrantPermissions extends AuthorizationStrategy {
@@ -169,6 +165,7 @@ public class CLICommandInvoker {
             return Collections.emptySet();
         }
     }
+
     private void setAuth() {
 
         if (permissions.isEmpty()) return;
