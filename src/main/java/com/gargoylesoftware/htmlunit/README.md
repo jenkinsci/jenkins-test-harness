@@ -37,3 +37,9 @@ These classes provide static utility methods to replace functionality that was a
 for triggering `<form>` submit, triggering a click event on an element etc.
 
 Use your IDE to access these utility classes and the static methods available.
+
+# Troubleshooting
+
+If you have some JavaScript behaving erratically when using the new HtmlUnit but which worked in the old test harness,
+check to see if you have any `<script>` tags directly inside a `<table>`. Browsers typically accept this, but it is not legal, and new HtmlUnit gets very confused.
+The typical fix is to move `<script>` inside `<f:block>` (inline content, inside `<tr><td>`).
