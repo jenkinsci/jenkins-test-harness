@@ -82,15 +82,15 @@ public class TestPluginManager extends PluginManager {
         Set<String> names = new HashSet<String>();
 
         File[] children = fromDir.listFiles();
-        if (children==null)
-            throw new Error("Unable to find "+fromDir);
-        for (File child : children) {
-            try {
-                names.add(child.getName());
+        if (children!=null) {
+            for (File child : children) {
+                try {
+                    names.add(child.getName());
 
-                copyBundledPlugin(child.toURI().toURL(), child.getName());
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin "+child,e);
+                    copyBundledPlugin(child.toURI().toURL(), child.getName());
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin "+child,e);
+                }
             }
         }
         // If running tests for a plugin, include the plugin being tested
