@@ -606,6 +606,21 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Prepares a {@link WebAppContext} to be used in thehosting environment to get the
+     * {@link javax.servlet.ServletContext} implementation that we need for testing.
+     */
+    protected WebAppContext createWebAppContext() throws Exception {
+        final WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
+        context.setClassLoader(getClass().getClassLoader());
+        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
+        context.addBean(new NoListenerConfiguration(context));
+        context.setMimeTypes(MIME_TYPES);
+        context.getSecurityHandler().setLoginService(configureUserRealm());
+        context.setResourceBase(WarExploder.getExplodedDir().getPath());
+        return context;
+    }
+
+    /**
      * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
      * that we need for testing.
      */
@@ -618,14 +633,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
         })));
 
-        WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
-        context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
+        WebAppContext context = createWebAppContext();
         server.setHandler(context);
-        context.setMimeTypes(MIME_TYPES);
-        context.getSecurityHandler().setLoginService(configureUserRealm());
-        context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
         ServerConnector connector = new ServerConnector(server);
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
