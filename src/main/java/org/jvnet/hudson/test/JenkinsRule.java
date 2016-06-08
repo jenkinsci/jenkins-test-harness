@@ -202,6 +202,7 @@ import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import hudson.maven.MavenRequest;
+import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import org.jvnet.hudson.test.recipes.Recipe;
@@ -1183,11 +1184,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Get entire log file (this method is deprecated in hudson.model.Run,
-     * but in tests it is OK to load entire log).
+     * Get entire log file as plain text.
+     * {@link Run#getLog()} is deprecated for reasons that are irrelevant in tests,
+     * and also does not strip console annotations which are a distraction in test output.
      */
     public static String getLog(Run run) throws IOException {
-        return Util.loadFile(run.getLogFile(), run.getCharset());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        run.getLogText().writeLogTo(0, baos);
+        return baos.toString(run.getCharset().name());
     }
 
     /**
