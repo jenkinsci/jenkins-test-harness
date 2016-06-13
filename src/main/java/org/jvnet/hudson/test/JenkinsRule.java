@@ -1189,6 +1189,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * and also does not strip console annotations which are a distraction in test output.
      */
     public static String getLog(Run run) throws IOException {
+        if (!run.getLogFile().exists()) {
+            return "";
+        }
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         run.getLogText().writeLogTo(0, baos);
         return baos.toString(run.getCharset().name());
