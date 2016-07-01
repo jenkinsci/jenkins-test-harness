@@ -202,9 +202,13 @@ import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import hudson.maven.MavenRequest;
+import hudson.model.Job;
+import hudson.model.queue.QueueTaskFuture;
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import jenkins.model.ParameterizedJobMixIn;
+import org.hamcrest.core.IsInstanceOf;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
@@ -1128,6 +1132,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return r;
     }
 
+    public <R extends Run> R assertBuildStatus(Result status, Future<? extends R> r) throws Exception {
+        assertThat("build was actually scheduled", r, Matchers.notNullValue());
+        return assertBuildStatus(status, r.get());
+    }
+
     /** Determines whether the specifed HTTP status code is generally "good" */
     public boolean isGoodHttpStatus(int status) {
         if ((400 <= status) && (status <= 417)) {
@@ -1154,12 +1163,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public <R extends Run> R assertBuildStatusSuccess(Future<? extends R> r) throws Exception {
-        assertThat("build was actually scheduled", r, Matchers.notNullValue());
-        return assertBuildStatusSuccess(r.get());
+        return assertBuildStatus(Result.SUCCESS, r);
     }
 
-    public <J extends AbstractProject<J,R>,R extends AbstractBuild<J,R>> R buildAndAssertSuccess(J job) throws Exception {
-        return assertBuildStatusSuccess(job.scheduleBuild2(0));
+    public <J extends Job<J,R>,R extends Run<J,R>> R buildAndAssertSuccess(final J job) throws Exception {
+        assertThat(job, IsInstanceOf.instanceOf(ParameterizedJobMixIn.ParameterizedJob.class));
+        QueueTaskFuture f = new ParameterizedJobMixIn() {
+            @Override protected Job asJob() {
+                return job;
+            }
+        }.scheduleBuild2(0);
+        @SuppressWarnings("unchecked") // no way to make this compile checked
+        Future<R> f2 = f;
+        return assertBuildStatusSuccess(f2);
     }
 
     /**
