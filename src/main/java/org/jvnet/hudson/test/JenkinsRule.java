@@ -108,6 +108,7 @@ import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
+import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -120,6 +121,9 @@ import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URISyntaxException;
@@ -127,6 +131,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -213,6 +218,7 @@ import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Dispatcher;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
@@ -1470,7 +1476,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Works like {@link #assertEqualBeans(Object, Object, String)} but figure out the properties
-     * via {@link org.kohsuke.stapler.DataBoundConstructor}
+     * via {@link org.kohsuke.stapler.DataBoundConstructor} and {@link org.kohsuke.stapler.DataBoundSetter}
      */
     public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws Exception {
         if (lhs==null && rhs==null)     return;
@@ -1481,11 +1487,26 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
         assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is((Constructor)lc));
 
-        List<String> primitiveProperties = new ArrayList<String>();
-
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
         assertThat(types.length, is(names.length));
+        assertEqualProperties(lhs, rhs, names, types);
+
+        Map<String, Class<?>> lprops = extractDataBoundSetterProperties(lhs.getClass());
+        Map<String, Class<?>> rprops = extractDataBoundSetterProperties(rhs.getClass());
+        assertThat("Data bound setters mismatch. Different type?", lprops, is(rprops));
+        List<String> setterNames = new ArrayList<String>();
+        List<Class<?>> setterTypes = new ArrayList<Class<?>>();
+        for (Map.Entry<String, Class<?>> e : lprops.entrySet()) {
+            setterNames.add(e.getKey());
+            setterTypes.add(e.getValue());
+        }
+        assertEqualProperties(lhs, rhs, setterNames.toArray(new String[0]), setterTypes.toArray(new Class<?>[0]));
+    }
+
+    private void assertEqualProperties(@Nonnull Object lhs, @Nonnull Object rhs, @Nonnull String[] names, @Nonnull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
+        List<String> primitiveProperties = new ArrayList<String>();
+
         for (int i=0; i<types.length; i++) {
             Object lv = ReflectionUtils.getPublicProperty(lhs, names[i]);
             Object rv = ReflectionUtils.getPublicProperty(rhs, names[i]);
@@ -1518,6 +1539,47 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // compare shallow primitive properties
         if (!primitiveProperties.isEmpty())
             assertEqualBeans(lhs,rhs,Util.join(primitiveProperties,","));
+    }
+
+    @Nonnull
+    private Map<String, Class<?>> extractDataBoundSetterProperties(@Nonnull Class<?> c) {
+        Map<String, Class<?>> ret = new HashMap<String, Class<?>>();
+        for ( ;c != null; c = c.getSuperclass()) {
+            for (Method m: c.getDeclaredMethods()) {
+                AbstractMap.SimpleEntry<String, Class<?>> nameAndType = extractDataBoundSetter(m);
+                if (nameAndType == null) {
+                    continue;
+                }
+                if (ret.containsKey(nameAndType.getKey())) {
+                    continue;
+                }
+                ret.put(nameAndType.getKey(),  nameAndType.getValue());
+            }
+        }
+        return ret;
+    }
+
+    @CheckForNull
+    private AbstractMap.SimpleEntry<String, Class<?>> extractDataBoundSetter(@Nonnull Method m) {
+        // See org.kohsuke.stapler.RequestImpl::findDataBoundSetter
+        if (!Modifier.isPublic(m.getModifiers())) {
+            return null;
+        }
+        if (!m.getName().startsWith("set")) {
+            return null;
+        }
+        if (m.getParameterTypes().length != 1) {
+            return null;
+        }
+        if (!m.isAnnotationPresent(DataBoundSetter.class)) {
+            return null;
+        }
+        
+        // setXyz -> xyz
+        return new AbstractMap.SimpleEntry<String, Class<?>>(
+                Introspector.decapitalize(m.getName().substring(3)),
+                m.getParameterTypes()[0]
+        );
     }
 
     /**
