@@ -44,8 +44,8 @@ import org.junit.rules.RuleChain;
  * A test rule which allows you to easily enable one or more loggers for the duration of a test.
  * Call {@link #record(Class, Level)} or another overload for the rule to take effect.
  * <p>By default messages are merely printed to test output.
- * If you also want to examine them, call TODO
- * <p>To capture messages during Jenkins startup,
+ * If you also want to examine them, call {@link #capture}.
+ * <p>To print and/or capture messages during Jenkins startup,
  * you may compose this with a {@link JenkinsRule} using a {@link RuleChain};
  * or use as a {@link ClassRule}.
  */
