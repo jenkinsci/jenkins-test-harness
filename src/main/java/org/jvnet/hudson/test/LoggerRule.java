@@ -43,22 +43,50 @@ import org.junit.rules.RuleChain;
 /**
  * A test rule which allows you to easily enable one or more loggers for the duration of a test.
  * Call {@link #record(Class, Level)} or another overload for the rule to take effect.
+ * <p>By default messages are merely printed to test output.
+ * If you also want to examine them, call TODO
  * <p>To capture messages during Jenkins startup,
  * you may compose this with a {@link JenkinsRule} using a {@link RuleChain};
  * or use as a {@link ClassRule}.
  */
 public class LoggerRule extends ExternalResource {
 
-    private final RingBufferLogHandler ringHandler = new RingBufferLogHandler();
     private final ConsoleHandler consoleHandler = new ConsoleHandler();
     private final Map<Logger,Level> loggers = new HashMap<Logger,Level>();
+    // initialized iff capture is called:
+    private RingBufferLogHandler ringHandler;
+    private List<String> messages;
 
     /**
      * Initializes the rule, by default not recording anything.
      */
     public LoggerRule() {
-        ringHandler.setLevel(Level.ALL);
         consoleHandler.setLevel(Level.ALL);
+    }
+
+    /**
+     * Initializes log record capture, in addition to merely printing it.
+     * This allows you to call {@link #getRecords} and/or {@link #getRecordsFormatted} later.
+     * @param maximum the maximum number of records to keep (any further will be discarded)
+     * @return this rule, for convenience
+     */
+    public LoggerRule capture(int maximum) {
+        messages = new ArrayList<String>();
+        ringHandler = new RingBufferLogHandler(maximum) {
+            final Formatter f = new SimpleFormatter(); // placeholder instance for what should have been a static method perhaps
+            @Override
+            public synchronized void publish(LogRecord record) {
+                super.publish(record);
+                String message = f.formatMessage(record);
+                Throwable x = record.getThrown();
+                messages.add(message == null && x != null ? x.toString() : message);
+            }
+        };
+        ringHandler.setLevel(Level.ALL);
+        for (Logger logger : loggers.keySet()) {
+            logger.addHandler(ringHandler);
+        }
+        return this;
     }
 
     /**
@@ -76,8 +104,10 @@ public class LoggerRule extends ExternalResource {
     public LoggerRule record(Logger logger, Level level) {
         loggers.put(logger, logger.getLevel());
         logger.setLevel(level);
-        logger.addHandler(ringHandler);
         logger.addHandler(consoleHandler);
+        if (ringHandler != null) {
+            logger.addHandler(ringHandler);
+        }
         return this;
     }
 
@@ -97,20 +127,19 @@ public class LoggerRule extends ExternalResource {
 
     /**
      * Obtains all log records collected so far during this test case.
+     * You must have first called {@link #capture}.
+     * If more than the maximum number of records were captured, older ones will have been discarded.
      */
     public List<LogRecord> getRecords() {
         return ringHandler.getView();
     }
 
     /**
-     * Like {@link #getRecords} but applies {@link SimpleFormatter#format(LogRecord)}.
+     * {@link Formatter#formatMessage} applied to {@link #getRecords} at the time of logging.
+     * However, if the message is null, but there is an exception, {@link Throwable#toString} will be used.
+     * Does not include logger names, stack traces, times, etc. (these will appear in the test console anyway).
      */
-    public List<String> getRecordsFormatted() {
-        Formatter f = new SimpleFormatter();
-        List<String> messages = new ArrayList<String>();
-        for (LogRecord lr : getRecords()) {
-            messages.add(f.format(lr).trim());
-        }
+    public List<String> getMessages() {
         return messages;
     }
 
@@ -119,11 +148,16 @@ public class LoggerRule extends ExternalResource {
         for (Map.Entry<Logger,Level> entry : loggers.entrySet()) {
             Logger logger = entry.getKey();
             logger.setLevel(entry.getValue());
-            logger.removeHandler(ringHandler);
             logger.removeHandler(consoleHandler);
+            if (ringHandler != null) {
+                logger.removeHandler(ringHandler);
+            }
         }
         loggers.clear();
-        ringHandler.clear();
+        if (ringHandler != null) {
+            ringHandler.clear();
+            messages.clear();
+        }
     }
 
 }
