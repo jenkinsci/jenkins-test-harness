@@ -66,7 +66,7 @@ public class LoggerRule extends ExternalResource {
 
     /**
      * Initializes log record capture, in addition to merely printing it.
-     * This allows you to call {@link #getRecords} and/or {@link #getRecordsFormatted} later.
+     * This allows you to call {@link #getRecords} and/or {@link #getMessages} later.
      * @param maximum the maximum number of records to keep (any further will be discarded)
      * @return this rule, for convenience
      */
@@ -112,14 +112,14 @@ public class LoggerRule extends ExternalResource {
     }
 
     /**
-     * Same as {@link #record(Logger, Level) but calls {@link Logger#getLogger(String)} for you first.
+     * Same as {@link #record(Logger, Level)} but calls {@link Logger#getLogger(String)} for you first.
      */
     public LoggerRule record(String name, Level level) {
         return record(Logger.getLogger(name), level);
     }
     
     /**
-     * Same as {@link #record(String, Level) but calls {@link Class#getName()} for you first.
+     * Same as {@link #record(String, Level)} but calls {@link Class#getName()} for you first.
      */
     public LoggerRule record(Class<?> clazz, Level level) {
         return record(clazz.getName(), level);
