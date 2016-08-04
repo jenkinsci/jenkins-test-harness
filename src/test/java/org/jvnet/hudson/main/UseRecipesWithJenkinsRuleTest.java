@@ -36,6 +36,12 @@ public class UseRecipesWithJenkinsRuleTest {
     }
 
     @Test
+    @LocalData
+    public void testGetItemFromLocalDataZip() {
+        assertNotNull(rule.jenkins.getItem("somejob"));
+    }
+
+    @Test
     @WithPlugin("tasks.jpi")
     public void testWithPlugin() {
         assertNotNull(rule.jenkins.getPlugin("tasks"));

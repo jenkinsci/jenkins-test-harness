@@ -115,10 +115,8 @@ public interface HudsonHomeLoader {
             URL res = findDataResource();
             if(!res.getProtocol().equals("file"))
                 throw new AssertionError("Test data is not available in the file system: "+res);
-            // if we picked up a directory, it's one level above config.xml
             File home = new File(res.toURI());
-            if(!home.getName().endsWith(".zip"))
-                home = home.getParentFile();
+            System.err.println("Loading $JENKINS_HOME from " + home);
 
             return new CopyExisting(home).allocate();
         }
@@ -137,6 +135,6 @@ public interface HudsonHomeLoader {
             throw new AssertionError("No test resource was found for "+testMethod);
         }
 
-        private static final String[] SUFFIXES = {"/config.xml",".zip"};
+        private static final String[] SUFFIXES = {"/", ".zip"};
     }
 }
