@@ -44,19 +44,21 @@ import static java.lang.annotation.ElementType.METHOD;
  * either from your test method or from the test class.
  *
  * <p>
- * For example, if the test method if <tt>org.acme.FooTest.testBar()</tt>, then
+ * For example, if the test method is <tt>org.acme.FooTest.testBar()</tt>, then
  * you can have your test data in one of the following places in resources folder
  * (typically <tt>src/test/resources</tt>):
  *
  * <ol>
  * <li>
- * Under <tt>org/acme/FooTest/testBar</tt> directory (that is, you'll have
- * <tt>org/acme/FooTest/testBar/config.xml</tt>), in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
+ * Under <tt>org/acme/FooTest/testBar</tt> directory; that is, you could have files such as
+ * <tt>org/acme/FooTest/testBar/config.xml</tt> or <tt>org/acme/FooTest/testBar/jobs/p/config.xml</tt>,
+ * in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
  * <li>
  * In <tt>org/acme/FooTest/testBar.zip</tt> as a zip file.
  * <li>
- * Under <tt>org/acme/FooTest</tt> directory (that is, you'll have
- * <tt>org/acme/FooTest/config.xml</tt>), in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
+ * Under <tt>org/acme/FooTest</tt> directory; that is, you could have files such as
+ * <tt>org/acme/FooTest/config.xml</tt> or <tt>org/acme/FooTest/jobs/p/config.xml</tt>,
+ * in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
  * <li>
  * In <tt>org/acme/FooTest.zip</tt> as a zip file.
  * </ol>
