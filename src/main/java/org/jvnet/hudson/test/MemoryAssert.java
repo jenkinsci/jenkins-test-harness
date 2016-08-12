@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.netbeans.insane.live.LiveReferences;
 import org.netbeans.insane.live.Path;
 import org.netbeans.insane.scanner.CountingVisitor;
 import org.netbeans.insane.scanner.Filter;
+import org.netbeans.insane.scanner.ObjectMap;
 import org.netbeans.insane.scanner.ScannerUtils;
 
 /**
@@ -165,7 +167,7 @@ public class MemoryAssert {
             System.err.println("Successfully collected.");
         } else {
             System.err.println("Failed to collect " + obj + ", looking for strong references…");
-            Map<Object,Path> rootRefs = LiveReferences.fromRoots(Collections.singleton(obj));
+            Map<Object,Path> rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
             if (!rootRefs.isEmpty()) {
                 fail(rootRefs.toString());
             } else {
@@ -203,7 +205,37 @@ public class MemoryAssert {
      * with {@link ScannerUtils#skipNonStrongReferencesFilter}, making it useless for our purposes.
      */
     private static Map<Object,Path> fromRoots(Collection<Object> objs, Set<Object> rootsHint, BoundedRangeModel progress, Filter f) {
-        LiveEngine engine = new LiveEngine(progress);
+        LiveEngine engine = new LiveEngine(progress) {
+            // TODO InsaneEngine.processClass recognizes Class → ClassLoader but fails to notify the visitor,
+            // so LiveEngine will fail to find a ClassLoader held only via one of its loaded classes.
+            // The following trick substitutes for adding:
+            // * to recognizeClass, before queue.add(cls): objects.getID(cls)
+            // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects, cls, cl, null)
+            // Also Path.getField confusingly returns "<changed>" when printing the Class → ClassLoader link.
+            List<Class> classes = new ArrayList<Class>();
+            @Override public void visitClass(Class cls) {
+                getID(cls);
+                super.visitClass(cls);
+                ClassLoader loader = cls.getClassLoader();
+                if (loader != null) {
+                    classes.add(cls);
+                }
+            }
+            @Override public void visitObject(ObjectMap map, Object object) {
+                super.visitObject(map, object);
+                if (object instanceof ClassLoader) {
+                    if (isKnown(object)) {
+                        Iterator<Class> it = classes.iterator();
+                        while (it.hasNext()) {
+                            Class c = it.next();
+                            if (c.getClassLoader() == object) {
+                                visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
+                            }
+                        }
+                    }
+                }
+            }
+        };
         try {
             Field filter = LiveEngine.class.getDeclaredField("filter");
             filter.setAccessible(true);
