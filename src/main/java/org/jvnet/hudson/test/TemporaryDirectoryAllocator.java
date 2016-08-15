@@ -50,7 +50,8 @@ public class TemporaryDirectoryAllocator {
     }
 
     public TemporaryDirectoryAllocator() {
-        this(new File(System.getProperty("java.io.tmpdir")));
+        this.base = new File(System.getProperty("java.io.tmpdir"), "jenkinsTests.tmp");
+        base.mkdirs();
     }
 
     /**
@@ -61,7 +62,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile("hudson", "test", base);
+            File f = File.createTempFile("jenkins", "test", base);
             f.delete();
             f.mkdirs();
             tmpDirectories.add(f);
