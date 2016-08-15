@@ -25,18 +25,27 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import javax.swing.BoundedRangeModel;
 import jenkins.model.Jenkins;
 import static org.junit.Assert.*;
+import org.netbeans.insane.impl.LiveEngine;
 import org.netbeans.insane.live.LiveReferences;
+import org.netbeans.insane.live.Path;
 import org.netbeans.insane.scanner.CountingVisitor;
 import org.netbeans.insane.scanner.Filter;
+import org.netbeans.insane.scanner.ObjectMap;
 import org.netbeans.insane.scanner.ScannerUtils;
 
 /**
@@ -138,20 +147,104 @@ public class MemoryAssert {
     @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference) {
         assertTrue(true); reference.get(); // preload any needed classes!
+        System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<Object[]>();
-        while (true) {
+        int size = 1024;
+        while (reference.get() != null) {
             try {
-                objects.add(new Object[1024]);
+                objects.add(new Object[size]);
+                size *= 1.3;
             } catch (OutOfMemoryError ignore) {
                 break;
             }
+            System.gc();
+            System.err.println("GC after allocation of size " + size);
         }
         objects = null;
         System.gc();
         Object obj = reference.get();
-        if (obj != null) {
-            fail(LiveReferences.fromRoots(Collections.singleton(obj)).toString());
+        if (obj == null) {
+            System.err.println("Successfully collected.");
+        } else {
+            System.err.println("Failed to collect " + obj + ", looking for strong references…");
+            Map<Object,Path> rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
+            if (!rootRefs.isEmpty()) {
+                fail(rootRefs.toString());
+            } else {
+                System.err.println("Did not find any strong references to " + obj + ", looking for soft references…");
+                rootRefs = fromRoots(Collections.singleton(obj), null, null, new Filter() {
+                    final Field referent;
+                    {
+                        try {
+                            referent = Reference.class.getDeclaredField("referent");
+                        } catch (NoSuchFieldException x) {
+                            throw new AssertionError(x);
+                        }
+                    }
+                    @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
+                        return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
+                    }
+                });
+                if (!rootRefs.isEmpty()) {
+                    fail(rootRefs.toString());
+                } else {
+                    System.err.println("Did not find any soft references to " + obj + ", looking for weak references…");
+                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
+                    if (!rootRefs.isEmpty()) {
+                        fail(rootRefs.toString());
+                    } else {
+                        fail("Did not find any root references to " + obj + " whatsoever. Unclear why it is not being collected.");
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * TODO {@link LiveReferences#fromRoots(Collection, Set, BoundedRangeModel, Filter) logically ANDs the {@link Filter}
+     * with {@link ScannerUtils#skipNonStrongReferencesFilter}, making it useless for our purposes.
+     */
+    private static Map<Object,Path> fromRoots(Collection<Object> objs, Set<Object> rootsHint, BoundedRangeModel progress, Filter f) {
+        LiveEngine engine = new LiveEngine(progress) {
+            // TODO InsaneEngine.processClass recognizes Class → ClassLoader but fails to notify the visitor,
+            // so LiveEngine will fail to find a ClassLoader held only via one of its loaded classes.
+            // The following trick substitutes for adding:
+            // * to recognizeClass, before queue.add(cls): objects.getID(cls)
+            // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects, cls, cl, null)
+            // Also Path.getField confusingly returns "<changed>" when printing the Class → ClassLoader link.
+            List<Class> classes = new ArrayList<Class>();
+            @Override public void visitClass(Class cls) {
+                getID(cls);
+                super.visitClass(cls);
+                ClassLoader loader = cls.getClassLoader();
+                if (loader != null) {
+                    classes.add(cls);
+                }
+            }
+            @Override public void visitObject(ObjectMap map, Object object) {
+                super.visitObject(map, object);
+                if (object instanceof ClassLoader) {
+                    if (isKnown(object)) {
+                        Iterator<Class> it = classes.iterator();
+                        while (it.hasNext()) {
+                            Class c = it.next();
+                            if (c.getClassLoader() == object) {
+                                visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        try {
+            Field filter = LiveEngine.class.getDeclaredField("filter");
+            filter.setAccessible(true);
+            filter.set(engine, f);
+        } catch (Exception x) {
+            // The test has already failed at this point, so AssumptionViolatedException would inappropriately mark it as a skip.
+            throw new AssertionError("could not patch INSANE", x);
+        }
+        return engine.trace(objs, rootsHint);
     }
 
 }
