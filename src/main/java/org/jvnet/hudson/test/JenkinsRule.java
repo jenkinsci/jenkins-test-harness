@@ -1545,6 +1545,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private Map<String, Class<?>> extractDataBoundSetterProperties(@Nonnull Class<?> c) {
         Map<String, Class<?>> ret = new HashMap<String, Class<?>>();
         for ( ;c != null; c = c.getSuperclass()) {
+
+            for (Field f: c.getDeclaredFields()) {
+                if (f.getAnnotation(DataBoundSetter.class) == null) {
+                    continue;
+                }
+                f.setAccessible(true);
+                ret.put(f.getName(), f.getType());
+           }
+
             for (Method m: c.getDeclaredMethods()) {
                 AbstractMap.SimpleEntry<String, Class<?>> nameAndType = extractDataBoundSetter(m);
                 if (nameAndType == null) {

@@ -39,8 +39,10 @@ public class JenkinsRuleTest {
     public void assertEqualDataBoundBeansWithSetters() throws Exception {
         SomeClassWithSetters l = new SomeClassWithSetters("value1");
         l.setSetterParam("value2");
+        l.setterField = "value3";
         SomeClassWithSetters r = new SomeClassWithSetters("value1");
         r.setSetterParam("value2");
+        r.setterField = "value3";
         j.assertEqualDataBoundBeans(l, r);
     }
 
@@ -48,14 +50,29 @@ public class JenkinsRuleTest {
     public void assertEqualDataBoundBeansWithSettersFail() throws Exception {
         SomeClassWithSetters l = new SomeClassWithSetters("value1");
         l.setSetterParam("value2");
+        l.setterField = "value4";
         SomeClassWithSetters r = new SomeClassWithSetters("value1");
         r.setSetterParam("value3");     // mismatch!
+        r.setterField = "value4";
+        j.assertEqualDataBoundBeans(l, r);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void assertEqualDataBoundBeansWithSettersFailForField() throws Exception {
+        SomeClassWithSetters l = new SomeClassWithSetters("value1");
+        l.setSetterParam("value2");
+        l.setterField = "value3";
+        SomeClassWithSetters r = new SomeClassWithSetters("value1");
+        r.setSetterParam("value2");     // mismatch!
+        l.setterField = "value4";
         j.assertEqualDataBoundBeans(l, r);
     }
 
     public static class SomeClassWithSetters {
         private String ctorParam;
         private String setterParam;
+        @DataBoundSetter
+        public String setterField;
 
         @DataBoundConstructor
         public SomeClassWithSetters(String ctorParam) {
