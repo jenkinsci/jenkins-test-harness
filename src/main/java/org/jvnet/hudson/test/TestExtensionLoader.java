@@ -29,6 +29,9 @@ import hudson.ExtensionFinder.GuiceExtensionAnnotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.runner.Description;
 
 /**
@@ -61,9 +64,9 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
 
         TestExtension a = e.getAnnotation(TestExtension.class);
         if (a==null)        return false;   // stale index
-        String testName = a.value();
+        List<String> testNameList = Arrays.asList(a.value());
         Description description = env.description();
-        if (testName.length()>0 && !testName.equals(description.getMethodName()))
+        if (!testNameList.isEmpty() && !testNameList.contains(description.getMethodName()))
             return false;   // doesn't apply to this test
         String className = description.getClassName();
         if (e instanceof Class) {

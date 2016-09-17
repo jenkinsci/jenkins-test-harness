@@ -65,8 +65,12 @@ public @interface TestExtension {
      *     // this kicks in both for test1 and test2
      *     &#64;TestExtension
      *     class Bar extends ConsoleAnnotator { ... }
+     *
+     *     // You can also specify multiple test cases with parameters
+     *     &#64;TestExtension({"test1", "test2"})
+     *     class Baz extends ConsoleAnnotator { ... }
      * }
      * </pre>
      */
-    String value() default "";
+    String[] value() default {};
 }
