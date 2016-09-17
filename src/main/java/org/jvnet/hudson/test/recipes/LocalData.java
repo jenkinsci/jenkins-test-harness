@@ -63,6 +63,11 @@ import static java.lang.annotation.ElementType.METHOD;
  * In <tt>org/acme/FooTest.zip</tt> as a zip file.
  * </ol>
  *
+ * You can specify a value to use instead of the method name
+ * with the parameter of annotation. Should be a valid java identifier.
+ * E.g. <tt>@LocalData("commonData")</tt> results using
+ * <tt>org/acme/FooTest/commonData(.zip)</tt>.
+ *
  * <p>
  * Search is performed in this specific order. The fall back mechanism allows you to write
  * one test class that interacts with different aspects of the same data set, by associating
@@ -79,15 +84,17 @@ import static java.lang.annotation.ElementType.METHOD;
 @Target(METHOD)
 @Retention(RUNTIME)
 public @interface LocalData {
+    String value() default "";
+
     class RunnerImpl extends Recipe.Runner<LocalData> {
         public void setup(HudsonTestCase testCase, LocalData recipe) throws Exception {
-            testCase.with(new Local(testCase.getClass().getMethod(testCase.getName())));
+            testCase.with(new Local(testCase.getClass().getMethod(testCase.getName()), recipe.value()));
         }
     }
     class RuleRunnerImpl extends JenkinsRecipe.Runner<LocalData> {
         public void setup(JenkinsRule jenkinsRule, LocalData recipe) throws Exception {
             Description desc = jenkinsRule.getTestDescription();
-            jenkinsRule.with(new Local(desc.getTestClass().getMethod(desc.getMethodName())));
+            jenkinsRule.with(new Local(desc.getTestClass().getMethod(desc.getMethodName()), recipe.value()));
         }
     }
 }

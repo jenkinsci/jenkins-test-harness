@@ -43,4 +43,16 @@ public class LocalDataTest {
         assertNotNull(r.jenkins.getItem("somejob"));
     }
 
+    @LocalData
+    @Test
+    public void methodData() throws Exception {
+        assertEquals("This is Jenkins in LocalDataTest#methodData", r.jenkins.getSystemMessage());
+    }
+
+    @LocalData("methodData")
+    @Test
+    public void otherData() throws Exception {
+        assertEquals("This is Jenkins in LocalDataTest#methodData", r.jenkins.getSystemMessage());
+    }
+
 }
