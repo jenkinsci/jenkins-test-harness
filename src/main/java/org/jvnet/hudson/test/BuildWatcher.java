@@ -25,7 +25,6 @@
 package org.jvnet.hudson.test;
 
 import hudson.Extension;
-import hudson.console.AnnotatedLargeText;
 import hudson.console.LineTransformationOutputStream;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -90,7 +89,7 @@ public final class BuildWatcher extends ExternalResource {
                 return;
             }
             RunningBuild build = new RunningBuild(r);
-            RunningBuild orig = builds.put(r.getLogFile(), build);
+            RunningBuild orig = builds.put(r.getRootDir(), build);
             if (orig != null) {
                 System.err.println(r + " was started twice?!");
             }
@@ -100,7 +99,7 @@ public final class BuildWatcher extends ExternalResource {
             if (!active) {
                 return;
             }
-            RunningBuild build = builds.remove(r.getLogFile());
+            RunningBuild build = builds.remove(r.getRootDir());
             if (build != null) {
                 build.copy();
             } else {
@@ -112,18 +111,18 @@ public final class BuildWatcher extends ExternalResource {
 
     private static final class RunningBuild {
 
-        private final AnnotatedLargeText<?> log;
+        private final Run<?,?> r;
         private final OutputStream sink;
         private long pos;
 
         RunningBuild(Run<?,?> r) {
-            log = r.getLogText();
+            this.r = r;
             sink = new LogLinePrefixOutputFilter(System.err, "[" + r + "] ");
         }
 
         synchronized void copy() {
             try {
-                pos = log.writeLogTo(pos, sink);
+                pos = r.getLogText().writeLogTo(pos, sink);
                 // Note that !log.isComplete() after the initial call to copy, even if the build is complete, because Run.getLogText never calls markComplete!
                 // That is why Run.writeWholeLogTo calls getLogText repeatedly.
                 // Even if it did call markComplete this might not work from RestartableJenkinsRule since you would have a different Run object after the restart.
