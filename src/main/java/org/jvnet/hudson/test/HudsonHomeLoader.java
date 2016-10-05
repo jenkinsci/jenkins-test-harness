@@ -25,12 +25,15 @@ package org.jvnet.hudson.test;
 
 import hudson.FilePath;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+
+import javax.annotation.CheckForNull;
 
 /**
  * Controls how a {@link HudsonTestCase} initializes <tt>JENKINS_HOME</tt>.
@@ -106,9 +109,11 @@ public interface HudsonHomeLoader {
      */
     final class Local implements HudsonHomeLoader {
         private final Method testMethod;
+        private final String alterName;
 
-        public Local(Method testMethod) {
+        public Local(Method testMethod, String alterName) {
             this.testMethod = testMethod;
+            this.alterName = alterName;
         }
 
         public File allocate() throws Exception {
@@ -121,11 +126,31 @@ public interface HudsonHomeLoader {
             return new CopyExisting(home).allocate();
         }
 
+        public static boolean isJavaIdentifier(@CheckForNull String name) {
+            if (StringUtils.isEmpty(name)) {
+                return false;
+            }
+            if (!Character.isJavaIdentifierStart(name.charAt(0))) {
+                return false;
+            }
+            for (int pos = 1; pos < name.length(); ++pos) {
+                if (!Character.isJavaIdentifierPart(name.charAt(pos))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         private URL findDataResource() {
             // first, check method specific resource
             Class<?> clazz = testMethod.getDeclaringClass();
+            String methodName = testMethod.getName();
             
-            for( String middle : new String[]{ '/'+testMethod.getName(), "" }) {
+            if (isJavaIdentifier(alterName)) {
+                methodName = alterName;
+            }
+            
+            for( String middle : new String[]{ '/'+methodName, "" }) {
                 for( String suffix : SUFFIXES ) {
                     URL res = clazz.getResource(clazz.getSimpleName() + middle+suffix);
                     if(res!=null)   return res;
