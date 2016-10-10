@@ -210,6 +210,7 @@ import hudson.maven.MavenRequest;
 import hudson.model.Job;
 import hudson.model.queue.QueueTaskFuture;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import jenkins.model.ParameterizedJobMixIn;
@@ -1211,11 +1212,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * and also does not strip console annotations which are a distraction in test output.
      */
     public static String getLog(Run run) throws IOException {
-        if (!run.getLogFile().exists()) {
-            return "";
-        }
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        run.getLogText().writeLogTo(0, baos);
+        try {
+            run.getLogText().writeLogTo(0, baos);
+        } catch (FileNotFoundException x) {
+            return ""; // log file not yet created, OK
+        }
         return baos.toString(run.getCharset().name());
     }
 
