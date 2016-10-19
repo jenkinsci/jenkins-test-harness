@@ -48,6 +48,7 @@ THE SOFTWARE.
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.2.15.v20160210</jetty.version>
+    <recordMocks>false</recordMocks>
   </properties>
 
   <licenses>
@@ -167,6 +168,17 @@ THE SOFTWARE.
       <version>1.0.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
+      <version>2.1.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>19.0</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -189,6 +201,7 @@ THE SOFTWARE.
               <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
               <buildDirectory>${project.build.directory}</buildDirectory>
               <ignore.random.failures>${ignore.random.failures}</ignore.random.failures>
+              <toRecord>${recordMocks}</toRecord>
           </systemPropertyVariables>
         </configuration>
       </plugin>
