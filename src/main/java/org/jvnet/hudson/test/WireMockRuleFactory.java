@@ -12,7 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
  * <a href="http://wiremock.org/">WireMock</a>.  To use: 
  * <pre>
  * {@code
- * WireMockRuleFactory wmrf = new WireMockRuleFactory(api_to_mock);
+ * WireMockRuleFactory wmrf = new WireMockRuleFactory();
  * @Rule
  * WireMockRule = wmrf.getRule(8089); //port is configurable  
  * }
@@ -20,26 +20,18 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
  *
  * Point your system to "http://localhost:8089/" to see mocked responses.
  *
- * To record mocks: {@code mvn clean test -DrecordMocks=true}  Clearing 
+ * To record mocks: {@code mvn test -wiremock.record="http://api_url"}  Clearing 
  * previously recorded mocks before generating new ones is recommended. 
  */
 public class WireMockRuleFactory {
-    private String prop = System.getProperty("toRecord");
-    private String urlToMock;
-
-    /**
-     * @param url  The source to mock through this particular WireMock instance
-     */
-    public WireMockRuleFactory(String url){
-        urlToMock = url;
-    } 
+    private String urlToMock = System.getProperty("wiremock.record");
 
     public WireMockRule getRule(int port){
         return getRule(wireMockConfig().port(port));
     }
 
     public WireMockRule getRule(Options options) {
-        if(prop.equalsIgnoreCase("true")) {
+        if(urlToMock != null && !urlToMock.isEmpty()) {
             return new WireMockRecorderRule(options, urlToMock);
         } else {
             return new WireMockRule(options);

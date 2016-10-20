@@ -48,7 +48,7 @@ THE SOFTWARE.
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.2.15.v20160210</jetty.version>
-    <recordMocks>false</recordMocks>
+    <wiremock.record/>
   </properties>
 
   <licenses>
@@ -195,7 +195,7 @@ THE SOFTWARE.
               <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
               <buildDirectory>${project.build.directory}</buildDirectory>
               <ignore.random.failures>${ignore.random.failures}</ignore.random.failures>
-              <toRecord>${recordMocks}</toRecord>
+              <wiremock.record>${wiremock.record}</wiremock.record>
           </systemPropertyVariables>
         </configuration>
       </plugin>
