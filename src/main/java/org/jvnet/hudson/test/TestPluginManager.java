@@ -114,7 +114,12 @@ public class TestPluginManager extends PluginManager {
                 String line;
                 while ((line=r.readLine())!=null) {
                 	final URL url = new URL(index, line + ".jpi");
-					File f = new File(url.toURI());
+					File f;
+                    try {
+                        f = new File(url.toURI());
+                    } catch (IllegalArgumentException x) {
+                        throw new IOException(index + " contains bogus line " + line, x);
+                    }
                 	if(f.exists()){
                 		copyBundledPlugin(url, line + ".jpi");
                 	}else{
