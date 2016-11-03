@@ -263,7 +263,21 @@ public class MemoryAssert {
             // The test has already failed at this point, so AssumptionViolatedException would inappropriately mark it as a skip.
             throw new AssertionError("could not patch INSANE", x);
         }
-        return engine.trace(objs, rootsHint);
+        
+        // ScannerUtils.interestingRoots includes our own ClassLoader, thus any static fields in any classes loaded in any visible class…but not in the bootstrap classpath, since this has no ClassLoader object to traverse.
+        Set<Object> rootsHint2 = new HashSet<Object>();
+        if (rootsHint != null) {
+            rootsHint2.addAll(rootsHint);
+        }
+        //
+        try {
+            rootsHint2.add(Class.forName("java.io.ObjectStreamClass$Caches")); // http://stackoverflow.com/a/20461446/12916 or JDK-6232010 or http://www.szegedi.org/articles/memleak3.html
+            rootsHint2.add(Class.forName("java.beans.ThreadGroupContext"));
+        } catch (ClassNotFoundException x) {
+            x.printStackTrace();
+        }
+
+        return engine.trace(objs, rootsHint2);
     }
 
 }
