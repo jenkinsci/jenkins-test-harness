@@ -159,6 +159,25 @@ public class MemoryAssert {
             }
             System.gc();
             System.err.println("GC after allocation of size " + size);
+            if ("true".equals(System.getenv("ASSERT_GC_VERBOSE"))) { // much slower but allows you to find Weak/SoftReference delaying collection
+                Object obj = reference.get();
+                if (obj != null) {
+                    System.err.println("Apparent soft references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, new Filter() {
+                        final Field referent;
+                        {
+                            try {
+                                referent = Reference.class.getDeclaredField("referent");
+                            } catch (NoSuchFieldException x) {
+                                throw new AssertionError(x);
+                            }
+                        }
+                        @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
+                            return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
+                        }
+                    }));
+                    System.err.println("Apparent weak references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true)));
+                }
+            }
         }
         objects = null;
         System.gc();
