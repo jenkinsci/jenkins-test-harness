@@ -112,7 +112,7 @@ final class WarExploder {
             System.out.println("Picking up existing exploded jenkins.war at "+explodeDir.getAbsolutePath());
         }
 
-        // Check for anything AssetManager might need added to the test classpath.
+        // Check for anything AssetManager might need added to the test classpath. Needed for core versions 2.0+ but prior to JENKINS-24064.
         ClassLoader loader = WarExploder.class.getClassLoader();
         if (loader instanceof URLClassLoader) {
             // TODO JenkinsRule assumes that Jenkins.class is in the test classpath, which is hard to modify after the JVM starts
