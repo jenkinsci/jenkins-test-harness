@@ -26,7 +26,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 public class WireMockRuleFactory {
     private String urlToMock = System.getProperty("wiremock.record");
 
-    public WireMockRule getRule(int port){
+    public WireMockRule getRule(int port) {
         return getRule(wireMockConfig().port(port));
     }
 
@@ -43,7 +43,7 @@ public class WireMockRuleFactory {
         //needed for WireMockRule file location
         private String mappingLocation = "src/test/resources";
 
-        public WireMockRecorderRule(Options options, String url){
+        public WireMockRecorderRule(Options options, String url) {
             super(options);
             this.stubFor(get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(url)));
             this.enableRecordMappings(new SingleRootFileSource(mappingLocation + "/mappings"), new SingleRootFileSource(mappingLocation + "/__files"));
