@@ -48,6 +48,7 @@ THE SOFTWARE.
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.2.15.v20160210</jetty.version>
+    <jenkins.version>1.580.1</jenkins.version>
   </properties>
 
   <licenses>
@@ -73,23 +74,12 @@ THE SOFTWARE.
 
   <dependencies>
     <dependency>
-      <!--
-        put hudson.war in the classpath. we can't pull in the war artifact directly
-        because Maven excludes all wars from classpath automatically. so we need a jar artifact.
-      -->
       <groupId>org.jenkins-ci.main</groupId>
-      <artifactId>jenkins-war</artifactId>
-      <version>1.580.1</version>
-      <classifier>war-for-test</classifier>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jenkins-ci.modules</groupId>
-          <artifactId>sshd</artifactId>
-        </exclusion>
-      </exclusions>
+      <artifactId>jenkins-core</artifactId>
+      <version>${jenkins.version}</version>
       <!--
         To ensure consistent set of core artifacts are used, force the users to declare
-        a dependency to war-for-test
+        a dependency on jenkins-core
       -->
       <optional>true</optional>
     </dependency>
@@ -179,6 +169,30 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>copy</goal>
+                </goals>
+                <phase>generate-test-resources</phase>
+                <configuration>
+                    <artifactItems>
+                        <artifactItem>
+                            <groupId>org.jenkins-ci.main</groupId>
+                            <artifactId>jenkins-war</artifactId>
+                            <version>${jenkins.version}</version>
+                            <type>war</type>
+                            <destFileName>jenkins.war</destFileName>
+                        </artifactItem>
+                    </artifactItems>
+                </configuration>
+            </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
@@ -190,6 +204,9 @@ THE SOFTWARE.
               <buildDirectory>${project.build.directory}</buildDirectory>
               <ignore.random.failures>${ignore.random.failures}</ignore.random.failures>
           </systemPropertyVariables>
+          <additionalClasspathElements>
+            <additionalClasspathElement>${project.build.directory}/dependency/jenkins.war</additionalClasspathElement>
+          </additionalClasspathElements>
         </configuration>
       </plugin>
       <plugin>
