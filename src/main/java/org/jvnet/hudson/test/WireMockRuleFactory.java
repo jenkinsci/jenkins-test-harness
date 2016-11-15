@@ -14,13 +14,13 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
  * {@code
  * WireMockRuleFactory wmrf = new WireMockRuleFactory();
  * @Rule
- * WireMockRule = wmrf.getRule(8089); //port is configurable  
+ * WireMockRule wireMockRule = wmrf.getRule(8089); //port is configurable  
  * }
  * </pre>
  *
  * Point your system to "http://localhost:8089/" to see mocked responses.
  *
- * To record mocks: {@code mvn test -wiremock.record="http://api_url"}  Clearing 
+ * To record mocks: {@code mvn test -Dwiremock.record="http://api_url"}  Clearing 
  * previously recorded mocks before generating new ones is recommended. 
  */
 public class WireMockRuleFactory {
