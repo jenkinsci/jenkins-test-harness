@@ -170,13 +170,8 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
-      <artifactId>wiremock</artifactId>
-      <version>2.1.12</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>19.0</version>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>2.4.1</version>
     </dependency>
   </dependencies>
 
