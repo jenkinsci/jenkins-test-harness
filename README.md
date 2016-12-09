@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.18
+
+* Fix JenkinsComputerConnectorTester so `ComputerConnector`s can be tested through `JenkinsRule.configRoundTrip`.
+
 ### 2.17 (2016 Oct 10)
 
 * `JenkinsRule.getLog` fixed to make fewer assumptions about the implementation of `Run.getLogText`.
