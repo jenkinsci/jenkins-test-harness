@@ -66,15 +66,15 @@ public class WireMockRuleFactory {
 
         public WireMockRecorderRule(WireMockConfiguration options, String url) {
             super(options);
-            finshWireMockRuleSetup(options, url, this.mappingLocation);
+            finishWireMockRuleSetup(options, url, this.mappingLocation);
         }
 
         public WireMockRecorderRule(WireMockConfiguration options, String url, String mappingLocation) {
             super(options);
-            finshWireMockRuleSetup(options, url, mappingLocation);
+            finishWireMockRuleSetup(options, url, mappingLocation);
         }
 
-        private void finshWireMockRuleSetup(WireMockConfiguration options, String url, String mappingLocation) {
+        private void finishWireMockRuleSetup(WireMockConfiguration options, String url, String mappingLocation) {
             this.stubFor(get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(url)));
             this.enableRecordMappings(new SingleRootFileSource(mappingLocation + "/mappings"), new SingleRootFileSource(mappingLocation + "/__files"));
         }
