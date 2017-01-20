@@ -1632,11 +1632,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Waits until Hudson finishes building everything, including those in the queue.
-     * <p>
-     * This method uses a default time out to prevent infinite hang in the automated test execution environment.
      */
     public void waitUntilNoActivity() throws Exception {
-        waitUntilNoActivityUpTo(60*1000);
+        waitUntilNoActivityUpTo(Integer.MAX_VALUE);
     }
 
     /**
