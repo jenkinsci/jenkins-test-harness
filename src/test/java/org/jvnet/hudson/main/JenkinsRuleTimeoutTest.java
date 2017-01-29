@@ -57,7 +57,7 @@ public class JenkinsRuleTimeoutTest {
 
     @Test
     public void hangInterruptiblyInShutdown() throws Exception {
-        System.err.println("Test itself passed…");
+        System.err.println("Test itself passed...");
     }
     @TestExtension("hangInterruptiblyInShutdown")
     public static class HangsInterruptibly extends ItemListener {
@@ -75,7 +75,7 @@ public class JenkinsRuleTimeoutTest {
     @Ignore("TODO ditto")
     @Test
     public void hangUninterruptiblyInShutdown() throws Exception {
-        System.err.println("Test itself passed…");
+        System.err.println("Test itself passed...");
     }
     @TestExtension("hangUninterruptiblyInShutdown")
     public static class HangsUninterruptibly extends ItemListener {
