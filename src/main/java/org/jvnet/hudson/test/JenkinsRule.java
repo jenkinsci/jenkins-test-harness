@@ -632,7 +632,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
+        context.addBean(new AltWebXmlConfiguration(context));
         server.setHandler(context);
         context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());

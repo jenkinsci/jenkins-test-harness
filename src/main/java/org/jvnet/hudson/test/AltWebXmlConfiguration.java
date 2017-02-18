@@ -23,14 +23,18 @@
  */
 package org.jvnet.hudson.test;
 
+import hudson.WebAppMain;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.webapp.AbstractConfiguration;
 import org.eclipse.jetty.webapp.WebAppContext;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextListener;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
- * Kills off {@link ServletContextListener}s loaded from web.xml.
+ * Initializes Jenkins web app in a differently, instead of the usual {@link ServletContextListener}s.
  *
  * <p>
  * This is so that the harness can create the {@link jenkins.model.Jenkins} object.
@@ -38,15 +42,27 @@ import javax.servlet.ServletContextListener;
  *
  * @author Kohsuke Kawaguchi
  */
-final class NoListenerConfiguration extends AbstractLifeCycle {
+final class AltWebXmlConfiguration extends AbstractLifeCycle {
     private final WebAppContext context;
 
-    NoListenerConfiguration(WebAppContext context) {
+    AltWebXmlConfiguration(WebAppContext context) {
         this.context = context;
     }
 
     @Override
     protected void doStart() throws Exception {
+        // All the ServletContextListeners from web.xml are added to context as event listeners by the WebXmlConfiguration class.
+        // By resetting this, we can prevent ServletContextListeners from getting invoked.
         context.setEventListeners(null);
+
+        try {
+            // Now that we don't run the regular bootstrap code (WebAppMain), we need to compensate for that differently
+            // see JENKINS-41196
+            WebAppMain wam = new WebAppMain();
+            Method m = wam.getClass().getMethod("initForTest", ServletContext.class);
+            m.invoke(wam,context.getServletContext());
+        } catch (NoSuchMethodException e) {
+            // probably running with older Jenkins core, so this is OK
+        }
     }
 }
