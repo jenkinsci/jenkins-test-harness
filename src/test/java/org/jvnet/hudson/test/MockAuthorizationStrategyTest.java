@@ -95,4 +95,11 @@ public class MockAuthorizationStrategyTest {
         assertTrue("SYSTEM has everything", r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS)); // handled by SidACL
     }
 
+    @Test
+    public void noPermissionsByDefault() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy());
+        assertFalse(r.jenkins.getACL().hasPermission(User.get("alice").impersonate(), Jenkins.ADMINISTER));
+    }
+
 }
