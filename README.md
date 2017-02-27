@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.19 (2017 Feb 27)
+
+* Introduced `allowSoft` parameter to `assertGC`.
+* Avoid any fixed timeout on `waitUntilNoActivity`.
+
 ### 2.18 (2016 Dec 20)
 
 * Fixed `JenkinsComputerConnectorTester` so `ComputerConnector`s can be tested through `JenkinsRule.configRoundTrip`.
