@@ -1195,14 +1195,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Asserts that the console output of the build contains the given substring.
      */
-    public void assertLogContains(String substring, Run run) throws Exception {
+    public void assertLogContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), containsString(substring));
     }
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
      */
-    public void assertLogNotContains(String substring, Run run) throws Exception {
+    public void assertLogNotContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), not(containsString(substring)));
     }
 
@@ -1243,6 +1243,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public <R extends Run<?,?>> R waitForMessage(String message, R r) throws IOException, InterruptedException {
         while (!getLog(r).contains(message)) {
+            if (!r.isLogUpdated()) {
+                assertLogContains(message, r); // should now fail
+            }
             Thread.sleep(100);
         }
         return r;
