@@ -409,7 +409,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             for (WebClient client : clients) {
                 // unload the page to cancel asynchronous operations
                 client.getPage("about:blank");
-                client.closeAllWindows();
+                client.close();
             }
             clients.clear();
         } finally {

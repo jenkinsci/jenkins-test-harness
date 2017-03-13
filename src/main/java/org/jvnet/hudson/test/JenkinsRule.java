@@ -458,7 +458,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 } catch (IOException e) {
                     // ignore
                 }
-                client.closeAllWindows();
+                client.close();
             }
             clients.clear();
 
