@@ -38,7 +38,7 @@ import javax.servlet.ServletContextListener;
  *
  * @author Kohsuke Kawaguchi
  */
-final class NoListenerConfiguration extends AbstractLifeCycle {
+public final class NoListenerConfiguration extends AbstractLifeCycle {
     private final WebAppContext context;
 
     NoListenerConfiguration(WebAppContext context) {

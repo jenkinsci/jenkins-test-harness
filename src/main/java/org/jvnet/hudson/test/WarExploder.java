@@ -40,7 +40,7 @@ import java.net.URL;
  *
  * @author Kohsuke Kawaguchi
  */
-final class WarExploder {
+public final class WarExploder {
 
     public static File getExplodedDir() throws Exception {
         // rethrow an exception every time someone tries to do this, so that when explode()
