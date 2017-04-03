@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import hudson.LocalPluginManager;
 import hudson.Plugin;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
@@ -34,6 +35,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
@@ -63,14 +65,20 @@ public class TestPluginManager extends PluginManager {
         super(null, Util.createTempDir());
     }
 
+    /** @see LocalPluginManager#loadBundledPlugins */
     @Override
     protected Collection<String> loadBundledPlugins() throws Exception {
-        Set<String> names = new HashSet<String>();
-        
-        names.addAll(loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins")));
-        loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins"));
-                
-        return names;
+        try {
+            return loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins"));
+        } finally {
+            try {
+                Method loadDetachedPlugins = PluginManager.class.getDeclaredMethod("loadDetachedPlugins");
+                loadDetachedPlugins.setAccessible(true);
+                loadDetachedPlugins.invoke(this);
+            } catch (NoSuchMethodException x) {
+                // Jenkins 1.x, fine
+            }
+        }
     }
 
     private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
