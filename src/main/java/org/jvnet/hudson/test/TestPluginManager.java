@@ -29,8 +29,6 @@ import hudson.Plugin;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
 import hudson.Util;
-import org.junit.Assert;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +42,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.io.FileUtils;
+import org.junit.Assert;
 
 /**
  * {@link PluginManager} to speed up unit tests.
@@ -143,16 +143,18 @@ public class TestPluginManager extends PluginManager {
     }
     
     /**
-     * Install a plugin from the resources directory.
-     * @param pluginName The plugin name.
-     * @throws IOException Error copying plugin.
+     * Dynamically load a detached plugin that would not otherwise get loaded.
+     * Will only work in Jenkins 2.x.
+     * May be called at any time after Jenkins starts up (do not use from {@link #loadBundledPlugins()}.
+     * You may need to first install any transitive dependencies.
+     * @param shortName {@code cvs} for example
      */
-    public void installResourcePlugin(String pluginName) throws Exception {
-        URL res = TestPluginManager.class.getClassLoader().getResource("plugins/" + pluginName);
-        if (res == null) {
-            Assert.fail("Plugin '" + pluginName + "' not found in /resources/plugins.");
-        }
-        copyBundledPlugin(res, pluginName);
+    public void installDetachedPlugin(String shortName) throws Exception {
+        URL r = TestPluginManager.class.getClassLoader().getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
+        Assert.assertNotNull("could not find " + shortName, r);
+        File f = new File(rootDir, shortName + ".hpi");
+        FileUtils.copyURLToFile(r, f);
+        dynamicLoad(f);
     }
     
     // Overwrite PluginManager#stop, not to release plugins in each tests.
