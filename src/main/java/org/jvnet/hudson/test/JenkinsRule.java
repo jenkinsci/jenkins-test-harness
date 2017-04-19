@@ -402,7 +402,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
-        final String updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        final String updateCenterUrl;
+        jettyLevel(Level.WARNING);
+        try {
+            updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        } finally {
+            jettyLevel(Level.INFO);
+        }
 
         // don't waste bandwidth talking to the update center
         DownloadService.neverUpdate = true;
@@ -463,10 +469,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             clients.clear();
 
         } finally {
+            jettyLevel(Level.WARNING);
             try {
                 server.stop();
             } catch (Exception e) {
                 // ignore
+            } finally {
+                jettyLevel(Level.INFO);
             }
             for (LenientRunnable r : tearDowns)
                 try {
@@ -504,6 +513,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
         }
+    }
+
+    private static void jettyLevel(Level level) {
+        Logger.getLogger("org.eclipse.jetty").setLevel(level);
     }
 
     /**
@@ -575,6 +588,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * you can override it.
      */
     protected Hudson newHudson() throws Exception {
+        jettyLevel(Level.WARNING);
         ServletContext webServer = createWebServer();
         File home = homeLoader.allocate();
         for (JenkinsRecipe.Runner r : recipes)
@@ -583,6 +597,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             return new Hudson(home, webServer, getPluginManager());
         } catch (InterruptedException x) {
             throw new AssumptionViolatedException("Jenkins startup interrupted", x);
+        } finally {
+            jettyLevel(Level.INFO);
         }
     }
 
@@ -2418,8 +2434,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
+    public static final MimeTypes MIME_TYPES;
     static {
+        jettyLevel(Level.WARNING); // suppress Log.initialize message
+        try {
+            MIME_TYPES = new MimeTypes();
+        } finally {
+            jettyLevel(Level.INFO);
+        }
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
