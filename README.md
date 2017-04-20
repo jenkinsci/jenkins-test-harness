@@ -4,6 +4,16 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.20 (2017 Apr 20)
+
+* “Detached” plugins in Jenkins 2.x are no longer loaded implicitly during tests. You should declare `test`-scoped dependencies on plugins you expect to use during your tests, in the desired versions. `TestPluginManager.installResourcePlugin` has been removed, and `installDetachedPlugin` added for unusual cases.
+* Avoid using methods deleted in newer version of HtmlUnit.
+* `waitForMessage` can fail immediately if the build is completed.
+* Possible to override `JenkinsRule.createWebServer` more easily.
+* Deprecating `CLICommandInvoker.authorizedTo` in favor of a simpler `asUser`.
+* Make Jetty be quiet during functional tests.
+* Pick up `jetty-io` and `jetty-util` from our specified version to avoid conflicts.
+
 ### 2.19 (2017 Feb 27)
 
 * Introduced `allowSoft` parameter to `assertGC`.
