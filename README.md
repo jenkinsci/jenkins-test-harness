@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.21 (2017 Apr 25)
+
+* Fixed a regression in 2.20 affecting especially `InjectedTest` on Jenkins 2.x.
+
 ### 2.20 (2017 Apr 20)
 
 * “Detached” plugins in Jenkins 2.x are no longer loaded implicitly during tests. You should declare `test`-scoped dependencies on plugins you expect to use during your tests, in the desired versions. `TestPluginManager.installResourcePlugin` has been removed, and `installDetachedPlugin` added for unusual cases.
