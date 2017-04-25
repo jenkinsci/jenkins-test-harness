@@ -37,7 +37,6 @@ import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -82,11 +81,6 @@ public class TestPluginManager extends PluginManager {
     }
 
     private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
-        if (!fromDir.exists()) {
-            LOGGER.log(Level.FINE, "No plugins loaded from " + fromDir + ". Directory doesn't exist.");
-            return Collections.emptySet();
-        }
-        
         Set<String> names = new HashSet<String>();
 
         File[] children = fromDir.listFiles();
@@ -100,6 +94,8 @@ public class TestPluginManager extends PluginManager {
                     LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin "+child,e);
                 }
             }
+        } else {
+            LOGGER.log(Level.FINE, "No plugins loaded from {0}. Directory does not exist.", fromDir);
         }
         // If running tests for a plugin, include the plugin being tested
         URL u = getClass().getClassLoader().getResource("the.jpl");
