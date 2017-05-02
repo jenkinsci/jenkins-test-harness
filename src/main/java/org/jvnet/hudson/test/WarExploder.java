@@ -29,7 +29,9 @@ import hudson.FilePath;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 
 /**
  * Ensures that <tt>jenkins.war</tt> is exploded.
@@ -108,6 +110,22 @@ public final class WarExploder {
             new File(explodeDir + ".exploding").delete();
         } else {
             System.out.println("Picking up existing exploded jenkins.war at "+explodeDir.getAbsolutePath());
+        }
+
+        // Check for anything AssetManager might need added to the test classpath. Needed for core versions 2.0+ but prior to JENKINS-24064.
+        ClassLoader loader = WarExploder.class.getClassLoader();
+        if (loader instanceof URLClassLoader) {
+            // TODO JenkinsRule assumes that Jenkins.class is in the test classpath, which is hard to modify after the JVM starts
+            Method addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            addURL.setAccessible(true);
+            File[] jars = new File(explodeDir, "WEB-INF/lib").listFiles();
+            if (jars != null) {
+                for (File jar : jars) {
+                    if (jar.getName().endsWith("-core-assets.jar")) {
+                        addURL.invoke(loader, jar.toURI().toURL());
+                    }
+                }
+            }
         }
 
         return explodeDir;
