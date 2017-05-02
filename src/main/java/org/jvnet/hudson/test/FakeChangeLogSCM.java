@@ -28,13 +28,17 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.InvisibleAction;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.NullSCM;
+import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
+import hudson.scm.SCMRevisionState;
 import org.xml.sax.SAXException;
 
 import java.io.File;
@@ -64,11 +68,10 @@ public class FakeChangeLogSCM extends NullSCM {
     }
 
     @Override
-    public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath remoteDir, BuildListener listener, File changeLogFile) throws IOException, InterruptedException {
+    public void checkout(Run<?, ?> build, Launcher launcher, FilePath remoteDir, TaskListener listener, File changeLogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         new FilePath(changeLogFile).touch(0);
         build.addAction(new ChangelogAction(entries));
         entries = new ArrayList<EntryImpl>();
-        return true;
     }
 
     @Override
@@ -96,7 +99,7 @@ public class FakeChangeLogSCM extends NullSCM {
     public static class FakeChangeLogParser extends ChangeLogParser {
         @SuppressWarnings("rawtypes")
         @Override
-        public FakeChangeLogSet parse(AbstractBuild build, File changelogFile) throws IOException, SAXException {
+        public FakeChangeLogSet parse(Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
             return new FakeChangeLogSet(build, build.getAction(ChangelogAction.class).entries);
         }
     }
@@ -104,8 +107,8 @@ public class FakeChangeLogSCM extends NullSCM {
     public static class FakeChangeLogSet extends ChangeLogSet<EntryImpl> {
         private List<EntryImpl> entries;
 
-        public FakeChangeLogSet(AbstractBuild<?, ?> build, List<EntryImpl> entries) {
-            super(build);
+        public FakeChangeLogSet(Run<?, ?> build, List<EntryImpl> entries) {
+            super(build, null);
             this.entries = entries;
         }
 
