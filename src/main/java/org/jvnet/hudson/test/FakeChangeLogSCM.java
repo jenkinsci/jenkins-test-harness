@@ -43,6 +43,7 @@ import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,7 +55,7 @@ import java.util.List;
  *
  * @author Kohsuke Kawaguchi
  */
-public class FakeChangeLogSCM extends NullSCM {
+public class FakeChangeLogSCM extends NullSCM implements Serializable {
 
     /**
      * Changes to be reported in the next build.
@@ -104,7 +105,7 @@ public class FakeChangeLogSCM extends NullSCM {
         }
     }
 
-    public static class FakeChangeLogSet extends ChangeLogSet<EntryImpl> {
+    public static class FakeChangeLogSet extends ChangeLogSet<EntryImpl> implements Serializable {
         private List<EntryImpl> entries;
 
         public FakeChangeLogSet(Run<?, ?> build, List<EntryImpl> entries) {
@@ -120,9 +121,11 @@ public class FakeChangeLogSCM extends NullSCM {
         public Iterator<EntryImpl> iterator() {
             return entries.iterator();
         }
+
+        private static final long serialVersionUID = 1L;
     }
 
-    public static class EntryImpl extends Entry {
+    public static class EntryImpl extends Entry implements Serializable {
         private String msg = "some commit message";
         private String author = "someone";
 
@@ -150,5 +153,9 @@ public class FakeChangeLogSCM extends NullSCM {
         public Collection<String> getAffectedPaths() {
             return Collections.singleton("path");
         }
+
+        private static final long serialVersionUID = 1L;
     }
+
+    private static final long serialVersionUID = 1L;
 }
