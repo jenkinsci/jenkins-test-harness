@@ -25,20 +25,23 @@ package org.jvnet.hudson.test;
 
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.InvisibleAction;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.NullSCM;
+import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
+import hudson.scm.SCMRevisionState;
 import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,7 +53,7 @@ import java.util.List;
  *
  * @author Kohsuke Kawaguchi
  */
-public class FakeChangeLogSCM extends NullSCM {
+public class FakeChangeLogSCM extends NullSCM implements Serializable {
 
     /**
      * Changes to be reported in the next build.
@@ -64,11 +67,10 @@ public class FakeChangeLogSCM extends NullSCM {
     }
 
     @Override
-    public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath remoteDir, BuildListener listener, File changeLogFile) throws IOException, InterruptedException {
+    public void checkout(Run<?, ?> build, Launcher launcher, FilePath remoteDir, TaskListener listener, File changeLogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         new FilePath(changeLogFile).touch(0);
-        build.addAction(new ChangelogAction(entries));
+        build.addAction(new ChangelogAction(entries, changeLogFile.getName()));
         entries = new ArrayList<EntryImpl>();
-        return true;
     }
 
     @Override
@@ -87,25 +89,32 @@ public class FakeChangeLogSCM extends NullSCM {
 
     public static class ChangelogAction extends InvisibleAction {
         private final List<EntryImpl> entries;
+        private final String changeLogFile;
 
-        public ChangelogAction(List<EntryImpl> entries) {
+        public ChangelogAction(List<EntryImpl> entries, String changeLogFile) {
             this.entries = entries;
+            this.changeLogFile = changeLogFile;
         }
     }
 
     public static class FakeChangeLogParser extends ChangeLogParser {
         @SuppressWarnings("rawtypes")
         @Override
-        public FakeChangeLogSet parse(AbstractBuild build, File changelogFile) throws IOException, SAXException {
-            return new FakeChangeLogSet(build, build.getAction(ChangelogAction.class).entries);
+        public FakeChangeLogSet parse(Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
+            for (ChangelogAction action : build.getActions(ChangelogAction.class)) {
+                if (changelogFile.getName().equals(action.changeLogFile)) {
+                    return new FakeChangeLogSet(build, action.entries);
+                }
+            }
+            return new FakeChangeLogSet(build, Collections.<EntryImpl>emptyList());
         }
     }
 
-    public static class FakeChangeLogSet extends ChangeLogSet<EntryImpl> {
+    public static class FakeChangeLogSet extends ChangeLogSet<EntryImpl> implements Serializable {
         private List<EntryImpl> entries;
 
-        public FakeChangeLogSet(AbstractBuild<?, ?> build, List<EntryImpl> entries) {
-            super(build);
+        public FakeChangeLogSet(Run<?, ?> build, List<EntryImpl> entries) {
+            super(build, null);
             this.entries = entries;
         }
 
@@ -117,9 +126,11 @@ public class FakeChangeLogSCM extends NullSCM {
         public Iterator<EntryImpl> iterator() {
             return entries.iterator();
         }
+
+        private static final long serialVersionUID = 1L;
     }
 
-    public static class EntryImpl extends Entry {
+    public static class EntryImpl extends Entry implements Serializable {
         private String msg = "some commit message";
         private String author = "someone";
 
@@ -147,5 +158,9 @@ public class FakeChangeLogSCM extends NullSCM {
         public Collection<String> getAffectedPaths() {
             return Collections.singleton("path");
         }
+
+        private static final long serialVersionUID = 1L;
     }
+
+    private static final long serialVersionUID = 1L;
 }
