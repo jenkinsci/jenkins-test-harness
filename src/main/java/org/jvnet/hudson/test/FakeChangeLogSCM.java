@@ -25,8 +25,6 @@ package org.jvnet.hudson.test;
 
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.InvisibleAction;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -71,7 +69,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     @Override
     public void checkout(Run<?, ?> build, Launcher launcher, FilePath remoteDir, TaskListener listener, File changeLogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         new FilePath(changeLogFile).touch(0);
-        build.addAction(new ChangelogAction(entries));
+        build.addAction(new ChangelogAction(entries, changeLogFile.getName()));
         entries = new ArrayList<EntryImpl>();
     }
 
@@ -91,9 +89,11 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
 
     public static class ChangelogAction extends InvisibleAction {
         private final List<EntryImpl> entries;
+        private final String changeLogFile;
 
-        public ChangelogAction(List<EntryImpl> entries) {
+        public ChangelogAction(List<EntryImpl> entries, String changeLogFile) {
             this.entries = entries;
+            this.changeLogFile = changeLogFile;
         }
     }
 
@@ -101,7 +101,12 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
         @SuppressWarnings("rawtypes")
         @Override
         public FakeChangeLogSet parse(Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
-            return new FakeChangeLogSet(build, build.getAction(ChangelogAction.class).entries);
+            for (ChangelogAction action : build.getActions(ChangelogAction.class)) {
+                if (changelogFile.getName().equals(action.changeLogFile)) {
+                    return new FakeChangeLogSet(build, action.entries);
+                }
+            }
+            return new FakeChangeLogSet(build, Collections.<EntryImpl>emptyList());
         }
     }
 
