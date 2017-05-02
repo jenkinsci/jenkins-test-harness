@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.22 (2017 May 02)
+
+* Make `FakeChangeLogSCM` support `Run` rather than just `AbstractBuild`.
+
 ### 2.21 (2017 Apr 25)
 
 * Fixed a regression in 2.20 affecting especially `InjectedTest` on Jenkins 2.x.
