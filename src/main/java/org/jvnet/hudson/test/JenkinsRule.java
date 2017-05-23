@@ -206,6 +206,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
+import hudson.init.InitMilestone;
 import hudson.maven.MavenRequest;
 import hudson.model.Job;
 import hudson.model.queue.QueueTaskFuture;
@@ -368,6 +369,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         try {
             jenkins = hudson = newHudson();
+            // If the initialization graph is corrupted, we cannot expect that Jenkins is in the good shape.
+            // Likely it is an issue in @Initializer() definitions (see JENKINS-37759).
+            // So we just fail the test.
+            if (jenkins.getInitLevel() != InitMilestone.COMPLETED) {
+                throw new Exception("Jenkins initialization has not reached the COMPLETED initialization stage. Current state is " + jenkins.getInitLevel() +
+                        ". Likely there is and issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
+            }
         } catch (Exception e) {
             // if Hudson instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
             Field f = Jenkins.class.getDeclaredField("theInstance");
