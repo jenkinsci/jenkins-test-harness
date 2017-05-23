@@ -374,7 +374,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // So we just fail the test.
             if (jenkins.getInitLevel() != InitMilestone.COMPLETED) {
                 throw new Exception("Jenkins initialization has not reached the COMPLETED initialization stage. Current state is " + jenkins.getInitLevel() +
-                        ". Likely there is and issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
+                        ". Likely there is an issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
             }
         } catch (Exception e) {
             // if Hudson instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
