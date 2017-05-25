@@ -80,7 +80,7 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
       <version>1.580.1</version>
-      <classifier>war-for-test</classifier>
+      <type>executable-war</type>
       <exclusions>
         <exclusion>
           <groupId>org.jenkins-ci.modules</groupId>
@@ -181,6 +181,12 @@ THE SOFTWARE.
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <version>2.0</version>
+        <extensions>true</extensions>
+      </plugin>
       <plugin>
         <groupId>org.kohsuke.stapler</groupId>
         <artifactId>maven-stapler-plugin</artifactId>
