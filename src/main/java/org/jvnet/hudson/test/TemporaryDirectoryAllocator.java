@@ -50,8 +50,15 @@ public class TemporaryDirectoryAllocator {
     }
 
     public TemporaryDirectoryAllocator() {
-        this.base = new File(System.getProperty("java.io.tmpdir"), "jenkinsTests.tmp");
-        base.mkdirs();
+        File tempDir = new File(System.getProperty("java.io.tmpdir"), "jenkinsTests.tmp");
+        if (tempDir.mkdirs() == false) {
+            try {
+                File tempDir2 = java.nio.file.Files.createTempDirectory("jenkinsTests").toFile();
+                tempDir = tempDir2;
+            } catch (IOException ioe) {
+            }
+        }
+        this.base = tempDir;
     }
 
     /**
