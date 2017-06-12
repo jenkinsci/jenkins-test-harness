@@ -62,8 +62,6 @@ import hudson.Main;
 import hudson.PluginManager;
 import hudson.Util;
 import hudson.WebAppMain;
-import hudson.maven.MavenEmbedder;
-import hudson.maven.MavenEmbedderException;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -178,8 +176,6 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -207,7 +203,6 @@ import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import hudson.init.InitMilestone;
-import hudson.maven.MavenRequest;
 import hudson.model.Job;
 import hudson.model.queue.QueueTaskFuture;
 import java.io.ByteArrayOutputStream;
@@ -1753,31 +1748,33 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if(all.isEmpty())    return; // nope
         
         recipes.add(new JenkinsRecipe.Runner() {
-            private File home;
-            private final List<Jpl> jpls = new ArrayList<Jpl>();
-
             @Override
             public void decorateHome(JenkinsRule testCase, File home) throws Exception {
-                this.home = home;
-                this.jpls.clear();
-
-            	for (URL hpl : all) {
-                    Jpl jpl = new Jpl(hpl);
-                    jpl.loadManifest();
-                    jpls.add(jpl);
-                }
-
-                for (Jpl jpl : jpls) {
-                    jpl.resolveDependencies();
-                }
+                decorateHomeFor(home, all);
             }
+        });
+    }
 
-            class Jpl {
+    static void decorateHomeFor(File home, List<URL> all) throws Exception {
+        List<Jpl> jpls = new ArrayList<Jpl>();
+        for (URL hpl : all) {
+            Jpl jpl = new Jpl(home, hpl);
+            jpl.loadManifest();
+            jpls.add(jpl);
+        }
+        for (Jpl jpl : jpls) {
+            jpl.resolveDependencies(jpls);
+        }
+    }
+
+    private static final class Jpl {
+        private final File home;
                 final URL jpl;
                 Manifest m;
                 private String shortName;
 
-                Jpl(URL jpl) {
+                Jpl(File home, URL jpl) {
+                    this.home = home;
                     this.jpl = jpl;
                 }
 
@@ -1789,13 +1786,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     FileUtils.copyURLToFile(jpl, new File(home, "plugins/" + shortName + ".jpl"));
                 }
 
-                void resolveDependencies() throws Exception {
+                void resolveDependencies(List<Jpl> jpls) throws Exception {
                     // make dependency plugins available
                     // TODO: probably better to read POM, but where to read from?
                     // TODO: this doesn't handle transitive dependencies
 
                     // Tom: plugins are now searched on the classpath first. They should be available on
-                    // the compile or test classpath. As a backup, we do a best-effort lookup in the Maven repository
+                    // the compile or test classpath.
                     // For transitive dependencies, we could evaluate Plugin-Dependencies transitively.
                     String dependencies = m.getMainAttributes().getValue("Plugin-Dependencies");
                     if(dependencies!=null) {
@@ -1835,18 +1832,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         }
                     }
                 }
-            }
-
-            /**
-             * Lazily created embedder.
-             */
-            private MavenEmbedder embedder;
-
-            private MavenEmbedder getMavenEmbedder() throws MavenEmbedderException, IOException {
-                if (embedder==null)
-                    embedder = new MavenEmbedder(MavenEmbedder.class.getClassLoader(), new MavenRequest());
-                return embedder;
-            }
 
             private @CheckForNull File resolveDependencyJar(String artifactId, String version) throws Exception {
                 // try to locate it from manifest
@@ -1881,46 +1866,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
 
-                // need to search multiple group IDs
-                // TODO: extend manifest to include groupID:artifactID:version
-                Exception resolutionError=null;
-                for (String groupId : PLUGIN_GROUPIDS) {
-
-                    // first try to find it on the classpath.
-                    // this takes advantage of Maven POM located in POM
-                    URL dependencyPomResource = getClass().getResource("/META-INF/maven/"+groupId+"/"+artifactId+"/pom.xml");
-                    if (dependencyPomResource != null) {
-                        // found it
-                        return Which.jarFile(dependencyPomResource);
-                    } else {
-
-                    	try {
-                    		// currently the most of the plugins are still hpi
-                            return resolvePluginFile(artifactId, version, groupId, "hpi");
-                    	} catch(AbstractArtifactResolutionException x){
-                    		try {
-                    			// but also try with the new jpi
-                    		    return resolvePluginFile(artifactId, version, groupId, "jpi");
-                    		} catch(AbstractArtifactResolutionException x2){
-                                // could be a wrong groupId
-                                resolutionError = x;
-                    		}
-                    	}
-
-                    }
-                }
-
-                throw new Exception("Failed to resolve plugin: "+artifactId+" version "+version,resolutionError);
+                throw new Exception("Failed to resolve plugin: " + artifactId + " version " + version);
             }
             
-            private @CheckForNull File resolvePluginFile(String artifactId, String version, String groupId, String type) throws Exception {
-				final Artifact jpi = getMavenEmbedder().createArtifact(groupId, artifactId, version, "compile"/*doesn't matter*/, type);
-                getMavenEmbedder().resolve(jpi,
-                        Arrays.asList(getMavenEmbedder().createRepository("http://repo.jenkins-ci.org/public/", "repo.jenkins-ci.org")), embedder.getLocalRepository());
-				return jpi.getFile();
-				
-			}
-        });
     }
 
     public JenkinsRule withNewHome() {
@@ -2512,5 +2460,4 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                         jenkins.getCrumbIssuer().getCrumb( null ));
     }
-    public static final List<String> PLUGIN_GROUPIDS = new ArrayList<String>(Arrays.asList("org.jvnet.hudson.plugins", "org.jvnet.hudson.main"));
 }

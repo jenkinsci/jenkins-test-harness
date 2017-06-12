@@ -52,7 +52,6 @@ import hudson.model.Executor;
 import hudson.model.Node.Mode;
 import hudson.model.Queue.Executable;
 import hudson.os.PosixAPI;
-import hudson.remoting.Which;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
@@ -77,7 +76,6 @@ import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
@@ -101,7 +99,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.*;
-import java.util.jar.Manifest;
 import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -123,10 +120,6 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -173,9 +166,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
 import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
-import hudson.maven.MavenEmbedder;
-import hudson.maven.MavenEmbedderException;
-import hudson.maven.MavenRequest;
 import java.net.HttpURLConnection;
 
 
@@ -1310,107 +1300,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         recipes.add(new Runner() {
             @Override
             public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
-            	
-            	for (URL hpl : all) {
-					
-                    // make the plugin itself available
-                    Manifest m = new Manifest(hpl.openStream());
-                    String shortName = m.getMainAttributes().getValue("Short-Name");
-                    if(shortName==null)
-                        throw new Error(hpl+" doesn't have the Short-Name attribute");
-                    FileUtils.copyURLToFile(hpl,new File(home,"plugins/"+shortName+".jpl"));
-
-                    // make dependency plugins available
-                    // TODO: probably better to read POM, but where to read from?
-                    // TODO: this doesn't handle transitive dependencies
-
-                    // Tom: plugins are now searched on the classpath first. They should be available on
-                    // the compile or test classpath. As a backup, we do a best-effort lookup in the Maven repository
-                    // For transitive dependencies, we could evaluate Plugin-Dependencies transitively.
-
-                    String dependencies = m.getMainAttributes().getValue("Plugin-Dependencies");
-                    if(dependencies!=null) {
-                        // TODO can we switch this to use Aether directly?
-                        MavenEmbedder embedder = new MavenEmbedder(MavenEmbedder.class.getClassLoader(), new MavenRequest());
-                        for( String dep : dependencies.split(",")) {
-                            String suffix = ";resolution:=optional";
-                            boolean optional = dep.endsWith(suffix);
-                            if (optional) {
-                                dep = dep.substring(0, dep.length() - suffix.length());
-                            }
-                            String[] tokens = dep.split(":");
-                            String artifactId = tokens[0];
-                            String version = tokens[1];
-                            File dependencyJar=resolveDependencyJar(embedder,artifactId,version);
-                            if (dependencyJar == null) {
-                                if (optional) {
-                                    System.err.println("cannot resolve optional dependency " + dep + " of " + shortName + "; skipping");
-                                    continue;
-                                }
-                                throw new IOException("Could not resolve " + dep);
-                            }
-
-                            File dst = new File(home, "plugins/" + artifactId + ".jpi");
-                            if(!dst.exists() || dst.lastModified()!=dependencyJar.lastModified()) {
-                                FileUtils.copyFile(dependencyJar, dst);
-                            }
-                        }
-                    }
-                }
+                JenkinsRule.decorateHomeFor(home, all);
             }
-
-            private File resolveDependencyJar(MavenEmbedder embedder, String artifactId, String version) throws Exception {
-                // try to locate it from manifest
-                Enumeration<URL> manifests = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-                while (manifests.hasMoreElements()) {
-                    URL manifest = manifests.nextElement();
-                    InputStream is = manifest.openStream();
-                    Manifest m = new Manifest(is);
-                    is.close();
-
-                    if (artifactId.equals(m.getMainAttributes().getValue("Short-Name")))
-                        return Which.jarFile(manifest);
-                }
-
-                // need to search multiple group IDs
-                // TODO: extend manifest to include groupID:artifactID:version
-                Exception resolutionError=null;
-                for (String groupId : new String[]{"org.jvnet.hudson.plugins","org.jvnet.hudson.main"}) {
-
-                    // first try to find it on the classpath.
-                    // this takes advantage of Maven POM located in POM
-                    URL dependencyPomResource = getClass().getResource("/META-INF/maven/"+groupId+"/"+artifactId+"/pom.xml");
-                    if (dependencyPomResource != null) {
-                        // found it
-                        return Which.jarFile(dependencyPomResource);
-                    } else {
-                    	
-                    	try {
-                    		// currently the most of the plugins are still hpi
-                            return resolvePluginFile(embedder, artifactId, version, groupId, "hpi");
-                    	} catch(AbstractArtifactResolutionException x){
-                    		try {
-                    			// but also try with the new jpi
-                    		    return resolvePluginFile(embedder, artifactId, version, groupId, "jpi");
-                    		} catch(AbstractArtifactResolutionException x2){
-                                // could be a wrong groupId
-                                resolutionError = x;
-                    		}
-                    	}
-                    	
-                    }
-                }
-
-                throw new Exception("Failed to resolve plugin (tryied with types: 'jpi' and 'hpi'): "+artifactId+" version "+version, resolutionError);
-            }
-
-			private File resolvePluginFile(MavenEmbedder embedder, String artifactId, String version, String groupId, String type)
-					throws MavenEmbedderException, ComponentLookupException, AbstractArtifactResolutionException {
-				final Artifact jpi = embedder.createArtifact(groupId, artifactId, version, "compile"/*doesn't matter*/, type);
-				embedder.resolve(jpi, Arrays.asList(embedder.createRepository("http://repo.jenkins-ci.org/public/", "repo.jenkins-ci.org")),embedder.getLocalRepository());
-				return jpi.getFile();
-				
-			}
         });
     }
 
