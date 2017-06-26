@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.23 (2017 Jun 26)
+
+* JENKINS-41631: removing the Maven Embedder dependency from the harness.
+* JENKINS-44453: `JenkinsRule` should ensure that Jenkins reaches the `COMPLETED` milestone.
+
 ### 2.22 (2017 May 02)
 
 * Make `FakeChangeLogSCM` support `Run` rather than just `AbstractBuild`.
