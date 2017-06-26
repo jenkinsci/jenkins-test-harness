@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.36</version>
+    <version>1.37</version>
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -47,7 +47,9 @@ THE SOFTWARE.
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.2.15.v20160210</jetty.version>
+    <jetty.version>9.4.5.v20170502</jetty.version>
+    <maven-surefire-plugin.version>2.20</maven-surefire-plugin.version>
+    <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
   </properties>
 
   <licenses>
