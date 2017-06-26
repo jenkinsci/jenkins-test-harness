@@ -50,6 +50,7 @@ THE SOFTWARE.
     <jetty.version>9.4.5.v20170502</jetty.version>
     <maven-surefire-plugin.version>2.20</maven-surefire-plugin.version>
     <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
+    <java.level>8</java.level>
   </properties>
 
   <licenses>
