@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.24 (?)
+
+* Upgrade to Jetty 9.4Upgrade to Jetty 9.4
+
 ### 2.23 (2017 Jun 26)
 
 * JENKINS-41631: removing the Maven Embedder dependency from the harness.
