@@ -77,7 +77,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     /**
-     * One step to run, intended to be a SAM for lambdas.
+     * One step to run, intended to be a SAM for lambdas with {@link #then}.
      * {@link Closure} does not work because it is an abstract class, not an interface.
      * {@link Callable} of {@link Void} does not work because you have to return null.
      * {@link Runnable} does not work because it throws no checked exceptions.
@@ -88,6 +88,10 @@ public class RestartableJenkinsRule implements MethodRule {
     public interface Step {
         void run(JenkinsRule r) throws Throwable;
     }
+    /**
+     * Run one Jenkins session and shut down.
+     * @since 2.24
+     */
     public void then(final Step s) {
         addStep(new Statement() {
             @Override
