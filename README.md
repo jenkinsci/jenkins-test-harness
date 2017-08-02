@@ -4,9 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
-### 2.24 (?)
+### 2.24 (2017 Aug 02)
 
-* Upgrade to Jetty 9.4Upgrade to Jetty 9.4
+* Added `RestartableJenkinsRule.then` with a Java 8-friendly signature.
+* Upgrade to Jetty 9.4.
 
 ### 2.23 (2017 Jun 26)
 
