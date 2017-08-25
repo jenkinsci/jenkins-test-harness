@@ -24,18 +24,22 @@
 package org.jvnet.hudson.test;
 
 
+import hudson.model.Computer;
 import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.junit.runner.Description;
 
 /**
- * TODO: deprecate this, and just consolidate this to {@link HudsonTestCase}.
- * We can then pin down the current HudsonTestCase to the thread for easier access.
- *
  * @author Kohsuke Kawaguchi
  */
 public class TestEnvironment {
+
+    private static final Logger LOGGER = Logger.getLogger(TestEnvironment.class.getName());
+
     /**
      * Current test case being run (null for a JUnit 4 test).
      */
@@ -74,11 +78,22 @@ public class TestEnvironment {
 
     public void pin() {
         CURRENT = this;
+        LOGGER.log(Level.FINE, "pinned to {0}", this);
     }
 
     public void dispose() throws IOException, InterruptedException {
         temporaryDirectoryAllocator.dispose();
-        CURRENT = null;
+        if (CURRENT == this) {
+            LOGGER.log(Level.FINE, "disposed {0}", this);
+            CURRENT = null;
+        } else {
+            LOGGER.warning(MessageFormat.format("did not dispose {0} because current is {1}", this, CURRENT));
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "TestEnvironment:" + description();
     }
 
     /**
