@@ -26,7 +26,6 @@ package org.jvnet.hudson.test;
 
 import hudson.model.Computer;
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -87,7 +86,7 @@ public class TestEnvironment {
             LOGGER.log(Level.FINE, "disposed {0}", this);
             CURRENT = null;
         } else {
-            LOGGER.warning(MessageFormat.format("did not dispose {0} because current is {1}", this, CURRENT));
+            LOGGER.log(Level.WARNING, "did not dispose {0} because current is{1}", new Object[] {this, CURRENT});
         }
     }
 
