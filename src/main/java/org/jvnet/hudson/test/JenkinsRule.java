@@ -62,8 +62,6 @@ import hudson.Main;
 import hudson.PluginManager;
 import hudson.Util;
 import hudson.WebAppMain;
-import hudson.maven.MavenEmbedder;
-import hudson.maven.MavenEmbedderException;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -178,11 +176,10 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
+import org.eclipse.jetty.security.UserStore;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
@@ -206,7 +203,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import hudson.maven.MavenRequest;
+import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.queue.QueueTaskFuture;
 import java.io.ByteArrayOutputStream;
@@ -368,6 +365,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         try {
             jenkins = hudson = newHudson();
+            // If the initialization graph is corrupted, we cannot expect that Jenkins is in the good shape.
+            // Likely it is an issue in @Initializer() definitions (see JENKINS-37759).
+            // So we just fail the test.
+            if (jenkins.getInitLevel() != InitMilestone.COMPLETED) {
+                throw new Exception("Jenkins initialization has not reached the COMPLETED initialization stage. Current state is " + jenkins.getInitLevel() +
+                        ". Likely there is an issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
+            }
         } catch (Exception e) {
             // if Hudson instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
             Field f = Jenkins.class.getDeclaredField("theInstance");
@@ -402,7 +406,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
-        final String updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        final String updateCenterUrl;
+        jettyLevel(Level.WARNING);
+        try {
+            updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        } finally {
+            jettyLevel(Level.INFO);
+        }
 
         // don't waste bandwidth talking to the update center
         DownloadService.neverUpdate = true;
@@ -458,15 +468,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 } catch (IOException e) {
                     // ignore
                 }
-                client.closeAllWindows();
+                client.close();
             }
             clients.clear();
 
         } finally {
+            jettyLevel(Level.WARNING);
             try {
                 server.stop();
             } catch (Exception e) {
                 // ignore
+            } finally {
+                jettyLevel(Level.INFO);
             }
             for (LenientRunnable r : tearDowns)
                 try {
@@ -504,6 +517,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
         }
+    }
+
+    private static void jettyLevel(Level level) {
+        Logger.getLogger("org.eclipse.jetty").setLevel(level);
     }
 
     /**
@@ -575,6 +592,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * you can override it.
      */
     protected Hudson newHudson() throws Exception {
+        jettyLevel(Level.WARNING);
         ServletContext webServer = createWebServer();
         File home = homeLoader.allocate();
         for (JenkinsRecipe.Runner r : recipes)
@@ -583,6 +601,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             return new Hudson(home, webServer, getPluginManager());
         } catch (InterruptedException x) {
             throw new AssumptionViolatedException("Jenkins startup interrupted", x);
+        } finally {
+            jettyLevel(Level.INFO);
         }
     }
 
@@ -661,9 +681,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     protected LoginService configureUserRealm() {
         HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
-        realm.update("alice", new Password("alice"), new String[]{"user","female"});
-        realm.update("bob", new Password("bob"), new String[]{"user","male"});
-        realm.update("charlie", new Password("charlie"), new String[]{"user","male"});
+        UserStore userStore = new UserStore();
+        realm.setUserStore( userStore );
+        userStore.addUser("alice", new Password("alice"), new String[]{"user","female"});
+        userStore.addUser("bob", new Password("bob"), new String[]{"user","male"});
+        userStore.addUser("charlie", new Password("charlie"), new String[]{"user","male"});
 
         return realm;
     }
@@ -1195,14 +1217,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Asserts that the console output of the build contains the given substring.
      */
-    public void assertLogContains(String substring, Run run) throws Exception {
+    public void assertLogContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), containsString(substring));
     }
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
      */
-    public void assertLogNotContains(String substring, Run run) throws Exception {
+    public void assertLogNotContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), not(containsString(substring)));
     }
 
@@ -1243,6 +1265,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public <R extends Run<?,?>> R waitForMessage(String message, R r) throws IOException, InterruptedException {
         while (!getLog(r).contains(message)) {
+            if (!r.isLogUpdated()) {
+                assertLogContains(message, r); // should now fail
+            }
             Thread.sleep(100);
         }
         return r;
@@ -1726,31 +1751,33 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if(all.isEmpty())    return; // nope
         
         recipes.add(new JenkinsRecipe.Runner() {
-            private File home;
-            private final List<Jpl> jpls = new ArrayList<Jpl>();
-
             @Override
             public void decorateHome(JenkinsRule testCase, File home) throws Exception {
-                this.home = home;
-                this.jpls.clear();
-
-            	for (URL hpl : all) {
-                    Jpl jpl = new Jpl(hpl);
-                    jpl.loadManifest();
-                    jpls.add(jpl);
-                }
-
-                for (Jpl jpl : jpls) {
-                    jpl.resolveDependencies();
-                }
+                decorateHomeFor(home, all);
             }
+        });
+    }
 
-            class Jpl {
+    static void decorateHomeFor(File home, List<URL> all) throws Exception {
+        List<Jpl> jpls = new ArrayList<Jpl>();
+        for (URL hpl : all) {
+            Jpl jpl = new Jpl(home, hpl);
+            jpl.loadManifest();
+            jpls.add(jpl);
+        }
+        for (Jpl jpl : jpls) {
+            jpl.resolveDependencies(jpls);
+        }
+    }
+
+    private static final class Jpl {
+        private final File home;
                 final URL jpl;
                 Manifest m;
                 private String shortName;
 
-                Jpl(URL jpl) {
+                Jpl(File home, URL jpl) {
+                    this.home = home;
                     this.jpl = jpl;
                 }
 
@@ -1762,13 +1789,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     FileUtils.copyURLToFile(jpl, new File(home, "plugins/" + shortName + ".jpl"));
                 }
 
-                void resolveDependencies() throws Exception {
+                void resolveDependencies(List<Jpl> jpls) throws Exception {
                     // make dependency plugins available
                     // TODO: probably better to read POM, but where to read from?
                     // TODO: this doesn't handle transitive dependencies
 
                     // Tom: plugins are now searched on the classpath first. They should be available on
-                    // the compile or test classpath. As a backup, we do a best-effort lookup in the Maven repository
+                    // the compile or test classpath.
                     // For transitive dependencies, we could evaluate Plugin-Dependencies transitively.
                     String dependencies = m.getMainAttributes().getValue("Plugin-Dependencies");
                     if(dependencies!=null) {
@@ -1808,18 +1835,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         }
                     }
                 }
-            }
-
-            /**
-             * Lazily created embedder.
-             */
-            private MavenEmbedder embedder;
-
-            private MavenEmbedder getMavenEmbedder() throws MavenEmbedderException, IOException {
-                if (embedder==null)
-                    embedder = new MavenEmbedder(MavenEmbedder.class.getClassLoader(), new MavenRequest());
-                return embedder;
-            }
 
             private @CheckForNull File resolveDependencyJar(String artifactId, String version) throws Exception {
                 // try to locate it from manifest
@@ -1854,46 +1869,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
 
-                // need to search multiple group IDs
-                // TODO: extend manifest to include groupID:artifactID:version
-                Exception resolutionError=null;
-                for (String groupId : PLUGIN_GROUPIDS) {
-
-                    // first try to find it on the classpath.
-                    // this takes advantage of Maven POM located in POM
-                    URL dependencyPomResource = getClass().getResource("/META-INF/maven/"+groupId+"/"+artifactId+"/pom.xml");
-                    if (dependencyPomResource != null) {
-                        // found it
-                        return Which.jarFile(dependencyPomResource);
-                    } else {
-
-                    	try {
-                    		// currently the most of the plugins are still hpi
-                            return resolvePluginFile(artifactId, version, groupId, "hpi");
-                    	} catch(AbstractArtifactResolutionException x){
-                    		try {
-                    			// but also try with the new jpi
-                    		    return resolvePluginFile(artifactId, version, groupId, "jpi");
-                    		} catch(AbstractArtifactResolutionException x2){
-                                // could be a wrong groupId
-                                resolutionError = x;
-                    		}
-                    	}
-
-                    }
-                }
-
-                throw new Exception("Failed to resolve plugin: "+artifactId+" version "+version,resolutionError);
+                throw new Exception("Failed to resolve plugin: " + artifactId + " version " + version);
             }
             
-            private @CheckForNull File resolvePluginFile(String artifactId, String version, String groupId, String type) throws Exception {
-				final Artifact jpi = getMavenEmbedder().createArtifact(groupId, artifactId, version, "compile"/*doesn't matter*/, type);
-                getMavenEmbedder().resolve(jpi,
-                        Arrays.asList(getMavenEmbedder().createRepository("http://repo.jenkins-ci.org/public/", "repo.jenkins-ci.org")), embedder.getLocalRepository());
-				return jpi.getFile();
-				
-			}
-        });
     }
 
     public JenkinsRule withNewHome() {
@@ -2415,8 +2393,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
+    public static final MimeTypes MIME_TYPES;
     static {
+        jettyLevel(Level.WARNING); // suppress Log.initialize message
+        try {
+            MIME_TYPES = new MimeTypes();
+        } finally {
+            jettyLevel(Level.INFO);
+        }
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
@@ -2479,5 +2463,4 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                         jenkins.getCrumbIssuer().getCrumb( null ));
     }
-    public static final List<String> PLUGIN_GROUPIDS = new ArrayList<String>(Arrays.asList("org.jvnet.hudson.plugins", "org.jvnet.hudson.main"));
 }

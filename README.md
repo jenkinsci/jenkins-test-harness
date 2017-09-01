@@ -4,6 +4,39 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.24 (2017 Aug 02)
+
+* Added `RestartableJenkinsRule.then` with a Java 8-friendly signature.
+* Upgrade to Jetty 9.4.
+
+### 2.23 (2017 Jun 26)
+
+* JENKINS-41631: removing the Maven Embedder dependency from the harness.
+* JENKINS-44453: `JenkinsRule` should ensure that Jenkins reaches the `COMPLETED` milestone.
+
+### 2.22 (2017 May 02)
+
+* Make `FakeChangeLogSCM` support `Run` rather than just `AbstractBuild`.
+
+### 2.21 (2017 Apr 25)
+
+* Fixed a regression in 2.20 affecting especially `InjectedTest` on Jenkins 2.x.
+
+### 2.20 (2017 Apr 20)
+
+* “Detached” plugins in Jenkins 2.x are no longer loaded implicitly during tests. You should declare `test`-scoped dependencies on plugins you expect to use during your tests, in the desired versions. `TestPluginManager.installResourcePlugin` has been removed, and `installDetachedPlugin` added for unusual cases.
+* Avoid using methods deleted in newer version of HtmlUnit.
+* `waitForMessage` can fail immediately if the build is completed.
+* Possible to override `JenkinsRule.createWebServer` more easily.
+* Deprecating `CLICommandInvoker.authorizedTo` in favor of a simpler `asUser`.
+* Make Jetty be quiet during functional tests.
+* Pick up `jetty-io` and `jetty-util` from our specified version to avoid conflicts.
+
+### 2.19 (2017 Feb 27)
+
+* Introduced `allowSoft` parameter to `assertGC`.
+* Avoid any fixed timeout on `waitUntilNoActivity`.
+
 ### 2.18 (2016 Dec 20)
 
 * Fixed `JenkinsComputerConnectorTester` so `ComputerConnector`s can be tested through `JenkinsRule.configRoundTrip`.

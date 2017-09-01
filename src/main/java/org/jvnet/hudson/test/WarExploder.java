@@ -40,7 +40,7 @@ import java.net.URL;
  *
  * @author Kohsuke Kawaguchi
  */
-final class WarExploder {
+public final class WarExploder {
 
     public static File getExplodedDir() throws Exception {
         // rethrow an exception every time someone tries to do this, so that when explode()
@@ -84,7 +84,7 @@ final class WarExploder {
         URL winstone = WarExploder.class.getResource("/winstone.jar");
         if(winstone==null)
             // impossible, since the test harness pulls in jenkins.war
-            throw new AssertionError("jenkins.war is not in the classpath. If you are running this from the core workspace, run 'mvn install' to create the war image in war/target/jenkins");
+            throw new AssertionError("jenkins.war is not in the classpath. If you are running this from the core workspace, run 'mvn install' to create the war image in war/target/jenkins. If running from a plugin, try using `mvn clean test` (cf. JENKINS-45245).");
         File war = Which.jarFile(Class.forName("executable.Executable"));
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case

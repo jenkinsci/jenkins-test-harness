@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import java.lang.ref.Reference;
+import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -140,29 +141,41 @@ public class MemoryAssert {
         return elements;
     }
 
+    @Deprecated
+    public static void assertGC(WeakReference<?> reference) {
+        assertGC(reference, true);
+    }
+
     /**
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
      * @param reference object used to verify garbage collection.
+     * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
+     *                  if false, fail in such a case (though the failure will be slow)
      */
     @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
-    public static void assertGC(WeakReference<?> reference) {
+    public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<Object[]>();
         int size = 1024;
+        String softErr = null;
         while (reference.get() != null) {
             try {
                 objects.add(new Object[size]);
                 size *= 1.3;
             } catch (OutOfMemoryError ignore) {
-                break;
+                if (softErr != null) {
+                    fail(softErr);
+                } else {
+                    break;
+                }
             }
             System.gc();
             System.err.println("GC after allocation of size " + size);
-            if ("true".equals(System.getenv("ASSERT_GC_VERBOSE"))) { // much slower but allows you to find Weak/SoftReference delaying collection
+            if (!allowSoft) {
                 Object obj = reference.get();
                 if (obj != null) {
-                    System.err.println("Apparent soft references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, new Filter() {
+                    softErr = "Apparent soft references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, new Filter() {
                         final Field referent;
                         {
                             try {
@@ -174,8 +187,7 @@ public class MemoryAssert {
                         @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
-                    }));
-                    System.err.println("Apparent weak references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true)));
+                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
                 }
             }
         }

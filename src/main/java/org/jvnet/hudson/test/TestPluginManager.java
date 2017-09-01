@@ -24,24 +24,25 @@
 
 package org.jvnet.hudson.test;
 
+import hudson.LocalPluginManager;
 import hudson.Plugin;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
 import hudson.Util;
-import org.junit.Assert;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.io.FileUtils;
+import org.junit.Assert;
 
 /**
  * {@link PluginManager} to speed up unit tests.
@@ -63,22 +64,23 @@ public class TestPluginManager extends PluginManager {
         super(null, Util.createTempDir());
     }
 
+    /** @see LocalPluginManager#loadBundledPlugins */
     @Override
     protected Collection<String> loadBundledPlugins() throws Exception {
-        Set<String> names = new HashSet<String>();
-        
-        names.addAll(loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins")));
-        loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins"));
-                
-        return names;
+        try {
+            return loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins"));
+        } finally {
+            try {
+                Method loadDetachedPlugins = PluginManager.class.getDeclaredMethod("loadDetachedPlugins");
+                loadDetachedPlugins.setAccessible(true);
+                loadDetachedPlugins.invoke(this);
+            } catch (NoSuchMethodException x) {
+                // Jenkins 1.x, fine
+            }
+        }
     }
 
     private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
-        if (!fromDir.exists()) {
-            LOGGER.log(Level.FINE, "No plugins loaded from " + fromDir + ". Directory doesn't exist.");
-            return Collections.emptySet();
-        }
-        
         Set<String> names = new HashSet<String>();
 
         File[] children = fromDir.listFiles();
@@ -92,6 +94,8 @@ public class TestPluginManager extends PluginManager {
                     LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin "+child,e);
                 }
             }
+        } else {
+            LOGGER.log(Level.FINE, "No plugins loaded from {0}. Directory does not exist.", fromDir);
         }
         // If running tests for a plugin, include the plugin being tested
         URL u = getClass().getClassLoader().getResource("the.jpl");
@@ -135,16 +139,18 @@ public class TestPluginManager extends PluginManager {
     }
     
     /**
-     * Install a plugin from the resources directory.
-     * @param pluginName The plugin name.
-     * @throws IOException Error copying plugin.
+     * Dynamically load a detached plugin that would not otherwise get loaded.
+     * Will only work in Jenkins 2.x.
+     * May be called at any time after Jenkins starts up (do not use from {@link #loadBundledPlugins()}.
+     * You may need to first install any transitive dependencies.
+     * @param shortName {@code cvs} for example
      */
-    public void installResourcePlugin(String pluginName) throws Exception {
-        URL res = TestPluginManager.class.getClassLoader().getResource("plugins/" + pluginName);
-        if (res == null) {
-            Assert.fail("Plugin '" + pluginName + "' not found in /resources/plugins.");
-        }
-        copyBundledPlugin(res, pluginName);
+    public void installDetachedPlugin(String shortName) throws Exception {
+        URL r = TestPluginManager.class.getClassLoader().getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
+        Assert.assertNotNull("could not find " + shortName, r);
+        File f = new File(rootDir, shortName + ".hpi");
+        FileUtils.copyURLToFile(r, f);
+        dynamicLoad(f);
     }
     
     // Overwrite PluginManager#stop, not to release plugins in each tests.

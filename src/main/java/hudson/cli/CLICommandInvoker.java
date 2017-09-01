@@ -48,10 +48,10 @@ import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
 
-import org.apache.maven.plugin.lifecycle.Execution;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
  * Helper class to invoke {@link CLICommand} and check the response.
@@ -63,12 +63,16 @@ public class CLICommandInvoker {
     private static final String username = "user";
     private final JenkinsRule rule;
     private final CLICommand command;
+    @Deprecated
     private SecurityRealm originalSecurityRealm = null;
+    @Deprecated
     private AuthorizationStrategy originalAuthorizationStrategy = null;
+    @Deprecated
     private SecurityContext originalSecurityContext = null;
 
     private InputStream stdin;
     private List<String> args = Collections.emptyList();
+    @Deprecated
     private List<Permission> permissions = Collections.emptyList();
     private Locale locale = Locale.ENGLISH;
 
@@ -93,9 +97,26 @@ public class CLICommandInvoker {
         if (this.command == null) throw new AssertionError("No such command: " + command);
     }
 
+    /**
+     * @deprecated Rather use {@link #asUser}.
+     */
+    @Deprecated
     public CLICommandInvoker authorizedTo(final Permission... permissions) {
 
         this.permissions = Arrays.asList(permissions);
+        return this;
+    }
+
+    /**
+     * Run the command as a given username.
+     * Test setup should have first defined a meaningful security realm and authorization strategy.
+     * @see Jenkins#setSecurityRealm
+     * @see JenkinsRule#createDummySecurityRealm
+     * @see Jenkins#setAuthorizationStrategy
+     * @see MockAuthorizationStrategy
+     */
+    public CLICommandInvoker asUser(String user) {
+        command.setTransportAuth(User.get(user).impersonate());
         return this;
     }
 
@@ -201,6 +222,10 @@ public class CLICommandInvoker {
         }
     }
 
+    /**
+     * @deprecated only used with {@link #authorizedTo}
+     */
+    @Deprecated
     public User user() {
 
         return User.get(username);
