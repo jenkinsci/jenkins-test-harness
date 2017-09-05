@@ -25,19 +25,26 @@
 package org.jvnet.hudson.main;
 
 import hudson.model.listeners.ItemListener;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Rule;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
+import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 
 public class JenkinsRuleTimeoutTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private final ExpectedException thrown = ExpectedException.none();
+
+    private final JenkinsRule r = new JenkinsRule();
     {
-        r.timeout = 10; // let us not wait three minutes!
+        r.timeout = 30; // let us not wait three minutes! but need enough time for Jenkins to start up, and then a few seconds more
+        thrown.expect(TestTimedOutException.class); // for the *InStartup methods, this must happen before test method is called
     }
+
+    @Rule
+    public RuleChain chain = RuleChain.outerRule(thrown).around(r);
 
     @Test
     public void hangInterruptiblyInTest() throws Exception {
@@ -48,8 +55,6 @@ public class JenkinsRuleTimeoutTest {
         }
     }
 
-    @Ignore("TODO ought to use the idiom from org.junit.internal.runners.statements.FailOnTimeout: " +
-            "run test in its own thread so we can fail even if it does not respond to interruptions")
     @Test
     public void hangUninterruptiblyInTest() throws Exception {
         hangUninterruptibly();
@@ -69,10 +74,8 @@ public class JenkinsRuleTimeoutTest {
                 System.err.println("Interrupted, good.");
             }
         }
-
     }
 
-    @Ignore("TODO ditto")
     @Test
     public void hangUninterruptiblyInShutdown() throws Exception {
         System.err.println("Test itself passed…");
@@ -83,11 +86,39 @@ public class JenkinsRuleTimeoutTest {
         public void onBeforeShutdown() {
             hangUninterruptibly();
         }
+    }
 
+    @Test
+    public void hangInterruptiblyInStartup() throws Exception {
+        assert false : "should not get here";
+    }
+    @TestExtension("hangInterruptiblyInStartup")
+    public static class HangsInterruptibly2 extends ItemListener {
+        @Override
+        public void onLoaded() {
+            try {
+                hangInterruptibly();
+            } catch (InterruptedException x) {
+                System.err.println("Interrupted, good.");
+            }
+        }
+    }
+
+    @Test
+    public void hangUninterruptiblyInStartup() throws Exception {
+        assert false : "should not get here";
+    }
+    @TestExtension("hangUninterruptiblyInStartup")
+    public static class HangsUninterruptibly2 extends ItemListener {
+        @Override
+        public void onLoaded() {
+            hangUninterruptibly();
+        }
     }
 
     private static void hangInterruptibly() throws InterruptedException {
         Thread.sleep(Long.MAX_VALUE);
+        assert false : "should not get here";
     }
 
     @SuppressWarnings("SleepWhileHoldingLock")

@@ -28,6 +28,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -37,7 +38,9 @@ import org.junit.Test;
  * Only effective on {@link Test}-annotated (but not {@link WithoutJenkins}-annotated) methods in a class using {@link JenkinsRule}
  * when the system property {@code ignore.random.failures} is true.
  * @since 1.547
+ * @deprecated Using a 2.x parent POM, Surefire will be configured to retry failing tests automatically. If the test fails consistently, {@link Ignore} it.
  */
+@Deprecated
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface RandomlyFails {
