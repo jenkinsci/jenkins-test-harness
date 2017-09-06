@@ -140,8 +140,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -212,6 +210,8 @@ import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import jenkins.model.ParameterizedJobMixIn;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.rules.Timeout;
+import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
@@ -308,8 +308,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public int timeout = Integer.getInteger("jenkins.test.timeout", System.getProperty("maven.surefire.debug") == null ? 180 : 0);
 
-    private volatile Timer timeoutTimer;
-
     /**
      * Set the plugin manager to be passed to {@link Jenkins} constructor.
      *
@@ -362,6 +360,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         AbstractProject.WORKSPACE.toString();
         User.clear();
 
+        try {
+            Field theInstance = Jenkins.class.getDeclaredField("theInstance");
+            theInstance.setAccessible(true);
+            if (theInstance.get(null) != null) {
+                LOGGER.warning("Jenkins.theInstance was not cleared by a previous test, doing that now");
+                theInstance.set(null, null);
+            }
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
 
         try {
             jenkins = hudson = newHudson();
@@ -397,8 +405,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.getActions().add(this);
 
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
-        
-        setUpTimeout();
     }
 
     /**
@@ -423,25 +429,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         sites.add(new UpdateSite("default", updateCenterUrl));
     }
     
-    protected void setUpTimeout() {
-        if (timeout <= 0) {
-            System.out.println("Test timeout disabled.");
-            return;
-        }
-        final Thread testThread = Thread.currentThread();
-        timeoutTimer = new Timer();
-        timeoutTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (timeoutTimer!=null) {
-                    LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
-                    dumpThreads();
-                    testThread.interrupt();
-                }
-            }
-        }, TimeUnit.SECONDS.toMillis(timeout));
-    }
-
     private static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
@@ -499,11 +486,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 x.printStackTrace();
             }
 
-            if (timeoutTimer != null) {
-                timeoutTimer.cancel();
-                timeoutTimer = null;
-            }
-
             // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
             // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
             // at some later point, leading to possible file descriptor overflow. So encourage GC now.
@@ -535,16 +517,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // request has been made to not create the instance for this test method
             return base;
         }
-        return new Statement() {
+        Statement wrapped = new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 testDescription = description;
                 Thread t = Thread.currentThread();
                 String o = t.getName();
                 t.setName("Executing "+ testDescription.getDisplayName());
+                System.out.println("=== Starting " + testDescription.getDisplayName());
                 before();
                 try {
-                    System.out.println("=== Starting " + testDescription.getDisplayName());
                     // so that test code has all the access to the system
                     ACL.impersonate(ACL.SYSTEM);
                     try {
@@ -570,6 +552,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
+        if (timeout <= 0) {
+            System.out.println("Test timeout disabled.");
+            return wrapped;
+        } else {
+            final Statement timeoutStatement = Timeout.seconds(timeout).apply(wrapped, description);
+            return new Statement() {
+                @Override
+                public void evaluate() throws Throwable {
+                    try {
+                        timeoutStatement.evaluate();
+                    } catch (TestTimedOutException x) {
+                        // withLookingForStuckThread does not work well; better to just have a full thread dump.
+                        LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
+                        dumpThreads();
+                        throw x;
+                    }
+                }
+            };
+        }
     }
 
     @SuppressWarnings("serial")
