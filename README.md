@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.25 (2017 Sep 12)
+
+* More reliable test timeout system in `JenkinsRule`.
+
 ### 2.24 (2017 Aug 02)
 
 * Added `RestartableJenkinsRule.then` with a Java 8-friendly signature.
