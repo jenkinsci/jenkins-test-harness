@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.26 (2017 Sep 13)
+
+* Adjust Jetty configuration to use a fixed number of “acceptors” and “selectors”. This has been observed to fix JENKINS-43666-like test failures in some CI environments, depending on the reported number of CPU cores.
+* Improve display of messages when using `LoggerRule`.
+
 ### 2.25 (2017 Sep 12)
 
 * More reliable test timeout system in `JenkinsRule`.
