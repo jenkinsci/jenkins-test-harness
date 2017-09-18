@@ -33,11 +33,8 @@ package org.jvnet.hudson.test;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 /***********************************************
@@ -52,23 +49,20 @@ import java.util.logging.LogRecord;
  */
 class SupportLogFormatter extends Formatter {
 
-    private final static ThreadLocal<SimpleDateFormat> threadLocalDateFormat = new ThreadLocal<SimpleDateFormat>() {
-        @Override
-        protected SimpleDateFormat initialValue() {
-            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
-            f.setTimeZone(TimeZone.getTimeZone("UTC"));
-            return f;
-        }
-    };
+    private static long start = System.nanoTime();
+    static String elapsedTime() { // modified from original
+        return String.format("%8.3f", (System.nanoTime() - start) / 1_000_000_000.0);
+    }
 
-    private final Object[] args = new Object[6];
+    SupportLogFormatter() {
+        start = System.nanoTime(); // reset for each test, if using LoggerRule
+    }
 
     @Override
     //@SuppressFBWarnings(value = {"DE_MIGHT_IGNORE"}, justification = "The exception wasn't thrown on our stack frame")
     public String format(LogRecord record) {
         StringBuilder builder = new StringBuilder();
-        SimpleDateFormat format = threadLocalDateFormat.get();
-        builder.append(format.format(new Date(record.getMillis())));
+        builder.append(elapsedTime());
         builder.append(" [id=").append(record.getThreadID()).append("]");
 
         builder.append("\t").append(record.getLevel().getName()).append("\t");
