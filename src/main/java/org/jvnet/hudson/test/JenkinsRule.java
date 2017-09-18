@@ -209,6 +209,7 @@ import java.io.FileNotFoundException;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import jenkins.model.ParameterizedJobMixIn;
+import org.apache.commons.logging.LogFactory;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
@@ -475,8 +476,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     // ignore
                 }
 
-            if (jenkins!=null)
+            if (jenkins != null) {
+                NotActuallyALogFactory.suppressWarningsFromSLF4JLogFactory();
                 jenkins.cleanUp();
+            }
             ExtensionList.clearLegacyInstances();
             DescriptorExtensionList.clearLegacyInstances();
 
@@ -498,6 +501,20 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 URLConnection aConnection = new File(".").toURI().toURL().openConnection();
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
+        }
+    }
+
+    static abstract class NotActuallyALogFactory extends LogFactory {
+        static void suppressWarningsFromSLF4JLogFactory() {
+            if (factories != null) { // LogFactory from commons-logging.jar
+                Iterator elements = factories.values().iterator();
+                while (elements.hasNext()) {
+                    if (elements.next().getClass().getName().equals("org.apache.commons.logging.impl.SLF4JLogFactory")) {
+                        // otherwise we will get warning linking to https://www.slf4j.org/codes.html#release
+                        elements.remove();
+                    }
+                }
+            } // else using the version from jcl-over-slf4j.jar
         }
     }
 
