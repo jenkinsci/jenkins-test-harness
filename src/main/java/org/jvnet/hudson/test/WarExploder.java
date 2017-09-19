@@ -91,7 +91,7 @@ public final class WarExploder {
             war = Which.jarFile(Class.forName("executable.Executable"));
         } else {
             // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
-            File core = Which.jarFile(Jenkins.class); // will fail with IAE if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+            File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
             String version = core.getParentFile().getName();
             if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
                 war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
