@@ -98,7 +98,7 @@ public final class WarExploder {
                 if (!war.isFile()) {
                     throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
                 }
-                LOGGER.log(Level.INFO, "{0} is the continuation of the classpath by other means", war);
+                LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
             } else {
                 throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
             }
