@@ -80,7 +80,7 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
       <version>1.580.1</version>
-      <type>executable-war</type>
+      <classifier>war-for-test</classifier>
       <exclusions>
         <exclusion>
           <groupId>org.jenkins-ci.modules</groupId>
