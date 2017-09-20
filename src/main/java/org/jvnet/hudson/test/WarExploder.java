@@ -23,13 +23,15 @@
  */
 package org.jvnet.hudson.test;
 
-import hudson.remoting.Which;
 import hudson.FilePath;
-
+import hudson.remoting.Which;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 
 /**
  * Ensures that <tt>jenkins.war</tt> is exploded.
@@ -41,6 +43,8 @@ import java.net.URL;
  * @author Kohsuke Kawaguchi
  */
 public final class WarExploder {
+
+    private static final Logger LOGGER = Logger.getLogger(WarExploder.class.getName());
 
     public static File getExplodedDir() throws Exception {
         // rethrow an exception every time someone tries to do this, so that when explode()
@@ -74,18 +78,31 @@ public final class WarExploder {
             if(new File(d,".jenkins").exists()) {
                 File dir = new File(d,"war/target/jenkins");
                 if(dir.exists()) {
-                    System.out.println("Using jenkins.war resources from "+dir);
+                    LOGGER.log(Level.INFO, "Using jenkins.war resources from {0}", dir);
                     return dir;
                 }
             }
         }
 
         // locate jenkins.war
+        File war;
         URL winstone = WarExploder.class.getResource("/winstone.jar");
-        if(winstone==null)
-            // impossible, since the test harness pulls in jenkins.war
-            throw new AssertionError("jenkins.war is not in the classpath. If you are running this from the core workspace, run 'mvn install' to create the war image in war/target/jenkins. If running from a plugin, try using `mvn clean test` (cf. JENKINS-45245).");
-        File war = Which.jarFile(Class.forName("executable.Executable"));
+        if (winstone != null) {
+            war = Which.jarFile(Class.forName("executable.Executable"));
+        } else {
+            // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
+            File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+            String version = core.getParentFile().getName();
+            if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
+                war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
+                if (!war.isFile()) {
+                    throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                }
+                LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
+            } else {
+                throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+            }
+        }
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case
         File buildDirectory = new File(System.getProperty("buildDirectory", "target"));
@@ -97,7 +114,7 @@ public final class WarExploder {
         File timestamp = new File(explodeDir,".timestamp");
 
         if(!timestamp.exists() || (timestamp.lastModified()!=war.lastModified())) {
-            System.out.println("Exploding " + war + " into " + explodeDir);
+            LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
             new FileOutputStream(explodeDir + ".exploding").close();
             new FilePath(explodeDir).deleteRecursive();
             new FilePath(war).unzip(new FilePath(explodeDir));
@@ -107,9 +124,12 @@ public final class WarExploder {
             timestamp.setLastModified(war.lastModified());
             new File(explodeDir + ".exploding").delete();
         } else {
-            System.out.println("Picking up existing exploded jenkins.war at "+explodeDir.getAbsolutePath());
+            LOGGER.log(Level.INFO, "Picking up existing exploded jenkins.war at {0}", explodeDir.getAbsolutePath());
         }
 
         return explodeDir;
     }
+
+    private WarExploder() {}
+
 }
