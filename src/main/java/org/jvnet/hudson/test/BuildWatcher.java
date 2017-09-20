@@ -148,6 +148,8 @@ public final class BuildWatcher extends ExternalResource {
         }
 
         @Override protected void eol(byte[] b, int len) throws IOException {
+            logger.append(SupportLogFormatter.elapsedTime());
+            logger.write(' ');
             logger.append(prefix);
             logger.write(b, 0, len);
         }
