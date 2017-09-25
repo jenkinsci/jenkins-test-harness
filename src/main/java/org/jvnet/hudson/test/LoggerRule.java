@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-import java.util.logging.StreamHandler;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.ExternalResource;
@@ -53,7 +52,7 @@ import org.junit.rules.RuleChain;
  */
 public class LoggerRule extends ExternalResource {
 
-    private final Handler consoleHandler = new StreamHandler(System.err, new SupportLogFormatter());
+    private final Handler consoleHandler = new ConsoleHandler();
     private final Map<Logger,Level> loggers = new HashMap<Logger,Level>();
     // initialized iff capture is called:
     private RingBufferLogHandler ringHandler;
@@ -63,6 +62,7 @@ public class LoggerRule extends ExternalResource {
      * Initializes the rule, by default not recording anything.
      */
     public LoggerRule() {
+        consoleHandler.setFormatter(new SupportLogFormatter());
         consoleHandler.setLevel(Level.ALL);
         // For consistency, adjust format of default console handler (INFO+) too:
         for (Handler h : Logger.getLogger("").getHandlers()) {
