@@ -208,6 +208,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.Timeout;
@@ -330,6 +332,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @throws Throwable if setup fails (which will disable {@code after}
      */
     public void before() throws Throwable {
+        for (Handler h : Logger.getLogger("").getHandlers()) {
+            if (h instanceof ConsoleHandler) {
+                ((ConsoleHandler) h).setFormatter(new SupportLogFormatter());
+            }
+        }
+
         if (Thread.interrupted()) { // JENKINS-30395
             LOGGER.warning("was interrupted before start");
         }
