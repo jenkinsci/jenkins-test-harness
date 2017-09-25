@@ -64,12 +64,6 @@ public class LoggerRule extends ExternalResource {
     public LoggerRule() {
         consoleHandler.setFormatter(new SupportLogFormatter());
         consoleHandler.setLevel(Level.ALL);
-        // For consistency, adjust format of default console handler (INFO+) too:
-        for (Handler h : Logger.getLogger("").getHandlers()) {
-            if (h instanceof ConsoleHandler) {
-                ((ConsoleHandler) h).setFormatter(new SupportLogFormatter());
-            }
-        }
     }
 
     /**
