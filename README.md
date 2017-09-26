@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.28 (2017 Sep 26)
+
+* Fixing a regression in `LoggerRule` in 2.26, and improving log appearance further.
+
 ### 2.27 (2017 Sep 20)
 
 * JENKINS-45245: work around incorrect Maven test classpath in IntelliJ IDEA.
