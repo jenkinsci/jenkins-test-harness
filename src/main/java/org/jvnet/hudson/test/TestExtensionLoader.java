@@ -25,12 +25,15 @@ package org.jvnet.hudson.test;
 
 import hudson.Extension;
 import hudson.ExtensionFinder.GuiceExtensionAnnotation;
+import java.lang.annotation.AnnotationTypeMismatchException;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.junit.runner.Description;
 
@@ -41,6 +44,9 @@ import org.junit.runner.Description;
  */
 @Extension
 public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension> {
+
+    private static final Logger LOGGER = Logger.getLogger(TestExtensionLoader.class.getName());
+
     public TestExtensionLoader() {
         super(TestExtension.class);
     }
@@ -64,7 +70,13 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
 
         TestExtension a = e.getAnnotation(TestExtension.class);
         if (a==null)        return false;   // stale index
-        List<String> testNameList = Arrays.asList(a.value());
+        List<String> testNameList;
+        try {
+            testNameList = Arrays.asList(a.value());
+        } catch (AnnotationTypeMismatchException x) {
+            LOGGER.log(Level.WARNING, "ignoring {0} compiled against jenkins-test-harness older than 2.16", e);
+            return false;
+        }
         Description description = env.description();
         if (!testNameList.isEmpty() && !testNameList.contains(description.getMethodName()))
             return false;   // doesn't apply to this test
