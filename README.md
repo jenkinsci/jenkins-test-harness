@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.29 (2017 Oct 10)
+
+* Introduced `JenkinsRule.waitOnline`, improving diagnostics for `createSlave` and `createOnlineSlave`.
+* Issue a friendlier warning for a harmless `@TestExtension` binary incompatibility issue.
+
 ### 2.28 (2017 Sep 26)
 
 * Fixing a regression in `LoggerRule` in 2.26, and improving log appearance further.
