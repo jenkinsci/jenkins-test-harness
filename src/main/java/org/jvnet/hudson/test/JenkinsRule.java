@@ -93,7 +93,6 @@ import hudson.security.GroupDetails;
 import hudson.security.csrf.CrumbIssuer;
 import hudson.slaves.CommandLauncher;
 import hudson.slaves.ComputerConnector;
-import hudson.slaves.ComputerListener;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
@@ -143,7 +142,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -201,13 +199,16 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
+import hudson.console.PlainTextConsoleOutputStream;
 import hudson.init.InitMilestone;
 import hudson.model.Job;
+import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
@@ -937,23 +938,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Create a new slave on the local host and wait for it to come online
      * before returning
+     * @see #waitOnline
      */
     @SuppressWarnings({"deprecation"})
     public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
-        final CountDownLatch latch = new CountDownLatch(1);
-        ComputerListener waiter = new ComputerListener() {
-                                            @Override
-                                            public void onOnline(Computer C, TaskListener t) {
-                                                latch.countDown();
-                                                unregister();
-                                            }
-                                        };
-        waiter.register();
-
         DumbSlave s = createSlave(l, env);
-        latch.await();
-
+        waitOnline(s);
         return s;
+    }
+
+    /**
+     * Waits for a newly created slave to come online.
+     * @see #createSlave()
+     */
+    public void waitOnline(Slave s) throws Exception {
+        Computer computer = s.toComputer();
+        try {
+            computer.connect(false).get();
+        } catch (ExecutionException x) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PlainTextConsoleOutputStream ptcos = new PlainTextConsoleOutputStream(baos);
+            ptcos.write(computer.getLog().getBytes());
+            throw new AssertionError("failed to connect " + s.getNodeName() + ": " + baos, x);
+        }
     }
 
     /**
