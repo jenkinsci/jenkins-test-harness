@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.30 (2017 Oct 10)
+
+* Avoiding `JenkinsRule` plugin setup error involving excluded optional transitive dependencies.
+
 ### 2.29 (2017 Oct 10)
 
 * Introduced `JenkinsRule.waitOnline`, improving diagnostics for `createSlave` and `createOnlineSlave`.
