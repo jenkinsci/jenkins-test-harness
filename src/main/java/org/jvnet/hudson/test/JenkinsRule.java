@@ -1834,7 +1834,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                             File dependencyJar=resolveDependencyJar(artifactId,version);
                             if (dependencyJar == null) {
                                 if (optional) {
-                                    System.err.println("cannot resolve optional dependency " + dep + " of " + shortName + "; skipping");
+                                    LOGGER.log(Level.INFO, "cannot resolve optional dependency {0} of {1}; skipping", new Object[] {dep, shortName});
                                     continue;
                                 }
                                 throw new IOException("Could not resolve " + dep + " in " + System.getProperty("java.class.path"));
@@ -1885,7 +1885,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
 
-                throw new Exception("Failed to resolve plugin: " + artifactId + " version " + version);
+                return null;
             }
             
     }
