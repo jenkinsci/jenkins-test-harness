@@ -122,8 +122,13 @@ public class RestartableJenkinsRule implements MethodRule {
 
         // run each step inside its own JenkinsRule
         for (Statement step : steps) {
-            j = new JenkinsRule().with(loader);
+            j = createJenkinsRule(description).with(loader);
             j.apply(step,description).evaluate();
         }
     }
+
+    protected JenkinsRule createJenkinsRule(Description description) {
+        return new JenkinsRule();
+    }
+
 }

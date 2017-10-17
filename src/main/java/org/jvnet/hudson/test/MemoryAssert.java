@@ -281,13 +281,13 @@ public class MemoryAssert {
         if (rootsHint != null) {
             rootsHint2.addAll(rootsHint);
         }
-        //
         try {
             rootsHint2.add(Class.forName("java.io.ObjectStreamClass$Caches")); // http://stackoverflow.com/a/20461446/12916 or JDK-6232010 or http://www.szegedi.org/articles/memleak3.html
             rootsHint2.add(Class.forName("java.beans.ThreadGroupContext"));
         } catch (ClassNotFoundException x) {
             x.printStackTrace();
         }
+        // TODO consider also: rootsHint2.add(Thread.getAllStackTraces().keySet()); // https://stackoverflow.com/a/3018672/12916
 
         return engine.trace(objs, rootsHint2);
     }
