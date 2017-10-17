@@ -57,8 +57,8 @@ import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.csrf.CrumbIssuer;
-import hudson.slaves.CommandLauncher;
 import hudson.slaves.ComputerConnector;
+import hudson.slaves.ComputerLauncher;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
@@ -662,14 +662,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Creates a {@link CommandLauncher} for launching a slave locally.
+     * Creates a {@link ComputerLauncher} for launching a slave locally.
      *
      * @param env
      *      Environment variables to add to the slave process. Can be null.
      */
-    public CommandLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, MalformedURLException {
+    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
-        return new CommandLauncher(
+        return new SimpleCommandLauncher(
                 String.format("\"%s/bin/java\" %s -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",

@@ -91,8 +91,8 @@ import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.csrf.CrumbIssuer;
-import hudson.slaves.CommandLauncher;
 import hudson.slaves.ComputerConnector;
+import hudson.slaves.ComputerLauncher;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
@@ -904,14 +904,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates a {@link hudson.slaves.CommandLauncher} for launching a slave locally.
+     * Creates a launcher for starting a local agent.
      *
      * @param env
      *      Environment variables to add to the slave process. Can be null.
      */
-    public CommandLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, MalformedURLException {
+    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
-        return new CommandLauncher(
+        return new SimpleCommandLauncher(
                 String.format("\"%s/bin/java\" %s -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
