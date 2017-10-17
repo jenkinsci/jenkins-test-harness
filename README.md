@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.31 (2017 Oct 17)
+
+* Introduced `RestartableJenkinsRule.createJenkinsRule`.
+* Changed `JenkinsRule.createComputerLauncher` to return the more generic type `ComputerLauncher` rather than `CommandLauncher`.
+
 ### 2.30 (2017 Oct 10)
 
 * Avoiding `JenkinsRule` plugin setup error involving excluded optional transitive dependencies.
