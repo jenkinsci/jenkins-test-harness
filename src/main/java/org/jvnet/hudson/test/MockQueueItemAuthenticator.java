@@ -43,7 +43,7 @@ import org.acegisecurity.Authentication;
  */
 public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
 
-    private final Map<String,Authentication> jobsToUsers;
+    private transient final Map<String,Authentication> jobsToUsers;
     
     /**
      * Creates a new authenticator.
