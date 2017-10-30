@@ -204,6 +204,7 @@ import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.slaves.JNLPLauncher;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.net.HttpURLConnection;
@@ -953,6 +954,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
+        if (s.getLauncher() instanceof JNLPLauncher) {
+            while (!computer.isOnline()) {
+                Thread.sleep(100);
+            }
+            return;
+        }
         try {
             computer.connect(false).get();
         } catch (ExecutionException x) {
