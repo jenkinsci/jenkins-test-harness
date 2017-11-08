@@ -135,6 +135,7 @@ public class JenkinsRuleTest {
         User alice = User.getById("alice", true);
         User.getById("bob", true);
         User.getById("charlotte", true);
+        User.getById("dave", true);
 
         wc.withBasicCredentials("alice", "alice", it ->
             makeRequestAndAssertLogin(it, "alice")
@@ -153,7 +154,11 @@ public class JenkinsRuleTest {
         );
 
         wc.withBasicApiToken("charlotte", it ->
-            makeRequestAndAssertLogin(it, "charlotte")
+                makeRequestAndAssertLogin(it, "charlotte")
+        );
+
+        wc.withBasicCredentials("dave", it ->
+                makeRequestAndAssertLogin(it, "dave")
         );
     }
 
