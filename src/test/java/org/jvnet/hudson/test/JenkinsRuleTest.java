@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.UnprotectedRootAction;
 import hudson.model.User;
+import hudson.security.ACL;
 import hudson.util.HttpResponses;
 import jenkins.security.ApiTokenProperty;
 import org.junit.Rule;
@@ -81,8 +82,14 @@ public class JenkinsRuleTest {
     }
 
     @Test
-    public void usingToken() throws Exception {
+    public void testTokenHelperMethods() throws Exception {
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+
+        standardMethods();
+        tryWithResourcesMethods();
+    }
+
+    private void standardMethods() throws Exception {
         JenkinsRule.WebClient wc = j.createWebClient();
 
         User alice = User.getById("alice", true);
@@ -114,6 +121,34 @@ public class JenkinsRuleTest {
 
         wc.usingBasicApiToken("charlotte");
         makeRequestAndAssertLogin(wc, "charlotte");
+    }
+
+    private void tryWithResourcesMethods() throws Exception {
+        JenkinsRule.WebClient wc = j.createWebClient();
+
+        User alice = User.getById("alice", true);
+        User.getById("bob", true);
+        User.getById("charlotte", true);
+
+        try(AutoCloseable ac = wc.withBasicCredentials("alice", "alice")){
+            makeRequestAndAssertLogin(wc, "alice");
+        }
+
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        try(AutoCloseable ac = wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken())){
+            makeRequestAndAssertLogin(wc, "alice");
+        }
+
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        try(AutoCloseable ac = wc.withBasicApiToken("bob")){
+            makeRequestAndAssertLogin(wc, "bob");
+        }
+
+        try(AutoCloseable ac = wc.withBasicApiToken("charlotte")){
+            makeRequestAndAssertLogin(wc, "charlotte");
+        }
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {

@@ -2325,12 +2325,32 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         /**
+         * To be used with try-with-resource
+         * @see #usingBasicCredentials(String, String)
+         * @since TODO
+         */
+        public @NonNull AutoCloseable withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken){
+            usingBasicCredentials(login, passwordOrToken);
+            return this::removeBasicAuthorizationHeader;
+        }
+
+        /**
          * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
          * @see #usingBasicCredentials(String, String)
          * @since TODO
          */
         public @NonNull WebClient usingBasicApiToken(@NonNull User user){
             return usingBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
+        }
+
+        /**
+         * To be used with try-with-resource
+         * @see #usingBasicApiToken(User)
+         * @since TODO
+         */
+        public @NonNull AutoCloseable withBasicApiToken(@Nonnull User user){
+            usingBasicApiToken(user);
+            return this::removeBasicAuthorizationHeader;
         }
 
         /**
@@ -2342,6 +2362,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             User u = User.getById(userId, false);
             assertNotNull("The userId must correspond to an already created User", u);
             return usingBasicApiToken(u);
+        }
+
+        /**
+         * To be used with try-with-resource
+         * @see #usingBasicApiToken(String)
+         * @since TODO
+         */
+        public @NonNull AutoCloseable withBasicApiToken(@Nonnull String userId){
+            usingBasicApiToken(userId);
+            return this::removeBasicAuthorizationHeader;
         }
 
         /**
