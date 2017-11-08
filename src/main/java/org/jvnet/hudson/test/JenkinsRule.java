@@ -2356,7 +2356,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since TODO
          */
         public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
-            return withBasicCredentials(loginAndPassword, closure);
+            return withBasicCredentials(loginAndPassword, loginAndPassword, closure);
         }
 
         /**
