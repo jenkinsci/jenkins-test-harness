@@ -2319,65 +2319,92 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login and password using Base64
          * @since TODO
          */
-        public @NonNull WebClient usingBasicCredentials(@NonNull String login, @NonNull String passwordOrToken){
+        public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
             addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + Scrambler.scramble(login + ":" + passwordOrToken));
             return this;
         }
 
         /**
-         * To be used with try-with-resource
-         * @see #usingBasicCredentials(String, String)
+         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
+         * After the closure being called, the header is removed
          * @since TODO
          */
-        public @NonNull AutoCloseable withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken){
-            usingBasicCredentials(login, passwordOrToken);
-            return this::removeBasicAuthorizationHeader;
+        public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
+            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + Scrambler.scramble(login + ":" + passwordOrToken));
+            try{
+                closure.call(this);
+            }
+            finally{
+                this.removeBasicAuthorizationHeader();
+            }
+            return this;
+        }
+
+        /**
+         * Use {@code loginAndPassword} as login AND password, especially useful for {@link DummySecurityRealm}
+         * Add the "Authorization" header with Basic credentials derived from login using Base64
+         * @since TODO
+         */
+        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword){
+            return withBasicCredentials(loginAndPassword, loginAndPassword);
+        }
+
+        /**
+         * Use {@code loginAndPassword} as login AND password, especially useful for {@link DummySecurityRealm}
+         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
+         * After the closure being called, the header is removed
+         * @since TODO
+         */
+        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
+            return withBasicCredentials(loginAndPassword, closure);
         }
 
         /**
          * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
-         * @see #usingBasicCredentials(String, String)
+         * @see #withBasicCredentials(String, String)
          * @since TODO
          */
-        public @NonNull WebClient usingBasicApiToken(@NonNull User user){
-            return usingBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
+        public @NonNull WebClient withBasicApiToken(@NonNull User user){
+            return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
         }
 
         /**
-         * To be used with try-with-resource
-         * @see #usingBasicApiToken(User)
+         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
+         * After the closure being called, the header is removed
+         * @see #withBasicCredentials(String, String, ThrowingConsumer)
          * @since TODO
          */
-        public @NonNull AutoCloseable withBasicApiToken(@Nonnull User user){
-            usingBasicApiToken(user);
-            return this::removeBasicAuthorizationHeader;
+        public @NonNull WebClient withBasicApiToken(@NonNull User user, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
+            return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken(), closure);
         }
 
         /**
          * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
-         * @see #usingBasicCredentials(String, String)
+         * @see #withBasicApiToken(User)
          * @since TODO
          */
-        public @NonNull WebClient usingBasicApiToken(@NonNull String userId){
-            User u = User.getById(userId, false);
-            assertNotNull("The userId must correspond to an already created User", u);
-            return usingBasicApiToken(u);
+        public @NonNull WebClient withBasicApiToken(@NonNull String userId){
+            User user = User.getById(userId, false);
+            assertNotNull("The userId must correspond to an already created User", user);
+            return withBasicApiToken(user);
         }
 
         /**
-         * To be used with try-with-resource
-         * @see #usingBasicApiToken(String)
+         * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
+         * After the closure being called, the header is removed
+         * @see #withBasicApiToken(User, ThrowingConsumer)
          * @since TODO
          */
-        public @NonNull AutoCloseable withBasicApiToken(@Nonnull String userId){
-            usingBasicApiToken(userId);
-            return this::removeBasicAuthorizationHeader;
+        public @NonNull WebClient withBasicApiToken(@NonNull String userId, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
+            User user = User.getById(userId, false);
+            assertNotNull("The userId must correspond to an already created User", user);
+            return withBasicApiToken(user, closure);
         }
 
         /**
          * Remove the "Authorization" header from the client
          * Meant to be used after having configured the authentication using a token
-         * @see #usingBasicCredentials(String, String)
+         * @see #withBasicCredentials(String, String)
          * @since TODO
          */
         public @NonNull WebClient removeBasicAuthorizationHeader(){
@@ -2424,6 +2451,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             return dim;
         }
+    }
+
+    @FunctionalInterface
+    public interface ThrowingConsumer<T> {
+        void call(T t) throws Exception ;
     }
 
     // needs to keep reference, or it gets GC-ed.
