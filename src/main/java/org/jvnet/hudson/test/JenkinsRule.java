@@ -49,6 +49,8 @@ import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
+import com.google.common.net.HttpHeaders;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
 import hudson.DNSMultiCast;
@@ -103,6 +105,7 @@ import hudson.tasks.Publisher;
 import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
+import hudson.util.Scrambler;
 import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
@@ -160,6 +163,7 @@ import javax.servlet.ServletContextEvent;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -2309,6 +2313,46 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             String crumb = issuer.getCrumb(null);
 
             return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+        }
+
+        /**
+         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
+         * @since TODO
+         */
+        public @NonNull WebClient usingBasicCredentials(@NonNull String login, @NonNull String passwordOrToken){
+            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + Scrambler.scramble(login + ":" + passwordOrToken));
+            return this;
+        }
+
+        /**
+         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
+         * @see #usingBasicCredentials(String, String)
+         * @since TODO
+         */
+        public @NonNull WebClient usingBasicApiToken(@NonNull User user){
+            return usingBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
+        }
+
+        /**
+         * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
+         * @see #usingBasicCredentials(String, String)
+         * @since TODO
+         */
+        public @NonNull WebClient usingBasicApiToken(@NonNull String userId){
+            User u = User.getById(userId, false);
+            assertNotNull("The userId must correspond to an already created User", u);
+            return usingBasicApiToken(u);
+        }
+
+        /**
+         * Remove the "Authorization" header from the client
+         * Meant to be used after having configured the authentication using a token
+         * @see #usingBasicCredentials(String, String)
+         * @since TODO
+         */
+        public @NonNull WebClient removeBasicAuthorizationHeader(){
+            this.removeRequestHeader(HttpHeaders.AUTHORIZATION);
+            return this;
         }
 
         /**
