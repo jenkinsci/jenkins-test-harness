@@ -194,10 +194,7 @@ public class JenkinsRuleTest {
         }
     }
 
-    /**
-     * Used only by {@link #testTokenHelperMethods()}
-     */
-    @TestExtension
+    @TestExtension("testTokenHelperMethods")
     public static class AuthRetrieval implements UnprotectedRootAction {
         @Override
         public String getIconFileName() {
