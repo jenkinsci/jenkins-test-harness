@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2009, Sun Microsystems, Inc.
+ * Copyright (c) 2017, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,44 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jvnet.hudson.test;
-
-import hudson.Extension;
-import hudson.model.AbstractRootAction;
-import hudson.model.RootAction;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerResponse;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+package hudson.model;
 
 /**
- * Server-side logic that implements {@link HudsonTestCase#executeOnServer(Callable)}.
+ * Propose a cleaner way to implement {@link RootAction} as an inner class for test.
+ * Often only the {@link #getUrlName()} methods is really implemented.
  *
- * @author Kohsuke Kawaguchi
+ * @since TODO
  */
-@Extension
-public final class ClosureExecuterAction extends AbstractRootAction {
-    private final Map<UUID,Runnable> runnables = Collections.synchronizedMap(new HashMap<UUID, Runnable>());
-
-    public void add(UUID uuid, Runnable r) {
-        runnables.put(uuid,r);
-    }
-
-    public void doIndex(StaplerResponse rsp, @QueryParameter("uuid") String uuid) throws IOException {
-        Runnable r = runnables.remove(UUID.fromString(uuid));
-        if (r!=null) {
-            r.run();
-        } else {
-            rsp.sendError(404);
-        }
+public abstract class AbstractRootAction implements RootAction {
+    @Override
+    public String getIconFileName() {
+        return null;
     }
 
     @Override
-    public String getUrlName() {
-        return "closures";
+    public String getDisplayName() {
+        return null;
     }
+
+    @Override
+    public abstract String getUrlName();
 }
