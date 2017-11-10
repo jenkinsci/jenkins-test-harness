@@ -84,11 +84,6 @@ public class JenkinsRuleTest {
     public void testTokenHelperMethods() throws Exception {
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
 
-        standardMethods();
-        closureMethods();
-    }
-
-    private void standardMethods() throws Exception {
         JenkinsRule.WebClient wc = j.createWebClient();
 
         User alice = User.getById("alice", true);
@@ -127,39 +122,6 @@ public class JenkinsRuleTest {
 
         wc.withBasicApiToken("charlotte");
         makeRequestAndAssertLogin(wc, "charlotte");
-    }
-
-    private void closureMethods() throws Exception {
-        JenkinsRule.WebClient wc = j.createWebClient();
-
-        User alice = User.getById("alice", true);
-        User.getById("bob", true);
-        User.getById("charlotte", true);
-        User.getById("dave", true);
-
-        wc.withBasicCredentials("alice", "alice", it ->
-            makeRequestAndAssertLogin(it, "alice")
-        );
-
-        makeRequestAndAssertLogin(wc, "anonymous");
-
-        wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken(), it ->
-            makeRequestAndAssertLogin(it, "alice")
-        );
-
-        makeRequestAndAssertLogin(wc, "anonymous");
-
-        wc.withBasicApiToken("bob", it ->
-            makeRequestAndAssertLogin(it, "bob")
-        );
-
-        wc.withBasicApiToken("charlotte", it ->
-                makeRequestAndAssertLogin(it, "charlotte")
-        );
-
-        wc.withBasicCredentials("dave", it ->
-                makeRequestAndAssertLogin(it, "dave")
-        );
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {

@@ -50,6 +50,7 @@ import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
+import com.trilead.ssh2.crypto.Base64;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
@@ -110,12 +111,7 @@ import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -209,8 +205,7 @@ import hudson.model.Job;
 import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.slaves.JNLPLauncher;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
+
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.ExecutionException;
@@ -2320,23 +2315,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since TODO
          */
         public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
-            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + Scrambler.scramble(login + ":" + passwordOrToken));
-            return this;
-        }
+            String authCode;
+            try {
+                authCode = new String(Base64.encode((login + ":" + passwordOrToken).getBytes("UTF-8")));
+            } catch (UnsupportedEncodingException e) {
+                // impossible
+                throw new Error(e);
+            }
 
-        /**
-         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
-         * After the closure being called, the header is removed
-         * @since TODO
-         */
-        public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
-            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + Scrambler.scramble(login + ":" + passwordOrToken));
-            try{
-                closure.call(this);
-            }
-            finally{
-                this.removeBasicAuthorizationHeader();
-            }
+            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
             return this;
         }
 
@@ -2350,32 +2337,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         /**
-         * Use {@code loginAndPassword} as login AND password, especially useful for {@link DummySecurityRealm}
-         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
-         * After the closure being called, the header is removed
-         * @since TODO
-         */
-        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
-            return withBasicCredentials(loginAndPassword, loginAndPassword, closure);
-        }
-
-        /**
          * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
          * @see #withBasicCredentials(String, String)
          * @since TODO
          */
         public @NonNull WebClient withBasicApiToken(@NonNull User user){
             return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
-        }
-
-        /**
-         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
-         * After the closure being called, the header is removed
-         * @see #withBasicCredentials(String, String, ThrowingConsumer)
-         * @since TODO
-         */
-        public @NonNull WebClient withBasicApiToken(@NonNull User user, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
-            return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken(), closure);
         }
 
         /**
@@ -2387,18 +2354,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             User user = User.getById(userId, false);
             assertNotNull("The userId must correspond to an already created User", user);
             return withBasicApiToken(user);
-        }
-
-        /**
-         * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
-         * After the closure being called, the header is removed
-         * @see #withBasicApiToken(User, ThrowingConsumer)
-         * @since TODO
-         */
-        public @NonNull WebClient withBasicApiToken(@NonNull String userId, @NonNull ThrowingConsumer<WebClient> closure) throws Exception {
-            User user = User.getById(userId, false);
-            assertNotNull("The userId must correspond to an already created User", user);
-            return withBasicApiToken(user, closure);
         }
 
         /**
@@ -2451,11 +2406,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             return dim;
         }
-    }
-
-    @FunctionalInterface
-    public interface ThrowingConsumer<T> {
-        void call(T t) throws Exception ;
     }
 
     // needs to keep reference, or it gets GC-ed.
