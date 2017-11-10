@@ -36,6 +36,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.ExternalResource;
@@ -159,6 +163,99 @@ public class LoggerRule extends ExternalResource {
         if (ringHandler != null) {
             ringHandler.clear();
             messages.clear();
+        }
+    }
+
+    /**
+     * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord} at
+     * the specified {@link Level}, with a message matching the specified matcher, and with a
+     * throwable matching the specified matcher.
+     *
+     * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
+     * @param message the matcher to match against {@link LogRecord#getMessage}
+     * @param thrown the matcher to match against {@link LogRecord#getThrown()}
+     */
+    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        return new RecordedMatcher(level, message, thrown);
+    }
+
+    /**
+     * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord} at
+     * the specified {@link Level} and with a message matching the specified matcher.
+     *
+     * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
+     * @param message The matcher to match against {@link LogRecord#getMessage}.
+     */
+    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message) {
+        return recorded(level, message, null);
+    }
+
+    /**
+     * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord}
+     * with a message matching the specified matcher, and with a throwable matching the specified
+     * matcher.
+     *
+     * @param message the matcher to match against {@link LogRecord#getMessage}
+     * @param thrown the matcher to match against {@link LogRecord#getThrown()}
+     */
+    public static Matcher<LoggerRule> recorded(@Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        return recorded(null, message, thrown);
+    }
+
+    /**
+     * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord}
+     * with a message matching the specified matcher.
+     *
+     * @param message the matcher to match against {@link LogRecord#getMessage}
+     */
+    public static Matcher<LoggerRule> recorded(@Nonnull Matcher<String> message) {
+        return recorded(null, message);
+    }
+
+    private static class RecordedMatcher extends TypeSafeMatcher<LoggerRule> {
+        @CheckForNull Level level;
+        @Nonnull Matcher<String> message;
+        @CheckForNull Matcher<Throwable> thrown;
+
+        public RecordedMatcher(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+            this.level = level;
+            this.message = message;
+            this.thrown = thrown;
+        }
+
+        @Override
+        protected boolean matchesSafely(LoggerRule item) {
+            synchronized (item) {
+                for (LogRecord record : item.getRecords()) {
+                    if (level == null || record.getLevel() == level) {
+                        if (message.matches(record.getMessage())) {
+                            if (thrown != null) {
+                                if (thrown.matches(record.getThrown())) {
+                                    return true;
+                                }
+                            } else {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void describeTo(org.hamcrest.Description description) {
+            description.appendText("has LogRecord");
+            if (level != null) {
+                description.appendText(" with level ");
+                description.appendValue(level.getName());
+            }
+            description.appendText(" with a message matching ");
+            description.appendDescriptionOf(message);
+            if (thrown != null) {
+                description.appendText(" with an exception matching ");
+                description.appendDescriptionOf(thrown);
+            }
         }
     }
 
