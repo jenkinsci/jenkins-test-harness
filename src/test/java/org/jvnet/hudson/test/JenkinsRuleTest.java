@@ -157,27 +157,4 @@ public class JenkinsRuleTest {
             return setterParam;
         }
     }
-
-    @TestExtension("testTokenHelperMethods")
-    public static class AuthRetrieval implements UnprotectedRootAction {
-        @Override
-        public String getIconFileName() {
-            return null;
-        }
-
-        @Override
-        public String getDisplayName() {
-            return null;
-        }
-
-        @Override
-        public String getUrlName() {
-            return "test";
-        }
-
-        public HttpResponse doIndex() {
-            User u = User.current();
-            return HttpResponses.plainText(u!=null ? u.getId() : "anonymous");
-        }
-    }
 }
