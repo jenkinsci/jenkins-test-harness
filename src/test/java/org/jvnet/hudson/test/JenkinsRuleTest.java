@@ -6,6 +6,7 @@ import hudson.model.UnprotectedRootAction;
 import hudson.model.User;
 import hudson.util.HttpResponses;
 import jenkins.security.ApiTokenProperty;
+import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -113,22 +114,23 @@ public class JenkinsRuleTest {
         wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken());
         makeRequestAndAssertLogin(wc, "alice");
 
-        wc.removeBasicAuthorizationHeader();
+        wc = j.createWebClient();
         makeRequestAndAssertLogin(wc, "anonymous");
 
         wc.withBasicApiToken("bob");
         makeRequestAndAssertLogin(wc, "bob");
-        wc.removeBasicAuthorizationHeader();
 
+        wc = j.createWebClient();
         wc.withBasicApiToken("charlotte");
         makeRequestAndAssertLogin(wc, "charlotte");
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {
-        WebRequest req = new WebRequest(new URL(j.getURL(),"test"));
-        req.setEncodingType(null);
+        WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
         Page p = wc.getPage(req);
-        assertEquals(expectedLogin, p.getWebResponse().getContentAsString().trim());
+        String pageContent = p.getWebResponse().getContentAsString();
+        String loginReceived = (String) JSONObject.fromObject(pageContent).get("name");
+        assertEquals(expectedLogin, loginReceived.trim());
     }
 
     public static class SomeClassWithSetters {

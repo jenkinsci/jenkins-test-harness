@@ -50,8 +50,6 @@ import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
-import com.trilead.ssh2.crypto.Base64;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
 import hudson.DNSMultiCast;
@@ -106,12 +104,18 @@ import hudson.tasks.Publisher;
 import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
-import hudson.util.Scrambler;
 import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -127,9 +131,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -2314,14 +2320,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login and password using Base64
          * @since TODO
          */
-        public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
-            String authCode;
-            try {
-                authCode = new String(Base64.encode((login + ":" + passwordOrToken).getBytes("UTF-8")));
-            } catch (UnsupportedEncodingException e) {
-                // impossible
-                throw new Error(e);
-            }
+        public @Nonnull WebClient withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken) {
+            String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
 
             addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
             return this;
@@ -2332,7 +2332,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login using Base64
          * @since TODO
          */
-        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword){
+        public @Nonnull WebClient withBasicCredentials(@Nonnull String loginAndPassword){
             return withBasicCredentials(loginAndPassword, loginAndPassword);
         }
 
@@ -2341,7 +2341,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicCredentials(String, String)
          * @since TODO
          */
-        public @NonNull WebClient withBasicApiToken(@NonNull User user){
+        public @Nonnull WebClient withBasicApiToken(@Nonnull User user){
             return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
         }
 
@@ -2350,21 +2350,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicApiToken(User)
          * @since TODO
          */
-        public @NonNull WebClient withBasicApiToken(@NonNull String userId){
+        public @Nonnull WebClient withBasicApiToken(@Nonnull String userId){
             User user = User.getById(userId, false);
             assertNotNull("The userId must correspond to an already created User", user);
             return withBasicApiToken(user);
-        }
-
-        /**
-         * Remove the "Authorization" header from the client
-         * Meant to be used after having configured the authentication using a token
-         * @see #withBasicCredentials(String, String)
-         * @since TODO
-         */
-        public @NonNull WebClient removeBasicAuthorizationHeader(){
-            this.removeRequestHeader(HttpHeaders.AUTHORIZATION);
-            return this;
         }
 
         /**
