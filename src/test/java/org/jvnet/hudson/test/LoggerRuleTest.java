@@ -72,6 +72,15 @@ public class LoggerRuleTest {
         FOO_LOGGER.log(Level.INFO, "Foo Entry 1", new IllegalStateException());
         assertThat(logRule, recorded(equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
-        assertThat(logRule, not(recorded(Level.INFO, instanceOf(IOException.class))));
+        assertThat(logRule, not(recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IOException.class))));
+    }
+
+    @Test
+    public void testRecordedNoShortCircuit() {
+        logRule.record("Foo", Level.INFO).capture(2);
+        FOO_LOGGER.log(Level.INFO, "Foo Entry", new IllegalStateException());
+        FOO_LOGGER.log(Level.INFO, "Foo Entry", new IOException());
+        assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IllegalStateException.class)));
+        assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
     }
 }

@@ -169,7 +169,7 @@ public class LoggerRule extends ExternalResource {
     /**
      * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord} at
      * the specified {@link Level}, with a message matching the specified matcher, and with a
-     * throwable matching the specified matcher.
+     * {@link Throwable} matching the specified matcher.
      *
      * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
      * @param message the matcher to match against {@link LogRecord#getMessage}
@@ -192,7 +192,7 @@ public class LoggerRule extends ExternalResource {
 
     /**
      * Creates a {@link Matcher} that matches if the {@link LoggerRule} has a {@link LogRecord}
-     * with a message matching the specified matcher, and with a throwable matching the specified
+     * with a message matching the specified matcher and with a {@link Throwable} matching the specified
      * matcher.
      *
      * @param message the matcher to match against {@link LogRecord#getMessage}
