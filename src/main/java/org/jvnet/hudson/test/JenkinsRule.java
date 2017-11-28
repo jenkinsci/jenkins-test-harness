@@ -49,6 +49,7 @@ import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
+import com.google.common.net.HttpHeaders;
 import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
 import hudson.DNSMultiCast;
@@ -108,7 +109,9 @@ import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -128,9 +131,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -160,6 +165,7 @@ import javax.servlet.ServletContextEvent;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -205,8 +211,7 @@ import hudson.model.Job;
 import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.slaves.JNLPLauncher;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
+
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.ExecutionException;
@@ -2309,6 +2314,46 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             String crumb = issuer.getCrumb(null);
 
             return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+        }
+
+        /**
+         * Add the "Authorization" header with Basic credentials derived from login and password using Base64
+         * @since TODO
+         */
+        public @Nonnull WebClient withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken) {
+            String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
+
+            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
+            return this;
+        }
+
+        /**
+         * Use {@code loginAndPassword} as login AND password, especially useful for {@link DummySecurityRealm}
+         * Add the "Authorization" header with Basic credentials derived from login using Base64
+         * @since TODO
+         */
+        public @Nonnull WebClient withBasicCredentials(@Nonnull String loginAndPassword){
+            return withBasicCredentials(loginAndPassword, loginAndPassword);
+        }
+
+        /**
+         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
+         * @see #withBasicCredentials(String, String)
+         * @since TODO
+         */
+        public @Nonnull WebClient withBasicApiToken(@Nonnull User user){
+            return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
+        }
+
+        /**
+         * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
+         * @see #withBasicApiToken(User)
+         * @since TODO
+         */
+        public @Nonnull WebClient withBasicApiToken(@Nonnull String userId){
+            User user = User.getById(userId, false);
+            assertNotNull("The userId must correspond to an already created User", user);
+            return withBasicApiToken(user);
         }
 
         /**

@@ -1,12 +1,25 @@
 package org.jvnet.hudson.test;
 
+import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.WebRequest;
+import hudson.model.UnprotectedRootAction;
+import hudson.model.User;
+import hudson.util.HttpResponses;
+import jenkins.security.ApiTokenProperty;
+import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
+import org.xml.sax.SAXException;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class JenkinsRuleTest {
 
@@ -66,6 +79,58 @@ public class JenkinsRuleTest {
         r.setSetterParam("value2");     // mismatch!
         l.setterField = "value4";
         j.assertEqualDataBoundBeans(l, r);
+    }
+
+    @Test
+    public void testTokenHelperMethods() throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+
+        JenkinsRule.WebClient wc = j.createWebClient();
+
+        User alice = User.getById("alice", true);
+        User.getById("bob", true);
+        User.getById("charlotte", true);
+
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        wc.login("alice");
+        makeRequestAndAssertLogin(wc, "alice");
+
+        wc = j.createWebClient();
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        wc.withBasicCredentials("alice", "alice");
+        makeRequestAndAssertLogin(wc, "alice");
+
+        wc = j.createWebClient();
+
+        // if password is not provided, the login is used for both
+        wc.withBasicCredentials("alice");
+        makeRequestAndAssertLogin(wc, "alice");
+
+        wc = j.createWebClient();
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken());
+        makeRequestAndAssertLogin(wc, "alice");
+
+        wc = j.createWebClient();
+        makeRequestAndAssertLogin(wc, "anonymous");
+
+        wc.withBasicApiToken("bob");
+        makeRequestAndAssertLogin(wc, "bob");
+
+        wc = j.createWebClient();
+        wc.withBasicApiToken("charlotte");
+        makeRequestAndAssertLogin(wc, "charlotte");
+    }
+
+    private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {
+        WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
+        Page p = wc.getPage(req);
+        String pageContent = p.getWebResponse().getContentAsString();
+        String loginReceived = (String) JSONObject.fromObject(pageContent).get("name");
+        assertEquals(expectedLogin, loginReceived.trim());
     }
 
     public static class SomeClassWithSetters {
