@@ -2318,7 +2318,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         /**
          * Add the "Authorization" header with Basic credentials derived from login and password using Base64
-         * @since TODO
+         * @since 2.32
          */
         public @Nonnull WebClient withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken) {
             String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
@@ -2330,7 +2330,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Use {@code loginAndPassword} as login AND password, especially useful for {@link DummySecurityRealm}
          * Add the "Authorization" header with Basic credentials derived from login using Base64
-         * @since TODO
+         * @since 2.32
          */
         public @Nonnull WebClient withBasicCredentials(@Nonnull String loginAndPassword){
             return withBasicCredentials(loginAndPassword, loginAndPassword);
@@ -2339,7 +2339,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
          * @see #withBasicCredentials(String, String)
-         * @since TODO
+         * @since 2.32
          */
         public @Nonnull WebClient withBasicApiToken(@Nonnull User user){
             return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
@@ -2348,7 +2348,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Retrieve the {@link ApiTokenProperty} from the associated user, derive credentials from it and place it in Basic authorization header
          * @see #withBasicApiToken(User)
-         * @since TODO
+         * @since 2.32
          */
         public @Nonnull WebClient withBasicApiToken(@Nonnull String userId){
             User user = User.getById(userId, false);

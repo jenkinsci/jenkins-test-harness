@@ -39,7 +39,6 @@ import org.kohsuke.stapler.StaplerRequest;
 /**
  * Creates a test builder, which creates a file in the workspace.
  * @author Oleg Nenashev
- * @since TODO
  */
 public class CreateFileBuilder extends Builder {
     
