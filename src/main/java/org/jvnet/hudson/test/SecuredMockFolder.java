@@ -31,23 +31,18 @@ import hudson.model.TopLevelItemDescriptor;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.security.SidACL;
-import hudson.security.SparseACL;
 import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
 import org.acegisecurity.acls.sid.Sid;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Folder stub with a configurable permission control.
  * The implementation secures the access to the item and to its children.
- * @author Oleg Nenashev
- * @since TODO
+ * @deprecated Use {@link MockAuthorizationStrategy} plus {@link MockFolder} instead.
  */
-@Restricted(NoExternalUse.class) // Unrestrict after integrating into Jenkins trunk
+@Deprecated
 public class SecuredMockFolder extends MockFolder {
 
     private String grantedUser;
