@@ -128,6 +128,13 @@ public class LoggerRule extends ExternalResource {
     }
 
     /**
+     * Same as {@link #record(String, Level)} but calls {@link Class#getPackage()} and getName() for you first.
+     */
+    public LoggerRule recordPackage(Class<?> clazz, Level level) {
+        return record(clazz.getPackage().getName(), level);
+    }
+
+    /**
      * Obtains all log records collected so far during this test case.
      * You must have first called {@link #capture}.
      * If more than the maximum number of records were captured, older ones will have been discarded.
