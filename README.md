@@ -4,6 +4,14 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.32 (2017 Oct 28)
+
+* Added `LoggerRule.recordPackage` as a convenience.
+* Added `LoggerRule.recorded` methods returning matchers to simplify checking for log records.
+* Added `WebClient.withBasicCredentials` and `.withBasicApiToken` methods to simplify passing authentication to REST requests as an alternative to `.login`.
+* `waitOnline` with `JNLPLauncher` failed rather than waiting.
+* Do not even try to persist an `Authentication` via XStream.
+
 ### 2.31 (2017 Oct 17)
 
 * Introduced `RestartableJenkinsRule.createJenkinsRule`.
