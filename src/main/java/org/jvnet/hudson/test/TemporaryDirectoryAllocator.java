@@ -62,7 +62,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile("jenkins", "test", base);
+            File f = File.createTempFile("jenkins", " test", base);
             f.delete();
             f.mkdirs();
             tmpDirectories.add(f);
