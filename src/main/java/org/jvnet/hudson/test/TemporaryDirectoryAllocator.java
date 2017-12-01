@@ -45,6 +45,14 @@ public class TemporaryDirectoryAllocator {
      */
     private final File base;
 
+    /**
+     * Whether there should be a space character in the allocated temporary directories names.
+     * It forces slaves created from a {@link JenkinsRule} to work inside a hazardous path,
+     * which can help catching shell quoting bugs.<br>
+     * This option is controlled by the <code>jenkins.test.noSpaceInTmpDirs</code> system property.
+     */
+    private final boolean withoutSpace = Boolean.getBoolean("jenkins.test.noSpaceInTmpDirs");
+
     public TemporaryDirectoryAllocator(File base) {
         this.base = base;
     }
@@ -62,7 +70,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile("jenkins", " test", base);
+            File f = File.createTempFile("jenkins", (withoutSpace ? "test" : " test"), base);
             f.delete();
             f.mkdirs();
             tmpDirectories.add(f);
