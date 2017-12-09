@@ -8,7 +8,14 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -76,6 +83,63 @@ public class RestartableJenkinsRule implements MethodRule {
         });
     }
 
+    /** Approach adapted from https://stackoverflow.com/questions/6214703/copy-entire-directory-contents-to-another-directory */
+    static class CopyFileVisitor extends SimpleFileVisitor<Path> {
+        private final Path targetPath;
+        private Path sourcePath = null;
+        public CopyFileVisitor(Path targetPath) {
+            this.targetPath = targetPath;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir,
+                                                 final BasicFileAttributes attrs) throws IOException {
+            if (sourcePath == null) {
+                sourcePath = dir;
+            } else {
+                Files.createDirectories(targetPath.resolve(sourcePath
+                        .relativize(dir)));
+            }
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path file,
+                                         final BasicFileAttributes attrs) throws IOException {
+            if (!Files.isSymbolicLink(file)) {
+                // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
+                Files.copy(file,
+                        targetPath.resolve(sourcePath.relativize(file)));
+            } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
+                Files.copy(file,
+                        targetPath.resolve(sourcePath.relativize(file)));
+            }
+            return FileVisitResult.CONTINUE;
+        }
+    }
+
+    /**
+     * Simulate an abrupt failure of Jenkins to see if it appropriately handles inconsistent states when
+     *  shutdown cleanup is not performed or data is not written fully to disk.
+     *
+     * Works by copying the JENKINS_HOME to a new directory and then setting the {@link RestartableJenkinsRule} to use
+     * that for the next restart. Thus we only have the data actually persisted to disk at that time to work with.
+     *
+     * Should be run as the last part of a {@link org.jvnet.hudson.test.RestartableJenkinsRule.Step}.
+     *
+     * @throws IOException
+     */
+     void simulateAbruptShutdown() throws IOException {
+        File homeDir = this.home;
+        TemporaryFolder temp = new TemporaryFolder();
+        temp.create();
+        File newHome = temp.newFolder();
+
+        // Copy efficiently
+        Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
+        home = newHome;
+    }
+
     /**
      * One step to run, intended to be a SAM for lambdas with {@link #then}.
      * {@link Closure} does not work because it is an abstract class, not an interface.
@@ -101,6 +165,22 @@ public class RestartableJenkinsRule implements MethodRule {
         });
     }
 
+    /**
+     * Run one Jenkins session and then simulate the Jenkins process ending without a clean shutdown.
+     * This can be used to test that data is appropriately persisted without relying on shutdown processes.
+     * <p><strong>Implementation note:</strong> we're actually just copying the JENKINS_HOME, which takes some time -
+     *  so the shutdown isn't truly instant (additional data may be written while this happens).
+     */
+    public void thenWithHardShutdown(final Step s) {
+        addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                s.run(j);
+                simulateAbruptShutdown();
+            }
+        });
+    }
+
     public void addStep(final Statement step) {
         steps.add(new Statement() {
             @Override
@@ -108,6 +188,21 @@ public class RestartableJenkinsRule implements MethodRule {
                 j.jenkins.getInjector().injectMembers(step);
                 j.jenkins.getInjector().injectMembers(target);
                 step.evaluate();
+            }
+        });
+    }
+
+    /** Similar to {@link #addStep(Statement)} but we simulate a dirty shutdown after the step, rather than a clean one.
+     *  See {@link #thenWithHardShutdown(Step)} for how this is done.
+     */
+    public void addStepWithDirtyShutdown(final Statement step) {
+        steps.add(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                j.jenkins.getInjector().injectMembers(step);
+                j.jenkins.getInjector().injectMembers(target);
+                step.evaluate();
+                simulateAbruptShutdown();
             }
         });
     }
