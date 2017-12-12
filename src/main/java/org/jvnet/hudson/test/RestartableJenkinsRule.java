@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -106,14 +107,19 @@ public class RestartableJenkinsRule implements MethodRule {
         @Override
         public FileVisitResult visitFile(final Path file,
                                          final BasicFileAttributes attrs) throws IOException {
-            if (!Files.isSymbolicLink(file)) {
-                // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
-                Files.copy(file,
-                        targetPath.resolve(sourcePath.relativize(file)));
-            } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
-                Files.copy(file,
-                        targetPath.resolve(sourcePath.relativize(file)));
+            try {
+                if (!Files.isSymbolicLink(file)) {
+                    // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)));
+                } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)));
+                }
+            } catch (NoSuchFileException nsfe) {
+                // File removed in between scan beginning and when we try to copy it, ignore it
             }
+
             return FileVisitResult.CONTINUE;
         }
     }
