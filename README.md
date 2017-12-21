@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.33 (2017 Dec 21)
+
+* `RestartableJenkinsRule` utilities to simulate abrupt (i.e., unplanned) shutdowns.
+
 ### 2.32 (2017 Oct 28)
 
 * Added `LoggerRule.recordPackage` as a convenience.
