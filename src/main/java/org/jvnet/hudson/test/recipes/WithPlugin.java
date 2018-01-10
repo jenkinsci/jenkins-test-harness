@@ -30,6 +30,7 @@ import org.apache.commons.io.FileUtils;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.Documented;
 import static java.lang.annotation.ElementType.METHOD;
 import java.lang.annotation.Retention;
@@ -89,6 +90,9 @@ public @interface WithPlugin {
         public void decorateHome(JenkinsRule jenkinsRule, File home) throws Exception {
             for (String plugin : a.value()) {
                 URL res = getClass().getClassLoader().getResource("plugins/" + plugin);
+                if (res == null) {
+                    throw new IOException("Cannot find resource for plugin " + plugin);
+                }
                 FileUtils.copyURLToFile(res, new File(home, "plugins/" + plugin));
             }
         }

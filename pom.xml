@@ -79,8 +79,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <!--to have access to User.getById-->
-      <version>1.651.2</version>
+      <!--to run with plugin unbundling by default-->
+      <version>2.7.3</version>
       <type>executable-war</type>
       <exclusions>
         <exclusion>

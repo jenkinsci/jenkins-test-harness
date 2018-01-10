@@ -9,6 +9,7 @@ import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.recipes.WithPlugin;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpResponse;
@@ -20,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class JenkinsRuleTest {
 
@@ -123,6 +125,14 @@ public class JenkinsRuleTest {
         wc = j.createWebClient();
         wc.withBasicApiToken("charlotte");
         makeRequestAndAssertLogin(wc, "charlotte");
+    }
+
+    @Test
+    @Issue("JENKINS-48885")
+    public void withPluginShouldListPluginInThePluginManager() throws Exception {
+        ((TestPluginManager) j.jenkins.pluginManager).installDetachedPlugin("mailer");
+        assertNotNull("Jenkins in JenkinsRule should return plugins in Jenkins#getPlugin()",
+                j.jenkins.getPlugin("mailer"));
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {
