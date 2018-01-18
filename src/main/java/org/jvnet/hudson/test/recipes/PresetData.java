@@ -33,18 +33,21 @@ import java.lang.annotation.Retention;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Target;
 import java.util.Locale;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
  * Runs a test case with one of the preset JENKINS_HOME data set.
  *
  * @author Kohsuke Kawaguchi
  * @see LocalData
+ * @deprecated Authentication modes are better defined in code using {@link JenkinsRule#createDummySecurityRealm} and {@link MockAuthorizationStrategy}.
  */
 @Documented
 @Recipe(PresetData.RunnerImpl.class)
 @JenkinsRecipe(PresetData.RuleRunnerImpl.class)
 @Target(METHOD)
 @Retention(RUNTIME)
+@Deprecated
 public @interface PresetData {
     /**
      * One of the preset data to choose from.
