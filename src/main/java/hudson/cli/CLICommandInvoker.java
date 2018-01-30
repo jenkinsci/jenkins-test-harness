@@ -258,9 +258,17 @@ public class CLICommandInvoker {
             return out.toString();
         }
 
+        public byte[] stdoutBinary() {
+            return out.toByteArray();
+        }
+
         public String stderr() {
 
             return err.toString();
+        }
+
+        public byte[] stderrBinary() {
+            return err.toByteArray();
         }
 
         @Override
