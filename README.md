@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.34 (2018 Jan 29)
+
+* Added `CLICommandInvoker.Result.stdoutBinary` and `.stderrBinary`.
+* Deprecated `PresetData`.
+
 ### 2.33 (2017 Dec 21)
 
 * `RestartableJenkinsRule` utilities to simulate abrupt (i.e., unplanned) shutdowns.
