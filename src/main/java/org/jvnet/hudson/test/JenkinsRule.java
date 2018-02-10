@@ -26,7 +26,6 @@ package org.jvnet.hudson.test;
 
 import com.gargoylesoftware.htmlunit.AjaxController;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
-import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
@@ -235,9 +234,6 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.mozilla.javascript.tools.debugger.Dim;
 import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
-import org.w3c.css.sac.CSSException;
-import org.w3c.css.sac.CSSParseException;
-import org.w3c.css.sac.ErrorHandler;
 import org.xml.sax.SAXException;
 
 /**
@@ -1364,10 +1360,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
-            try {
-                img.getHeight();
-            } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
+            if (!img.isDisplayed()) {
+                throw new Error("Failed to load " + img.getSrcAttribute());
             }
         }
     }
@@ -1430,14 +1424,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Submits the form by clikcing the submit button of the given name.
+     * Submits the form by clicking the submit button of the given name.
      *
      * @param name
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getHtmlElementsByTagName("button")) {
-            HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();                        
+        for( HtmlElement e : form.getElementsByTagName("button")) {
+            HtmlElement p = (HtmlElement) e.getParentNode().getParentNode();
             if (p.getAttribute("name").equals(name) && HtmlElementUtil.hasClassName(p, "yui-submit-button")) {
                 // For YUI handled submit buttons, just do a click.
                 return (HtmlPage) HtmlElementUtil.click(e);
@@ -1452,10 +1446,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return DomNodeUtil.selectSingleNode(current, "(preceding::input[@name='_."+name+"'])[last()]");
     }
 
-    public HtmlButton getButtonByCaption(HtmlForm f, String s) {
-        for (HtmlElement b : f.getHtmlElementsByTagName("button")) {
-            if(b.getTextContent().trim().equals(s))
-                return (HtmlButton)b;
+    public HtmlButton getButtonByCaption(HtmlForm form, String caption) {
+        for (HtmlElement element : form.getElementsByTagName("button")) {
+            if (element.getTextContent().trim().equals(caption)) {
+                return (HtmlButton) element;
+            }
         }
         return null;
     }
@@ -1981,7 +1976,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public WebClient() {
             // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
             // so trying something else, until we discover another problem.
-            super(BrowserVersion.FIREFOX_38);
+            super(BrowserVersion.FIREFOX_45);
 
 //            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
@@ -1994,38 +1989,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             });
 
-            setCssErrorHandler(new ErrorHandler() {
-                final ErrorHandler defaultHandler = new DefaultCssErrorHandler();
-
-                public void warning(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.warning(exception);
-                }
-
-                public void error(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.error(exception);
-                }
-
-                public void fatalError(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.fatalError(exception);
-                }
-
-                private boolean ignore(CSSParseException e) {
-                    String uri = e.getURI();
-                    return uri.contains("/yui/")
-                        // TODO JENKINS-14749: these are a mess today, and we know that
-                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
-                }
-            });
-
             // if no other debugger is installed, install jsDebugger,
             // so as not to interfere with the 'Dim' class.
             getJavaScriptEngine().getContextFactory().addListener(new ContextFactory.Listener() {
                 public void contextCreated(Context cx) {
-                    if (cx.getDebugger() == null)
+                    if (cx.getDebugger() == null) {
                         cx.setDebugger(jsDebugger, null);
+                    }
                 }
 
                 public void contextReleased(Context cx) {
