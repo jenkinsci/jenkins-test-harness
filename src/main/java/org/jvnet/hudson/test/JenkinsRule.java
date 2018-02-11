@@ -30,6 +30,7 @@ import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.SilentCssErrorHandler;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
@@ -1965,8 +1966,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Extends {@link com.gargoylesoftware.htmlunit.WebClient} and provide convenience methods
-     * for accessing Hudson.
+     * Extends {@link com.gargoylesoftware.htmlunit.WebClient} and provide convenience methods for accessing Jenkins.
      */
     public class WebClient extends com.gargoylesoftware.htmlunit.WebClient {
         private static final long serialVersionUID = -7944895389154288881L;
@@ -1978,9 +1978,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // so trying something else, until we discover another problem.
             super(BrowserVersion.FIREFOX_45);
 
-//            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
+
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = -76034615893907856L;
@@ -1989,8 +1989,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             });
 
-            // if no other debugger is installed, install jsDebugger,
-            // so as not to interfere with the 'Dim' class.
+            // if no other debugger is installed, install jsDebugger, so as not to interfere with the 'Dim' class.
             getJavaScriptEngine().getContextFactory().addListener(new ContextFactory.Listener() {
                 public void contextCreated(Context cx) {
                     if (cx.getDebugger() == null) {
@@ -1998,13 +1997,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
 
-                public void contextReleased(Context cx) {
-                }
+                public void contextReleased(Context cx) {}
             });
 
-            // avoid a hang by setting a time out. It should be long enough to prevent
-            // false-positive timeout on slow systems
-            //setTimeout(60*1000);
+            setCssErrorHandler(new SilentCssErrorHandler());
+
+            // DefaultJavaScriptErrorListener is used
+            setJavaScriptErrorListener(null);
         }
 
 
