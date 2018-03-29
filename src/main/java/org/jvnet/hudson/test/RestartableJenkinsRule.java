@@ -2,6 +2,7 @@ package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
 import hudson.FilePath;
+import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.Description;
@@ -12,7 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -34,7 +37,11 @@ import java.util.concurrent.Callable;
 public class RestartableJenkinsRule implements MethodRule {
     public JenkinsRule j;
     private Description description;
-    private final List<Statement> steps = new ArrayList<Statement>();
+
+    /**
+     * List of {@link Statement}. For each one, the boolean value says if Jenkins is expected to start or not.
+     */
+    private final Map<Statement, Boolean> steps = new LinkedHashMap<>();
 
     private TemporaryFolder tmp = new TemporaryFolder();
 
@@ -153,22 +160,35 @@ public class RestartableJenkinsRule implements MethodRule {
         });
     }
 
+    public void thenDoesNotStart() {
+        addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                throw new IllegalStateException("should have failed before reaching here.");
+            }
+        }, false);
+    }
+
     public void addStep(final Statement step) {
-        steps.add(new Statement() {
+        addStep(step, true);
+    }
+
+    public void addStep(final Statement step, boolean expectedToStartCorrectly) {
+        steps.put(new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 j.jenkins.getInjector().injectMembers(step);
                 j.jenkins.getInjector().injectMembers(target);
                 step.evaluate();
             }
-        });
+        }, expectedToStartCorrectly);
     }
 
     /** Similar to {@link #addStep(Statement)} but we simulate a dirty shutdown after the step, rather than a clean one.
      *  See {@link #thenWithHardShutdown(Step)} for how this is done.
      */
     public void addStepWithDirtyShutdown(final Statement step) {
-        steps.add(new Statement() {
+        steps.put(new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 j.jenkins.getInjector().injectMembers(step);
@@ -176,7 +196,7 @@ public class RestartableJenkinsRule implements MethodRule {
                 step.evaluate();
                 simulateAbruptShutdown();
             }
-        });
+        }, true);
     }
 
     private void run() throws Throwable {
@@ -188,9 +208,20 @@ public class RestartableJenkinsRule implements MethodRule {
         };
 
         // run each step inside its own JenkinsRule
-        for (Statement step : steps) {
+        for (Map.Entry<Statement, Boolean> entry : steps.entrySet()) {
+            Statement step = entry.getKey();
             j = createJenkinsRule(description).with(loader);
-            j.apply(step,description).evaluate();
+            try {
+                j.apply(step, description).evaluate();
+                if (!entry.getValue()) {
+                    Assert.fail("The current JenkinsRule should have failed to start Jenkins.");
+                }
+            } catch (Exception e) {
+                if(entry.getValue()) {
+                    throw e;
+                }
+                // Failure ignored as requested
+            }
         }
     }
 
