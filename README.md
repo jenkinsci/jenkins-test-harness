@@ -4,6 +4,14 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.36 (2018 Apr 04)
+
+* JENKINS-50476:: offer a way to assert that Jenkins won't start
+
+### 2.35 (2018 Apr 04)
+
+*Burned*
+
 ### 2.34 (2018 Jan 29)
 
 * Added `CLICommandInvoker.Result.stdoutBinary` and `.stderrBinary`.
