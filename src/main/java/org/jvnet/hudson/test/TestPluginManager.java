@@ -32,17 +32,26 @@ import hudson.Util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+import hudson.util.VersionNumber;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+
+import javax.annotation.CheckForNull;
 
 /**
  * {@link PluginManager} to speed up unit tests.
@@ -57,6 +66,11 @@ import org.junit.Assert;
  * @see HudsonTestCase#useLocalPluginManager
  */
 public class TestPluginManager extends PluginManager {
+
+    @CheckForNull
+    private static final boolean DO_NOT_OVERRIDE_BUNDLED_PLUGINS_BY_OLDER_TEST_DEPS =
+            Boolean.getBoolean("jth.pluginManager.doNotOverrideBundledPluginsByOlderTestDeps");
+
     public static final PluginManager INSTANCE;
 
     public TestPluginManager() throws IOException {
@@ -68,7 +82,7 @@ public class TestPluginManager extends PluginManager {
     @Override
     protected Collection<String> loadBundledPlugins() throws Exception {
         try {
-            return loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins"));
+            return loadBundledPlugins(new File(WarExploder.getExplodedDir(), "WEB-INF/plugins")).keySet();
         } finally {
             try {
                 Method loadDetachedPlugins = PluginManager.class.getDeclaredMethod("loadDetachedPlugins");
@@ -80,14 +94,28 @@ public class TestPluginManager extends PluginManager {
         }
     }
 
-    private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
-        Set<String> names = new HashSet<String>();
+    private VersionNumber readPluginVersion(File file) throws IOException {
+        try (ZipFile jenkinsWar = new ZipFile(file)) {
+            ZipEntry entry = new JarEntry("META-INF/MANIFEST.MF");
+            try (InputStream inputStream = jenkinsWar.getInputStream(entry)) {
+                if (inputStream == null) {
+                    throw new IOException("Cannot open input stream for /META-INF/MANIFEST.MF in " + file);
+                }
+                Manifest manifest = new Manifest(inputStream);
+                String version = manifest.getMainAttributes().getValue("Plugin-Version");
+                return new VersionNumber(version);
+            }
+        }
+    }
+
+    private Map<String, VersionNumber> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
+        Map<String, VersionNumber> names = new HashMap<>();
 
         File[] children = fromDir.listFiles();
         if (children!=null) {
             for (File child : children) {
                 try {
-                    names.add(child.getName());
+                    names.put(child.getName(), readPluginVersion(child));
 
                     copyBundledPlugin(child.toURI().toURL(), child.getName());
                 } catch (IOException e) {
@@ -103,12 +131,14 @@ public class TestPluginManager extends PluginManager {
         	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
         }
         if (u!=null) try {
-            names.add("the.jpl");
+            // Version does not really matter since this file is unique
+            names.put("the.jpl", new VersionNumber("1.0"));
             copyBundledPlugin(u, "the.jpl");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
         }
 
+        //TODO: We do not add Test Dependencies to the list, why?
         // and pick up test dependency *.jpi that are placed by maven-hpi-plugin TestDependencyMojo.
         // and copy them into $JENKINS_HOME/plugins.
         URL index = getClass().getResource("/test-dependencies/index");
@@ -117,18 +147,35 @@ public class TestPluginManager extends PluginManager {
             try {
                 String line;
                 while ((line=r.readLine())!=null) {
-                	final URL url = new URL(index, line + ".jpi");
-					File f;
+                    final String spec = line + ".jpi";
+                    URL url = new URL(index, spec);
+                    File f;
                     try {
                         f = new File(url.toURI());
+                        if (!f.exists()) { // fallback to HPI
+                            url = new URL(index, line + ".hpi");
+                            f = new File(url.toURI());
+                        }
                     } catch (IllegalArgumentException x) {
                         throw new IOException(index + " contains bogus line " + line, x);
                     }
-                	if(f.exists()){
-                		copyBundledPlugin(url, line + ".jpi");
-                	}else{
-                		copyBundledPlugin(new URL(index, line + ".hpi"), line + ".jpi"); // fallback to hpi
-                	}
+
+                    VersionNumber bundledVersion = names.get(spec);
+                    if (bundledVersion == null) {
+                        bundledVersion = names.get(line + ".hpi");
+                    }
+                    if (bundledVersion != null) {
+                	    // WAR Package may include dependency that is newer than the one declared in tests.
+                        // Or not... So we need to extract the versions and compare them
+                        VersionNumber testDepVersion = readPluginVersion(f);
+                        if (testDepVersion.isOlderThan(bundledVersion) && DO_NOT_OVERRIDE_BUNDLED_PLUGINS_BY_OLDER_TEST_DEPS) {
+                            LOGGER.log(Level.INFO, "Plugin {0}: Bundled version {1} is newer than test dependency {2}. Using the bundled version",
+                                    new Object[] {line, bundledVersion, testDepVersion});
+                            continue;
+                        }
+                    }
+
+                    copyBundledPlugin(url, spec);
                 }
             } finally {
                 r.close();
