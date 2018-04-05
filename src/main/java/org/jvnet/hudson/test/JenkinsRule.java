@@ -2300,8 +2300,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Use {@link #createCrumbedUrl} instead if you intend to call {@link WebRequest#setRequestBody}, typical of a POST request.
          */
         public WebRequest addCrumb(WebRequest req) {
-            NameValuePair crumb = getCrumbHeaderNVP();
-            req.setRequestParameters(Arrays.asList(crumb));
+            ArrayList<NameValuePair> params = new ArrayList<>();
+            params.add(getCrumbHeaderNVP());
+            List<NameValuePair> oldParams = req.getRequestParameters();
+            if (oldParams != null && !oldParams.isEmpty()) {
+                params.addAll(oldParams);
+            }
+            req.setRequestParameters(params);
             return req;
         }
 
