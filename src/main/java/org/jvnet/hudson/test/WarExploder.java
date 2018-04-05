@@ -33,6 +33,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 
+import javax.annotation.CheckForNull;
+
 /**
  * Ensures that <tt>jenkins.war</tt> is exploded.
  *
@@ -45,6 +47,10 @@ import jenkins.model.Jenkins;
 public final class WarExploder {
 
     private static final Logger LOGGER = Logger.getLogger(WarExploder.class.getName());
+
+    public static final String JENKINS_WAR_PATH_PROPERTY_NAME = "jth.jenkins-war.path";
+    @CheckForNull
+    private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
     public static File getExplodedDir() throws Exception {
         // rethrow an exception every time someone tries to do this, so that when explode()
@@ -66,7 +72,7 @@ public final class WarExploder {
     }
 
     /**
-     * Explodes hudson.war, if necessary, and returns its root dir.
+     * Explodes jenkins.war, if necessary, and returns its root dir.
      */
     private static File explode() throws Exception {
         // are we in the Jenkins main workspace? If so, pick up hudson/main/war/resources
@@ -84,23 +90,34 @@ public final class WarExploder {
             }
         }
 
-        // locate jenkins.war
-        File war;
-        URL winstone = WarExploder.class.getResource("/winstone.jar");
-        if (winstone != null) {
-            war = Which.jarFile(Class.forName("executable.Executable"));
+        final File war;
+        if (JENKINS_WAR_PATH != null) {
+            war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
+            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the -{1} system property",
+                    new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
+            if (!war.exists()) {
+                throw new IOException("A Predefined WAR file path does not exist: " + war);
+            } else if (!war.isFile()) {
+                throw new IOException("A Predefined WAR file path does not point to a file: " + war);
+            }
         } else {
-            // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
-            File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
-            String version = core.getParentFile().getName();
-            if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
-                war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
-                if (!war.isFile()) {
-                    throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
-                }
-                LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
+            // locate jenkins.war
+            URL winstone = WarExploder.class.getResource("/winstone.jar");
+            if (winstone != null) {
+                war = Which.jarFile(Class.forName("executable.Executable"));
             } else {
-                throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
+                File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+                String version = core.getParentFile().getName();
+                if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
+                    war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
+                    if (!war.isFile()) {
+                        throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                    }
+                    LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
+                } else {
+                    throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                }
             }
         }
 
