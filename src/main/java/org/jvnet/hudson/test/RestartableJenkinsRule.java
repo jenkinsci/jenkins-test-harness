@@ -9,6 +9,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -22,6 +23,8 @@ import java.util.LinkedHashMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Provides a pattern for executing a sequence of steps.
@@ -60,6 +63,7 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     public File home;
 
+    private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
     @Override
     public Statement apply(final Statement base, FrameworkMethod method, Object target) {
@@ -108,6 +112,7 @@ public class RestartableJenkinsRule implements MethodRule {
                 Files.createDirectories(targetPath.resolve(sourcePath
                         .relativize(dir)));
             }
+
             return FileVisitResult.CONTINUE;
         }
 
@@ -129,6 +134,15 @@ public class RestartableJenkinsRule implements MethodRule {
 
             return FileVisitResult.CONTINUE;
         }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) {
+            if (exc instanceof FileNotFoundException) {
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home: "+file.toString());
+                return FileVisitResult.CONTINUE;
+            }
+            return FileVisitResult.CONTINUE;
+        }
     }
 
     /**
@@ -143,14 +157,16 @@ public class RestartableJenkinsRule implements MethodRule {
      * @throws IOException
      */
      void simulateAbruptShutdown() throws IOException {
-        File homeDir = this.home;
-        TemporaryFolder temp = new TemporaryFolder();
-        temp.create();
-        File newHome = temp.newFolder();
+         LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
+         File homeDir = this.home;
+         TemporaryFolder temp = new TemporaryFolder();
+         temp.create();
+         File newHome = temp.newFolder();
 
-        // Copy efficiently
-        Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
-        home = newHome;
+         // Copy efficiently
+         Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
+         LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
+         home = newHome;
     }
 
     /**
