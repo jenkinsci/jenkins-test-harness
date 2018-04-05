@@ -1,7 +1,6 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
-import hudson.FilePath;
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.rules.TemporaryFolder;
@@ -11,10 +10,16 @@ import org.junit.runners.model.Statement;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -86,6 +91,46 @@ public class RestartableJenkinsRule implements MethodRule {
         });
     }
 
+    /** Approach adapted from https://stackoverflow.com/questions/6214703/copy-entire-directory-contents-to-another-directory */
+    static class CopyFileVisitor extends SimpleFileVisitor<Path> {
+        private final Path targetPath;
+        private Path sourcePath = null;
+        public CopyFileVisitor(Path targetPath) {
+            this.targetPath = targetPath;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir,
+                                                 final BasicFileAttributes attrs) throws IOException {
+            if (sourcePath == null) {
+                sourcePath = dir;
+            } else {
+                Files.createDirectories(targetPath.resolve(sourcePath
+                        .relativize(dir)));
+            }
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path file,
+                                         final BasicFileAttributes attrs) throws IOException {
+            try {
+                if (!Files.isSymbolicLink(file)) {
+                    // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)), StandardCopyOption.COPY_ATTRIBUTES);
+                } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)), LinkOption.NOFOLLOW_LINKS, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (NoSuchFileException nsfe) {
+                // File removed in between scan beginning and when we try to copy it, ignore it
+            }
+
+            return FileVisitResult.CONTINUE;
+        }
+    }
+
     /**
      * Simulate an abrupt failure of Jenkins to see if it appropriately handles inconsistent states when
      *  shutdown cleanup is not performed or data is not written fully to disk.
@@ -104,18 +149,7 @@ public class RestartableJenkinsRule implements MethodRule {
         File newHome = temp.newFolder();
 
         // Copy efficiently
-         try {
-             try {
-                new FilePath(homeDir).copyRecursiveTo(new FilePath(newHome));
-             } catch (NoSuchFileException nsfe) {
-                // Retry in case of tempfile deletion while copying.
-                newHome.delete();
-                newHome = temp.newFolder();
-                new FilePath(homeDir).copyRecursiveTo(new FilePath(newHome));
-             }
-         } catch (InterruptedException ie) {
-             throw new IOException(ie);
-         }
+        Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
         home = newHome;
     }
 
