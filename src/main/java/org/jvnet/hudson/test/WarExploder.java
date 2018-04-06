@@ -93,13 +93,13 @@ public final class WarExploder {
         final File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
-            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the -{1} system property",
+            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
                     new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
             if (!war.exists()) {
                 throw new IOException("A Predefined WAR file path does not exist: " + war);
-            } else if (!war.isFile()) {
+            } /* Causes issues in jenkins/pct run when WAR comes from the volume - else if (!war.isFile()) {
                 throw new IOException("A Predefined WAR file path does not point to a file: " + war);
-            }
+            }*/
         } else {
             // locate jenkins.war
             URL winstone = WarExploder.class.getResource("/winstone.jar");
