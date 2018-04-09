@@ -2317,10 +2317,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
             String crumb = issuer.getCrumb(null);
-            if (relativePath.indexOf('?') == -1) {
+            final int idx = relativePath.indexOf('?');
+            if (idx == -1) {
                 return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
             }
-            return new URL(getContextPath()+relativePath+"&"+crumbName+"="+crumb);
+            // make sure the crumb comes first in case there are older crumbs in the parameters.
+            StringBuilder sb = new StringBuilder(relativePath);
+            sb.insert(idx + 1, crumbName + '=' + crumb + '&');
+            sb.insert(0, getContextPath());
+            return new URL(sb.toString());
         }
 
         /**
