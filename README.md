@@ -4,6 +4,15 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.38 (2018 Apr 09)
+
+* [JENKINS-50598](https://issues.jenkins-ci.org/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
+* [JENKINS-50590](https://issues.jenkins-ci.org/browse/JENKINS-50590): fix combination of crumbs with existing request parameters.
+
+### 2.37 (2018 Apr 06)
+
+* Improved `RestartableJenkinsRule.simulateAbruptShutdown`.
+
 ### 2.36 (2018 Apr 04)
 
 * JENKINS-50476:: offer a way to assert that Jenkins won't start
