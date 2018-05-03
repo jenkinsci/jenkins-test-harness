@@ -115,19 +115,9 @@ THE SOFTWARE.
       <version>1.3</version>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>2.18-1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-io</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-util</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>net.sourceforge.htmlunit</groupId>
+      <artifactId>htmlunit</artifactId>
+      <version>2.30</version>
     </dependency>
     <dependency>
       <groupId>org.jvnet.hudson</groupId>

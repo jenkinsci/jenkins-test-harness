@@ -24,54 +24,8 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.htmlunit.AlertHandler;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.google.inject.Injector;
-
-import hudson.ClassicPluginStrategy;
-import hudson.CloseProofOutputStream;
-import hudson.DNSMultiCast;
-import hudson.DescriptorExtensionList;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.ExtensionList;
-import hudson.Functions;
-import hudson.Functions.ThreadGroupMap;
-import hudson.Launcher;
-import hudson.Launcher.LocalLauncher;
-import hudson.Main;
-import hudson.PluginManager;
-import hudson.Util;
-import hudson.WebAppMain;
-import hudson.model.*;
-import hudson.model.Executor;
-import hudson.model.Node.Mode;
-import hudson.model.Queue.Executable;
-import hudson.os.PosixAPI;
-import hudson.security.ACL;
-import hudson.security.AbstractPasswordBasedSecurityRealm;
-import hudson.security.GroupDetails;
-import hudson.security.SecurityRealm;
-import hudson.security.csrf.CrumbIssuer;
-import hudson.slaves.ComputerConnector;
-import hudson.slaves.ComputerLauncher;
-import hudson.slaves.ComputerListener;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.RetentionStrategy;
-import hudson.tasks.BuildWrapper;
-import hudson.tasks.BuildWrapperDescriptor;
-import hudson.tasks.Builder;
-import hudson.tasks.Publisher;
-import hudson.tools.ToolProperty;
-import hudson.util.PersistedList;
-import hudson.util.ReflectionUtils;
-import hudson.util.StreamTaskListener;
-
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -83,6 +37,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -98,21 +53,17 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsAdaptor;
-import junit.framework.TestCase;
-import net.sf.json.JSONObject;
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory.Listener;
 
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
@@ -148,29 +99,104 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.mozilla.javascript.tools.debugger.Dim;
 import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
-import org.w3c.css.sac.CSSException;
-import org.w3c.css.sac.CSSParseException;
-import org.w3c.css.sac.ErrorHandler;
 import org.xml.sax.SAXException;
 
+import com.gargoylesoftware.css.parser.CSSErrorHandler;
+import com.gargoylesoftware.css.parser.CSSException;
+import com.gargoylesoftware.css.parser.CSSParseException;
 import com.gargoylesoftware.htmlunit.AjaxController;
+import com.gargoylesoftware.htmlunit.AlertHandler;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.WebClientUtil;
+import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
+import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
+import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
-import java.net.HttpURLConnection;
+import com.google.inject.Injector;
 
-
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
+import junit.framework.TestCase;
+import net.sf.json.JSONObject;
+import net.sourceforge.htmlunit.corejs.javascript.Context;
+import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
+
+import hudson.ClassicPluginStrategy;
+import hudson.CloseProofOutputStream;
+import hudson.DNSMultiCast;
+import hudson.DescriptorExtensionList;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.ExtensionList;
+import hudson.Functions;
+import hudson.Functions.ThreadGroupMap;
+import hudson.Launcher;
+import hudson.Launcher.LocalLauncher;
+import hudson.Main;
+import hudson.PluginManager;
+import hudson.Util;
+import hudson.WebAppMain;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import hudson.model.DownloadService;
+import hudson.model.Executor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.JDK;
+import hudson.model.Job;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.Node.Mode;
+import hudson.model.Queue.Executable;
+import hudson.model.Result;
+import hudson.model.RootAction;
+import hudson.model.Run;
+import hudson.model.Saveable;
+import hudson.model.TaskListener;
+import hudson.model.UpdateSite;
+import hudson.model.User;
+import hudson.model.View;
+import hudson.os.PosixAPI;
+import hudson.security.ACL;
+import hudson.security.AbstractPasswordBasedSecurityRealm;
+import hudson.security.GroupDetails;
+import hudson.security.SecurityRealm;
+import hudson.security.csrf.CrumbIssuer;
+import hudson.slaves.ComputerConnector;
+import hudson.slaves.ComputerLauncher;
+import hudson.slaves.ComputerListener;
+import hudson.slaves.DumbSlave;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.RetentionStrategy;
+import hudson.tasks.BuildWrapper;
+import hudson.tasks.BuildWrapperDescriptor;
+import hudson.tasks.Builder;
+import hudson.tasks.Publisher;
+import hudson.tools.ToolProperty;
+import hudson.util.PersistedList;
+import hudson.util.ReflectionUtils;
+import hudson.util.StreamTaskListener;
 
 /**
  * Base class for all Jenkins test cases.
@@ -1018,7 +1044,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
-        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getHtmlElementsByTagName("button")));
+        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
     }
 
     /**
@@ -1028,7 +1054,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getHtmlElementsByTagName("button")) {
+        for( HtmlElement e : form.getElementsByTagName("button")) {
             HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();
             if (e instanceof HtmlButton && p.getAttribute("name").equals(name)) {
                 return (HtmlPage)HtmlFormUtil.submit(form, (HtmlButton) e);
@@ -1042,7 +1068,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     protected HtmlButton getButtonByCaption(HtmlForm f, String s) {
-        for (HtmlElement b : f.getHtmlElementsByTagName("button")) {
+        for (HtmlElement b : f.getElementsByTagName("button")) {
             if(b.getTextContent().trim().equals(s))
                 return (HtmlButton)b;
         }
@@ -1385,7 +1411,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public WebClient() {
             // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
             // so trying something else, until we discover another problem.
-            super(BrowserVersion.FIREFOX_38);
+            super(BrowserVersion.BEST_SUPPORTED);
 
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
@@ -1397,40 +1423,50 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 }
             });
 
-            setCssErrorHandler(new ErrorHandler() {
-                final ErrorHandler defaultHandler = new DefaultCssErrorHandler();
+            setCssErrorHandler(new CSSErrorHandler() {
+                final CSSErrorHandler defaultHandler = new DefaultCssErrorHandler();
 
-                public void warning(CSSParseException exception) throws CSSException {
+                @Override
+                public void warning(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.warning(exception);
                 }
 
-                public void error(CSSParseException exception) throws CSSException {
+                @Override
+                public void error(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.error(exception);
                 }
 
-                public void fatalError(CSSParseException exception) throws CSSException {
+                @Override
+                public void fatalError(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.fatalError(exception);
                 }
 
-                private boolean ignore(CSSParseException e) {
-                    return e.getURI().contains("/yui/");
+                private boolean ignore(final CSSParseException exception) {
+                    String uri = exception.getURI();
+                    return uri.contains("/yui/")
+                            // TODO JENKINS-14749: these are a mess today, and we know that
+                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
                 }
             });
 
             // if no other debugger is installed, install jsDebugger,
             // so as not to interfere with the 'Dim' class.
-            getJavaScriptEngine().getContextFactory().addListener(new Listener() {
-                public void contextCreated(Context cx) {
-                    if (cx.getDebugger() == null)
-                        cx.setDebugger(jsDebugger, null);
-                }
+            AbstractJavaScriptEngine<?> javaScriptEngine = getJavaScriptEngine();
+            if (javaScriptEngine instanceof JavaScriptEngine) {
+                ((JavaScriptEngine) javaScriptEngine).getContextFactory()
+                                                     .addListener(new ContextFactory.Listener() {
+                                                         public void contextCreated(Context cx) {
+                                                             if (cx.getDebugger() == null)
+                                                                 cx.setDebugger(jsDebugger, null);
+                                                         }
 
-                public void contextReleased(Context cx) {
-                }
-            });
+                                                         public void contextReleased(Context cx) {
+                                                         }
+                                                     });
+            }
 
             setAlertHandler(new AlertHandler() {
                 public void handleAlert(Page page, String message) {
@@ -1698,7 +1734,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public Dim interactiveJavaScriptDebugger() {
             Global global = new Global();
-            HtmlUnitContextFactory cf = getJavaScriptEngine().getContextFactory();
+            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
             global.init(cf);
 
             Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + getName());
