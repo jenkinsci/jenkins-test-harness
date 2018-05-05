@@ -1981,8 +1981,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private List<WebResponseListener> webResponseListeners = new ArrayList<WebResponseListener>();
 
         public WebClient() {
-            // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
-            // so trying something else, until we discover another problem.
             super(BrowserVersion.BEST_SUPPORTED);
 
 //            setJavaScriptEnabled(false);

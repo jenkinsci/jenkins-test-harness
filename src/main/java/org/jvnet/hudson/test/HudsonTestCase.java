@@ -1409,8 +1409,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
-            // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
-            // so trying something else, until we discover another problem.
             super(BrowserVersion.BEST_SUPPORTED);
 
             setPageCreator(HudsonPageCreator.INSTANCE);
