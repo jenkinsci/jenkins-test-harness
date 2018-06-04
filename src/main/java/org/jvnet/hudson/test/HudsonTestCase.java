@@ -670,9 +670,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        "-Djava.awt.headless=true",
                         new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
                 env);
     }
