@@ -4,6 +4,12 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.39 (2018 Jun 05)
+
+* Make `RunLoadCounter` compatible with Pipeline (`WorkflowJob` / `WorkflowRun`).
+* Prevent agent processes from stealing focus on OS X.
+* Make the `NoListenerConfiguration` constructor `public`.
+
 ### 2.38 (2018 Apr 09)
 
 * [JENKINS-50598](https://issues.jenkins-ci.org/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
