@@ -24,17 +24,20 @@
 
 package org.jvnet.hudson.test;
 
-import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
+import hudson.Extension;
+import hudson.ExtensionList;
+import hudson.model.InvisibleAction;
+import hudson.model.Job;
 import hudson.model.Run;
-import hudson.model.RunAction;
-import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Notifier;
+import hudson.model.TaskListener;
+import hudson.model.listeners.RunListener;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import jenkins.model.RunAction2;
+import jenkins.model.lazy.LazyBuildMixIn;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -54,9 +57,9 @@ public final class RunLoadCounter {
      * @param project a project of any kind
      * @throws IOException if preparations fail
      */
-    public static void prepare(AbstractProject<?,?> project) throws IOException {
-        project.getPublishersList().add(new MarkerAdder());
-        for (AbstractBuild<?,?> build : project._getRuns()) {
+    public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {
+        ExtensionList.lookup(RunListener.class).get(MarkerAdder.class).register((Job) project);
+        for (Run<?, ?> build : project.getLazyBuildMixIn()._getRuns()) {
             Marker.add(build);
             build.save();
         }
@@ -68,9 +71,9 @@ public final class RunLoadCounter {
      * @param thunk a task which is expected to load some build records
      * @return how many build records were actually {@linkplain Run#onLoad loaded} as a result
      */
-    public static int countLoads(AbstractProject<?,?> project, Runnable thunk) {
-        project._getRuns().purgeCache();
-        currProject.set(project.getFullName());
+    public static int countLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, Runnable thunk) {
+        project.getLazyBuildMixIn()._getRuns().purgeCache();
+        currProject.set(((Job) project).getFullName());
         currCount.set(new AtomicInteger());
         thunk.run();
         return currCount.get().get();
@@ -86,9 +89,9 @@ public final class RunLoadCounter {
      * @throws AssertionError if one more than max build record is loaded
      * @param <T> the return value type
      */
-    public static <T> T assertMaxLoads(AbstractProject<?,?> project, int max, Callable<T> thunk) throws Exception {
-        project._getRuns().purgeCache();
-        currProject.set(project.getFullName());
+    public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk) throws Exception {
+        project.getLazyBuildMixIn()._getRuns().purgeCache();
+        currProject.set(((Job) project).getFullName());
         currCount.set(new AtomicInteger(-(max + 1)));
         return thunk.call();
     }
@@ -99,9 +102,9 @@ public final class RunLoadCounter {
      * Used internally.
      */
     @Restricted(NoExternalUse.class)
-    public static final class Marker implements RunAction {
+    public static final class Marker extends InvisibleAction implements RunAction2 {
 
-        static void add(AbstractBuild<?,?> build) {
+        static void add(Run<?, ?> build) {
             build.addAction(new Marker(build.getParent().getFullName(), build.getNumber()));
         }
 
@@ -113,7 +116,7 @@ public final class RunLoadCounter {
             this.build = build;
         }
 
-        @Override public void onLoad() {
+        @Override public void onLoad(Run<?, ?> run) {
             if (project.equals(currProject.get())) {
                 System.err.println("loaded " + project + " #" + build);
                 assert currCount.get().incrementAndGet() != 0 : "too many build records loaded from " + project;
@@ -122,35 +125,24 @@ public final class RunLoadCounter {
 
         @Override public void onAttached(Run r) {}
 
-        @Override public void onBuildComplete() {}
-
-        @Override public String getIconFileName() {
-            return null;
-        }
-
-        @Override public String getDisplayName() {
-            return null;
-        }
-
-        @Override public String getUrlName() {
-            return null;
-        }
-
     }
 
     /**
      * Used internally.
      */
     @Restricted(NoExternalUse.class)
-    public static final class MarkerAdder extends Notifier {
+    @Extension public static final class MarkerAdder extends RunListener<Run<?, ?>> {
 
-        @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-            Marker.add(build);
-            return true;
+        private final Set<String> jobs = new HashSet<>();
+
+        @Override public void onStarted(Run r, TaskListener tl) {
+            if (jobs.contains(r.getParent().getFullName())) {
+                Marker.add(r);
+            }
         }
 
-        @Override public BuildStepMonitor getRequiredMonitorService() {
-            return BuildStepMonitor.NONE;
+        void register(Job<?, ?> job) {
+            jobs.add(job.getFullName());
         }
 
     }
