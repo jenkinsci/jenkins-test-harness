@@ -183,7 +183,7 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <argLine>-Dfile.encoding=UTF-8 -Xmx256m</argLine>
+          <argLine>-Dfile.encoding=UTF-8 -Xmx256m -Djava.awt.headless=true</argLine>
           <systemPropertyVariables>
               <!-- use AntClassLoader that supports predictable file handle release -->
               <hudson.ClassicPluginStrategy.useAntClassLoader>true</hudson.ClassicPluginStrategy.useAntClassLoader>
