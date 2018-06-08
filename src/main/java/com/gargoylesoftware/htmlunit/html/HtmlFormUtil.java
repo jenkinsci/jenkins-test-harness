@@ -23,13 +23,13 @@
  */
 package com.gargoylesoftware.htmlunit.html;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * {@link HtmlForm} helper functions.

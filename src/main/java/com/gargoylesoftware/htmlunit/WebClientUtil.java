@@ -23,13 +23,12 @@
  */
 package com.gargoylesoftware.htmlunit;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
-import org.junit.Assert;
-
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
+import org.junit.Assert;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * {@link WebClient} helper methods.

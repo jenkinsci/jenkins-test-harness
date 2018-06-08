@@ -23,14 +23,16 @@
  */
 package org.jvnet.hudson.test;
 
-import java.io.IOException;
-import java.util.Locale;
-
 import com.gargoylesoftware.htmlunit.DefaultPageCreator;
 import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.PageCreator;
 import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebWindow;
+import com.gargoylesoftware.htmlunit.PageCreator;
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Locale;
 
 /**
  * {@link PageCreator} that understands JNLP file.
