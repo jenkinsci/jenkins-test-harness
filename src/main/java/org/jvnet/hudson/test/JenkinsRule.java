@@ -568,12 +568,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
-        applyTestTimeoutOverride(description);
-        if (timeout <= 0) {
+        final int testTimeout = getTestTimeoutOverride(description, this.timeout);
+        if (testTimeout <= 0) {
             System.out.println("Test timeout disabled.");
             return wrapped;
         } else {
-            final Statement timeoutStatement = Timeout.seconds(timeout).apply(wrapped, description);
+            final Statement timeoutStatement = Timeout.seconds(testTimeout).apply(wrapped, description);
             return new Statement() {
                 @Override
                 public void evaluate() throws Throwable {
@@ -581,7 +581,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         timeoutStatement.evaluate();
                     } catch (TestTimedOutException x) {
                         // withLookingForStuckThread does not work well; better to just have a full thread dump.
-                        LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
+                        LOGGER.warning(String.format("Test timed out (after %d seconds).", testTimeout));
                         dumpThreads();
                         throw x;
                     }
@@ -590,12 +590,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
-    private void applyTestTimeoutOverride(Description description) {
-        WithTimeout withTiemout = description.getAnnotation(WithTimeout.class);
-        if (withTiemout != null) {
-            timeout = withTiemout.value();
-            System.out.println("Using test timeout: " + timeout + " seconds");
-        }
+    private int getTestTimeoutOverride(Description description, int def) {
+        WithTimeout withTimeout = description.getAnnotation(WithTimeout.class);
+        return withTimeout != null ? withTimeout.value(): def;
     }
 
     @SuppressWarnings("serial")
