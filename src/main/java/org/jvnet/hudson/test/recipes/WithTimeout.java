@@ -24,9 +24,6 @@
 package org.jvnet.hudson.test.recipes;
 
 import org.jvnet.hudson.test.HudsonTestCase;
-import org.jvnet.hudson.test.JenkinsRecipe;
-import org.jvnet.hudson.test.JenkinsRule;
-
 
 import java.lang.annotation.Documented;
 import static java.lang.annotation.ElementType.METHOD;
@@ -44,7 +41,6 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Recipe(WithTimeout.RunnerImpl.class)
-@JenkinsRecipe(WithTimeout.RuleRunnerImpl.class)
 @Target(METHOD)
 @Retention(RUNTIME)
 public @interface WithTimeout {
@@ -59,13 +55,6 @@ public @interface WithTimeout {
         @Override
         public void setup(HudsonTestCase testCase, WithTimeout recipe) throws Exception {
             testCase.timeout = recipe.value();
-        }
-    }
-
-    class RuleRunnerImpl extends JenkinsRecipe.Runner<WithTimeout> {
-        @Override
-        public void setup(JenkinsRule jenkinsRule, WithTimeout recipe) throws Exception {
-            jenkinsRule.timeout = recipe.value();
         }
     }
 }

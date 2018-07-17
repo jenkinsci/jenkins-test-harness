@@ -32,6 +32,10 @@ import org.junit.rules.RuleChain;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.recipes.WithTimeout;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class JenkinsRuleTimeoutTest {
 
@@ -153,4 +157,10 @@ public class JenkinsRuleTimeoutTest {
         }
     }
 
+    @Test @WithTimeout(20)
+    public void withTimeoutPropagation() throws Exception {
+        assertEquals(20, r.timeout);
+        Thread.sleep(1000 * 30);
+        fail("Should have been interrupted");
+    }
 }

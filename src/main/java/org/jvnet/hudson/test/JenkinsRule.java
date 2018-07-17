@@ -222,6 +222,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
+import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -567,6 +568,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
+        applyTestTimeoutOverride(description);
         if (timeout <= 0) {
             System.out.println("Test timeout disabled.");
             return wrapped;
@@ -585,6 +587,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
             };
+        }
+    }
+
+    private void applyTestTimeoutOverride(Description description) {
+        WithTimeout withTiemout = description.getAnnotation(WithTimeout.class);
+        if (withTiemout != null) {
+            timeout = withTiemout.value();
+            System.out.println("Using test timeout: " + timeout + " seconds");
         }
     }
 
