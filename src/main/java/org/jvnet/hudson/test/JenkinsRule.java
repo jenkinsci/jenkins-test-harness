@@ -568,7 +568,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
-        final int testTimeout = getTestTimeoutOverride(description, this.timeout);
+        final int testTimeout = getTestTimeoutOverride(description);
         if (testTimeout <= 0) {
             System.out.println("Test timeout disabled.");
             return wrapped;
@@ -590,9 +590,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
-    private int getTestTimeoutOverride(Description description, int def) {
+    private int getTestTimeoutOverride(Description description) {
         WithTimeout withTimeout = description.getAnnotation(WithTimeout.class);
-        return withTimeout != null ? withTimeout.value(): def;
+        return withTimeout != null ? withTimeout.value(): this.timeout;
     }
 
     @SuppressWarnings("serial")
