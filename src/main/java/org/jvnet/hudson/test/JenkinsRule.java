@@ -222,6 +222,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
+import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -567,11 +568,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
-        if (timeout <= 0) {
+        final int testTimeout = getTestTimeoutOverride(description);
+        if (testTimeout <= 0) {
             System.out.println("Test timeout disabled.");
             return wrapped;
         } else {
-            final Statement timeoutStatement = Timeout.seconds(timeout).apply(wrapped, description);
+            final Statement timeoutStatement = Timeout.seconds(testTimeout).apply(wrapped, description);
             return new Statement() {
                 @Override
                 public void evaluate() throws Throwable {
@@ -579,13 +581,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         timeoutStatement.evaluate();
                     } catch (TestTimedOutException x) {
                         // withLookingForStuckThread does not work well; better to just have a full thread dump.
-                        LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
+                        LOGGER.warning(String.format("Test timed out (after %d seconds).", testTimeout));
                         dumpThreads();
                         throw x;
                     }
                 }
             };
         }
+    }
+
+    private int getTestTimeoutOverride(Description description) {
+        WithTimeout withTimeout = description.getAnnotation(WithTimeout.class);
+        return withTimeout != null ? withTimeout.value(): this.timeout;
     }
 
     @SuppressWarnings("serial")
