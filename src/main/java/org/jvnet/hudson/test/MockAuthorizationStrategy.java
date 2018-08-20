@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.Sid;
 
@@ -86,10 +87,10 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      */
     public class Grant {
 
-        private final Set<Permission> permissions;
+        private final Set<String> permissions;
 
         Grant(Set<Permission> permissions) {
-            this.permissions = permissions;
+            this.permissions = permissions.stream().map(Permission::getId).collect(Collectors.toSet());
         }
 
         /**
@@ -202,7 +203,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
                 boolean matches(String path, String name, Permission permission) {
                     return regexp.matcher(path).matches() &&
                         sids.contains(name) && // TODO consider IdStrategy
-                        permissions.contains(permission);
+                        permissions.contains(permission.getId());
                 }
 
             }
