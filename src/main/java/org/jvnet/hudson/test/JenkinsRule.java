@@ -2072,8 +2072,69 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             return getOptions().isJavaScriptEnabled();
         }
 
+        /**
+         * Enables/disables JavaScript support.
+         * Short-hand method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setJavaScriptEnabled(boolean)
+         */
         public void setJavaScriptEnabled(boolean enabled) {
             getOptions().setJavaScriptEnabled(enabled);
+        }
+
+        /**
+         * Enables/disables JavaScript support.
+         * Fluent method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setJavaScriptEnabled(boolean)
+         */
+        public WebClient withJavaScriptEnabled(boolean enabled) {
+            setJavaScriptEnabled(enabled);
+            return this;
+        }
+
+        public boolean isThrowExceptionOnFailingStatusCode() {
+            return getOptions().isThrowExceptionOnFailingStatusCode();
+        }
+
+        /**
+         * Changes the behavior of this webclient when a script error occurs.
+         * Short-hand method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         */
+        public void setThrowExceptionOnFailingStatusCode(boolean enabled) {
+            getOptions().setThrowExceptionOnFailingStatusCode(enabled);
+        }
+
+        /**
+         * Changes the behavior of this webclient when a script error occurs.
+         * Fluent method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         */
+        public WebClient withThrowExceptionOnFailingStatusCode(boolean enabled) {
+            setThrowExceptionOnFailingStatusCode(enabled);
+            return this;
+        }
+
+        public boolean isRedirectEnabled() {
+            return getOptions().isRedirectEnabled();
+        }
+
+        /**
+         * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Short-hand method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean) 
+         */
+        public void setRedirectEnabled(boolean enabled) {
+            getOptions().setRedirectEnabled(enabled);
+        }
+
+        /**
+         * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Fluent method to ease discovery of feature + improve readability
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         */
+        public WebClient withRedirectEnabled(boolean enabled) {
+            setRedirectEnabled(enabled);
+            return this;
         }
 
         /**
@@ -2287,10 +2348,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public void assertFails(String url, int statusCode) throws Exception {
             assert !url.startsWith("/");
+            boolean currentConfiguration = isThrowExceptionOnFailingStatusCode();
+            // enforce the throwing of exception for the catch scope only
+            setThrowExceptionOnFailingStatusCode(true);
             try {
                 fail(url + " should have been rejected but produced: " + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
             } catch (FailingHttpStatusCodeException x) {
                 assertEquals(statusCode, x.getStatusCode());
+            } finally {
+                setThrowExceptionOnFailingStatusCode(currentConfiguration);
             }
         }
 
