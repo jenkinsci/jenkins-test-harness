@@ -31,6 +31,7 @@ import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.WebClientOptions;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
@@ -2067,7 +2068,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public WebClient login(String username, String password) throws Exception {
             return login(username,password,false);
         }
-
+    
+        /**
+         * Returns {@code true} if JavaScript is enabled and the script engine was loaded successfully.
+         * Short-hand method to ease discovery of feature + improve readability
+         *
+         * @return {@code true} if JavaScript is enabled
+         * @see WebClientOptions#isJavaScriptEnabled()
+         * @since 2.0
+         */
         public boolean isJavaScriptEnabled() {
             return getOptions().isJavaScriptEnabled();
         }
@@ -2075,7 +2084,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Enables/disables JavaScript support.
          * Short-hand method to ease discovery of feature + improve readability
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setJavaScriptEnabled(boolean)
+         *
+         * @param enabled {@code true} to enable JavaScript support
+         * @see WebClientOptions#setJavaScriptEnabled(boolean)
+         * @since 2.0
          */
         public void setJavaScriptEnabled(boolean enabled) {
             getOptions().setJavaScriptEnabled(enabled);
@@ -2084,13 +2096,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Enables/disables JavaScript support.
          * Fluent method to ease discovery of feature + improve readability
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setJavaScriptEnabled(boolean)
+         *
+         * @param enabled {@code true} to enable JavaScript support
+         * @return self for fluent method chaining
+         * @see WebClientOptions#setJavaScriptEnabled(boolean)
+         * @since TODO
          */
         public WebClient withJavaScriptEnabled(boolean enabled) {
             setJavaScriptEnabled(enabled);
             return this;
         }
-
+    
+        /**
+         * Returns true if an exception will be thrown in the event of a failing response code.
+         * Short-hand method to ease discovery of feature + improve readability
+         * 
+         * @return {@code true} if an exception will be thrown in the event of a failing response code
+         * @see WebClientOptions#isThrowExceptionOnFailingStatusCode()
+         * @since TODO
+         */
         public boolean isThrowExceptionOnFailingStatusCode() {
             return getOptions().isThrowExceptionOnFailingStatusCode();
         }
@@ -2098,7 +2122,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Changes the behavior of this webclient when a script error occurs.
          * Short-hand method to ease discovery of feature + improve readability
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         *
+         * @param enabled {@code true} to enable this feature
+         * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         * @since TODO
          */
         public void setThrowExceptionOnFailingStatusCode(boolean enabled) {
             getOptions().setThrowExceptionOnFailingStatusCode(enabled);
@@ -2107,13 +2134,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Changes the behavior of this webclient when a script error occurs.
          * Fluent method to ease discovery of feature + improve readability
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         * 
+         * @param enabled {@code true} to enable this feature
+         * @return self for fluent method chaining
+         * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         * @since TODO
          */
         public WebClient withThrowExceptionOnFailingStatusCode(boolean enabled) {
             setThrowExceptionOnFailingStatusCode(enabled);
             return this;
         }
-
+        
+        /**
+         * Returns whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Short-hand method to ease discovery of feature + improve readability
+         * 
+         * @return {@code true} if automatic redirection is enabled
+         * @see WebClientOptions#isRedirectEnabled()
+         * @since TODO
+         */
         public boolean isRedirectEnabled() {
             return getOptions().isRedirectEnabled();
         }
@@ -2121,7 +2160,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Short-hand method to ease discovery of feature + improve readability
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean) 
+         * 
+         * @param enabled {@code true} to enable automatic redirection
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @since TODO
          */
         public void setRedirectEnabled(boolean enabled) {
             getOptions().setRedirectEnabled(enabled);
@@ -2130,7 +2172,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Fluent method to ease discovery of feature + improve readability
+         *
+         * @param enabled {@code true} to enable automatic redirection
+         * @return self for fluent method chaining
          * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @since TODO
          */
         public WebClient withRedirectEnabled(boolean enabled) {
             setRedirectEnabled(enabled);
