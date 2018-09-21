@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.41 (2018 Sep 21)
+
+* Fixing a serialization issue in `MockAuthorizationStrategy`.
+
 ### 2.40 (2018 Jul 20)
 
 * [JENKINS-49046](https://issues.jenkins-ci.org/browse/JENKINS-49046): Fix `@WithTimeout` handling for `JenkinsRule`.
