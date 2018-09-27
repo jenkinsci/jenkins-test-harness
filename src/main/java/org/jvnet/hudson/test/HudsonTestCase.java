@@ -1019,7 +1019,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
-        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getHtmlElementsByTagName("button")));
+        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
     }
 
     /**
@@ -1029,7 +1029,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getHtmlElementsByTagName("button")) {
+        for( HtmlElement e : form.getElementsByTagName("button")) {
             HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();
             if (e instanceof HtmlButton && p.getAttribute("name").equals(name)) {
                 return (HtmlPage)HtmlFormUtil.submit(form, (HtmlButton) e);
@@ -1043,7 +1043,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     protected HtmlButton getButtonByCaption(HtmlForm f, String s) {
-        for (HtmlElement b : f.getHtmlElementsByTagName("button")) {
+        for (HtmlElement b : f.getElementsByTagName("button")) {
             if(b.getTextContent().trim().equals(s))
                 return (HtmlButton)b;
         }
@@ -1386,7 +1386,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public WebClient() {
             // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
             // so trying something else, until we discover another problem.
-            super(BrowserVersion.FIREFOX_38);
+            super(BrowserVersion.FIREFOX_45);
 
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
@@ -1395,29 +1395,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 private static final long serialVersionUID = 6730107519583349963L;
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
-                }
-            });
-
-            setCssErrorHandler(new ErrorHandler() {
-                final ErrorHandler defaultHandler = new DefaultCssErrorHandler();
-
-                public void warning(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.warning(exception);
-                }
-
-                public void error(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.error(exception);
-                }
-
-                public void fatalError(CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
-                        defaultHandler.fatalError(exception);
-                }
-
-                private boolean ignore(CSSParseException e) {
-                    return e.getURI().contains("/yui/");
                 }
             });
 
