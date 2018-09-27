@@ -37,8 +37,6 @@ import java.util.concurrent.Future;
 
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.xml.ws.Provider;
-
 /**
  * {@link Cloud} implementation useful for testing.
  *
@@ -123,15 +121,8 @@ public class DummyCloudImpl extends Cloud {
             
             System.out.println("launching slave");
             final DumbSlave slave = rule.createSlave(label);
-            Provider<NodeProperty> nodePropertyProvider = new Provider<NodeProperty>() {
-                @Override
-                public NodeProperty invoke(NodeProperty request) {
-                    request.setNode(slave);
-                    return request;
-                }
-            };
             for (NodeProperty nodeProperty : nodeProperties) {
-                slave.getNodeProperties().add(nodePropertyProvider.invoke(nodeProperty));
+                slave.getNodeProperties().add(updateWithNode(nodeProperty, slave));
             }
             computer = slave.toComputer();
             computer.connect(false).get();
@@ -141,6 +132,11 @@ public class DummyCloudImpl extends Cloud {
             }
             return slave;
         }
+    }
+
+    private static NodeProperty updateWithNode(NodeProperty prop, DumbSlave agent) {
+        prop.setNode(agent);
+        return prop;
     }
 
     public Descriptor<Cloud> getDescriptor() {
