@@ -4,6 +4,12 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.42 (2018 Sep 28)
+
+* Updated HTMLUnit.
+* New convenience methods in `WebClient`.
+* Java 11 compatibility.
+
 ### 2.41 (2018 Sep 21)
 
 * Fixing a serialization issue in `MockAuthorizationStrategy`.
