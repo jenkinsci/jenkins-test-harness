@@ -116,7 +116,7 @@ public class HtmlFormUtil {
         if (!submitButtons.isEmpty()) {
             return submitButtons.get(0);
         }
-        for (HtmlElement element : htmlForm.getHtmlElementsByTagName("button")) {
+        for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
             if(element instanceof HtmlButton) {
                 return element;
             }
@@ -132,7 +132,7 @@ public class HtmlFormUtil {
      * @throws ElementNotFoundException Failed to find the button on the form.
      */
     public static HtmlButton getButtonByCaption(final HtmlForm htmlForm, final String caption) throws ElementNotFoundException {
-        for (HtmlElement b : htmlForm.getHtmlElementsByTagName("button")) {
+        for (HtmlElement b : htmlForm.getElementsByTagName("button")) {
             if(b instanceof HtmlButton && b.getTextContent().trim().equals(caption)) {
                 return (HtmlButton) b;
             }
