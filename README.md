@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.43 (2018 Oct 02)
+
+* Shorter temporary directory paths.
+
 ### 2.42 (2018 Sep 28)
 
 * Updated HTMLUnit.
