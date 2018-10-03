@@ -122,7 +122,16 @@ public class TestPluginManager extends PluginManager {
                     try {
                         f = new File(url.toURI());
                     } catch (IllegalArgumentException x) {
-                        throw new IOException(index + " contains bogus line " + line, x);
+                        if (x.getMessage().equals("URI is not hierarchical")) {
+                            throw new IOException(
+                                    "You are probably trying to load plugins from within a jarfile (not possible). If"
+                                            + " you are running this in your IDE and see this message, it is likely"
+                                            + " that you have a clean target directory. Try running 'mvn test-compile' "
+                                            + "from the command line (once only), which will copy the required plugins "
+                                            + "into target/test-classes/test-dependencies - then retry your test", x);
+                        } else {
+                            throw new IOException(index + " contains bogus line " + line, x);
+                        }
                     }
                 	if(f.exists()){
                 		copyBundledPlugin(url, line + ".jpi");
