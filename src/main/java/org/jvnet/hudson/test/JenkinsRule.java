@@ -24,6 +24,9 @@
  */
 package org.jvnet.hudson.test;
 
+import com.gargoylesoftware.css.parser.CSSErrorHandler;
+import com.gargoylesoftware.css.parser.CSSException;
+import com.gargoylesoftware.css.parser.CSSParseException;
 import com.gargoylesoftware.htmlunit.AjaxController;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
@@ -31,6 +34,7 @@ import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
+import com.gargoylesoftware.htmlunit.WebClientOptions;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.WebResponse;
@@ -44,7 +48,9 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
+import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
@@ -222,6 +228,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
+import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
 import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -235,9 +242,6 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.mozilla.javascript.tools.debugger.Dim;
 import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
-import org.w3c.css.sac.CSSException;
-import org.w3c.css.sac.CSSParseException;
-import org.w3c.css.sac.ErrorHandler;
 import org.xml.sax.SAXException;
 
 /**
@@ -567,11 +571,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
-        if (timeout <= 0) {
+        final int testTimeout = getTestTimeoutOverride(description);
+        if (testTimeout <= 0) {
             System.out.println("Test timeout disabled.");
             return wrapped;
         } else {
-            final Statement timeoutStatement = Timeout.seconds(timeout).apply(wrapped, description);
+            final Statement timeoutStatement = Timeout.seconds(testTimeout).apply(wrapped, description);
             return new Statement() {
                 @Override
                 public void evaluate() throws Throwable {
@@ -579,13 +584,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         timeoutStatement.evaluate();
                     } catch (TestTimedOutException x) {
                         // withLookingForStuckThread does not work well; better to just have a full thread dump.
-                        LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
+                        LOGGER.warning(String.format("Test timed out (after %d seconds).", testTimeout));
                         dumpThreads();
                         throw x;
                     }
                 }
             };
         }
+    }
+
+    private int getTestTimeoutOverride(Description description) {
+        WithTimeout withTimeout = description.getAnnotation(WithTimeout.class);
+        return withTimeout != null ? withTimeout.value(): this.timeout;
     }
 
     @SuppressWarnings("serial")
@@ -918,9 +928,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        "-Djava.awt.headless=true",
                         new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
                 env);
     }
@@ -1436,7 +1447,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getHtmlElementsByTagName("button")) {
+        for( HtmlElement e : form.getElementsByTagName("button")) {
             HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();                        
             if (p.getAttribute("name").equals(name) && HtmlElementUtil.hasClassName(p, "yui-submit-button")) {
                 // For YUI handled submit buttons, just do a click.
@@ -1453,7 +1464,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public HtmlButton getButtonByCaption(HtmlForm f, String s) {
-        for (HtmlElement b : f.getHtmlElementsByTagName("button")) {
+        for (HtmlElement b : f.getElementsByTagName("button")) {
             if(b.getTextContent().trim().equals(s))
                 return (HtmlButton)b;
         }
@@ -1979,9 +1990,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private List<WebResponseListener> webResponseListeners = new ArrayList<WebResponseListener>();
 
         public WebClient() {
-            // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
-            // so trying something else, until we discover another problem.
-            super(BrowserVersion.FIREFOX_38);
+            super(BrowserVersion.BEST_SUPPORTED);
 
 //            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
@@ -1994,26 +2003,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             });
 
-            setCssErrorHandler(new ErrorHandler() {
-                final ErrorHandler defaultHandler = new DefaultCssErrorHandler();
+            setCssErrorHandler(new CSSErrorHandler() {
+                final CSSErrorHandler defaultHandler = new DefaultCssErrorHandler();
 
-                public void warning(CSSParseException exception) throws CSSException {
+                @Override
+                public void warning(final CSSParseException exception) throws com.gargoylesoftware.css.parser.CSSException {
                     if (!ignore(exception))
                         defaultHandler.warning(exception);
                 }
 
-                public void error(CSSParseException exception) throws CSSException {
+                @Override
+                public void error(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.error(exception);
                 }
 
-                public void fatalError(CSSParseException exception) throws CSSException {
+                @Override
+                public void fatalError(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.fatalError(exception);
                 }
 
-                private boolean ignore(CSSParseException e) {
-                    String uri = e.getURI();
+                private boolean ignore(final CSSParseException exception) {
+                    String uri = exception.getURI();
                     return uri.contains("/yui/")
                         // TODO JENKINS-14749: these are a mess today, and we know that
                         || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
@@ -2022,15 +2034,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             // if no other debugger is installed, install jsDebugger,
             // so as not to interfere with the 'Dim' class.
-            getJavaScriptEngine().getContextFactory().addListener(new ContextFactory.Listener() {
-                public void contextCreated(Context cx) {
-                    if (cx.getDebugger() == null)
-                        cx.setDebugger(jsDebugger, null);
-                }
+            AbstractJavaScriptEngine<?> javaScriptEngine = getJavaScriptEngine();
+            if (javaScriptEngine instanceof JavaScriptEngine) {
+                ((JavaScriptEngine) javaScriptEngine).getContextFactory()
+                        .addListener(new ContextFactory.Listener() {
+                            public void contextCreated(Context cx) {
+                                if (cx.getDebugger() == null)
+                                    cx.setDebugger(jsDebugger, null);
+                            }
 
-                public void contextReleased(Context cx) {
-                }
-            });
+                            public void contextReleased(Context cx) {
+                            }
+                        });
+            }
 
             // avoid a hang by setting a time out. It should be long enough to prevent
             // false-positive timeout on slow systems
@@ -2059,13 +2075,119 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public WebClient login(String username, String password) throws Exception {
             return login(username,password,false);
         }
-
+    
+        /**
+         * Returns {@code true} if JavaScript is enabled and the script engine was loaded successfully.
+         * Short-hand method to ease discovery of feature + improve readability
+         *
+         * @return {@code true} if JavaScript is enabled
+         * @see WebClientOptions#isJavaScriptEnabled()
+         * @since 2.0
+         */
         public boolean isJavaScriptEnabled() {
             return getOptions().isJavaScriptEnabled();
         }
 
+        /**
+         * Enables/disables JavaScript support.
+         * Short-hand method to ease discovery of feature + improve readability
+         *
+         * @param enabled {@code true} to enable JavaScript support
+         * @see WebClientOptions#setJavaScriptEnabled(boolean)
+         * @since 2.0
+         */
         public void setJavaScriptEnabled(boolean enabled) {
             getOptions().setJavaScriptEnabled(enabled);
+        }
+
+        /**
+         * Enables/disables JavaScript support.
+         * Fluent method to ease discovery of feature + improve readability
+         *
+         * @param enabled {@code true} to enable JavaScript support
+         * @return self for fluent method chaining
+         * @see WebClientOptions#setJavaScriptEnabled(boolean)
+         * @since 2.42
+         */
+        public WebClient withJavaScriptEnabled(boolean enabled) {
+            setJavaScriptEnabled(enabled);
+            return this;
+        }
+    
+        /**
+         * Returns true if an exception will be thrown in the event of a failing response code.
+         * Short-hand method to ease discovery of feature + improve readability
+         * 
+         * @return {@code true} if an exception will be thrown in the event of a failing response code
+         * @see WebClientOptions#isThrowExceptionOnFailingStatusCode()
+         * @since 2.42
+         */
+        public boolean isThrowExceptionOnFailingStatusCode() {
+            return getOptions().isThrowExceptionOnFailingStatusCode();
+        }
+
+        /**
+         * Changes the behavior of this webclient when a script error occurs.
+         * Short-hand method to ease discovery of feature + improve readability
+         *
+         * @param enabled {@code true} to enable this feature
+         * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         * @since 2.42
+         */
+        public void setThrowExceptionOnFailingStatusCode(boolean enabled) {
+            getOptions().setThrowExceptionOnFailingStatusCode(enabled);
+        }
+
+        /**
+         * Changes the behavior of this webclient when a script error occurs.
+         * Fluent method to ease discovery of feature + improve readability
+         * 
+         * @param enabled {@code true} to enable this feature
+         * @return self for fluent method chaining
+         * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
+         * @since 2.42
+         */
+        public WebClient withThrowExceptionOnFailingStatusCode(boolean enabled) {
+            setThrowExceptionOnFailingStatusCode(enabled);
+            return this;
+        }
+        
+        /**
+         * Returns whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Short-hand method to ease discovery of feature + improve readability
+         * 
+         * @return {@code true} if automatic redirection is enabled
+         * @see WebClientOptions#isRedirectEnabled()
+         * @since 2.42
+         */
+        public boolean isRedirectEnabled() {
+            return getOptions().isRedirectEnabled();
+        }
+
+        /**
+         * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Short-hand method to ease discovery of feature + improve readability
+         * 
+         * @param enabled {@code true} to enable automatic redirection
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @since 2.42
+         */
+        public void setRedirectEnabled(boolean enabled) {
+            getOptions().setRedirectEnabled(enabled);
+        }
+
+        /**
+         * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
+         * Fluent method to ease discovery of feature + improve readability
+         *
+         * @param enabled {@code true} to enable automatic redirection
+         * @return self for fluent method chaining
+         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @since 2.42
+         */
+        public WebClient withRedirectEnabled(boolean enabled) {
+            setRedirectEnabled(enabled);
+            return this;
         }
 
         /**
@@ -2279,10 +2401,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public void assertFails(String url, int statusCode) throws Exception {
             assert !url.startsWith("/");
+            boolean currentConfiguration = isThrowExceptionOnFailingStatusCode();
+            // enforce the throwing of exception for the catch scope only
+            setThrowExceptionOnFailingStatusCode(true);
             try {
                 fail(url + " should have been rejected but produced: " + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
             } catch (FailingHttpStatusCodeException x) {
                 assertEquals(statusCode, x.getStatusCode());
+            } finally {
+                setThrowExceptionOnFailingStatusCode(currentConfiguration);
             }
         }
 
@@ -2300,8 +2427,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Use {@link #createCrumbedUrl} instead if you intend to call {@link WebRequest#setRequestBody}, typical of a POST request.
          */
         public WebRequest addCrumb(WebRequest req) {
-            NameValuePair crumb = getCrumbHeaderNVP();
-            req.setRequestParameters(Arrays.asList(crumb));
+            ArrayList<NameValuePair> params = new ArrayList<>();
+            params.add(getCrumbHeaderNVP());
+            List<NameValuePair> oldParams = req.getRequestParameters();
+            if (oldParams != null) {
+                params.addAll(oldParams);
+            }
+            req.setRequestParameters(params);
             return req;
         }
 
@@ -2312,8 +2444,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
             String crumb = issuer.getCrumb(null);
-
-            return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+            if (relativePath.indexOf('?') == -1) {
+                return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+            }
+            return new URL(getContextPath()+relativePath+"&"+crumbName+"="+crumb);
         }
 
         /**
@@ -2385,7 +2519,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public Dim interactiveJavaScriptDebugger() {
             Global global = new Global();
-            HtmlUnitContextFactory cf = getJavaScriptEngine().getContextFactory();
+            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
             global.init(cf);
 
             Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + testDescription.getDisplayName());

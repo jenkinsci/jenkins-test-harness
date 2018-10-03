@@ -53,12 +53,13 @@ public class TemporaryDirectoryAllocator {
      */
     private final boolean withoutSpace = Boolean.getBoolean("jenkins.test.noSpaceInTmpDirs");
 
+    @Deprecated
     public TemporaryDirectoryAllocator(File base) {
         this.base = base;
     }
 
     public TemporaryDirectoryAllocator() {
-        this.base = new File(System.getProperty("java.io.tmpdir"), "jenkinsTests.tmp");
+        this.base = new File(System.getProperty("java.io.tmpdir"));
         base.mkdirs();
     }
 
@@ -70,7 +71,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile("jenkins", (withoutSpace ? "test" : " test"), base);
+            File f = File.createTempFile((withoutSpace ? "jkh" : "j h"), "", base);
             f.delete();
             f.mkdirs();
             tmpDirectories.add(f);

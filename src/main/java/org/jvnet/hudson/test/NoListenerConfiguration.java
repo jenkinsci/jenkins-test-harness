@@ -41,7 +41,7 @@ import javax.servlet.ServletContextListener;
 public final class NoListenerConfiguration extends AbstractLifeCycle {
     private final WebAppContext context;
 
-    NoListenerConfiguration(WebAppContext context) {
+    public NoListenerConfiguration(WebAppContext context) {
         this.context = context;
     }
 

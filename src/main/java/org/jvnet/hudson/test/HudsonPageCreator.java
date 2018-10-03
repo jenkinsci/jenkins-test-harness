@@ -43,20 +43,17 @@ public class HudsonPageCreator extends DefaultPageCreator {
     @Override
     public Page createPage(WebResponse webResponse, WebWindow webWindow) throws IOException {
         String contentType = webResponse.getContentType().toLowerCase(Locale.ENGLISH);
-        if(contentType.equals("application/x-java-jnlp-file"))
+        if (contentType.equals("application/x-java-jnlp-file")) {
             return createXmlPage(webResponse, webWindow);
-        return super.createPage(webResponse, webWindow);
-    }
-
-    @Override
-    protected String determineContentType(String contentType, InputStream contentAsStream) throws IOException {
+        }
         // Need to sidestep HtmlUnit default behaviour here. It defaults the response type to
         // being text/plain (and so creates a TextPage) if the content type in the response is
         // blank + is an empty response.
-        if (StringUtils.isEmpty(contentType)) {
-            return "text/html";
+        if (contentType.isEmpty()) {
+            return createHtmlPage(webResponse, webWindow);
         }
-        return super.determineContentType(contentType, contentAsStream);
+
+        return super.createPage(webResponse, webWindow);
     }
 
     public static final HudsonPageCreator INSTANCE = new HudsonPageCreator();

@@ -4,6 +4,64 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.43 (2018 Oct 02)
+
+* Shorter temporary directory paths.
+
+### 2.42 (2018 Sep 28)
+
+* Updated HTMLUnit.
+* New convenience methods in `WebClient`.
+* Java 11 compatibility.
+
+### 2.41 (2018 Sep 21)
+
+* Fixing a serialization issue in `MockAuthorizationStrategy`.
+
+### 2.40 (2018 Jul 20)
+
+* [JENKINS-49046](https://issues.jenkins-ci.org/browse/JENKINS-49046): Fix `@WithTimeout` handling for `JenkinsRule`.
+
+### 2.39 (2018 Jun 05)
+
+* Make `RunLoadCounter` compatible with Pipeline (`WorkflowJob` / `WorkflowRun`).
+* Prevent agent processes from stealing focus on OS X.
+* Make the `NoListenerConfiguration` constructor `public`.
+
+### 2.38 (2018 Apr 09)
+
+* [JENKINS-50598](https://issues.jenkins-ci.org/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
+* [JENKINS-50590](https://issues.jenkins-ci.org/browse/JENKINS-50590): fix combination of crumbs with existing request parameters.
+
+### 2.37 (2018 Apr 06)
+
+* Improved `RestartableJenkinsRule.simulateAbruptShutdown`.
+
+### 2.36 (2018 Apr 04)
+
+* JENKINS-50476:: offer a way to assert that Jenkins won't start
+
+### 2.35 (2018 Apr 04)
+
+*Burned*
+
+### 2.34 (2018 Jan 29)
+
+* Added `CLICommandInvoker.Result.stdoutBinary` and `.stderrBinary`.
+* Deprecated `PresetData`.
+
+### 2.33 (2017 Dec 21)
+
+* `RestartableJenkinsRule` utilities to simulate abrupt (i.e., unplanned) shutdowns.
+
+### 2.32 (2017 Oct 28)
+
+* Added `LoggerRule.recordPackage` as a convenience.
+* Added `LoggerRule.recorded` methods returning matchers to simplify checking for log records.
+* Added `WebClient.withBasicCredentials` and `.withBasicApiToken` methods to simplify passing authentication to REST requests as an alternative to `.login`.
+* `waitOnline` with `JNLPLauncher` failed rather than waiting.
+* Do not even try to persist an `Authentication` via XStream.
+
 ### 2.31 (2017 Oct 17)
 
 * Introduced `RestartableJenkinsRule.createJenkinsRule`.
