@@ -3,7 +3,6 @@ package org.jvnet.hudson.test;
 import groovy.lang.Closure;
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
@@ -51,7 +50,7 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     private final Map<Statement, Boolean> steps = new LinkedHashMap<>();
 
-    private TemporaryFolder tmp = new TemporaryFolder();
+    private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
 
     /**
      * Object that defines a test.
@@ -72,18 +71,22 @@ public class RestartableJenkinsRule implements MethodRule {
 
         this.target = target;
 
-        return tmp.apply(new Statement() {
+        return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 // JENKINS_HOME needs to survive restarts, so we'll allocate our own
-                home = tmp.newFolder();
+                try {
+                    home = tmp.allocate();
 
-                // test method will accumulate steps
-                base.evaluate();
-                // and we'll run them
-                run();
+                    // test method will accumulate steps
+                    base.evaluate();
+                    // and we'll run them
+                    run();
+                } finally {
+                    tmp.dispose();
+                }
             }
-        }, description);
+        };
     }
 
     public void step(final Closure c) {
@@ -162,9 +165,7 @@ public class RestartableJenkinsRule implements MethodRule {
      void simulateAbruptShutdown() throws IOException {
          LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
          File homeDir = this.home;
-         TemporaryFolder temp = new TemporaryFolder();
-         temp.create();
-         File newHome = temp.newFolder();
+         File newHome = tmp.allocate();
 
          // Copy efficiently
          Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
@@ -253,12 +254,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     private void run() throws Throwable {
-        HudsonHomeLoader loader = new HudsonHomeLoader() {
-            @Override
-            public File allocate() throws Exception {
-                return home;
-            }
-        };
+        HudsonHomeLoader loader = () -> home;
 
         // run each step inside its own JenkinsRule
         for (Map.Entry<Statement, Boolean> entry : steps.entrySet()) {
