@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.44 (2018 Oct 05)
+
+* Extending path shortening fix to users of `RestartableJenkinsRule`.
+
 ### 2.43 (2018 Oct 02)
 
 * Shorter temporary directory paths.
