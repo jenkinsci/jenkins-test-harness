@@ -83,7 +83,11 @@ public class RestartableJenkinsRule implements MethodRule {
                     // and we'll run them
                     run();
                 } finally {
-                    tmp.dispose();
+                    try {
+                        tmp.dispose();
+                    } catch (Exception x) {
+                        x.printStackTrace();
+                    }
                 }
             }
         };
