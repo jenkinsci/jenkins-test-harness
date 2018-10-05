@@ -67,6 +67,7 @@ public class TemporaryDirectoryAllocator {
             f.delete();
             f.mkdirs();
             tmpDirectories.add(f);
+            System.err.println("Using temp dir: " + f);
             return f;
         } catch (IOException e) {
             throw new IOException("Failed to create a temporary directory in "+base,e);

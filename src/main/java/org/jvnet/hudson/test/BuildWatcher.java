@@ -36,6 +36,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import jenkins.model.Jenkins;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -130,7 +131,11 @@ public final class BuildWatcher extends ExternalResource {
             } catch (FileNotFoundException x) {
                 // build deleted or not started
             } catch (Exception x) {
-                x.printStackTrace();
+                if (Jenkins.getInstance() != null) {
+                    x.printStackTrace();
+                } else {
+                    // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is missing its descriptor, etc.
+                }
             }
         }
 
