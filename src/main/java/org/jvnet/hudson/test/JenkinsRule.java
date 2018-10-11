@@ -225,6 +225,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.rules.DisableOnDebug;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
@@ -319,7 +320,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Number of seconds until the test times out.
      */
-    public int timeout = Integer.getInteger("jenkins.test.timeout", System.getProperty("maven.surefire.debug") == null ? 180 : 0);
+    public int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 180);
 
     /**
      * Set the plugin manager to be passed to {@link Jenkins} constructor.
