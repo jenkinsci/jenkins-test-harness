@@ -1204,7 +1204,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return assertBuildStatus(status, r.get());
     }
 
-    /** Determines whether the specifed HTTP status code is generally "good" */
+    /** Determines whether the specified HTTP status code is generally "good" */
     public boolean isGoodHttpStatus(int status) {
         if ((400 <= status) && (status <= 417)) {
             return false;
@@ -1215,7 +1215,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return true;
     }
 
-    /** Assert that the specifed page can be served with a "good" HTTP status,
+    /** Assert that the specified page can be served with a "good" HTTP status,
      * eg, the page is not missing and can be served without a server error
      * @param page
      */
@@ -1440,7 +1440,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Submits the form by clikcing the submit button of the given name.
+     * Submits the form by clicking the submit button of the given name.
      *
      * @param name
      *      This corresponds to the @name of {@code <f:submit />}
@@ -2565,8 +2565,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // prototype.js calls this method all the time, so ignore this warning.
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
             public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the respon"
-                        + "se was available.");
+                return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
         });
         // JENKINS-14749: prototype.js intentionally swallows this exception (thrown on Firefox which we simulate), but HtmlUnit still tries to log it.
