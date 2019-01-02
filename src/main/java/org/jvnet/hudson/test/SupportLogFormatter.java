@@ -21,15 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package org.jvnet.hudson.test;
 
 // COPIED from com.cloudbees.jenkins.support @ 2.42-SNAPSHOT
 
-/***********************************************
- * DO NOT INCLUDE ANY NON JDK CLASSES IN HERE.
- * IT CAN DEADLOCK REMOTING - SEE JENKINS-32622
- ***********************************************/
+// *********************************************
+// DO NOT INCLUDE ANY NON JDK CLASSES IN HERE.
+// IT CAN DEADLOCK REMOTING - SEE JENKINS-32622
+// *********************************************
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -37,10 +36,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
-/***********************************************
- * DO NOT INCLUDE ANY NON JDK CLASSES IN HERE.
- * IT CAN DEADLOCK REMOTING - SEE JENKINS-32622
- ***********************************************/
+// *********************************************
+// DO NOT INCLUDE ANY NON JDK CLASSES IN HERE.
+// IT CAN DEADLOCK REMOTING - SEE JENKINS-32622
+// *********************************************
 
 /**
  * Format log files in a nicer format that is easier to read and search.
