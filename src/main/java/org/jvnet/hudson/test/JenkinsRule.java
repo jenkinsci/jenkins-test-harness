@@ -153,6 +153,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -847,7 +848,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     auths.add(new GrantedAuthorityImpl(g));
                 }
             }
-            return new org.acegisecurity.userdetails.User(username,"",true,true,true,true, auths.toArray(new GrantedAuthority[auths.size()]));
+            return new org.acegisecurity.userdetails.User(username,"",true,true,true,true, auths.toArray(new GrantedAuthority[0]));
         }
 
         @Override
@@ -1422,8 +1423,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * a cancellation.
      */
     private List<String> listProperties(String properties) {
-        List<String> props = new ArrayList<String>(Arrays.asList(properties.split(",")));
-        for (String p : props.toArray(new String[props.size()])) {
+        List<String> props = new CopyOnWriteArrayList<>(properties.split(","));
+        for (String p : props) {
             if (p.startsWith("-")) {
                 props.remove(p);
                 props.remove(p.substring(1));

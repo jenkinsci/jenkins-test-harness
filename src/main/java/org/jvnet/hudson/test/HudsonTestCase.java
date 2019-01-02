@@ -1005,8 +1005,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * a cancellation.
      */
     private List<String> listProperties(String properties) {
-        List<String> props = new ArrayList<String>(Arrays.asList(properties.split(",")));
-        for (String p : props.toArray(new String[props.size()])) {
+        List<String> props = new CopyOnWriteArrayList<>(properties.split(","));
+        for (String p : props) {
             if (p.startsWith("-")) {
                 props.remove(p);
                 props.remove(p.substring(1));
