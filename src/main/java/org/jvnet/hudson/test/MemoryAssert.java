@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -256,9 +255,7 @@ public class MemoryAssert {
                 super.visitObject(map, object);
                 if (object instanceof ClassLoader) {
                     if (isKnown(object)) {
-                        Iterator<Class> it = classes.iterator();
-                        while (it.hasNext()) {
-                            Class c = it.next();
+                        for (Class c : classes) {
                             if (c.getClassLoader() == object) {
                                 visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
                             }
