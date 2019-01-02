@@ -28,10 +28,8 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebWindow;
 import com.gargoylesoftware.htmlunit.PageCreator;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Locale;
 
 /**

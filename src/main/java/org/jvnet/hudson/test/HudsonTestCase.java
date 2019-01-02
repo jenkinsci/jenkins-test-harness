@@ -118,7 +118,6 @@ import junit.framework.TestCase;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory.Listener;
 
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
