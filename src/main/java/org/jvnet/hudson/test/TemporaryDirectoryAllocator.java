@@ -108,9 +108,7 @@ public class TemporaryDirectoryAllocator {
                 for (File dir : tbr)
                     try {
                         new FilePath(dir).deleteRecursive();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
+                    } catch (IOException | InterruptedException e) {
                         e.printStackTrace();
                     }
             }

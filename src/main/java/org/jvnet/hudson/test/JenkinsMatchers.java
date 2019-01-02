@@ -56,9 +56,7 @@ public class JenkinsMatchers {
                         }
                         t = t.getCause();
                     }
-                } catch (InstantiationException e) {
-                    // ignore
-                } catch (IllegalAccessException e) {
+                } catch (InstantiationException | IllegalAccessException e) {
                     // ignore
                 } finally {
                     c.setAccessible(accessible);
