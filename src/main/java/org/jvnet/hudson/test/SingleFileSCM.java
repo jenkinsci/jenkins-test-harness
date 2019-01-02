@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.commons.io.IOUtils;
 
 /**
@@ -53,7 +55,7 @@ public class SingleFileSCM extends NullSCM {
 
     public SingleFileSCM(String path, String contents) throws UnsupportedEncodingException {
         this.path = path;
-        this.contents = contents.getBytes("UTF-8");
+        this.contents = contents.getBytes(StandardCharsets.UTF_8);
     }
 
     /**
