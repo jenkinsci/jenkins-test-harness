@@ -8,7 +8,6 @@ import hudson.model.Descriptor.FormException;
 import hudson.model.Slave;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 
 import java.io.IOException;
@@ -29,7 +28,7 @@ public class PretendSlave extends Slave {
     public int numLaunch;
 
     public PretendSlave(String name, String remoteFS, int numExecutors, Mode mode, String labelString, ComputerLauncher launcher, FakeLauncher faker) throws IOException, FormException {
-    	super(name, "pretending a slave", remoteFS, String.valueOf(numExecutors), mode, labelString, launcher, RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList());
+        super(name, "pretending a slave", remoteFS, String.valueOf(numExecutors), mode, labelString, launcher, RetentionStrategy.NOOP, Collections.emptyList());
         this.faker = faker;
     }
 

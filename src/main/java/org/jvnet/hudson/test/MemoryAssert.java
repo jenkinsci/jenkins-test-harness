@@ -187,7 +187,7 @@ public class MemoryAssert {
                         @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
-                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
+                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
                 }
             }
         }
@@ -220,7 +220,7 @@ public class MemoryAssert {
                     fail(rootRefs.toString());
                 } else {
                     System.err.println("Did not find any soft references to " + obj + ", looking for weak references…");
-                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
+                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
                     if (!rootRefs.isEmpty()) {
                         fail(rootRefs.toString());
                     } else {

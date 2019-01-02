@@ -29,7 +29,7 @@ public class JenkinsRuleTest {
 
     @Test(expected = AssertionError.class)
     public void givenOneNullListAndOneNonnullListAssertShouldFail() throws Exception {
-        j.assertEqualDataBoundBeans(new SomeClass(Collections.<String>emptyList()), new SomeClass(null));
+        j.assertEqualDataBoundBeans(new SomeClass(Collections.emptyList()), new SomeClass(null));
     }
 
     public static class SomeClass {

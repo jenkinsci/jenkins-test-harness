@@ -106,7 +106,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
                     return new FakeChangeLogSet(build, action.entries);
                 }
             }
-            return new FakeChangeLogSet(build, Collections.<EntryImpl>emptyList());
+            return new FakeChangeLogSet(build, Collections.emptyList());
         }
     }
 
