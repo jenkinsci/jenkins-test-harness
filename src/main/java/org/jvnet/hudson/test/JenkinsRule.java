@@ -1068,12 +1068,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             byte[] content = json.toString().getBytes(UTF8);
             conn.setRequestProperty("Content-Length", String.valueOf(content.length));
-            final OutputStream os = conn.getOutputStream();
-            try {
+            try (OutputStream os = conn.getOutputStream()) {
                 os.write(content);
                 os.flush();
-            } finally {
-                os.close();
             }
 
             WebResponseData webResponseData;

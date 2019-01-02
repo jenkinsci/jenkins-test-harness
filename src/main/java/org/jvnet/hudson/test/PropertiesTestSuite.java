@@ -66,11 +66,8 @@ public class PropertiesTestSuite extends TestSuite {
                     return null;
                 }
             };
-            InputStream is = resource.openStream();
-            try {
+            try (InputStream is = resource.openStream()) {
                 props.load(is);
-            } finally {
-                is.close();
             }
         }
 

@@ -87,18 +87,14 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         workspace.unzipFrom(secondZip.openStream());
 
         // Get list of files changed in secondZip.
-        ZipInputStream zip = new ZipInputStream(secondZip.openStream());
-        ZipEntry e;
         ExtractChangeLogParser.ExtractChangeLogEntry changeLog = new ExtractChangeLogParser.ExtractChangeLogEntry(secondZip.toString());
 
-        try {
+        try (ZipInputStream zip = new ZipInputStream(secondZip.openStream())) {
+            ZipEntry e;
             while ((e = zip.getNextEntry()) != null) {
                 if (!e.isDirectory())
                     changeLog.addFile(new ExtractChangeLogParser.FileInZip(e.getName()));
             }
-        }
-        finally {
-            zip.close();
         }
         saveToChangeLog(changeLogFile, changeLog);
 
