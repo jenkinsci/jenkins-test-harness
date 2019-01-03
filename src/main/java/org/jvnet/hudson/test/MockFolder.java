@@ -269,12 +269,5 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new MockFolder(parent, name);
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "MockFolder";
-        }
-
     }
-
 }

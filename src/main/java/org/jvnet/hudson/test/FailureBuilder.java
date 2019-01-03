@@ -45,10 +45,5 @@ public class FailureBuilder extends MockBuilder {
         public FailureBuilder newInstance(StaplerRequest req, JSONObject data) {
             return new FailureBuilder();
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "FailureBuilder";
-        }
     }
 }

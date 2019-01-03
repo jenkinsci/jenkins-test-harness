@@ -45,10 +45,5 @@ public class TestCrumbIssuer extends CrumbIssuer {
         public TestCrumbIssuer newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return new TestCrumbIssuer();
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "TestCrumbIssuer";
-        }
     }
 }

@@ -41,10 +41,6 @@ public abstract class TestNotifier extends Notifier {
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
             }
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "TestNotifier";
-            }
         };
     }
 

@@ -52,10 +52,5 @@ public class PretendSlave extends Slave {
     }
 
     @Extension
-    public static final class DescriptorImpl extends SlaveDescriptor {
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "PretendSlave";
-        }
-}
+    public static final class DescriptorImpl extends SlaveDescriptor {}
 }

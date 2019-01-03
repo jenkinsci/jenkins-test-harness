@@ -94,13 +94,5 @@ public class SimpleCommandLauncher extends ComputerLauncher {
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<ComputerLauncher> {
-
-        @Override // TODO pending 1.635
-        public String getDisplayName() {
-            return "SimpleCommandLauncher";
-        }
-
-    }
-
+    public static class DescriptorImpl extends Descriptor<ComputerLauncher> {}
 }
