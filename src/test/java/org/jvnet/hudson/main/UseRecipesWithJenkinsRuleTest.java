@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -41,6 +42,7 @@ public class UseRecipesWithJenkinsRuleTest {
         assertNotNull(rule.jenkins.getItem("somejob"));
     }
 
+    @Ignore("The used plugin is currently not compatible with Jenkins 2.x. --> TODO: Find another one for testing with Jenkins 1.x and 2.x.")
     @Test
     @WithPlugin("tasks.jpi")
     public void testWithPlugin() {

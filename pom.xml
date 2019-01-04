@@ -83,7 +83,7 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
       <!--to have access to User.getById-->
-      <version>1.651.2</version>
+      <version>2.60.3</version>
       <type>executable-war</type>
       <exclusions>
         <exclusion>
@@ -159,6 +159,12 @@ THE SOFTWARE.
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-auth</artifactId>
       <version>1.0.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins</groupId>
+      <artifactId>configuration-as-code</artifactId>
+      <version>1.4</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
