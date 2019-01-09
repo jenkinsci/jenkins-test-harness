@@ -4,6 +4,15 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.45 (2019 Jan 10)
+
+* Use DisableOnDebug’s logic rather than rolling our own
+* SUREFIRE-1588 workaround
+* JDK 11 upgrades
+* Spurious temporary dir name log to `System.err` removed
+* Fix tests when run under Jenkins 2.x
+* Add Configuration-as-Code support to TestCrumbIssuer
+
 ### 2.44 (2018 Oct 05)
 
 * Extending path shortening fix to users of `RestartableJenkinsRule`.
