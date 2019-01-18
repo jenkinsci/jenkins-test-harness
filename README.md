@@ -12,6 +12,7 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 * Spurious temporary dir name log to `System.err` removed
 * Fix tests when run under Jenkins 2.x
 * Add Configuration-as-Code support to TestCrumbIssuer
+* Temporary directories now by default have a space in their path, to flush out path handling mistakes. (The system property `jenkins.test.noSpaceInTmpDirs=true` suppresses this.)
 
 ### 2.44 (2018 Oct 05)
 
