@@ -4,6 +4,11 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.46 (???)
+
+* Bump jenkins-test-harness-htmlunit to 2.31-2, which disables JAXP registration of Xalan-J and Xerces
+(fixes regressions introduced in 2.45 by space in temporary paths because of a Xalan-J bug)
+
 ### 2.45 (2019 Jan 10)
 
 * Use DisableOnDebug’s logic rather than rolling our own
