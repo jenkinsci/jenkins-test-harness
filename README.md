@@ -31,14 +31,14 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 * Updated HTMLUnit.
 * New convenience methods in `WebClient`.
-* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) - 
+* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
 JDK 11 compatibility.
 
 ### 2.41.1 (2018 Nov 13)
 
 This is a custom release without HTMLUnit upgrade
 
-* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) - 
+* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
 JDK 11 compatibility.
 
 ### 2.41 (2018 Sep 21)
