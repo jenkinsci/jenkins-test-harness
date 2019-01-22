@@ -2,16 +2,15 @@ package org.jvnet.hudson.test;
 
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
-import hudson.model.UnprotectedRootAction;
 import hudson.model.User;
-import hudson.util.HttpResponses;
+import hudson.security.csrf.CrumbIssuer;
+import hudson.security.csrf.CrumbIssuerDescriptor;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.HttpResponse;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -19,7 +18,11 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
+import javax.servlet.ServletRequest;
+
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class JenkinsRuleTest {
 
@@ -79,6 +82,14 @@ public class JenkinsRuleTest {
         r.setSetterParam("value2");     // mismatch!
         l.setterField = "value4";
         j.assertEqualDataBoundBeans(l, r);
+    }
+
+    @Test
+    public void testCrumbInURL() throws Exception {
+        String relative = "foo?bar=1&myCrumb=BOGUS";
+        j.jenkins.setCrumbIssuer(new MyCrumbIssuer());
+        URL u = j.createWebClient().createCrumbedUrl(relative);
+        assertThat(u.getQuery(), is("myCrumb=TEST12345&bar=1&myCrumb=BOGUS"));
     }
 
     @Test
@@ -155,6 +166,28 @@ public class JenkinsRuleTest {
 
         public String getSetterParam() {
             return setterParam;
+        }
+    }
+
+    public static class MyCrumbIssuer extends CrumbIssuer {
+
+        @Override
+        protected String issueCrumb(ServletRequest servletRequest, String s) {
+            return "TEST12345";
+        }
+
+        @Override
+        public boolean validateCrumb(ServletRequest servletRequest, String s, String s1) {
+            return false;
+        }
+
+        @TestExtension("testCrumbInURL")
+        public static class DescriptorImpl<MyCrumbIssuer> extends CrumbIssuerDescriptor{
+
+            public DescriptorImpl() {
+                super("test", "myCrumb");
+            }
+
         }
     }
 }
