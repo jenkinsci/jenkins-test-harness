@@ -4,7 +4,7 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
-### 2.46 (???)
+### 2.46 (2019 Jan 22)
 
 * Bump jenkins-test-harness-htmlunit to 2.31-2, which disables JAXP registration of Xalan-J and Xerces
 (fixes regressions introduced in 2.45 by space in temporary paths because of a Xalan-J bug)
