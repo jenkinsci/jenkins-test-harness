@@ -79,12 +79,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     }
 
     @Override public SCMDescriptor<?> getDescriptor() {
-        return new SCMDescriptor<SCM>(null) {
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "FakeChangeLogSCM";
-            }
-};
+        return new SCMDescriptor<SCM>(null) {};
     }
 
     public static class ChangelogAction extends InvisibleAction {
@@ -106,7 +101,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
                     return new FakeChangeLogSet(build, action.entries);
                 }
             }
-            return new FakeChangeLogSet(build, Collections.<EntryImpl>emptyList());
+            return new FakeChangeLogSet(build, Collections.emptyList());
         }
     }
 

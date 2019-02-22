@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2008-2009 Yahoo! Inc. 
- * All rights reserved. 
+/*
+ * Copyright (c) 2008-2009 Yahoo! Inc.
+ * All rights reserved.
  * The copyrights to the contents of this file are licensed under the MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 package org.jvnet.hudson.test;
@@ -44,11 +44,6 @@ public class TestCrumbIssuer extends CrumbIssuer {
 
         public TestCrumbIssuer newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return new TestCrumbIssuer();
-        }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "TestCrumbIssuer";
         }
     }
 }

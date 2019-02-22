@@ -66,7 +66,6 @@ import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
@@ -118,7 +117,6 @@ import junit.framework.TestCase;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory.Listener;
 
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
@@ -649,7 +647,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env),
-			        RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList());
+			        RetentionStrategy.NOOP, Collections.emptyList());
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -682,7 +680,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come onilne
+     * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave() throws Exception {
@@ -690,7 +688,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
     
     /**
-     * Create a new slave on the local host and wait for it to come onilne
+     * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave(Label l) throws Exception {
@@ -1006,8 +1004,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * a cancellation.
      */
     private List<String> listProperties(String properties) {
-        List<String> props = new ArrayList<String>(Arrays.asList(properties.split(",")));
-        for (String p : props.toArray(new String[props.size()])) {
+        List<String> props = new CopyOnWriteArrayList<>(properties.split(","));
+        for (String p : props) {
             if (p.startsWith("-")) {
                 props.remove(p);
                 props.remove(p.substring(1));
@@ -1026,7 +1024,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Submits the form by clikcing the submit button of the given name.
+     * Submits the form by clicking the submit button of the given name.
      *
      * @param name
      *      This corresponds to the @name of {@code <f:submit />}
@@ -1446,7 +1444,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
             setAlertHandler(new AlertHandler() {
                 public void handleAlert(Page page, String message) {
-                    throw new AssertionError("Alert dialog poped up: "+message);
+                    throw new AssertionError("Alert dialog popped up: "+message);
                 }
             });
 
@@ -1762,7 +1760,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
-    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.<ToolProperty<?>>emptyList();
+    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
@@ -1816,11 +1814,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             @Override
             public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
                 throw new UnsupportedOperationException();
-            }
-
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "TestBuildWrapper";
             }
         }
     }

@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -30,9 +31,6 @@ import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 import hudson.model.listeners.ItemListener;
 
@@ -56,22 +54,14 @@ public class TestExtensionTest {
     }
 
     private List<Class<? extends ItemListener>> getExtensionClasses() {
-        return Lists.transform(
-            j.jenkins.getExtensionList(ItemListener.class),
-            new Function<ItemListener, Class<? extends ItemListener>>() {
-                @Override
-                public Class<? extends ItemListener> apply(ItemListener arg0) {
-                    return arg0.getClass();
-                }
-            }
-        );
+        return j.jenkins.getExtensionList(ItemListener.class).stream().map(ItemListener::getClass).collect(toList());
     }
 
     @Test
     public void test1() throws Exception {
         assertThat(
             getExtensionClasses(),
-            Matchers.<Class<? extends ItemListener>>hasItems(AllTests.class, SingleTests.class, MultipleTests.class)
+            Matchers.hasItems(AllTests.class, SingleTests.class, MultipleTests.class)
         );
     }
 
@@ -79,11 +69,11 @@ public class TestExtensionTest {
     public void test2() throws Exception {
         assertThat(
             getExtensionClasses(),
-            Matchers.<Class<? extends ItemListener>>hasItems(AllTests.class, MultipleTests.class)
+            Matchers.hasItems(AllTests.class, MultipleTests.class)
         );
         assertThat(
             getExtensionClasses(),
-            Matchers.not(Matchers.<Class<? extends ItemListener>>hasItem(SingleTests.class))
+            Matchers.not(Matchers.hasItem(SingleTests.class))
         );
     }
 
@@ -91,15 +81,15 @@ public class TestExtensionTest {
     public void test3() throws Exception {
         assertThat(
             getExtensionClasses(),
-            Matchers.<Class<? extends ItemListener>>hasItems(AllTests.class)
+            Matchers.hasItems(AllTests.class)
         );
         assertThat(
             getExtensionClasses(),
-            Matchers.not(Matchers.<Class<? extends ItemListener>>hasItem(SingleTests.class))
+            Matchers.not(Matchers.hasItem(SingleTests.class))
         );
         assertThat(
             getExtensionClasses(),
-            Matchers.not(Matchers.<Class<? extends ItemListener>>hasItem(MultipleTests.class))
+            Matchers.not(Matchers.hasItem(MultipleTests.class))
         );
     }
 }

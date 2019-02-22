@@ -26,7 +26,6 @@ package org.jvnet.hudson.test.recipes;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
-import org.jvnet.hudson.main.UseRecipesWithJenkinsRuleTest;
 import org.jvnet.hudson.test.JenkinsRule;
 
 /**

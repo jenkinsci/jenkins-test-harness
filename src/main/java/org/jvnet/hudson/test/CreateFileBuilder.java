@@ -86,7 +86,7 @@ public class CreateFileBuilder extends Builder {
         
         @Override
         public Builder newInstance(StaplerRequest req, JSONObject data) {
-            throw new UnsupportedOperationException("This is a temporarytest class, "
+            throw new UnsupportedOperationException("This is a temporary test class, "
                     + "which should not be configured from UI");
         }
 

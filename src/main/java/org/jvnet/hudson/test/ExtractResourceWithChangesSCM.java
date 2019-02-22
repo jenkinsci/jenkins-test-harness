@@ -87,18 +87,14 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         workspace.unzipFrom(secondZip.openStream());
 
         // Get list of files changed in secondZip.
-        ZipInputStream zip = new ZipInputStream(secondZip.openStream());
-        ZipEntry e;
         ExtractChangeLogParser.ExtractChangeLogEntry changeLog = new ExtractChangeLogParser.ExtractChangeLogEntry(secondZip.toString());
 
-        try {
+        try (ZipInputStream zip = new ZipInputStream(secondZip.openStream())) {
+            ZipEntry e;
             while ((e = zip.getNextEntry()) != null) {
                 if (!e.isDirectory())
                     changeLog.addFile(new ExtractChangeLogParser.FileInZip(e.getName()));
             }
-        }
-        finally {
-            zip.close();
         }
         saveToChangeLog(changeLogFile, changeLog);
 
@@ -142,12 +138,6 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     private Object writeReplace() { return new Object(); }
 
     @Override public SCMDescriptor<?> getDescriptor() {
-        return new SCMDescriptor<ExtractResourceWithChangesSCM>(ExtractResourceWithChangesSCM.class, null) {
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "ExtractResourceWithChangesSCM";
-            }
-};
+        return new SCMDescriptor<ExtractResourceWithChangesSCM>(ExtractResourceWithChangesSCM.class, null) {};
     }
-
 }

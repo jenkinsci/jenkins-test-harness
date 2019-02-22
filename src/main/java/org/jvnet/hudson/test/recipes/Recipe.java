@@ -36,7 +36,6 @@ import java.io.File;
 import junit.framework.TestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 
-
 /**
  * Meta-annotation for recipe annotations, which controls
  * the test environment set up.
@@ -70,7 +69,7 @@ public @interface Recipe {
         public void setup(HudsonTestCase testCase, T recipe) throws Exception {}
 
         /**
-         * Called right before {@link jenkins.model.Jenkins#Jenkins(File, ServletContext)} is invoked
+         * Called right before {@link jenkins.model.Jenkins#Jenkins(File, javax.servlet.ServletContext)} is invoked
          * to decorate the hudson home directory.
          */
         public void decorateHome(HudsonTestCase testCase, File home) throws Exception {}

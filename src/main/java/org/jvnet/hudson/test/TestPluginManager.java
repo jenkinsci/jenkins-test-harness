@@ -36,6 +36,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -113,8 +114,7 @@ public class TestPluginManager extends PluginManager {
         // and copy them into $JENKINS_HOME/plugins.
         URL index = getClass().getResource("/test-dependencies/index");
         if (index!=null) {// if built with maven-hpi-plugin < 1.52 this file won't exist.
-            BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(),"UTF-8"));
-            try {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line=r.readLine())!=null) {
                 	final URL url = new URL(index, line + ".jpi");
@@ -139,8 +139,6 @@ public class TestPluginManager extends PluginManager {
                 		copyBundledPlugin(new URL(index, line + ".hpi"), line + ".jpi"); // fallback to hpi
                 	}
                 }
-            } finally {
-                r.close();
             }
         }
 

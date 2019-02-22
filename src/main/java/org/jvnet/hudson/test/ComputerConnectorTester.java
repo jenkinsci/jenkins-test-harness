@@ -55,12 +55,7 @@ public class ComputerConnectorTester extends AbstractDescribableImpl<ComputerCon
     public List getConnectorDescriptors() {
         return ComputerConnectorDescriptor.all();
     }
-    
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<ComputerConnectorTester> {
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "ComputerConnectorTester";
-        }
-    }
+    public static class DescriptorImpl extends Descriptor<ComputerConnectorTester> {}
 }

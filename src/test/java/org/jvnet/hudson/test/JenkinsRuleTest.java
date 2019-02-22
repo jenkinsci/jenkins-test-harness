@@ -2,16 +2,13 @@ package org.jvnet.hudson.test;
 
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
-import hudson.model.UnprotectedRootAction;
 import hudson.model.User;
-import hudson.util.HttpResponses;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.HttpResponse;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -32,7 +29,7 @@ public class JenkinsRuleTest {
 
     @Test(expected = AssertionError.class)
     public void givenOneNullListAndOneNonnullListAssertShouldFail() throws Exception {
-        j.assertEqualDataBoundBeans(new SomeClass(Collections.<String>emptyList()), new SomeClass(null));
+        j.assertEqualDataBoundBeans(new SomeClass(Collections.emptyList()), new SomeClass(null));
     }
 
     public static class SomeClass {
