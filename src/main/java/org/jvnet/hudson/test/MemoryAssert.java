@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.swing.BoundedRangeModel;
+
+import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
 import static org.junit.Assert.*;
 import static org.junit.Assume.assumeTrue;
@@ -157,7 +159,7 @@ public class MemoryAssert {
     @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
         // Disabled on Java 9+, because below will call Netbeans Insane Engine, which in turns tries to call setAccessible
-        assumeTrue(System.getProperty("java.specification.version").startsWith("1."));
+        assumeTrue(JavaSpecificationVersion.forCurrentJVM().isOlderThanOrEqualTo(JavaSpecificationVersion.JAVA_8));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<Object[]>();
