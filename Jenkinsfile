@@ -24,7 +24,7 @@ for (i = 0; i < buildTypes.size(); i++) {
                         timeout(time: 60, unit: 'MINUTES') {
                             withMavenEnv(["JAVA_OPTS=-Xmx1536m -Xms512m",
                                           "MAVEN_OPTS=-Xmx1536m -Xms512m"], jdk) {
-                                def mvnCmd = "mvn -V -e -U -s settings-azure.xml clean verify -DskipTests" // FIXME: enable tests once Jenkinsfile OK
+                                def mvnCmd = "mvn -V -e -U clean verify -DskipTests" // FIXME: enable tests once Jenkinsfile OK
 
                                 if (isUnix()) {
                                     sh mvnCmd
