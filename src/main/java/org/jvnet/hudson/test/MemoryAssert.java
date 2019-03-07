@@ -40,6 +40,8 @@ import java.util.concurrent.Callable;
 import javax.swing.BoundedRangeModel;
 import jenkins.model.Jenkins;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
+
 import org.netbeans.insane.impl.LiveEngine;
 import org.netbeans.insane.live.LiveReferences;
 import org.netbeans.insane.live.Path;
@@ -146,6 +148,7 @@ public class MemoryAssert {
     }
 
     /**
+     * <strong>Assumes Java runtime is &le; Java 8. I.e. tests will be skipped if Java 9+</strong>
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
      * @param reference object used to verify garbage collection.
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
@@ -153,6 +156,8 @@ public class MemoryAssert {
      */
     @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
+        // Disabled on Java 9+, because below will call Netbeans Insane Engine, which in turns tries to call setAccessible
+        assumeTrue(System.getProperty("java.specification.version").startsWith("1."));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<Object[]>();
