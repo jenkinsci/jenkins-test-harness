@@ -4,6 +4,10 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
 ## Changelog
 
+### 2.48 (2019 Mar 08)
+
+* [PR-126](https://github.com/jenkinsci/jenkins-test-harness/pull/126): Skip `MemoryAssert.assertGC()` on JRE > 8
+
 ### 2.47 (2019 Feb 22)
 
 * [PR-118](https://github.com/jenkinsci/jenkins-test-harness/pull/118): Internal code improvements
