@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.hamcrest.Matcher;
@@ -136,6 +137,10 @@ public class LoggerRule extends ExternalResource {
      */
     public LoggerRule recordPackage(Class<?> clazz, Level level) {
         return record(clazz.getPackage().getName(), level);
+    }
+
+    Map<String, Level> getRecordedLevels() {
+        return loggers.keySet().stream().collect(Collectors.toMap(Logger::getName, Logger::getLevel));
     }
 
     /**

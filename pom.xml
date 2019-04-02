@@ -28,7 +28,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.49</version>
+    <version>1.51</version>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
