@@ -223,8 +223,10 @@ import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
+import jenkins.security.MasterToSlaveCallable;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.Timeout;
@@ -985,6 +987,53 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             PlainTextConsoleOutputStream ptcos = new PlainTextConsoleOutputStream(baos);
             ptcos.write(computer.getLog().getBytes());
             throw new AssertionError("failed to connect " + s.getNodeName() + ": " + baos, x);
+        }
+    }
+
+    /**
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     */
+    public void showAgentLogs(Slave s, LoggerRule loggerRule) throws Exception {
+        showAgentLogs(s, loggerRule.getRecordedLevels());
+    }
+
+    /**
+     * Forward agent logs to standard error of the test process.
+     * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
+     * or discarded entirely (if below {@link Level#INFO}).
+     * @param s an <em>online</em> agent
+     * @param loggers {@link Logger#getName} tied to log level
+     */
+    public void showAgentLogs(Slave s, Map<String, Level> loggers) throws Exception {
+        s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers));
+    }
+
+    private static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
+        private final String name;
+        private final Map<String, Level> loggers;
+        private final TaskListener stderr = StreamTaskListener.fromStderr();
+        RemoteLogDumper(String name, Map<String, Level> loggers) {
+            this.name = name;
+            this.loggers = loggers;
+        }
+        @Override public Void call() throws RuntimeException {
+            Handler handler = new Handler() {
+                final Formatter formatter = new SupportLogFormatter();
+                @Override public void publish(LogRecord record) {
+                    if (isLoggable(record)) {
+                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^", "[" + name + "] "));
+                    }
+                }
+                @Override public void flush() {}
+                @Override public void close() throws SecurityException {}
+            };
+            handler.setLevel(Level.ALL);
+            loggers.entrySet().forEach(e -> {
+                Logger logger = Logger.getLogger(e.getKey());
+                logger.setLevel(e.getValue());
+                logger.addHandler(handler);
+            });
+            return null;
         }
     }
 
