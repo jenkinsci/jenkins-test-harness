@@ -28,7 +28,8 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.49</version>
+    <version>1.51</version>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -110,7 +111,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -151,13 +151,7 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
-      <artifactId>version-number</artifactId>
-      <version>1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
-      <version>1.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -173,7 +167,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <version>2.0</version>
         <extensions>true</extensions>
       </plugin>
       <plugin>
