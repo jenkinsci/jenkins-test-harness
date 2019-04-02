@@ -991,10 +991,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Same as {@link #showSlaveLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
      */
-    public void showSlaveLogs(Slave s, LoggerRule loggerRule) throws Exception {
-        showSlaveLogs(s, loggerRule.getRecordedLevels());
+    public void showAgentLogs(Slave s, LoggerRule loggerRule) throws Exception {
+        showAgentLogs(s, loggerRule.getRecordedLevels());
     }
 
     /**
@@ -1004,7 +1004,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param s an <em>online</em> agent
      * @param loggers {@link Logger#getName} tied to log level
      */
-    public void showSlaveLogs(Slave s, Map<String, Level> loggers) throws Exception {
+    public void showAgentLogs(Slave s, Map<String, Level> loggers) throws Exception {
         s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers));
     }
 
