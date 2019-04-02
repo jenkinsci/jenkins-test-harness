@@ -8,6 +8,11 @@ See https://javadoc.jenkins.io/component/jenkins-test-harness/
 
 ## Changelog
 
+### 2.49 (2019 Apr 02)
+
+* [PR-127](https://github.com/jenkinsci/jenkins-test-harness/pull/127): `JenkinsRule.showAgentLogs` utility
+* [PR-128](https://github.com/jenkinsci/jenkins-test-harness/pull/128): Work with `version-number` as shipped in `jenkins-core`
+
 ### 2.48 (2019 Mar 08)
 
 * [PR-126](https://github.com/jenkinsci/jenkins-test-harness/pull/126): Skip `MemoryAssert.assertGC()` on JRE > 8
