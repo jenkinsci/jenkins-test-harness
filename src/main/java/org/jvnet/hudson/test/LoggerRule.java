@@ -67,7 +67,7 @@ public class LoggerRule extends ExternalResource {
      * Initializes the rule, by default not recording anything.
      */
     public LoggerRule() {
-        consoleHandler.setFormatter(new SupportLogFormatter());
+        consoleHandler.setFormatter(new DeltaSupportLogFormatter());
         consoleHandler.setLevel(Level.ALL);
     }
 

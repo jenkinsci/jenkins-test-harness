@@ -349,7 +349,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void before() throws Throwable {
         for (Handler h : Logger.getLogger("").getHandlers()) {
             if (h instanceof ConsoleHandler) {
-                ((ConsoleHandler) h).setFormatter(new SupportLogFormatter());
+                ((ConsoleHandler) h).setFormatter(new DeltaSupportLogFormatter());
             }
         }
 
@@ -1018,7 +1018,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
         @Override public Void call() throws RuntimeException {
             Handler handler = new Handler() {
-                final Formatter formatter = new SupportLogFormatter();
+                final Formatter formatter = new DeltaSupportLogFormatter();
                 @Override public void publish(LogRecord record) {
                     if (isLoggable(record)) {
                         stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^", "[" + name + "] "));

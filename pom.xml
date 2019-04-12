@@ -140,6 +140,11 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.jenkins.lib</groupId>
+      <artifactId>support-log-formatter</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
       <version>RELEASE72</version>
