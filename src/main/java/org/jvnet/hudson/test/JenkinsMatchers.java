@@ -1,14 +1,18 @@
 package org.jvnet.hudson.test;
 
 import hudson.util.FormValidation;
+import hudson.util.Secret;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.regex.Pattern;
 
 /**
  * Some handy matchers.
@@ -390,6 +394,59 @@ public class JenkinsMatchers {
         public void describeTo(Description description) {
             description.appendText("follows the hashCode contract when compared to ");
             description.appendValue(other);
+        }
+    }
+
+    /**
+     * Returns a Matcher for the plain text value of a Secret.
+     * @since TODO
+     */
+    public static Matcher<Secret> hasPlainText(Matcher<? super String> matcher) {
+        return new HasPlainText(matcher);
+    }
+
+    /**
+     * Returns a Matcher for the plain text value of a Secret.
+     * @since TODO
+     */
+    public static Matcher<Secret> hasPlainText(String expected) {
+        return new HasPlainText(CoreMatchers.equalTo(expected));
+    }
+
+    private static class HasPlainText extends FeatureMatcher<Secret, String> {
+        private HasPlainText(Matcher<? super String> matcher) {
+            super(matcher, "has plain text", "has plain text");
+        }
+
+        @Override
+        protected String featureValueOf(Secret actual) {
+            return actual.getPlainText();
+        }
+    }
+
+    /**
+     * Returns a Matcher that matches against the given pattern using {@link java.util.regex.Matcher#find()}.
+     * @since TODO
+     */
+    public static Matcher<String> matchesPattern(String pattern) {
+        return new MatchesPattern(Pattern.compile(pattern));
+    }
+
+    private static class MatchesPattern extends TypeSafeMatcher<String> {
+        private final Pattern pattern;
+
+        private MatchesPattern(Pattern pattern) {
+            this.pattern = pattern;
+        }
+
+        @Override
+        protected boolean matchesSafely(String item) {
+            return pattern.matcher(item).find();
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("matches pattern ").appendText(pattern.pattern());
         }
     }
 
