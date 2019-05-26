@@ -30,7 +30,6 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 import jenkins.model.Jenkins;
-import jenkins.security.stapler.TypedFilter;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +47,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.empty;
@@ -129,8 +129,10 @@ public class PluginAutomaticTestBuilder {
         public void testStaplerDispatches() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
             List<String> methodsFound = new ArrayList<>();
 
-            Method isStaplerRoutableMethod = TypedFilter.class.getDeclaredMethod("isRoutableMethod", Method.class);
-            isStaplerRoutableMethod.setAccessible(true);
+            Method isStaplerRoutableMethod = findIsRoutableMethod();
+            if (isStaplerRoutableMethod == null) {
+                return;
+            }
 
             PluginWrapper thisPlugin = determineCurrentPlugin();
             if (thisPlugin == null) {
@@ -152,7 +154,18 @@ public class PluginAutomaticTestBuilder {
                     }
                 }
             }
-            Assert.assertThat("Web methods lack verb annotations like @RequirePOST, @GET, @POST, etc.", methodsFound, is(empty()));
+            Assert.assertThat("There should be no web methods that lack HTTP verb annotations like @RequirePOST, @GET, @POST, etc. -- see https://jenkins.io/redirect/developer/csrf-protection", methodsFound, is(empty()));
+        }
+
+        private Method findIsRoutableMethod() throws NoSuchMethodException {
+            try {
+                Method method = Class.forName("jenkins.security.stapler.TypedFilter").getDeclaredMethod("isRoutableMethod", Method.class);
+                method.setAccessible(true);
+                return method;
+            } catch (ClassNotFoundException e) {
+                LOGGER.warning("This test requires Jenkins 2.154, Jenkins LTS 2.138.4, or newer to run, use e.g. -Djenkins.version=2.138.4");
+                return null;
+            }
         }
 
         private PluginWrapper determineCurrentPlugin() {
@@ -193,5 +206,7 @@ public class PluginAutomaticTestBuilder {
             }
             return true;
         }
+
+        private static Logger LOGGER = Logger.getLogger(OtherTests.class.getName());
     }
 }
