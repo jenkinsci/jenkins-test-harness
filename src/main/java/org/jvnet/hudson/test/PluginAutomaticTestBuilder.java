@@ -164,6 +164,7 @@ public class PluginAutomaticTestBuilder {
                 return method;
             } catch (ClassNotFoundException e) {
                 LOGGER.warning("This test requires Jenkins 2.154, Jenkins LTS 2.138.4, or newer to run, use e.g. -Djenkins.version=2.138.4");
+                // TODO add a fallback implementing similar code directly here
                 return null;
             }
         }
