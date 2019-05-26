@@ -171,7 +171,7 @@ public class PluginAutomaticTestBuilder {
         private PluginWrapper determineCurrentPlugin() {
             String plugin = (String) params.get("artifactId");
             if (plugin != null) {
-                return Jenkins.get().pluginManager.getPlugin(plugin);
+                return Jenkins.getActiveInstance().pluginManager.getPlugin(plugin);
             }
             return null;
         }

@@ -83,8 +83,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <!--to have access to TypedFilter -->
-      <version>2.138.4</version>
+      <!--to have access to User.getById-->
+      <version>1.651.2</version>
       <type>executable-war</type>
       <exclusions>
         <exclusion>
