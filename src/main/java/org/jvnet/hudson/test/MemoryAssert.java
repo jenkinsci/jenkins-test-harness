@@ -197,6 +197,7 @@ public class MemoryAssert {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
                     }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
+                    System.err.println(softErr);
                 }
             }
         }
