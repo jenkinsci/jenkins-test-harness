@@ -159,6 +159,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.jar.Manifest;
 import java.util.logging.Filter;
 import java.util.logging.Level;
@@ -169,6 +171,7 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
+import io.vavr.Tuple2;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -671,7 +674,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
+        Tuple2<Server,  ServletContext> results = _createWebServer(contextPath, (x) -> localPort = x, () -> {
+            try {
+                return getURL();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to get Url", e);
+                return null;
+            }
+        }, getClass().getClassLoader());
+        server = results._1;
+        return results._2;
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     * @param contextPath the context path at which to put Jenkins
+     * @param portSetter the port on which the server runs will be set using this function
+     * @param urlGetter returns the URL after the port has been set using portSetter
+     * @param classLoader the class loader for the {@link WebAppContext}
+     * @return tuple consisting of the {@link Server} and the {@link ServletContext}
+     */
+    public static Tuple2<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
+                                                                  Supplier<URL> urlGetter, ClassLoader classLoader)
+            throws Exception {
+        Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setName("Jetty Thread Pool");
@@ -680,12 +706,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         })));
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
-        context.setClassLoader(getClass().getClassLoader());
+        context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
         context.setMimeTypes(MIME_TYPES);
-        context.getSecurityHandler().setLoginService(configureUserRealm());
+        context.getSecurityHandler().setLoginService(_configureUserRealm());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
         ServerConnector connector = new ServerConnector(server, 1, 1);
@@ -699,16 +725,21 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         server.addConnector(connector);
         server.start();
 
-        localPort = connector.getLocalPort();
-        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        portSetter.accept(connector.getLocalPort());
+        LOGGER.log(Level.INFO, "Running on {0}", urlGetter.get());
 
-        return context.getServletContext();
+        ServletContext servletContext =  context.getServletContext();
+        return new Tuple2<>(server, servletContext);
     }
 
     /**
      * Configures a security realm for a test.
      */
     protected LoginService configureUserRealm() {
+        return _configureUserRealm();
+    }
+
+    public static LoginService _configureUserRealm() {
         HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
         UserStore userStore = new UserStore();
