@@ -85,8 +85,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <!--to have access to User.getById-->
-      <version>1.651.2</version>
+      <version>2.60.3</version>
       <type>executable-war</type>
       <exclusions>
         <exclusion>
@@ -187,6 +186,13 @@ THE SOFTWARE.
       <artifactId>configuration-as-code</artifactId>
       <version>1.17</version>
       <optional>true</optional>
+    </dependency>
+    <!-- Sample plugin for Configuration as Code support in benchmarks -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>role-strategy</artifactId>
+      <version>2.11</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>

@@ -13,3 +13,6 @@ out
 .classpath
 .project
 build
+
+# reports produced from benchmarks
+jmh-benchmark-report.json

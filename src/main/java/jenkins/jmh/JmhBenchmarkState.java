@@ -41,7 +41,6 @@ public abstract class JmhBenchmarkState implements RootAction {
     private AtomicInteger localPort = new AtomicInteger();
     private Jenkins jenkins = null;
     private Server server = null;
-    private URL jenkinsURL = null;
 
     // Run the setup for each individual fork of the JVM
     @Setup(org.openjdk.jmh.annotations.Level.Trial)
@@ -73,7 +72,6 @@ public abstract class JmhBenchmarkState implements RootAction {
                 jenkins.cleanUp();
                 jenkins = null;
                 server = null;
-                jenkinsURL = null;
             }
 
             try {
@@ -113,7 +111,7 @@ public abstract class JmhBenchmarkState implements RootAction {
 
         jenkins.getActions().add(this);
 
-        Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(jenkinsURL.toString());
+        Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(Objects.requireNonNull(getJenkinsURL()).toString());
     }
 
     private URL getJenkinsURL() {
