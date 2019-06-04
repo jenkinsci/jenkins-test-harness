@@ -171,7 +171,6 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
-import io.vavr.Tuple2;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -188,6 +187,7 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -413,18 +413,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             f.set(null,null);
             throw e;
         }
-        jenkins.setNoUsageStatistics(true); // collecting usage stats from tests are pointless.
 
-        jenkins.setCrumbIssuer(new TestCrumbIssuer());
-
-        jenkins.servletContext.setAttribute("app",jenkins);
-        jenkins.servletContext.setAttribute("version","?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
-
-        // set a default JDK to be the one that the harness is using.
-        jenkins.getJDKs().add(new JDK("default",System.getProperty("java.home")));
-
-        configureUpdateCenter();
+        jenkins.setCrumbIssuer(new TestCrumbIssuer());  // TODO: Move to _configureJenkinsForTest after JENKINS-55240
+        _configureJenkinsForTest(jenkins);
 
         // expose the test instance as a part of URL tree.
         // this allows tests to use a part of the URL space for itself.
@@ -437,7 +428,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Configures the update center setting for the test.
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
-    protected void configureUpdateCenter() throws Exception {
+    public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
+        jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
+        jenkins.servletContext.setAttribute("app", jenkins);
+        jenkins.servletContext.setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+
+        // set a default JDK to be the one that the harness is using.
+        jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
+
         final String updateCenterUrl;
         jettyLevel(Level.WARNING);
         try {
@@ -486,25 +485,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             clients.clear();
 
         } finally {
-            jettyLevel(Level.WARNING);
-            try {
-                server.stop();
-            } catch (Exception e) {
-                // ignore
-            } finally {
-                jettyLevel(Level.INFO);
-            }
-            for (LenientRunnable r : tearDowns)
-                try {
-                    r.run();
-                } catch (Exception e) {
-                    // ignore
-                }
-
-            if (jenkins!=null)
-                jenkins.cleanUp();
-            ExtensionList.clearLegacyInstances();
-            DescriptorExtensionList.clearLegacyInstances();
+            _stopJenkins(server, tearDowns, jenkins);
 
             try {
                 env.dispose();
@@ -525,6 +506,32 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
         }
+    }
+
+    public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
+        jettyLevel(Level.WARNING);
+        try {
+            server.stop();
+        } catch (Exception e) {
+            // ignore
+        } finally {
+            jettyLevel(Level.INFO);
+        }
+
+        if (tearDowns != null) {
+            for (LenientRunnable r : tearDowns) {
+                try {
+                    r.run();
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
+
+        if (jenkins != null)
+            jenkins.cleanUp();
+        ExtensionList.clearLegacyInstances();
+        DescriptorExtensionList.clearLegacyInstances();
     }
 
     private static void jettyLevel(Level level) {
@@ -674,7 +681,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        Tuple2<Server,  ServletContext> results = _createWebServer(contextPath, (x) -> localPort = x, () -> {
+        ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath, (x) -> localPort = x, () -> {
             try {
                 return getURL();
             } catch (IOException e) {
@@ -682,8 +689,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 return null;
             }
         }, getClass().getClassLoader());
-        server = results._1;
-        return results._2;
+        server = results.left;
+        return results.right;
     }
 
     /**
@@ -694,8 +701,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param classLoader the class loader for the {@link WebAppContext}
      * @return tuple consisting of the {@link Server} and the {@link ServletContext}
      */
-    public static Tuple2<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                  Supplier<URL> urlGetter, ClassLoader classLoader)
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
+                                                                         Supplier<URL> urlGetter, ClassLoader classLoader)
             throws Exception {
         Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             public Thread newThread(Runnable r) {
@@ -729,7 +736,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         LOGGER.log(Level.INFO, "Running on {0}", urlGetter.get());
 
         ServletContext servletContext =  context.getServletContext();
-        return new Tuple2<>(server, servletContext);
+        return new ImmutablePair<>(server, servletContext);
     }
 
     /**
