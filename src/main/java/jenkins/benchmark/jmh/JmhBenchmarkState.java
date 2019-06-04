@@ -1,8 +1,9 @@
-package jenkins.jmh;
+package jenkins.benchmark.jmh;
 
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
+import jenkins.benchmark.jmh.casc.CascJmhBenchmarkState;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -23,6 +24,20 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Standard benchmark {@link State} for JMH when a Jenkins instance is required.
+ * <p>
+ * To use a Jenkins instance in your benchmark, your class containing benchmarks should have a public static inner
+ * class that extends this class and should be annotated with {@link JmhBenchmark} to allow it to be automatically
+ * discovered by {@link BenchmarkFinder}. To configure the instance, use {@link #setup()} or use
+ * {@link CascJmhBenchmarkState}.
+ *
+ * @see #setup()
+ * @see #tearDown()
+ * @see BenchmarkFinder
+ * @see CascJmhBenchmarkState
+ * @since TODO
+ */
 @State(Scope.Benchmark)
 public abstract class JmhBenchmarkState implements RootAction {
     private static final Logger LOGGER = Logger.getLogger(JmhBenchmarkState.class.getName());
@@ -34,7 +49,13 @@ public abstract class JmhBenchmarkState implements RootAction {
     private Jenkins jenkins = null;
     private Server server = null;
 
-    // Run the setup for each individual fork of the JVM
+    /**
+     * Sets up the temporary Jenkins instance for benchmarks.
+     * <p>
+     * One Jenkins instance is created for each fork of the benchmark.
+     *
+     * @throws Exception if unable to start the instance.
+     */
     @Setup(org.openjdk.jmh.annotations.Level.Trial)
     public final void setupJenkins() throws Exception {
         // Set the jenkins.install.InstallState TEST to emulate
@@ -46,7 +67,10 @@ public abstract class JmhBenchmarkState implements RootAction {
         setup();
     }
 
-    // Run the tearDown for each individual fork of the JVM
+    /**
+     * Terminates the jenkins instance after the benchmark has completed its execution.
+     * Run once for each Jenkins that was started.
+     */
     @TearDown(org.openjdk.jmh.annotations.Level.Trial)
     public final void terminateJenkins() {
         try {
@@ -86,6 +110,13 @@ public abstract class JmhBenchmarkState implements RootAction {
         }
     }
 
+    /**
+     * Get reference to the {@link Jenkins} started for the benchmark.
+     * <p>
+     * The instance can also be obtained using {@link Jenkins#getInstanceOrNull()}
+     *
+     * @return the Jenkins instance started for the benchmark.
+     */
     public Jenkins getJenkins() {
         return jenkins;
     }
@@ -93,18 +124,21 @@ public abstract class JmhBenchmarkState implements RootAction {
     /**
      * Override to setup resources required for the benchmark.
      * <p>
-     * Runs before the benchmarks are run. At this state, the Jenkins
-     * is ready to be worked upon.
+     * Runs before the benchmarks are run. At this state, the Jenkins instance
+     * is ready to be worked upon and is available using {@link #getJenkins()}.
+     * Does nothing by default.
      */
     public void setup() throws Exception {
+        // noop
     }
 
     /**
      * Override to perform cleanup of resource initialized during setup.
      * <p>
-     * Run before the Jenkins instance is terminated.
+     * Run before the Jenkins instance is terminated. Does nothing by default.
      */
     public void tearDown() {
+        // noop
     }
 
     @CheckForNull

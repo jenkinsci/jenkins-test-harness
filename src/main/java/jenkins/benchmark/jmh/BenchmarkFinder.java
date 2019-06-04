@@ -1,4 +1,4 @@
-package jenkins.jmh;
+package jenkins.benchmark.jmh;
 
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.reflections.Reflections;
@@ -8,6 +8,7 @@ import java.util.Set;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.
+ * @since TODO
  */
 public final class BenchmarkFinder {
     final private String[] packageName;

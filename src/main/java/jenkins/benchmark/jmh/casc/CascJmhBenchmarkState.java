@@ -1,8 +1,8 @@
-package jenkins.jmh.casc;
+package jenkins.benchmark.jmh.casc;
 
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
-import jenkins.jmh.JmhBenchmarkState;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
@@ -11,6 +11,10 @@ import java.util.logging.Logger;
 
 /**
  * Use Configuration as Code to setup the Jenkins instance for JMH benchmark.
+ * <p>
+ * Override the {@code getResourcePath} method configure the path to the YAML configuration.
+ *
+ * @see JmhBenchmarkState
  */
 @SuppressWarnings("unused")
 public abstract class CascJmhBenchmarkState extends JmhBenchmarkState {

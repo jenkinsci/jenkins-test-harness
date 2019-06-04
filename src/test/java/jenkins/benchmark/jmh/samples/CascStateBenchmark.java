@@ -1,15 +1,18 @@
-package jenkins.jmh.benchmarks;
+package jenkins.benchmark.jmh.samples;
 
-import jenkins.jmh.JmhBenchmark;
-import jenkins.jmh.casc.CascJmhBenchmarkState;
+import jenkins.benchmark.jmh.casc.CascJmhBenchmarkState;
+import jenkins.benchmark.jmh.JmhBenchmark;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import javax.annotation.Nonnull;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * Sample benchmark configuring Jenkins instance using Configuration as Code
+ */
 @JmhBenchmark
-public class CascStateBenchmarks {
+public class CascStateBenchmark {
     public static class MyState extends CascJmhBenchmarkState {
         @Nonnull
         @Override

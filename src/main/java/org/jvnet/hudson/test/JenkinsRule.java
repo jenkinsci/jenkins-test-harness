@@ -508,6 +508,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * Internal method to stop Jenkins instance.
+     *
+     * @param server    server on which Jenkins is running.
+     * @param tearDowns tear down methods for tests
+     * @param jenkins   the jenkins instance
+     */
     public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
         jettyLevel(Level.WARNING);
         try {
@@ -695,11 +702,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Creates a web server on which Jenkins can run
+     *
      * @param contextPath the context path at which to put Jenkins
-     * @param portSetter the port on which the server runs will be set using this function
-     * @param urlGetter returns the URL after the port has been set using portSetter
+     * @param portSetter  the port on which the server runs will be set using this function
+     * @param urlGetter   returns the URL after the port has been set using portSetter
      * @param classLoader the class loader for the {@link WebAppContext}
-     * @return tuple consisting of the {@link Server} and the {@link ServletContext}
+     * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
      */
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
                                                                          Supplier<URL> urlGetter, ClassLoader classLoader)

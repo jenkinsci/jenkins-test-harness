@@ -1,4 +1,4 @@
-package jenkins.jmh;
+package jenkins.benchmark.jmh;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotate your benchmark classes with this annotation to allow them to be discovered by {@link BenchmarkFinder}
+ * @since TODO
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
