@@ -1,6 +1,3 @@
 jenkins:
-  authorizationStrategy:
-    globalMatrix:
-      permissions:
-        - "Overall/Read:anonymous"
-        - "Overall/Administer:authenticated"
+  systemMessage: "Benchmark started with Configuration as Code"
+  numExecutors: 22

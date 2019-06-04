@@ -5,7 +5,8 @@ import jenkins.jmh.casc.CascJmhBenchmarkState;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import javax.annotation.Nonnull;
-import java.util.Objects;
+
+import static org.junit.Assert.assertEquals;
 
 @JmhBenchmark
 public class CascStateBenchmarks {
@@ -19,6 +20,8 @@ public class CascStateBenchmarks {
 
     @Benchmark
     public void benchmark(MyState state) {
-        Objects.requireNonNull(state.getJenkins());
+        assertEquals(state.getJenkins().getSystemMessage(),
+                "Benchmark started with Configuration as Code");
+        assertEquals(state.getJenkins().getNumExecutors(), 22);
     }
 }
