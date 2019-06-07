@@ -1,5 +1,4 @@
 = JMH benchmarks with Jenkins
-
 :toc:
 
 link:https://openjdk.java.net/projects/code-tools/jmh/[Java Microbenchmark Harness] allows running benchmarks
