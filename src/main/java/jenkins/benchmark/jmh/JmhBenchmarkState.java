@@ -3,7 +3,6 @@ package jenkins.benchmark.jmh;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
-import jenkins.benchmark.jmh.casc.CascJmhBenchmarkState;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -29,13 +28,11 @@ import java.util.logging.Logger;
  * <p>
  * To use a Jenkins instance in your benchmark, your class containing benchmarks should have a public static inner
  * class that extends this class and should be annotated with {@link JmhBenchmark} to allow it to be automatically
- * discovered by {@link BenchmarkFinder}. To configure the instance, use {@link #setup()} or use
- * {@link CascJmhBenchmarkState}.
+ * discovered by {@link BenchmarkFinder}. To configure the instance, use {@link #setup()}.
  *
  * @see #setup()
  * @see #tearDown()
  * @see BenchmarkFinder
- * @see CascJmhBenchmarkState
  * @since TODO
  */
 @State(Scope.Benchmark)

@@ -9,9 +9,6 @@ as a state in your benchmark. This creates a temporary Jenkins instance for each
 A reference to the Jenkins instance is available through either the `JmhBenchmarkState#getJenkins()` or through
 `Jenkins.getInstance()` like you would otherwise do. `JmhBenchmarkState` provides `setup()` and `tearDown` methods
 which can be overridden to configure the Jenkins instance according to your benchmark's requirements.
-You can also configure the instance using https://jenkins.io/projects/jcasc/[Jenkins Configuration as Code] by extending
-`CascJmhBenchmarkState` instead of `JmhBenchmarkState` and overriding the `getResourcePath()` method and returning the
-path to where your YAML configuration is located.
 
 == Running the benchmarks
 
@@ -39,23 +36,6 @@ public class JmhStateBenchmark {
     }
 }
 ----
-
-=== Using Configuration as code:
-
-Instead of extending `JmhBenchmarkState`, use `CascJmhBenchmarkState`
-[source,java]
-----
-public static class MyState extends CascJmhBenchmarkState {
-    @Nonnull
-    @Override
-    protected String getResourcePath() {
-        return "path/to/config.yaml";
-    }
-}
-----
-
-If you override the `setup()` method of `CascJmhBenchmarkState`, make sure to call `super.setup()` so that
-configuration as code works as intended.
 
 === Other benchmarks
 
