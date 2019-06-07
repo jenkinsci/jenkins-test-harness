@@ -87,7 +87,7 @@ public abstract class JmhBenchmarkState implements RootAction {
 
     private void launchInstance() throws Exception {
         ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::setValue,
-                this::getJenkinsURL, getClass().getClassLoader());
+                this::getJenkinsURL, getClass().getClassLoader(), JenkinsRule::_configureUserRealm);
 
         server = results.left;
         ServletContext webServer = results.right;

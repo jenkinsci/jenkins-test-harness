@@ -427,6 +427,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Configures the update center setting for the test.
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
+     * @param jenkins the instance to configure
+     * @since TODO
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
@@ -695,7 +697,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 LOGGER.log(Level.SEVERE, "Unable to get Url", e);
                 return null;
             }
-        }, getClass().getClassLoader());
+        }, getClass().getClassLoader(), this::configureUserRealm);
         server = results.left;
         return results.right;
     }
@@ -703,14 +705,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Creates a web server on which Jenkins can run
      *
-     * @param contextPath the context path at which to put Jenkins
-     * @param portSetter  the port on which the server runs will be set using this function
-     * @param urlGetter   returns the URL after the port has been set using portSetter
-     * @param classLoader the class loader for the {@link WebAppContext}
+     * @param contextPath          the context path at which to put Jenkins
+     * @param portSetter           the port on which the server runs will be set using this function
+     * @param urlGetter            returns the URL after the port has been set using portSetter
+     * @param classLoader          the class loader for the {@link WebAppContext}
+     * @param loginServiceSupplier configures the {@link LoginService} for the instance
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
+     * @since TODO
      */
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                         Supplier<URL> urlGetter, ClassLoader classLoader)
+                                                                         Supplier<URL> urlGetter, ClassLoader classLoader,
+                                                                         Supplier<LoginService> loginServiceSupplier)
             throws Exception {
         Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             public Thread newThread(Runnable r) {
@@ -726,7 +731,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
         context.setMimeTypes(MIME_TYPES);
-        context.getSecurityHandler().setLoginService(_configureUserRealm());
+        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
         ServerConnector connector = new ServerConnector(server, 1, 1);
@@ -754,6 +759,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return _configureUserRealm();
     }
 
+    /**
+     * Creates a {@link HashLoginService} with three users: alice, bob and charlie
+     *
+     * The password is same as the username
+     * @return a new login service
+     * @since TODO
+     */
     public static LoginService _configureUserRealm() {
         HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
@@ -2169,7 +2181,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public WebClient login(String username, String password) throws Exception {
             return login(username,password,false);
         }
-    
+
         /**
          * Returns {@code true} if JavaScript is enabled and the script engine was loaded successfully.
          * Short-hand method to ease discovery of feature + improve readability
