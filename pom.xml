@@ -181,12 +181,6 @@ THE SOFTWARE.
       <artifactId>reflections</artifactId>
       <version>0.9.11</version>
     </dependency>
-    <dependency>
-      <groupId>io.jenkins</groupId>
-      <artifactId>configuration-as-code</artifactId>
-      <version>1.19</version>
-      <optional>true</optional>
-    </dependency>
   </dependencies>
   <build>
     <plugins>
