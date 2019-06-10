@@ -416,6 +416,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         jenkins.setCrumbIssuer(new TestCrumbIssuer());  // TODO: Move to _configureJenkinsForTest after JENKINS-55240
         _configureJenkinsForTest(jenkins);
+        configureUpdateCenter();
 
         // expose the test instance as a part of URL tree.
         // this allows tests to use a part of the URL space for itself.
@@ -425,9 +426,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Configures the update center setting for the test.
-     * By default, we load updates from local proxy to avoid network traffic as much as possible.
-     * @param jenkins the instance to configure
+     * Configures a Jenkins instance for test.
+     *
+     * @param jenkins jenkins instance which has to be configured
+     * @throws Exception if unable to configure
      * @since TODO
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
@@ -438,7 +440,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
+    }
+    
+    private static void dumpThreads() {
+        ThreadInfo[] threadInfos = Functions.getThreadInfos();
+        Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
+        for (ThreadInfo ti : threadInfos) {
+            System.err.println(Functions.dumpThreadInfo(ti, m));
+        }
+    }
 
+    /**
+     * Configures the update center setting for the test.
+     * By default, we load updates from local proxy to avoid network traffic as much as possible.
+     */
+    protected void configureUpdateCenter() throws Exception {
+        _configureUpdateCenter(jenkins);
+    }
+
+    /**
+     * Internal method used to configure update center to avoid network traffic.
+     * @param jenkins the Jenkins to configure
+     * @since TODO
+     */
+    public static void _configureUpdateCenter(Jenkins jenkins) throws Exception {
         final String updateCenterUrl;
         jettyLevel(Level.WARNING);
         try {
@@ -454,14 +479,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         PersistedList<UpdateSite> sites = jenkins.getUpdateCenter().getSites();
         sites.clear();
         sites.add(new UpdateSite("default", updateCenterUrl));
-    }
-    
-    private static void dumpThreads() {
-        ThreadInfo[] threadInfos = Functions.getThreadInfos();
-        Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
-        for (ThreadInfo ti : threadInfos) {
-            System.err.println(Functions.dumpThreadInfo(ti, m));
-        }
     }
 
     /**
