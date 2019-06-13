@@ -715,7 +715,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected ServletContext createWebServer() throws Exception {
         ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
-                (x) -> localPort = x, getClass().getClassLoader(), this::configureUserRealm);
+                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm);
         server = results.left;
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
         return results.right;
@@ -727,12 +727,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param contextPath          the context path at which to put Jenkins
      * @param portSetter           the port on which the server runs will be set using this function
      * @param classLoader          the class loader for the {@link WebAppContext}
+     * @param localPort            port on which the server runs
      * @param loginServiceSupplier configures the {@link LoginService} for the instance
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
      * @since TODO
      */
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                         ClassLoader classLoader,
+                                                                         ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
         Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
