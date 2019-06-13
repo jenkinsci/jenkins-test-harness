@@ -159,6 +159,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.jar.Manifest;
 import java.util.logging.Filter;
 import java.util.logging.Level;
@@ -185,6 +187,7 @@ import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -410,17 +413,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             f.set(null,null);
             throw e;
         }
-        jenkins.setNoUsageStatistics(true); // collecting usage stats from tests are pointless.
 
-        jenkins.setCrumbIssuer(new TestCrumbIssuer());
-
-        jenkins.servletContext.setAttribute("app",jenkins);
-        jenkins.servletContext.setAttribute("version","?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
-
-        // set a default JDK to be the one that the harness is using.
-        jenkins.getJDKs().add(new JDK("default",System.getProperty("java.home")));
-
+        jenkins.setCrumbIssuer(new TestCrumbIssuer());  // TODO: Move to _configureJenkinsForTest after JENKINS-55240
+        _configureJenkinsForTest(jenkins);
         configureUpdateCenter();
 
         // expose the test instance as a part of URL tree.
@@ -431,10 +426,44 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Configures a Jenkins instance for test.
+     *
+     * @param jenkins jenkins instance which has to be configured
+     * @throws Exception if unable to configure
+     * @since TODO
+     */
+    public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
+        jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
+        jenkins.servletContext.setAttribute("app", jenkins);
+        jenkins.servletContext.setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+
+        // set a default JDK to be the one that the harness is using.
+        jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
+    }
+    
+    private static void dumpThreads() {
+        ThreadInfo[] threadInfos = Functions.getThreadInfos();
+        Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
+        for (ThreadInfo ti : threadInfos) {
+            System.err.println(Functions.dumpThreadInfo(ti, m));
+        }
+    }
+
+    /**
      * Configures the update center setting for the test.
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
+        _configureUpdateCenter(jenkins);
+    }
+
+    /**
+     * Internal method used to configure update center to avoid network traffic.
+     * @param jenkins the Jenkins to configure
+     * @since TODO
+     */
+    public static void _configureUpdateCenter(Jenkins jenkins) throws Exception {
         final String updateCenterUrl;
         jettyLevel(Level.WARNING);
         try {
@@ -450,14 +479,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         PersistedList<UpdateSite> sites = jenkins.getUpdateCenter().getSites();
         sites.clear();
         sites.add(new UpdateSite("default", updateCenterUrl));
-    }
-    
-    private static void dumpThreads() {
-        ThreadInfo[] threadInfos = Functions.getThreadInfos();
-        Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
-        for (ThreadInfo ti : threadInfos) {
-            System.err.println(Functions.dumpThreadInfo(ti, m));
-        }
     }
 
     /**
@@ -483,25 +504,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             clients.clear();
 
         } finally {
-            jettyLevel(Level.WARNING);
-            try {
-                server.stop();
-            } catch (Exception e) {
-                // ignore
-            } finally {
-                jettyLevel(Level.INFO);
-            }
-            for (LenientRunnable r : tearDowns)
-                try {
-                    r.run();
-                } catch (Exception e) {
-                    // ignore
-                }
-
-            if (jenkins!=null)
-                jenkins.cleanUp();
-            ExtensionList.clearLegacyInstances();
-            DescriptorExtensionList.clearLegacyInstances();
+            _stopJenkins(server, tearDowns, jenkins);
 
             try {
                 env.dispose();
@@ -521,6 +524,46 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 URLConnection aConnection = new File(".").toURI().toURL().openConnection();
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
+        }
+    }
+
+    /**
+     * Internal method to stop Jenkins instance.
+     *
+     * @param server    server on which Jenkins is running.
+     * @param tearDowns tear down methods for tests
+     * @param jenkins   the jenkins instance
+     * @since TODO
+     */
+    public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
+        final RuntimeException exception = new RuntimeException("One or more problems while shutting down Jenkins");
+
+        jettyLevel(Level.WARNING);
+        try {
+            server.stop();
+        } catch (Exception e) {
+            exception.addSuppressed(e);
+        } finally {
+            jettyLevel(Level.INFO);
+        }
+
+        if (tearDowns != null) {
+            for (LenientRunnable r : tearDowns) {
+                try {
+                    r.run();
+                } catch (Exception e) {
+                    exception.addSuppressed(e);
+                }
+            }
+        }
+
+        if (jenkins != null)
+            jenkins.cleanUp();
+        ExtensionList.clearLegacyInstances();
+        DescriptorExtensionList.clearLegacyInstances();
+
+        if (exception.getSuppressed().length > 0) {
+            throw exception;
         }
     }
 
@@ -671,7 +714,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
+        ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
+                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm);
+        server = results.left;
+        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        return results.right;
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath          the context path at which to put Jenkins
+     * @param portSetter           the port on which the server runs will be set using this function
+     * @param classLoader          the class loader for the {@link WebAppContext}
+     * @param localPort            port on which the server runs
+     * @param loginServiceSupplier configures the {@link LoginService} for the instance
+     * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
+     * @since TODO
+     */
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
+                                                                         ClassLoader classLoader, int localPort,
+                                                                         Supplier<LoginService> loginServiceSupplier)
+            throws Exception {
+        Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setName("Jetty Thread Pool");
@@ -680,12 +745,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         })));
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
-        context.setClassLoader(getClass().getClassLoader());
+        context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
         context.setMimeTypes(MIME_TYPES);
-        context.getSecurityHandler().setLoginService(configureUserRealm());
+        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
         ServerConnector connector = new ServerConnector(server, 1, 1);
@@ -702,16 +767,27 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         server.addConnector(connector);
         server.start();
 
-        localPort = connector.getLocalPort();
-        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        portSetter.accept(connector.getLocalPort());
 
-        return context.getServletContext();
+        ServletContext servletContext =  context.getServletContext();
+        return new ImmutablePair<>(server, servletContext);
     }
 
     /**
      * Configures a security realm for a test.
      */
     protected LoginService configureUserRealm() {
+        return _configureUserRealm();
+    }
+
+    /**
+     * Creates a {@link HashLoginService} with three users: alice, bob and charlie
+     *
+     * The password is same as the username
+     * @return a new login service
+     * @since TODO
+     */
+    public static LoginService _configureUserRealm() {
         HashLoginService realm = new HashLoginService();
         realm.setName("default");   // this is the magic realm name to make it effective on everywhere
         UserStore userStore = new UserStore();
@@ -2126,7 +2202,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public WebClient login(String username, String password) throws Exception {
             return login(username,password,false);
         }
-    
+
         /**
          * Returns {@code true} if JavaScript is enabled and the script engine was loaded successfully.
          * Short-hand method to ease discovery of feature + improve readability
