@@ -536,11 +536,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
+        final RuntimeException exception = new RuntimeException();
+
         jettyLevel(Level.WARNING);
         try {
             server.stop();
         } catch (Exception e) {
-            // ignore
+            exception.addSuppressed(e);
         } finally {
             jettyLevel(Level.INFO);
         }
@@ -550,7 +552,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 try {
                     r.run();
                 } catch (Exception e) {
-                    // ignore
+                    exception.addSuppressed(e);
                 }
             }
         }
@@ -559,6 +561,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             jenkins.cleanUp();
         ExtensionList.clearLegacyInstances();
         DescriptorExtensionList.clearLegacyInstances();
+
+        if (exception.getSuppressed().length > 0) {
+            throw exception;
+        }
     }
 
     private static void jettyLevel(Level level) {
@@ -708,15 +714,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath, (x) -> localPort = x, () -> {
-            try {
-                return getURL();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to get Url", e);
-                return null;
-            }
-        }, getClass().getClassLoader(), this::configureUserRealm);
+        ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
+                (x) -> localPort = x, getClass().getClassLoader(), this::configureUserRealm);
         server = results.left;
+        LOGGER.log(Level.INFO, "Running on {0}", getURL());
         return results.right;
     }
 
@@ -725,14 +726,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * @param contextPath          the context path at which to put Jenkins
      * @param portSetter           the port on which the server runs will be set using this function
-     * @param urlGetter            returns the URL after the port has been set using portSetter
      * @param classLoader          the class loader for the {@link WebAppContext}
      * @param loginServiceSupplier configures the {@link LoginService} for the instance
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
      * @since TODO
      */
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                         Supplier<URL> urlGetter, ClassLoader classLoader,
+                                                                         ClassLoader classLoader,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
         Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
@@ -764,7 +764,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         server.start();
 
         portSetter.accept(connector.getLocalPort());
-        LOGGER.log(Level.INFO, "Running on {0}", urlGetter.get());
 
         ServletContext servletContext =  context.getServletContext();
         return new ImmutablePair<>(server, servletContext);

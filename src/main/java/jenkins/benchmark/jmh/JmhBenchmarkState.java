@@ -18,6 +18,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletContext;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -87,7 +88,7 @@ public abstract class JmhBenchmarkState implements RootAction {
 
     private void launchInstance() throws Exception {
         ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::setValue,
-                this::getJenkinsURL, getClass().getClassLoader(), JenkinsRule::_configureUserRealm);
+                getClass().getClassLoader(), JenkinsRule::_configureUserRealm);
 
         server = results.left;
         ServletContext webServer = results.right;
@@ -97,15 +98,13 @@ public abstract class JmhBenchmarkState implements RootAction {
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);
 
-        Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(Objects.requireNonNull(getJenkinsURL()).toString());
+        String url = Objects.requireNonNull(getJenkinsURL()).toString();
+        Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(url);
+        LOGGER.log(Level.INFO, "Running on {0}", url);
     }
 
-    private URL getJenkinsURL() {
-        try {
-            return new URL("http://localhost:" + localPort.getValue() + contextPath + "/");
-        } catch (Exception e) {
-            return null;
-        }
+    private URL getJenkinsURL() throws MalformedURLException {
+        return new URL("http://localhost:" + localPort.getValue() + contextPath + "/");
     }
 
     /**
