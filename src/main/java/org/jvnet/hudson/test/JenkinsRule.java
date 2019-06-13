@@ -536,7 +536,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
-        final RuntimeException exception = new RuntimeException();
+        final RuntimeException exception = new RuntimeException("One or more problems while shutting down Jenkins");
 
         jettyLevel(Level.WARNING);
         try {
