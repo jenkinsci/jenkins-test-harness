@@ -34,7 +34,7 @@ import java.util.logging.Logger;
  * @see #setup()
  * @see #tearDown()
  * @see BenchmarkFinder
- * @since TODO
+ * @since 2.50
  */
 @State(Scope.Benchmark)
 public abstract class JmhBenchmarkState implements RootAction {
