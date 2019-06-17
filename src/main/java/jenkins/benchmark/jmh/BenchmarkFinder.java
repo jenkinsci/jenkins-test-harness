@@ -8,7 +8,7 @@ import java.util.Set;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.
- * @since TODO
+ * @since 2.50
  */
 public final class BenchmarkFinder {
     final private String[] packageName;
