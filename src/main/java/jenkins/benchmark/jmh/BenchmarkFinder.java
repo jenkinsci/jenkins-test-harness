@@ -1,8 +1,8 @@
 package jenkins.benchmark.jmh;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfo;
-import io.github.classgraph.ScanResult;
+
+import net.java.sezpoz.Index;
+import net.java.sezpoz.IndexItem;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 
 /**
@@ -11,34 +11,16 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
  */
 @SuppressWarnings("WeakerAccess")
 public final class BenchmarkFinder {
-    private final String[] packageNames;
-
-    /**
-     * Creates a {@link BenchmarkFinder}
-     *
-     * @param packageNames find benchmarks in these packages
-     */
-    public BenchmarkFinder(String... packageNames) {
-        this.packageNames = packageNames;
+    private BenchmarkFinder() {
     }
-
     /**
      * Includes classes annotated with {@link JmhBenchmark} as candidates for JMH benchmarks.
      *
      * @param optionsBuilder the optionsBuilder used to build the benchmarks
      */
-    public void findBenchmarks(ChainedOptionsBuilder optionsBuilder) {
-        try (ScanResult scanResult =
-                     new ClassGraph()
-                             .enableAnnotationInfo()
-                             .whitelistPackages(packageNames)
-                             .scan()) {
-            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(JmhBenchmark.class.getName())) {
-                Class<?> clazz = classInfo.loadClass();
-                JmhBenchmark annotation = clazz.getAnnotation(JmhBenchmark.class);
-                assert annotation != null;
-                optionsBuilder.include(clazz.getName() + annotation.value());
-            }
+    public static void findBenchmarks(ChainedOptionsBuilder optionsBuilder) {
+        for (IndexItem<JmhBenchmark, Object> item : Index.load(JmhBenchmark.class, Object.class)) {
+            optionsBuilder.include(item.className() + item.annotation().value());
         }
     }
 }

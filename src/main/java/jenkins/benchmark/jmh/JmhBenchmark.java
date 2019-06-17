@@ -1,5 +1,7 @@
 package jenkins.benchmark.jmh;
 
+import net.java.sezpoz.Indexable;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -11,6 +13,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@Indexable
 public @interface JmhBenchmark {
     /**
      * Methods which annotated by {@link org.openjdk.jmh.annotations.Benchmark}

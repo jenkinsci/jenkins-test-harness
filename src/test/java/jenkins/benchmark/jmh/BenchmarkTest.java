@@ -26,16 +26,14 @@ public class BenchmarkTest {
         ChainedOptionsBuilder optionsBuilder =
                 new OptionsBuilder()
                         .forks(1)
-                        .warmupIterations(1)
-                        .warmupBatchSize(1)
+                        .warmupIterations(0)
                         .measurementIterations(1)
                         .measurementBatchSize(1)
                         .shouldFailOnError(true)
                         .result("target/jmh-reports/jmh-benchmark-report.json")
                         .timeUnit(TimeUnit.MICROSECONDS)
                         .resultFormat(ResultFormatType.JSON);
-        BenchmarkFinder finder = new BenchmarkFinder(this.getClass().getPackage().getName());
-        finder.findBenchmarks(optionsBuilder);
+        BenchmarkFinder.findBenchmarks(optionsBuilder);
         new Runner(optionsBuilder.build()).run();
     }
 }
