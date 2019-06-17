@@ -399,7 +399,7 @@ public class JenkinsMatchers {
 
     /**
      * Returns a Matcher for the plain text value of a Secret.
-     * @since TODO
+     * @since 2.50
      */
     public static Matcher<Secret> hasPlainText(Matcher<? super String> matcher) {
         return new HasPlainText(matcher);
@@ -407,7 +407,7 @@ public class JenkinsMatchers {
 
     /**
      * Returns a Matcher for the plain text value of a Secret.
-     * @since TODO
+     * @since 2.50
      */
     public static Matcher<Secret> hasPlainText(String expected) {
         return new HasPlainText(CoreMatchers.equalTo(expected));
@@ -426,7 +426,7 @@ public class JenkinsMatchers {
 
     /**
      * Returns a Matcher that matches against the given pattern using {@link java.util.regex.Matcher#find()}.
-     * @since TODO
+     * @since 2.50
      */
     public static Matcher<String> matchesPattern(String pattern) {
         return new MatchesPattern(Pattern.compile(pattern));

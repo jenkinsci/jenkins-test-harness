@@ -7,7 +7,7 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.
- * @since TODO
+ * @since 2.50
  */
 @SuppressWarnings("WeakerAccess")
 public final class BenchmarkFinder {

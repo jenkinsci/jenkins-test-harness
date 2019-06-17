@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotate your benchmark classes with this annotation to allow them to be discovered by {@link BenchmarkFinder}
- * @since TODO
+ * @since 2.50
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

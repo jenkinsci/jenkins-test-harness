@@ -430,7 +430,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * @param jenkins jenkins instance which has to be configured
      * @throws Exception if unable to configure
-     * @since TODO
+     * @since 2.50
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
@@ -461,7 +461,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Internal method used to configure update center to avoid network traffic.
      * @param jenkins the Jenkins to configure
-     * @since TODO
+     * @since 2.50
      */
     public static void _configureUpdateCenter(Jenkins jenkins) throws Exception {
         final String updateCenterUrl;
@@ -533,7 +533,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param server    server on which Jenkins is running.
      * @param tearDowns tear down methods for tests
      * @param jenkins   the jenkins instance
-     * @since TODO
+     * @since 2.50
      */
     public static void _stopJenkins(Server server, List<LenientRunnable> tearDowns, Jenkins jenkins) {
         final RuntimeException exception = new RuntimeException("One or more problems while shutting down Jenkins");
@@ -730,7 +730,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param localPort            port on which the server runs
      * @param loginServiceSupplier configures the {@link LoginService} for the instance
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
-     * @since TODO
+     * @since 2.50
      */
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
                                                                          ClassLoader classLoader, int localPort,
@@ -785,7 +785,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * The password is same as the username
      * @return a new login service
-     * @since TODO
+     * @since 2.50
      */
     public static LoginService _configureUserRealm() {
         HashLoginService realm = new HashLoginService();
