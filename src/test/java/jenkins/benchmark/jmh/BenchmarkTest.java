@@ -33,7 +33,7 @@ public class BenchmarkTest {
                         .result("target/jmh-reports/jmh-benchmark-report.json")
                         .timeUnit(TimeUnit.MICROSECONDS)
                         .resultFormat(ResultFormatType.JSON);
-        BenchmarkFinder.findBenchmarks(optionsBuilder);
+        new BenchmarkFinder(getClass()).findBenchmarks(optionsBuilder);
         new Runner(optionsBuilder.build()).run();
     }
 }

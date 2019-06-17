@@ -1,6 +1,6 @@
 package jenkins.benchmark.jmh;
 
-import net.java.sezpoz.Indexable;
+import org.jvnet.hudson.annotation_indexer.Indexed;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,11 +9,12 @@ import java.lang.annotation.Target;
 
 /**
  * Annotate your benchmark classes with this annotation to allow them to be discovered by {@link BenchmarkFinder}
+ *
  * @since 2.50
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Indexable
+@Indexed
 public @interface JmhBenchmark {
     /**
      * Methods which annotated by {@link org.openjdk.jmh.annotations.Benchmark}
