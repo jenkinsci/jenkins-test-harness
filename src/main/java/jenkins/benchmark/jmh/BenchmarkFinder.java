@@ -21,7 +21,7 @@ public final class BenchmarkFinder {
      *
      * @param clazz the class whose {@link ClassLoader} will be used to search for benchmarks.
      */
-    BenchmarkFinder(Class<?> clazz) {
+    public BenchmarkFinder(Class<?> clazz) {
         this.classLoader = clazz.getClassLoader();
     }
 
