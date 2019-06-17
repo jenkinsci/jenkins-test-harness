@@ -1,17 +1,17 @@
 package jenkins.benchmark.jmh;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-import org.reflections.Reflections;
-
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.
  * @since TODO
  */
+@SuppressWarnings("WeakerAccess")
 public final class BenchmarkFinder {
-    final private String[] packageName;
+    private final String[] packageNames;
 
     /**
      * Creates a {@link BenchmarkFinder}
@@ -19,7 +19,7 @@ public final class BenchmarkFinder {
      * @param packageNames find benchmarks in these packages
      */
     public BenchmarkFinder(String... packageNames) {
-        this.packageName = packageNames;
+        this.packageNames = packageNames;
     }
 
     /**
@@ -28,13 +28,17 @@ public final class BenchmarkFinder {
      * @param optionsBuilder the optionsBuilder used to build the benchmarks
      */
     public void findBenchmarks(ChainedOptionsBuilder optionsBuilder) {
-        Reflections reflections = new Reflections((Object[]) packageName);
-        Set<Class<?>> benchmarkClasses = reflections.getTypesAnnotatedWith(JmhBenchmark.class);
-        benchmarkClasses.forEach(clazz -> {
-            JmhBenchmark annotation = clazz.getAnnotation(JmhBenchmark.class);
-            if (Objects.nonNull(annotation)) {
+        try (ScanResult scanResult =
+                     new ClassGraph()
+                             .enableAnnotationInfo()
+                             .whitelistPackages(packageNames)
+                             .scan()) {
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(JmhBenchmark.class.getName())) {
+                Class<?> clazz = classInfo.loadClass();
+                JmhBenchmark annotation = clazz.getAnnotation(JmhBenchmark.class);
+                assert annotation != null;
                 optionsBuilder.include(clazz.getName() + annotation.value());
             }
-        });
+        }
     }
 }

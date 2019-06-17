@@ -177,9 +177,9 @@ THE SOFTWARE.
       <version>1.21</version>
     </dependency>
     <dependency>
-      <groupId>org.reflections</groupId>
-      <artifactId>reflections</artifactId>
-      <version>0.9.11</version>
+      <groupId>io.github.classgraph</groupId>
+      <artifactId>classgraph</artifactId>
+      <version>4.8.41</version>
     </dependency>
   </dependencies>
   <build>
