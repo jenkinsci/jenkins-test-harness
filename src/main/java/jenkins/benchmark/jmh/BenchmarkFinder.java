@@ -1,25 +1,28 @@
 package jenkins.benchmark.jmh;
 
-import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-import org.reflections.Reflections;
 
-import java.util.Objects;
-import java.util.Set;
+import org.jvnet.hudson.annotation_indexer.Index;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
+
+import java.io.IOException;
+import java.lang.reflect.AnnotatedElement;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.
+ *
  * @since 2.50
  */
+@SuppressWarnings("WeakerAccess")
 public final class BenchmarkFinder {
-    final private String[] packageName;
+    private final ClassLoader classLoader;
 
     /**
-     * Creates a {@link BenchmarkFinder}
+     * Class whose {@link ClassLoader} will be used to search for benchmarks.
      *
-     * @param packageNames find benchmarks in these packages
+     * @param clazz the class whose {@link ClassLoader} will be used to search for benchmarks.
      */
-    public BenchmarkFinder(String... packageNames) {
-        this.packageName = packageNames;
+    public BenchmarkFinder(Class<?> clazz) {
+        this.classLoader = clazz.getClassLoader();
     }
 
     /**
@@ -27,14 +30,11 @@ public final class BenchmarkFinder {
      *
      * @param optionsBuilder the optionsBuilder used to build the benchmarks
      */
-    public void findBenchmarks(ChainedOptionsBuilder optionsBuilder) {
-        Reflections reflections = new Reflections((Object[]) packageName);
-        Set<Class<?>> benchmarkClasses = reflections.getTypesAnnotatedWith(JmhBenchmark.class);
-        benchmarkClasses.forEach(clazz -> {
+    public void findBenchmarks(ChainedOptionsBuilder optionsBuilder) throws IOException {
+        for (AnnotatedElement e : Index.list(JmhBenchmark.class, classLoader)) {
+            Class<?> clazz = (Class<?>) e;
             JmhBenchmark annotation = clazz.getAnnotation(JmhBenchmark.class);
-            if (Objects.nonNull(annotation)) {
-                optionsBuilder.include(clazz.getName() + annotation.value());
-            }
-        });
+            optionsBuilder.include(clazz.getName() + annotation.value());
+        }
     }
 }
