@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import hudson.util.RingBufferLogHandler;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +79,7 @@ public class LoggerRule extends ExternalResource {
      * @return this rule, for convenience
      */
     public LoggerRule capture(int maximum) {
-        messages = new ArrayList<String>();
+        messages = Collections.synchronizedList(new ArrayList<>());
         ringHandler = new RingBufferLogHandler(maximum) {
             final Formatter f = new SimpleFormatter(); // placeholder instance for what should have been a static method perhaps
             @Override
@@ -153,12 +154,16 @@ public class LoggerRule extends ExternalResource {
     }
 
     /**
+     * Returns a read-only view of current messages.
+     *
      * {@link Formatter#formatMessage} applied to {@link #getRecords} at the time of logging.
      * However, if the message is null, but there is an exception, {@link Throwable#toString} will be used.
      * Does not include logger names, stack traces, times, etc. (these will appear in the test console anyway).
      */
     public List<String> getMessages() {
-        return messages;
+        synchronized (messages) {
+            return Collections.unmodifiableList(new ArrayList<>(messages));
+        }
     }
 
     @Override
