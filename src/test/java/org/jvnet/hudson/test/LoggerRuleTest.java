@@ -32,6 +32,7 @@ import org.junit.Rule;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.jvnet.hudson.test.LoggerRule.recorded;
 
@@ -82,5 +83,39 @@ public class LoggerRuleTest {
         FOO_LOGGER.log(Level.INFO, "Foo Entry", new IOException());
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IllegalStateException.class)));
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
+    }
+
+    private boolean active;
+
+    @Test
+    public void multipleThreads() throws InterruptedException {
+        active = true;
+        logRule.record("Foo", Level.INFO).capture(1000);
+        Thread thread = new Thread("logging stuff") {
+            @Override
+            public void run() {
+                try {
+                    int i = 1;
+                    while (active) {
+                        FOO_LOGGER.log(Level.INFO, "Foo Entry " + i++);
+                        Thread.sleep(50);
+                    }
+                } catch (InterruptedException x) {
+                    // stopped
+                }
+            }
+        };
+        try {
+            thread.setDaemon(true);
+            thread.start();
+            Thread.sleep(500);
+            for (String message : logRule.getMessages()) {
+                assertNotNull(message);
+                Thread.sleep(50);
+            }
+        } finally {
+            active = false;
+            thread.interrupt();
+        }
     }
 }
