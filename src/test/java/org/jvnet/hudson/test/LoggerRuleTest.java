@@ -24,6 +24,7 @@
 package org.jvnet.hudson.test;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.Test;
@@ -85,18 +86,16 @@ public class LoggerRuleTest {
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
     }
 
-    private boolean active;
-
     @Test
     public void multipleThreads() throws InterruptedException {
-        active = true;
+        AtomicBoolean active = new AtomicBoolean(true);
         logRule.record("Foo", Level.INFO).capture(1000);
         Thread thread = new Thread("logging stuff") {
             @Override
             public void run() {
                 try {
                     int i = 1;
-                    while (active) {
+                    while (active.get()) {
                         FOO_LOGGER.log(Level.INFO, "Foo Entry " + i++);
                         Thread.sleep(50);
                     }
@@ -114,7 +113,7 @@ public class LoggerRuleTest {
                 Thread.sleep(50);
             }
         } finally {
-            active = false;
+            active.set(false);
             thread.interrupt();
         }
     }

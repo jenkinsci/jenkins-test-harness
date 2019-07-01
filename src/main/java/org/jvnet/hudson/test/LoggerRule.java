@@ -79,7 +79,7 @@ public class LoggerRule extends ExternalResource {
      * @return this rule, for convenience
      */
     public LoggerRule capture(int maximum) {
-        messages = Collections.synchronizedList(new ArrayList<>());
+        messages = new ArrayList<>();
         ringHandler = new RingBufferLogHandler(maximum) {
             final Formatter f = new SimpleFormatter(); // placeholder instance for what should have been a static method perhaps
             @Override
@@ -87,7 +87,9 @@ public class LoggerRule extends ExternalResource {
                 super.publish(record);
                 String message = f.formatMessage(record);
                 Throwable x = record.getThrown();
-                messages.add(message == null && x != null ? x.toString() : message);
+                synchronized (messages) {
+                    messages.add(message == null && x != null ? x.toString() : message);
+                }
             }
         };
         ringHandler.setLevel(Level.ALL);
