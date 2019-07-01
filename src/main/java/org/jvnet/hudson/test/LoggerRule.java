@@ -68,7 +68,7 @@ public class LoggerRule extends ExternalResource {
      */
     public LoggerRule() {
         consoleHandler.setFormatter(new DeltaSupportLogFormatter());
-        consoleHandler.setLevel(Level.WARNING); // do not duplicate messages from the console handler associated with the root logger
+        consoleHandler.setLevel(Level.ALL);
     }
 
     /**
