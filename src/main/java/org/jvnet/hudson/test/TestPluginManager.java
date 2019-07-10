@@ -32,6 +32,7 @@ import hudson.Util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
@@ -40,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
@@ -104,8 +106,15 @@ public class TestPluginManager extends PluginManager {
         	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
         }
         if (u!=null) try {
-            names.add("the.jpl");
-            copyBundledPlugin(u, "the.jpl");
+            String thisPlugin;
+            try (InputStream is = u.openStream()) {
+                thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+            }
+            if (thisPlugin == null) {
+                throw new IOException("malformed " + u);
+            }
+            names.add(thisPlugin + ".jpl");
+            copyBundledPlugin(u, thisPlugin + ".jpl");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
         }
@@ -133,6 +142,7 @@ public class TestPluginManager extends PluginManager {
                             throw new IOException(index + " contains bogus line " + line, x);
                         }
                     }
+                    // TODO should this be running names.add(line + ".jpi")? Affects PluginWrapper.isBundled & .*Dependents
                 	if(f.exists()){
                 		copyBundledPlugin(url, line + ".jpi");
                 	}else{
