@@ -53,9 +53,6 @@ THE SOFTWARE.
     <jetty.version>9.4.5.v20170502</jetty.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix upper bounds -->
-    <!--Upper bounds: com.google.guava:guava:11.0.1, and com.google.code.findbugs:jsr305:1.3.9. Core update is needed-->
-    <enforcer.skip>true</enforcer.skip>
     <!--TODO: fix FindBugs-->
     <findbugs.failOnError>false</findbugs.failOnError>
   </properties>
@@ -189,6 +186,25 @@ THE SOFTWARE.
         <artifactId>maven-stapler-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules>
+            <requireUpperBoundDeps>
+              <excludes combine.children="append">
+                <!--
+                  Stapler requests Guava 14.0 and Jenkins core requests Guice 4.0 which requests
+                  Guava 16.0.1. Core actually provides 11.0.1. Work around this mess by just
+                  excluding Guava from the RequireUpperBoundDeps check. The long-term fix is
+                  tracked in JENKINS-36779.
+                -->
+                <exclude>com.google.guava:guava</exclude>
+              </excludes>
+            </requireUpperBoundDeps>
+          </rules>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
