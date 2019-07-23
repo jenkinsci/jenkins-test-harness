@@ -1092,6 +1092,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private final String name;
         private final Map<String, Level> loggers;
         private final TaskListener stderr = StreamTaskListener.fromStderr();
+        private final long start = DeltaSupportLogFormatter.start;
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         private static final List<Logger> loggerReferences = new LinkedList<>();
         RemoteLogDumper(String name, Map<String, Level> loggers) {
@@ -1117,6 +1118,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
+            DeltaSupportLogFormatter.start = start; // match clock time on master
             stderr.getLogger().println("Set up log dumper on " + name + ": " + loggers);
             stderr.getLogger().flush();
             return null;

@@ -29,13 +29,13 @@ import java.util.logging.LogRecord;
 
 class DeltaSupportLogFormatter extends SupportLogFormatter {
 
-    private static long start = System.nanoTime();
+    static long start = System.currentTimeMillis();
     static String elapsedTime() {
-        return String.format("%8.3f", (System.nanoTime() - start) / 1_000_000_000.0);
+        return String.format("%8.3f", (System.currentTimeMillis() - start) / 1_000.0);
     }
 
     DeltaSupportLogFormatter() {
-        start = System.nanoTime(); // reset for each test, if using LoggerRule
+        start = System.currentTimeMillis(); // reset for each test, if using LoggerRule
     }
 
     @Override protected String formatTime(LogRecord record) {
