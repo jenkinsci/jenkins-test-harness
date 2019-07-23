@@ -1104,7 +1104,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 final Formatter formatter = new DeltaSupportLogFormatter();
                 @Override public void publish(LogRecord record) {
                     if (isLoggable(record)) {
-                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^", "[" + name + "] "));
+                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^([ 0-9.]*)", "$1[" + name + "] "));
                         stderr.getLogger().flush();
                     }
                 }
