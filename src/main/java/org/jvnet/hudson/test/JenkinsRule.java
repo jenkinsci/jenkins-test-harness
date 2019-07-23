@@ -224,6 +224,7 @@ import hudson.slaves.JNLPLauncher;
 
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
@@ -1091,6 +1092,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private final String name;
         private final Map<String, Level> loggers;
         private final TaskListener stderr = StreamTaskListener.fromStderr();
+        private final long start = DeltaSupportLogFormatter.start;
+        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+        private static final List<Logger> loggerReferences = new LinkedList<>();
         RemoteLogDumper(String name, Map<String, Level> loggers) {
             this.name = name;
             this.loggers = loggers;
@@ -1100,7 +1104,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 final Formatter formatter = new DeltaSupportLogFormatter();
                 @Override public void publish(LogRecord record) {
                     if (isLoggable(record)) {
-                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^", "[" + name + "] "));
+                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^([ 0-9.]*)", "$1[" + name + "] "));
+                        stderr.getLogger().flush();
                     }
                 }
                 @Override public void flush() {}
@@ -1111,7 +1116,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 Logger logger = Logger.getLogger(e.getKey());
                 logger.setLevel(e.getValue());
                 logger.addHandler(handler);
+                loggerReferences.add(logger);
             });
+            DeltaSupportLogFormatter.start = start; // match clock time on master
+            stderr.getLogger().println("Set up log dumper on " + name + ": " + loggers);
+            stderr.getLogger().flush();
             return null;
         }
     }
