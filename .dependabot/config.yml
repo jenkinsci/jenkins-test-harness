@@ -9,7 +9,7 @@ update_configs:
   ignored_updates:
     - match:
         dependency_name: "org.jenkins-ci.main:jenkins-core"
-     - match:
+    - match:
         dependency_name: "org.jenkins-ci.main:jenkins-war"
     # Avoid bumping plugins for self-testing, there is PCT which shoud be used for newest versions
     - match:
