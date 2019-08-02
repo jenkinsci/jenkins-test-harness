@@ -270,4 +270,9 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
             return new MockFolder(parent, name);
         }
     }
+
+    @Override
+    public boolean isNameEditable() {
+        return true;
+    }
 }
