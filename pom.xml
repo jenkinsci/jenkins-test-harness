@@ -225,9 +225,9 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>1.7.1</version>
         <executions>
           <execution>
             <id>preset-packager</id>
@@ -236,7 +236,9 @@ THE SOFTWARE.
               <goal>execute</goal>
             </goals>
             <configuration>
-              <source>${pom.basedir}/src/main/preset-data/package.groovy</source>
+              <scripts>
+                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
+              </scripts>
             </configuration>
           </execution>
         </executions>
@@ -246,15 +248,7 @@ THE SOFTWARE.
             <artifactId>ant</artifactId>
             <version>1.10.6</version>
           </dependency>
-          <dependency>
-            <groupId>org.codehaus.gmaven.runtime</groupId>
-            <artifactId>gmaven-runtime-2.0</artifactId>
-            <version>1.5-jenkins-1</version>
-          </dependency>
         </dependencies>
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-        </configuration>
       </plugin>
     </plugins>
   </build>
