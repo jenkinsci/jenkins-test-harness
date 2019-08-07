@@ -271,7 +271,9 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         }
     }
 
+    /* TODO uncomment when core dep ≥ 2.110:
     @Override
+    */
     public boolean isNameEditable() {
         return true;
     }
