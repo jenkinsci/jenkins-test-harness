@@ -1,21 +1,29 @@
+// TODO move to infra.groovy once tested
+/**
+ * Record artifacts created by this build which could be published via Incrementals (JEP-305).
+ * Call at most once per build, on a Linux node, after running mvn -Dset.changelist install.
+ * Follow up with #maybePublishIncrementals.
+ */
+def prepareToPublishIncrementals() {
+    // MINSTALL-126 would make this easier by letting us publish to a different directory to begin with:
+    def m2repo = sh script: 'mvn -Dset.changelist -Dexpression=settings.localRepository -q -DforceStdout help:evaluate', returnStdout: true
+    // No easy way to load both of these in one command: https://stackoverflow.com/q/23521889/12916
+    def version = sh script: 'mvn -Dset.changelist -Dexpression=project.version -q -DforceStdout help:evaluate', returnStdout: true
+    echo "Collecting $version from $m2repo for possible Incrementals publishing"
+    dir(m2repo) {
+        archiveArtifacts "**/$version/*$version*"
+    }
+}
+
 properties([buildDiscarder(logRotator(numToKeepStr: '20'))])
-node('docker') {
+node('maven') {
     timeout(time: 1, unit: 'HOURS') {
         deleteDir()
         checkout scm
-        def tmp = pwd tmp: true
-        // TODO or can do explicitly something like: docker run -v "$TMP"/m2repo:/var/maven/.m2/repository --rm -u $(id -u):$(id -g) -e MAVEN_CONFIG=/var/maven/.m2 -v "$PWD":/usr/src/mymaven -w /usr/src/mymaven maven:3.6.1-jdk-8 mvn -Duser.home=/var/maven …
-        docker.image('maven:3.6.1-jdk-8').inside {
-            withEnv(["TMP=$tmp"]) {
-                // TODO Azure mirror
-                sh 'mvn -B -Dmaven.repo.local="$TMP"/m2repo -ntp -e -Dset.changelist -Dexpression=changelist -Doutput="$TMP"/changelist -Dmaven.test.failure.ignore help:evaluate clean install'
-            }
-        }
+        // TODO Azure mirror
+        sh 'mvn -B -ntp -e -Dset.changelist -Dmaven.test.failure.ignore help:evaluate clean install'
         junit '**/target/surefire-reports/TEST-*.xml'
-        def changelist = readFile("$tmp/changelist")
-        dir("$tmp/m2repo") {
-            archiveArtifacts "**/*$changelist/*$changelist*"
-        }
+        prepareToPublishIncrementals()
     }
 }
 infra.maybePublishIncrementals()
