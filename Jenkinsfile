@@ -18,7 +18,6 @@ def prepareToPublishIncrementals() {
 properties([buildDiscarder(logRotator(numToKeepStr: '20'))])
 node('maven') {
     timeout(time: 1, unit: 'HOURS') {
-        deleteDir()
         checkout scm
         // TODO Azure mirror
         sh 'mvn -B -ntp -e -Dset.changelist -Dmaven.test.failure.ignore help:evaluate clean install'
