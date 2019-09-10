@@ -53,10 +53,5 @@ public class SleepBuilder extends Builder {
     }
 
     @Extension
-    public static final class DescriptorImpl extends Descriptor<Builder> {
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "SleepBuilder";
-        }
-    }
+    public static final class DescriptorImpl extends Descriptor<Builder> {}
 }

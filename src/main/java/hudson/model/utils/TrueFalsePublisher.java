@@ -36,10 +36,5 @@ public class TrueFalsePublisher extends Recorder {
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) { return true; }
-
-        @Override // Can be deleted after 1.635
-        public String getDisplayName() {
-            return clazz.getSimpleName();
-        }
     }
 }

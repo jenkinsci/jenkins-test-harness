@@ -45,10 +45,5 @@ public class UnstableBuilder extends MockBuilder {
         public UnstableBuilder newInstance(StaplerRequest req, JSONObject data) {
             return new UnstableBuilder();
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "UnstableBuilder";
-        }
     }
 }

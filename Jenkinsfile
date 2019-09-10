@@ -1,25 +1,11 @@
-pipeline {
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-        timeout(time: 1, unit: 'HOURS')
-    }
-    agent {
-        docker {
-            image 'maven:3.5.0-jdk-8'
-            label 'docker'
-        }
-    }
-    stages {
-        stage('main') {
-            // TODO Windows build in parallel
-            steps {
-                sh 'mvn -B clean verify'
-            }
-            post {
-                success {
-                    junit '**/target/surefire-reports/TEST-*.xml'
-                }
-            }
-        }
+properties([buildDiscarder(logRotator(numToKeepStr: '20'))])
+node('maven') {
+    timeout(time: 1, unit: 'HOURS') {
+        checkout scm
+        // TODO Azure mirror
+        sh 'mvn -B -ntp -e -Dset.changelist -Dmaven.test.failure.ignore clean install'
+        junit '**/target/surefire-reports/TEST-*.xml'
+        infra.prepareToPublishIncrementals()
     }
 }
+infra.maybePublishIncrementals()

@@ -41,11 +41,6 @@ public class MockBuilder extends Builder {
         public Builder newInstance(StaplerRequest req, JSONObject data) {
             throw new UnsupportedOperationException();
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "MockBuilder";
-        }
     }
 }
 

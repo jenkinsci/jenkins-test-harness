@@ -32,13 +32,16 @@ import hudson.Util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
@@ -103,8 +106,15 @@ public class TestPluginManager extends PluginManager {
         	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
         }
         if (u!=null) try {
-            names.add("the.jpl");
-            copyBundledPlugin(u, "the.jpl");
+            String thisPlugin;
+            try (InputStream is = u.openStream()) {
+                thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+            }
+            if (thisPlugin == null) {
+                throw new IOException("malformed " + u);
+            }
+            names.add(thisPlugin + ".jpl");
+            copyBundledPlugin(u, thisPlugin + ".jpl");
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
         }
@@ -113,8 +123,7 @@ public class TestPluginManager extends PluginManager {
         // and copy them into $JENKINS_HOME/plugins.
         URL index = getClass().getResource("/test-dependencies/index");
         if (index!=null) {// if built with maven-hpi-plugin < 1.52 this file won't exist.
-            BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(),"UTF-8"));
-            try {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line=r.readLine())!=null) {
                 	final URL url = new URL(index, line + ".jpi");
@@ -122,16 +131,24 @@ public class TestPluginManager extends PluginManager {
                     try {
                         f = new File(url.toURI());
                     } catch (IllegalArgumentException x) {
-                        throw new IOException(index + " contains bogus line " + line, x);
+                        if (x.getMessage().equals("URI is not hierarchical")) {
+                            throw new IOException(
+                                    "You are probably trying to load plugins from within a jarfile (not possible). If"
+                                            + " you are running this in your IDE and see this message, it is likely"
+                                            + " that you have a clean target directory. Try running 'mvn test-compile' "
+                                            + "from the command line (once only), which will copy the required plugins "
+                                            + "into target/test-classes/test-dependencies - then retry your test", x);
+                        } else {
+                            throw new IOException(index + " contains bogus line " + line, x);
+                        }
                     }
+                    // TODO should this be running names.add(line + ".jpi")? Affects PluginWrapper.isBundled & .*Dependents
                 	if(f.exists()){
                 		copyBundledPlugin(url, line + ".jpi");
                 	}else{
                 		copyBundledPlugin(new URL(index, line + ".hpi"), line + ".jpi"); // fallback to hpi
                 	}
                 }
-            } finally {
-                r.close();
             }
         }
 

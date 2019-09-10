@@ -40,7 +40,6 @@ import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
 import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
-import hudson.util.Function1;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
 import java.io.File;
@@ -83,11 +82,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     @Override public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
-        items = ItemGroupMixIn.loadChildren(this, jobs(), new Function1<String,TopLevelItem>() {
-            public String call(TopLevelItem item) {
-               return item.getName();
-            }
-        });
+        items = ItemGroupMixIn.loadChildren(this, jobs(), Item::getName);
     }
 
     @Override public Collection<TopLevelItem> getItems() {
@@ -274,12 +269,12 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new MockFolder(parent, name);
         }
-
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "MockFolder";
-        }
-
     }
 
+    /* TODO uncomment when core dep ≥ 2.110:
+    @Override
+    */
+    public boolean isNameEditable() {
+        return true;
+    }
 }

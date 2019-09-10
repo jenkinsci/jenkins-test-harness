@@ -1,8 +1,108 @@
 # Jenkins Unit Test Harness
+
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/jenkins-test-harness.svg?label=release)](https://github.com/jenkinsci/jenkins-test-harness/releases/latest)
+
 Defines test harness for Jenkins core and plugins that you can use during the `mvn test` phase.
 See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
+## Javadoc
+
+See https://javadoc.jenkins.io/component/jenkins-test-harness/
+
 ## Changelog
+
+| WARNING: Changelogs have been moved to [GitHub Releases](https://github.com/jenkinsci/jenkins-test-harness/releases) |
+| --- |
+
+## New releases
+
+See [GitHub Releases](https://github.com/jenkinsci/jenkins-test-harness/releases).
+
+### 2.49 (2019 Apr 02)
+
+* [PR-127](https://github.com/jenkinsci/jenkins-test-harness/pull/127): `JenkinsRule.showAgentLogs` utility
+* [PR-128](https://github.com/jenkinsci/jenkins-test-harness/pull/128): Work with `version-number` as shipped in `jenkins-core`
+
+### 2.48 (2019 Mar 08)
+
+* [PR-126](https://github.com/jenkinsci/jenkins-test-harness/pull/126): Skip `MemoryAssert.assertGC()` on JRE > 8
+
+### 2.47 (2019 Feb 22)
+
+* [PR-118](https://github.com/jenkinsci/jenkins-test-harness/pull/118): Internal code improvements
+
+### 2.46 (2019 Jan 22)
+
+* Bump jenkins-test-harness-htmlunit to 2.31-2, which disables JAXP registration of Xalan-J and Xerces
+(fixes regressions introduced in 2.45 by space in temporary paths because of a Xalan-J bug)
+
+### 2.45 (2019 Jan 10)
+
+* Use DisableOnDebug’s logic rather than rolling our own
+* SUREFIRE-1588 workaround
+* JDK 11 upgrades
+* Spurious temporary dir name log to `System.err` removed
+* Fix tests when run under Jenkins 2.x
+* Add Configuration-as-Code support to TestCrumbIssuer
+* Temporary directories now by default have a space in their path, to flush out path handling mistakes. (The system property `jenkins.test.noSpaceInTmpDirs=true` suppresses this.)
+
+### 2.44 (2018 Oct 05)
+
+* Extending path shortening fix to users of `RestartableJenkinsRule`.
+
+### 2.43 (2018 Oct 02)
+
+* Shorter temporary directory paths.
+
+### 2.42 (2018 Sep 28)
+
+* Updated HTMLUnit.
+* New convenience methods in `WebClient`.
+* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
+JDK 11 compatibility.
+
+### 2.41.1 (2018 Nov 13)
+
+This is a custom release without HTMLUnit upgrade
+
+* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
+JDK 11 compatibility.
+
+### 2.41 (2018 Sep 21)
+
+* Fixing a serialization issue in `MockAuthorizationStrategy`.
+
+### 2.40 (2018 Jul 20)
+
+* [JENKINS-49046](https://issues.jenkins-ci.org/browse/JENKINS-49046): Fix `@WithTimeout` handling for `JenkinsRule`.
+
+### 2.39 (2018 Jun 05)
+
+* Make `RunLoadCounter` compatible with Pipeline (`WorkflowJob` / `WorkflowRun`).
+* Prevent agent processes from stealing focus on OS X.
+* Make the `NoListenerConfiguration` constructor `public`.
+
+### 2.38 (2018 Apr 09)
+
+* [JENKINS-50598](https://issues.jenkins-ci.org/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
+* [JENKINS-50590](https://issues.jenkins-ci.org/browse/JENKINS-50590): fix combination of crumbs with existing request parameters.
+
+### 2.37 (2018 Apr 06)
+
+* Improved `RestartableJenkinsRule.simulateAbruptShutdown`.
+
+### 2.36 (2018 Apr 04)
+
+* JENKINS-50476:: offer a way to assert that Jenkins won't start
+
+### 2.35 (2018 Apr 04)
+
+*Burned*
+
+### 2.34 (2018 Jan 29)
+
+* Added `CLICommandInvoker.Result.stdoutBinary` and `.stderrBinary`.
+* Deprecated `PresetData`.
 
 ### 2.33 (2017 Dec 21)
 

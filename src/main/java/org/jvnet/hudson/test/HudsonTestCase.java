@@ -24,12 +24,17 @@
  */
 package org.jvnet.hudson.test;
 
+import com.gargoylesoftware.css.parser.CSSErrorHandler;
+import com.gargoylesoftware.css.parser.CSSException;
+import com.gargoylesoftware.css.parser.CSSParseException;
 import com.gargoylesoftware.htmlunit.AlertHandler;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
+import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
+import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 import com.google.inject.Injector;
 
 import hudson.ClassicPluginStrategy;
@@ -61,7 +66,6 @@ import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
@@ -112,7 +116,7 @@ import jenkins.model.JenkinsAdaptor;
 import junit.framework.TestCase;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory.Listener;
+import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
 
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
@@ -148,9 +152,6 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.mozilla.javascript.tools.debugger.Dim;
 import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
-import org.w3c.css.sac.CSSException;
-import org.w3c.css.sac.CSSParseException;
-import org.w3c.css.sac.ErrorHandler;
 import org.xml.sax.SAXException;
 
 import com.gargoylesoftware.htmlunit.AjaxController;
@@ -646,7 +647,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env),
-			        RetentionStrategy.NOOP, Collections.<NodeProperty<?>>emptyList());
+			        RetentionStrategy.NOOP, Collections.emptyList());
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -670,15 +671,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        "-Djava.awt.headless=true",
                         new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
                 env);
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come onilne
+     * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave() throws Exception {
@@ -686,7 +688,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
     
     /**
-     * Create a new slave on the local host and wait for it to come onilne
+     * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave(Label l) throws Exception {
@@ -1002,8 +1004,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * a cancellation.
      */
     private List<String> listProperties(String properties) {
-        List<String> props = new ArrayList<String>(Arrays.asList(properties.split(",")));
-        for (String p : props.toArray(new String[props.size()])) {
+        List<String> props = new CopyOnWriteArrayList<>(properties.split(","));
+        for (String p : props) {
             if (p.startsWith("-")) {
                 props.remove(p);
                 props.remove(p.substring(1));
@@ -1018,17 +1020,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
-        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getHtmlElementsByTagName("button")));
+        return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
     }
 
     /**
-     * Submits the form by clikcing the submit button of the given name.
+     * Submits the form by clicking the submit button of the given name.
      *
      * @param name
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getHtmlElementsByTagName("button")) {
+        for( HtmlElement e : form.getElementsByTagName("button")) {
             HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();
             if (e instanceof HtmlButton && p.getAttribute("name").equals(name)) {
                 return (HtmlPage)HtmlFormUtil.submit(form, (HtmlButton) e);
@@ -1042,7 +1044,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     protected HtmlButton getButtonByCaption(HtmlForm f, String s) {
-        for (HtmlElement b : f.getHtmlElementsByTagName("button")) {
+        for (HtmlElement b : f.getElementsByTagName("button")) {
             if(b.getTextContent().trim().equals(s))
                 return (HtmlButton)b;
         }
@@ -1383,9 +1385,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
-            // default is IE6, but this causes 'n.doScroll('left')' to fail in event-debug.js:1907 as HtmlUnit doesn't implement such a method,
-            // so trying something else, until we discover another problem.
-            super(BrowserVersion.FIREFOX_38);
+            super(BrowserVersion.BEST_SUPPORTED);
 
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
@@ -1397,44 +1397,54 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 }
             });
 
-            setCssErrorHandler(new ErrorHandler() {
-                final ErrorHandler defaultHandler = new DefaultCssErrorHandler();
+            setCssErrorHandler(new CSSErrorHandler() {
+                final CSSErrorHandler defaultHandler = new DefaultCssErrorHandler();
 
-                public void warning(CSSParseException exception) throws CSSException {
+                @Override
+                public void warning(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.warning(exception);
                 }
 
-                public void error(CSSParseException exception) throws CSSException {
+                @Override
+                public void error(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.error(exception);
                 }
 
-                public void fatalError(CSSParseException exception) throws CSSException {
+                @Override
+                public void fatalError(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.fatalError(exception);
                 }
 
-                private boolean ignore(CSSParseException e) {
-                    return e.getURI().contains("/yui/");
+                private boolean ignore(final CSSParseException exception) {
+                    String uri = exception.getURI();
+                    return uri.contains("/yui/")
+                            // TODO JENKINS-14749: these are a mess today, and we know that
+                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
                 }
             });
 
             // if no other debugger is installed, install jsDebugger,
             // so as not to interfere with the 'Dim' class.
-            getJavaScriptEngine().getContextFactory().addListener(new Listener() {
-                public void contextCreated(Context cx) {
-                    if (cx.getDebugger() == null)
-                        cx.setDebugger(jsDebugger, null);
-                }
+            AbstractJavaScriptEngine<?> javaScriptEngine = getJavaScriptEngine();
+            if (javaScriptEngine instanceof JavaScriptEngine) {
+                ((JavaScriptEngine) javaScriptEngine).getContextFactory()
+                                                     .addListener(new ContextFactory.Listener() {
+                                                         public void contextCreated(Context cx) {
+                                                             if (cx.getDebugger() == null)
+                                                                 cx.setDebugger(jsDebugger, null);
+                                                         }
 
-                public void contextReleased(Context cx) {
-                }
-            });
+                                                         public void contextReleased(Context cx) {
+                                                         }
+                                                     });
+            }
 
             setAlertHandler(new AlertHandler() {
                 public void handleAlert(Page page, String message) {
-                    throw new AssertionError("Alert dialog poped up: "+message);
+                    throw new AssertionError("Alert dialog popped up: "+message);
                 }
             });
 
@@ -1698,7 +1708,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public Dim interactiveJavaScriptDebugger() {
             Global global = new Global();
-            HtmlUnitContextFactory cf = getJavaScriptEngine().getContextFactory();
+            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
             global.init(cf);
 
             Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + getName());
@@ -1750,7 +1760,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
-    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.<ToolProperty<?>>emptyList();
+    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
@@ -1804,11 +1814,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             @Override
             public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
                 throw new UnsupportedOperationException();
-            }
-
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "TestBuildWrapper";
             }
         }
     }

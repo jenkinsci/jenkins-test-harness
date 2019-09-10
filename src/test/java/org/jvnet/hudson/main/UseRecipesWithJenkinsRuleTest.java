@@ -42,9 +42,9 @@ public class UseRecipesWithJenkinsRuleTest {
     }
 
     @Test
-    @WithPlugin("tasks.jpi")
+    @WithPlugin("keep-slave-disconnected.jpi")
     public void testWithPlugin() {
-        assertNotNull(rule.jenkins.getPlugin("tasks"));
+        assertNotNull(rule.jenkins.getPlugin("keep-slave-disconnected"));
     }
 
     @Test

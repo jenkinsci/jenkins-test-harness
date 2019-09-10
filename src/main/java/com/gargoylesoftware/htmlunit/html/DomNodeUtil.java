@@ -63,6 +63,6 @@ public class DomNodeUtil {
      */
     public static <X> X selectSingleNode(final DomNode domNode, final String xpathExpr) {
         WebClientUtil.waitForJSExec(domNode.getPage().getWebClient());
-        return domNode.<X>getFirstByXPath(xpathExpr);
+        return domNode.getFirstByXPath(xpathExpr);
     }
 }

@@ -24,7 +24,8 @@
 
 package org.jvnet.hudson.test;
 
-import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.util.VersionNumber;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -33,14 +34,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.swing.BoundedRangeModel;
+
 import jenkins.model.Jenkins;
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
+
 import org.netbeans.insane.impl.LiveEngine;
 import org.netbeans.insane.live.LiveReferences;
 import org.netbeans.insane.live.Path;
@@ -147,13 +150,19 @@ public class MemoryAssert {
     }
 
     /**
+     * <strong>Assumes Java runtime is &le; Java 8. I.e. tests will be skipped if Java 9+</strong>
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
      * @param reference object used to verify garbage collection.
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
      */
-    @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
+        // Disabled on Java 9+, because below will call Netbeans Insane Engine, which in turns tries to call setAccessible
+        /* TODO version-number 1.6+:
+        assumeTrue(JavaSpecificationVersion.forCurrentJVM().isOlderThanOrEqualTo(JavaSpecificationVersion.JAVA_8));
+        */
+        assumeTrue(new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<Object[]>();
@@ -187,7 +196,8 @@ public class MemoryAssert {
                         @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
-                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
+                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
+                    System.err.println(softErr);
                 }
             }
         }
@@ -220,7 +230,7 @@ public class MemoryAssert {
                     fail(rootRefs.toString());
                 } else {
                     System.err.println("Did not find any soft references to " + obj + ", looking for weak references…");
-                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.<Object>singleton(reference), true));
+                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
                     if (!rootRefs.isEmpty()) {
                         fail(rootRefs.toString());
                     } else {
@@ -256,9 +266,7 @@ public class MemoryAssert {
                 super.visitObject(map, object);
                 if (object instanceof ClassLoader) {
                     if (isKnown(object)) {
-                        Iterator<Class> it = classes.iterator();
-                        while (it.hasNext()) {
-                            Class c = it.next();
+                        for (Class c : classes) {
                             if (c.getClassLoader() == object) {
                                 visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
                             }

@@ -24,6 +24,7 @@
 package org.jvnet.hudson.test;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.Test;
@@ -32,6 +33,7 @@ import org.junit.Rule;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.jvnet.hudson.test.LoggerRule.recorded;
 
@@ -82,5 +84,37 @@ public class LoggerRuleTest {
         FOO_LOGGER.log(Level.INFO, "Foo Entry", new IOException());
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IllegalStateException.class)));
         assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
+    }
+
+    @Test
+    public void multipleThreads() throws InterruptedException {
+        AtomicBoolean active = new AtomicBoolean(true);
+        logRule.record("Foo", Level.INFO).capture(1000);
+        Thread thread = new Thread("logging stuff") {
+            @Override
+            public void run() {
+                try {
+                    int i = 1;
+                    while (active.get()) {
+                        FOO_LOGGER.log(Level.INFO, "Foo Entry " + i++);
+                        Thread.sleep(50);
+                    }
+                } catch (InterruptedException x) {
+                    // stopped
+                }
+            }
+        };
+        try {
+            thread.setDaemon(true);
+            thread.start();
+            Thread.sleep(500);
+            for (String message : logRule.getMessages()) {
+                assertNotNull(message);
+                Thread.sleep(50);
+            }
+        } finally {
+            active.set(false);
+            thread.interrupt();
+        }
     }
 }

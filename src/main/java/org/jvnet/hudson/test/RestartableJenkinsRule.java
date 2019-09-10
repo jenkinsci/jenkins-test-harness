@@ -1,19 +1,31 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
-import hudson.FilePath;
+import org.junit.Assert;
 import org.junit.rules.MethodRule;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.ServerSocket;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Provides a pattern for executing a sequence of steps.
@@ -34,9 +46,13 @@ import java.util.concurrent.Callable;
 public class RestartableJenkinsRule implements MethodRule {
     public JenkinsRule j;
     private Description description;
-    private final List<Statement> steps = new ArrayList<Statement>();
 
-    private TemporaryFolder tmp = new TemporaryFolder();
+    /**
+     * List of {@link Statement}. For each one, the boolean value says if Jenkins is expected to start or not.
+     */
+    private final Map<Statement, Boolean> steps = new LinkedHashMap<>();
+
+    private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
 
     /**
      * Object that defines a test.
@@ -48,6 +64,37 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     public File home;
 
+    /**
+     * TCP/IP port that the server is listening on.
+     */
+    private final int port;
+
+    private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
+
+    public static class Builder {
+        private int port;
+
+        public Builder() {
+            this.port = 0;
+        }
+
+        public Builder withReusedPort() {
+            this.port = getRandomPort();
+            return this;
+        }
+
+        public RestartableJenkinsRule build() {
+            return new RestartableJenkinsRule(this.port);
+        }
+    }
+
+    public RestartableJenkinsRule() {
+        this.port = 0;
+    }
+
+    private RestartableJenkinsRule(int port) {
+        this.port = port;
+    }
 
     @Override
     public Statement apply(final Statement base, FrameworkMethod method, Object target) {
@@ -56,18 +103,26 @@ public class RestartableJenkinsRule implements MethodRule {
 
         this.target = target;
 
-        return tmp.apply(new Statement() {
+        return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 // JENKINS_HOME needs to survive restarts, so we'll allocate our own
-                home = tmp.newFolder();
+                try {
+                    home = tmp.allocate();
 
-                // test method will accumulate steps
-                base.evaluate();
-                // and we'll run them
-                run();
+                    // test method will accumulate steps
+                    base.evaluate();
+                    // and we'll run them
+                    run();
+                } finally {
+                    try {
+                        tmp.dispose();
+                    } catch (Exception x) {
+                        x.printStackTrace();
+                    }
+                }
             }
-        }, description);
+        };
     }
 
     public void step(final Closure c) {
@@ -77,6 +132,59 @@ public class RestartableJenkinsRule implements MethodRule {
                 c.call(j);
             }
         });
+    }
+
+    /** Approach adapted from https://stackoverflow.com/questions/6214703/copy-entire-directory-contents-to-another-directory */
+    static class CopyFileVisitor extends SimpleFileVisitor<Path> {
+        private final Path targetPath;
+        private Path sourcePath = null;
+        public CopyFileVisitor(Path targetPath) {
+            this.targetPath = targetPath;
+        }
+
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir,
+                                                 final BasicFileAttributes attrs) throws IOException {
+            if (sourcePath == null) {
+                sourcePath = dir;
+            } else {
+                Files.createDirectories(targetPath.resolve(sourcePath
+                        .relativize(dir)));
+            }
+
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path file,
+                                         final BasicFileAttributes attrs) throws IOException {
+            try {
+                if (!Files.isSymbolicLink(file)) {
+                    // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)), StandardCopyOption.COPY_ATTRIBUTES);
+                } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
+                    Files.copy(file,
+                            targetPath.resolve(sourcePath.relativize(file)), LinkOption.NOFOLLOW_LINKS, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (NoSuchFileException nsfe) {
+                // File removed in between scan beginning and when we try to copy it, ignore it
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+file.toString());
+            }
+
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(Path file, IOException exc) {
+            if (exc instanceof FileNotFoundException) {
+                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: "+file.toString());
+                return FileVisitResult.CONTINUE;
+            } else {
+                LOGGER.log(Level.WARNING, "Error copying file", exc);
+                return FileVisitResult.TERMINATE;
+            }
+        }
     }
 
     /**
@@ -91,25 +199,14 @@ public class RestartableJenkinsRule implements MethodRule {
      * @throws IOException
      */
      void simulateAbruptShutdown() throws IOException {
-        File homeDir = this.home;
-        TemporaryFolder temp = new TemporaryFolder();
-        temp.create();
-        File newHome = temp.newFolder();
+         LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
+         File homeDir = this.home;
+         File newHome = tmp.allocate();
 
-        // Copy efficiently
-         try {
-             try {
-                new FilePath(homeDir).copyRecursiveTo(new FilePath(newHome));
-             } catch (NoSuchFileException nsfe) {
-                // Retry in case of tempfile deletion while copying.
-                newHome.delete();
-                newHome = temp.newFolder();
-                new FilePath(homeDir).copyRecursiveTo(new FilePath(newHome));
-             }
-         } catch (InterruptedException ie) {
-             throw new IOException(ie);
-         }
-        home = newHome;
+         // Copy efficiently
+         Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
+         LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
+         home = newHome;
     }
 
     /**
@@ -153,22 +250,35 @@ public class RestartableJenkinsRule implements MethodRule {
         });
     }
 
+    public void thenDoesNotStart() {
+        addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                throw new IllegalStateException("should have failed before reaching here.");
+            }
+        }, false);
+    }
+
     public void addStep(final Statement step) {
-        steps.add(new Statement() {
+        addStep(step, true);
+    }
+
+    public void addStep(final Statement step, boolean expectedToStartCorrectly) {
+        steps.put(new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 j.jenkins.getInjector().injectMembers(step);
                 j.jenkins.getInjector().injectMembers(target);
                 step.evaluate();
             }
-        });
+        }, expectedToStartCorrectly);
     }
 
     /** Similar to {@link #addStep(Statement)} but we simulate a dirty shutdown after the step, rather than a clean one.
      *  See {@link #thenWithHardShutdown(Step)} for how this is done.
      */
     public void addStepWithDirtyShutdown(final Statement step) {
-        steps.add(new Statement() {
+        steps.put(new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 j.jenkins.getInjector().injectMembers(step);
@@ -176,26 +286,43 @@ public class RestartableJenkinsRule implements MethodRule {
                 step.evaluate();
                 simulateAbruptShutdown();
             }
-        });
+        }, true);
     }
 
     private void run() throws Throwable {
-        HudsonHomeLoader loader = new HudsonHomeLoader() {
-            @Override
-            public File allocate() throws Exception {
-                return home;
-            }
-        };
+        HudsonHomeLoader loader = () -> home;
 
         // run each step inside its own JenkinsRule
-        for (Statement step : steps) {
+        for (Map.Entry<Statement, Boolean> entry : steps.entrySet()) {
+            Statement step = entry.getKey();
             j = createJenkinsRule(description).with(loader);
-            j.apply(step,description).evaluate();
+            try {
+                j.apply(step, description).evaluate();
+                if (!entry.getValue()) {
+                    Assert.fail("The current JenkinsRule should have failed to start Jenkins.");
+                }
+            } catch (Exception e) {
+                if(entry.getValue()) {
+                    throw e;
+                }
+                // Failure ignored as requested
+            }
         }
     }
 
     protected JenkinsRule createJenkinsRule(Description description) {
-        return new JenkinsRule();
+        JenkinsRule result = new JenkinsRule();
+        if (port != 0) {
+            result.localPort = port;
+        }
+        return result;
     }
 
+    private static synchronized int getRandomPort() {
+        try (ServerSocket s = new ServerSocket(0)) {
+            return s.getLocalPort();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to find free port", e);
+        }
+    }
 }

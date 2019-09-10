@@ -1,0 +1,45 @@
+= JMH benchmarks with Jenkins
+:toc:
+
+link:https://openjdk.java.net/projects/code-tools/jmh/[Java Microbenchmark Harness] allows running benchmarks
+in the JVM. To run a benchmark where you need a Jenkins instance, you can use use link:../src/main/java/jenkins/benchmark/jmh/JmhBenchmarkState.java[``JmhBenchmarkState``]
+as a state in your benchmark. This creates a temporary Jenkins instance for each fork of the JMH benchmark.
+
+== Writing benchmarks
+
+A reference to the Jenkins instance is available through either the `JmhBenchmarkState#getJenkins()` or through
+`Jenkins.getInstance()` like you would otherwise do. `JmhBenchmarkState` provides `setup()` and `tearDown` methods
+which can be overridden to configure the Jenkins instance according to your benchmark's requirements.
+
+== Running the benchmarks
+
+The benchmarks can be run through JUnit tests. From a test method, you can use the `OptionsBuilder` provided by JMH to
+configure your benchmarks. For a sample, take a look at link:../src/test/java/jenkins/benchmark/jmh/BenchmarkTest.java[this].
+Classes containing benchmarks are found automatically by the `BenchmarkFinder` when annotated
+with `@JmhBenchmark`. Benchmark reports can also be generated and can be visualized using the jmh-report plugin.
+
+NOTE: Benchmark methods need to be annotated by `@Benchmark` for JMH to detect them.
+
+== Sample benchmarks
+
+=== Simplest Benchmark:
+
+[source,java]
+----
+@JmhBenchmark
+public class JmhStateBenchmark {
+    public static class MyState extends JmhBenchmarkState {
+    }
+
+    @Benchmark
+    public void benchmark(MyState state) {
+        // benchmark code goes here
+    }
+}
+----
+
+=== Examples
+
+Some benchmarks have been implemented in the https://github.com/jenkinsci/role-strategy-plugin/tree/master/src/test/java/jmh/benchmarks[Role Strategy Plugin]
+which show setting up the benchmarks for many different situations.
+

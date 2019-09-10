@@ -53,11 +53,6 @@ public abstract class TestBuilder extends Builder {
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
             }
-
-            @Override // TODO 1.635+ delete
-            public String getDisplayName() {
-                return "TestBuilder";
-            }
         };
     }
 

@@ -56,12 +56,7 @@ public class JenkinsComputerConnectorTester extends AbstractDescribableImpl<Jenk
     public List getConnectorDescriptors() {
         return ComputerConnectorDescriptor.all();
     }
-    
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<JenkinsComputerConnectorTester> {
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "JenkinsComputerConnectorTester";
-        }
-}
+    public static class DescriptorImpl extends Descriptor<JenkinsComputerConnectorTester> {}
 }

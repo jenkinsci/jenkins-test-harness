@@ -24,7 +24,6 @@
 package org.jvnet.hudson.test;
 
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.webapp.AbstractConfiguration;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import javax.servlet.ServletContextListener;
@@ -41,7 +40,7 @@ import javax.servlet.ServletContextListener;
 public final class NoListenerConfiguration extends AbstractLifeCycle {
     private final WebAppContext context;
 
-    NoListenerConfiguration(WebAppContext context) {
+    public NoListenerConfiguration(WebAppContext context) {
         this.context = context;
     }
 

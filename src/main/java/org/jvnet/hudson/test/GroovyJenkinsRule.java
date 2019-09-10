@@ -30,7 +30,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.Builder;
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -43,16 +42,11 @@ public class GroovyJenkinsRule extends JenkinsRule {
     /**
      * Executes the given closure on the server, in the context of an HTTP request.
      * This is useful for testing some methods that require {@link StaplerRequest} and {@link StaplerResponse}.
-     *
      * <p>
      * The closure will get the request and response as parameters.
      */
     public Object executeOnServer(final Closure c) throws Exception {
-        return executeOnServer(new Callable<Object>() {
-            @Override public Object call() throws Exception {
-                return c.call();
-            }
-        });
+        return executeOnServer(c::call);
     }
 
     /**

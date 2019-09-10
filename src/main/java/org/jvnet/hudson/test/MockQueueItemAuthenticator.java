@@ -60,12 +60,6 @@ public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
             return null;
         }
     }
-    
-    @Extension public static final class DescriptorImpl extends QueueItemAuthenticatorDescriptor {
-        @Override // TODO 1.635+ delete
-        public String getDisplayName() {
-            return "MockQueueItemAuthenticator";
-        }
-}
 
+    @Extension public static final class DescriptorImpl extends QueueItemAuthenticatorDescriptor {}
 }
