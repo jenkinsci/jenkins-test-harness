@@ -509,21 +509,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             try {
                 env.dispose();
-            } catch (Exception x) {
-                x.printStackTrace();
-            }
+            } finally {
+                // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+                // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+                // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+                // see http://bugs.sun.com/view_bug.do?bug_id=4950148
+                // TODO use URLClassLoader.close() in Java 7
+                System.gc();
 
-            // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-            // TODO use URLClassLoader.close() in Java 7
-            System.gc();
-            
-            // restore defaultUseCache
-            if(Functions.isWindows()) {
-                URLConnection aConnection = new File(".").toURI().toURL().openConnection();
-                aConnection.setDefaultUseCaches(origDefaultUseCache);
+                // restore defaultUseCache
+                if(Functions.isWindows()) {
+                    URLConnection aConnection = new File(".").toURI().toURL().openConnection();
+                    aConnection.setDefaultUseCaches(origDefaultUseCache);
+                }
             }
         }
     }
