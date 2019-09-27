@@ -1368,22 +1368,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return assertBuildStatus(Result.SUCCESS, r);
     }
 
-    public <J extends Job<J,R>,R extends Run<J,R>> R buildAndAssertSuccess(final J job) throws Exception {
-        assertThat(job, IsInstanceOf.instanceOf(ParameterizedJobMixIn.ParameterizedJob.class));
-        QueueTaskFuture f = new ParameterizedJobMixIn() {
-            @Override protected Job asJob() {
+    @Nonnull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
+        return buildAndAssertStatus(Result.SUCCESS, job);
+    }
+
+    /**
+     * Runs specified job and asserts that in finished with given build result.
+     * @since TODO
+     */
+    @Nonnull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
+        final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
+            @Override protected J asJob() {
                 return job;
             }
         }.scheduleBuild2(0);
-        @SuppressWarnings("unchecked") // no way to make this compile checked
-        Future<R> f2 = f;
-        return assertBuildStatusSuccess(f2);
+        return assertBuildStatus(status, f);
     }
 
     /**
      * Avoids need for cumbersome {@code this.<J,R>buildAndAssertSuccess(...)} type hints under JDK 7 javac (and supposedly also IntelliJ).
      */
-    public FreeStyleBuild buildAndAssertSuccess(FreeStyleProject job) throws Exception {
+    @Nonnull
+    public FreeStyleBuild buildAndAssertSuccess(@Nonnull FreeStyleProject job) throws Exception {
         return assertBuildStatusSuccess(job.scheduleBuild2(0));
     }
 
