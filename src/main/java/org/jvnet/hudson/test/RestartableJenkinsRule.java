@@ -217,7 +217,7 @@ public class RestartableJenkinsRule implements MethodRule {
      * {@code Consumer} is the same, and is not present in Java 7.
      * Other candidates had similar issues.
      */
-    // TODO Java 8: @FunctionalInterface
+    @FunctionalInterface
     public interface Step {
         void run(JenkinsRule r) throws Throwable;
     }
