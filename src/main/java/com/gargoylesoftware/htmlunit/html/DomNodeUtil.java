@@ -24,13 +24,13 @@
 package com.gargoylesoftware.htmlunit.html;
 
 import com.gargoylesoftware.htmlunit.WebClientUtil;
-import com.gargoylesoftware.htmlunit.html.xpath.XPathUtils;
+import com.gargoylesoftware.htmlunit.html.xpath.XPathHelper;
 
 import java.util.List;
 
 /**
  * {@link DomNode} helper methods.
- * 
+ *
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class DomNodeUtil {
@@ -40,14 +40,14 @@ public class DomNodeUtil {
      * <p>
      * Calls {@link WebClientUtil#waitForJSExec(com.gargoylesoftware.htmlunit.WebClient)} before
      * executing the query.
-     * 
+     *
      * @param domNode the node to start searching from
      * @param xpathExpr the XPath expression
      * @return the list of objects found.
      */
     public static <E> List<E> selectNodes(final DomNode domNode, final String xpathExpr) {
         WebClientUtil.waitForJSExec(domNode.getPage().getWebClient());
-        return (List) XPathUtils.getByXPath(domNode, xpathExpr, null);
+        return (List) XPathHelper.getByXPath(domNode, xpathExpr, null, true);
     }
 
     /**
