@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.User;
 import jenkins.security.ApiTokenProperty;
+import jenkins.security.apitoken.ApiTokenPropertyConfiguration;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,7 +82,7 @@ public class JenkinsRuleTest {
     @Test
     public void testTokenHelperMethods() throws Exception {
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-        // Jenkins 2.129+: ApiTokenPropertyConfiguration.get().setTokenGenerationOnCreationEnabled(true);
+        ApiTokenPropertyConfiguration.get().setTokenGenerationOnCreationEnabled(true);
 
         JenkinsRule.WebClient wc = j.createWebClient();
 

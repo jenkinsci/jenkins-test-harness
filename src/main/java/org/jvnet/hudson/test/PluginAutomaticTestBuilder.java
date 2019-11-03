@@ -30,10 +30,12 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 import jenkins.model.Jenkins;
+import jenkins.security.stapler.DoActionFilter;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
+import org.kohsuke.stapler.Function;
 import org.kohsuke.stapler.WebMethod;
 import org.kohsuke.stapler.interceptor.InterceptorAnnotation;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -41,7 +43,6 @@ import org.kohsuke.stapler.verb.HttpVerbInterceptor;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -126,13 +127,10 @@ public class PluginAutomaticTestBuilder {
             }
         }
 
-        public void testStaplerDispatches() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+        public void testStaplerDispatches() {
             List<String> methodsFound = new ArrayList<>();
 
-            Method isStaplerRoutableMethod = findIsRoutableMethod();
-            if (isStaplerRoutableMethod == null) {
-                return;
-            }
+            DoActionFilter filter = new DoActionFilter();
 
             PluginWrapper thisPlugin = determineCurrentPlugin();
             if (thisPlugin == null) {
@@ -147,7 +145,8 @@ public class PluginAutomaticTestBuilder {
             for (ClassInfo classInfo : result.getAllClasses()) {
                 Class clazz = classInfo.loadClass();
                 for (Method m : clazz.getDeclaredMethods()) {
-                    if (isStaplerDispatchable(m) && (boolean)isStaplerRoutableMethod.invoke(null, m)) {
+                    Function f = new Function.InstanceFunction(m);
+                    if (isStaplerDispatchable(m) && filter.keep(f)) {
                         if (!hasStaplerVerbAnnotation(m)) {
                             methodsFound.add(clazz.getName() + "#" + m.getName());
                         }
@@ -155,18 +154,6 @@ public class PluginAutomaticTestBuilder {
                 }
             }
             Assert.assertThat("There should be no web methods that lack HTTP verb annotations like @RequirePOST, @GET, @POST, etc. -- see https://jenkins.io/redirect/developer/csrf-protection", methodsFound, is(empty()));
-        }
-
-        private Method findIsRoutableMethod() throws NoSuchMethodException {
-            try {
-                Method method = Class.forName("jenkins.security.stapler.TypedFilter").getDeclaredMethod("isRoutableMethod", Method.class);
-                method.setAccessible(true);
-                return method;
-            } catch (ClassNotFoundException e) {
-                LOGGER.warning("This test requires Jenkins 2.154, Jenkins LTS 2.138.4, or newer to run, use e.g. -Djenkins.version=2.138.4");
-                // TODO add a fallback implementing similar code directly here
-                return null;
-            }
         }
 
         private PluginWrapper determineCurrentPlugin() {
