@@ -182,7 +182,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
-      <version>1.21</version>
+      <version>1.22</version>
     </dependency>
   </dependencies>
   <build>
