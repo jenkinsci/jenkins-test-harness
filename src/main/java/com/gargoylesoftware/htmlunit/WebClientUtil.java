@@ -136,5 +136,9 @@ public class WebClientUtil {
         @Override
         public void loadScriptError(HtmlPage htmlPage, URL scriptUrl, Exception exception) {
         }
+
+        @Override
+        public void warn(String message, String sourceName, int line, String lineSource, int lineOffset) {
+        }
     }
 }
