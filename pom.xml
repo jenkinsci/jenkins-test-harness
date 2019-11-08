@@ -50,7 +50,7 @@ THE SOFTWARE.
     <revision>2.57</revision>
     <changelist>-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.5.v20170502</jetty.version>
+    <jetty.version>9.4.22.v20191022</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
