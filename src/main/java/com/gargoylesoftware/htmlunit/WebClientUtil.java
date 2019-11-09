@@ -142,7 +142,6 @@ public class WebClientUtil {
          */
         @Override
         public void warn(String s, String s1, int i, String s2, int i1) {
-
         }
     }
 }
