@@ -141,7 +141,7 @@ public class WebClientUtil {
          * {@inheritDoc}
          */
         @Override
-        public void warn(String s, String s1, int i, String s2, int i1) {
+        public void warn(String message, String sourceName, int line, String lineSource, int lineOffset) {
         }
     }
 }
