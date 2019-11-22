@@ -220,7 +220,6 @@ import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
-import hudson.slaves.JNLPLauncher;
 
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
@@ -231,7 +230,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.MasterToSlaveCallable;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
@@ -1052,7 +1050,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
-        if (s.getLauncher() instanceof JNLPLauncher) {
+        if (!s.getLauncher().isLaunchSupported()) {
             while (!computer.isOnline()) {
                 Thread.sleep(100);
             }
