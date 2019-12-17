@@ -85,15 +85,25 @@ public class TemporaryDirectoryAllocator {
      * Deletes all allocated temporary directories.
      */
     public synchronized void dispose() throws IOException, InterruptedException {
+        // TODO when we bump the Jenkins dependency to 2.157
         IOException x = null;
-        for (File dir : tmpDirectories)
+        for (File dir : tmpDirectories) {
             try {
                 new FilePath(dir).deleteRecursive();
             } catch (IOException e) {
-                x = e;
+                if (x == null) { 
+                    x = e;
+                }
+                else {
+                    x.addSuppressed(e);
+                }
             }
+        }
         tmpDirectories.clear();
-        if (x!=null)    throw new IOException("Failed to clean up temp dirs",x);
+        if (x != null) {
+           // do not wrap this pending JENKINS-60308
+           throw x;
+        }
     }
 
     /**

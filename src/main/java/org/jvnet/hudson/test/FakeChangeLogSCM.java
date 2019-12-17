@@ -32,6 +32,7 @@ import hudson.model.User;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
+import hudson.scm.EditType;
 import hudson.scm.NullSCM;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCM;
@@ -128,6 +129,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     public static class EntryImpl extends Entry implements Serializable {
         private String msg = "some commit message";
         private String author = "someone";
+        private String path = "path";
 
         public EntryImpl withAuthor(String author) {
             this.author = author;
@@ -136,6 +138,11 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
 
         public EntryImpl withMsg(String msg) {
             this.msg = msg;
+            return this;
+        }
+
+        public EntryImpl withPath(String path) {
+            this.path = path;
             return this;
         }
 
@@ -151,7 +158,23 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
 
         @Override
         public Collection<String> getAffectedPaths() {
-            return Collections.singleton("path");
+            return Collections.singleton(path);
+        }
+
+        @Override
+        public Collection<ChangeLogSet.AffectedFile> getAffectedFiles() {
+            ChangeLogSet.AffectedFile affectedFile = new ChangeLogSet.AffectedFile() {
+                @Override
+                public String getPath() {
+                    return path;
+                }
+
+                @Override
+                public EditType getEditType() {
+                    return EditType.EDIT;
+                }
+            };
+            return Collections.singleton(affectedFile);
         }
 
         private static final long serialVersionUID = 1L;
