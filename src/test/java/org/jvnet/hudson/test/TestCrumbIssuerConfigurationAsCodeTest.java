@@ -24,7 +24,7 @@ public class TestCrumbIssuerConfigurationAsCodeTest {
     public RuleChain chain = RuleChain.outerRule(j).around(logRule);
 
     @Test
-    public void testCrumpIssuerShouldBeSupportedWhenExportingConfiguration() throws Exception {
+    public void testCrumbIssuerShouldBeSupportedWhenExportingConfiguration() throws Exception {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ConfigurationAsCode.get().export(outputStream);
 
