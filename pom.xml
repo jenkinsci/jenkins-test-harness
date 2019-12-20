@@ -47,7 +47,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>2.58</revision>
+    <revision>2.59</revision>
     <changelist>-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.4.24.v20191120</jetty.version>
