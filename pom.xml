@@ -108,6 +108,16 @@ THE SOFTWARE.
       <artifactId>jetty-security</artifactId>
       <version>${jetty.version}</version>
     </dependency>
+     <dependency>
+       <groupId>org.eclipse.jetty.websocket</groupId>
+       <artifactId>websocket-api</artifactId>
+       <version>${jetty.version}</version>
+     </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-server</artifactId> <!-- or javax-websocket-server-impl -->
+      <version>${jetty.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest</artifactId>
