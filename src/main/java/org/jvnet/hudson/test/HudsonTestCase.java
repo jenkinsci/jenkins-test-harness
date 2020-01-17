@@ -522,7 +522,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
-        ServerConnector connector = new ServerConnector(server);
+        ServerConnector connector = new ServerConnector(server, 1, 1);
 
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
