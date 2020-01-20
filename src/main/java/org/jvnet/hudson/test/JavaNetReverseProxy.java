@@ -43,7 +43,7 @@ public class JavaNetReverseProxy extends HttpServlet {
         ServletContextHandler root = new ServletContextHandler(contexts, "/", ServletContextHandler.SESSIONS);
         root.addServlet(new ServletHolder(this), "/");
 
-        ServerConnector connector = new ServerConnector(server, 1, 1);
+        ServerConnector connector = new ServerConnector(server);
         server.addConnector(connector);
         server.start();
 

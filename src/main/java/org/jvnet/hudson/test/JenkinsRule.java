@@ -733,13 +733,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                                                          ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setName("Jetty Thread Pool");
-                return t;
-            }
-        })));
+        Server server = new Server();
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
         context.setClassLoader(classLoader);
@@ -750,7 +744,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
-        ServerConnector connector = new ServerConnector(server, 1, 1);
+        ServerConnector connector = new ServerConnector(server);
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
