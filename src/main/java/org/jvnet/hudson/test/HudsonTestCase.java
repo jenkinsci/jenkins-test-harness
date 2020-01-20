@@ -133,6 +133,7 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.security.Password;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
@@ -504,7 +505,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server();
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty Thread Pool (HudsonTestCase)");
+        server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
         WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);

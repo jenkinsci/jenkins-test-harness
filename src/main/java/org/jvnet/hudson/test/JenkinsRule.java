@@ -197,6 +197,7 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.security.Password;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
@@ -733,7 +734,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                                                          ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        Server server = new Server();
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty Thread Pool (JenkinsRule)");
+        Server server = new Server(qtp);
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
         context.setClassLoader(classLoader);
