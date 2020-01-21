@@ -735,7 +735,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty Thread Pool (JenkinsRule)");
+        qtp.setName("Jetty (JenkinsRule)");
         Server server = new Server(qtp);
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);

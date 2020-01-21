@@ -35,7 +35,7 @@ public class JavaNetReverseProxy extends HttpServlet {
         this.cacheFolder = cacheFolder;
         cacheFolder.mkdirs();
         QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty Thread Pool (JavaNetReverseProxy)");
+        qtp.setName("Jetty (JavaNetReverseProxy)");
         server = new Server(qtp);
 
         ContextHandlerCollection contexts = new ContextHandlerCollection();

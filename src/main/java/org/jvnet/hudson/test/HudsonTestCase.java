@@ -506,7 +506,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     protected ServletContext createWebServer() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty Thread Pool (HudsonTestCase)");
+        qtp.setName("Jetty (HudsonTestCase)");
         server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
