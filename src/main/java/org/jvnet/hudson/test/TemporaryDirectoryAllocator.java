@@ -95,13 +95,8 @@ public class TemporaryDirectoryAllocator {
     public synchronized void dispose() throws IOException, InterruptedException {
         System.gc();
         for (File dir : tmpDirectories) {
-            try {
-                LOGGER.info(() -> "deleting " + dir);
-                delete(dir.toPath());
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
+            LOGGER.info(() -> "deleting " + dir);
+            delete(dir.toPath());
         }
         tmpDirectories.clear();
     }
