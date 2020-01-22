@@ -23,18 +23,26 @@
  */
 package org.jvnet.hudson.test;
 
-import hudson.FilePath;
-
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Allocates temporary directories and cleans it up at the end.
  * @author Kohsuke Kawaguchi
  */
 public class TemporaryDirectoryAllocator {
+
+    private static final Logger LOGGER = Logger.getLogger(TemporaryDirectoryAllocator.class.getName());
+
     /**
      * Remember allocated directories to delete them later.
      */
@@ -85,25 +93,17 @@ public class TemporaryDirectoryAllocator {
      * Deletes all allocated temporary directories.
      */
     public synchronized void dispose() throws IOException, InterruptedException {
-        // TODO when we bump the Jenkins dependency to 2.157
-        IOException x = null;
+        System.gc();
         for (File dir : tmpDirectories) {
             try {
-                new FilePath(dir).deleteRecursive();
+                LOGGER.info(() -> "deleting " + dir);
+                delete(dir.toPath());
             } catch (IOException e) {
-                if (x == null) { 
-                    x = e;
-                }
-                else {
-                    x.addSuppressed(e);
-                }
+                e.printStackTrace();
+                System.exit(1);
             }
         }
         tmpDirectories.clear();
-        if (x != null) {
-           // do not wrap this pending JENKINS-60308
-           throw x;
-        }
     }
 
     /**
@@ -115,13 +115,29 @@ public class TemporaryDirectoryAllocator {
 
         new Thread("Disposing "+base) {
             public void run() {
-                for (File dir : tbr)
+                for (File dir : tbr) {
+                    LOGGER.info(() -> "deleting " + dir);
                     try {
-                        new FilePath(dir).deleteRecursive();
-                    } catch (IOException | InterruptedException e) {
-                        e.printStackTrace();
+                        delete(dir.toPath());
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, null, e);
                     }
+                }
             }
         }.start();
     }
+
+    private void delete(Path p) throws IOException {
+        LOGGER.fine(() -> "deleting " + p);
+        if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(p)) {
+                Iterator<Path> it = children.iterator();
+                while (it.hasNext()) {
+                    delete(it.next());
+                }
+            }
+        }
+        Files.deleteIfExists(p);
+    }
+
 }
