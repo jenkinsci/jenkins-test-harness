@@ -93,7 +93,6 @@ public class TemporaryDirectoryAllocator {
      * Deletes all allocated temporary directories.
      */
     public synchronized void dispose() throws IOException, InterruptedException {
-        System.gc();
         for (File dir : tmpDirectories) {
             LOGGER.info(() -> "deleting " + dir);
             delete(dir.toPath());
