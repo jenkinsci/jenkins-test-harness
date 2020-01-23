@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -125,9 +124,8 @@ public class TemporaryDirectoryAllocator {
         LOGGER.fine(() -> "deleting " + p);
         if (Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)) {
             try (DirectoryStream<Path> children = Files.newDirectoryStream(p)) {
-                Iterator<Path> it = children.iterator();
-                while (it.hasNext()) {
-                    delete(it.next());
+                for (Path child : children) {
+                    delete(child);
                 }
             }
         }
