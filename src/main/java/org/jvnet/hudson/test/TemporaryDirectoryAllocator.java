@@ -23,8 +23,10 @@
  */
 package org.jvnet.hudson.test;
 
+import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -129,7 +131,13 @@ public class TemporaryDirectoryAllocator {
                 }
             }
         }
-        Files.deleteIfExists(p);
+        try {
+            Files.deleteIfExists(p);
+        } catch (DirectoryNotEmptyException x) {
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(p)) {
+                throw new IOException(Iterables.toString(children), x);
+            }
+        }
     }
 
 }
