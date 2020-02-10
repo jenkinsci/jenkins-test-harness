@@ -1506,17 +1506,23 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertThat("needle found in haystack", found, is(true));
     }
 
+
+    public void assertImageLoadsSuccessfully(HtmlImage img) {
+        try {
+            assertEquals(img.getWebResponse(true).getStatusCode(), 200);
+        } catch (IOException e) {
+            throw new Error("Failed to load "+img.getSrcAttribute());
+        }
+    }
+
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
      */
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
-            try {
-                img.getHeight();
-            } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
-            }
+            assertImageLoadsSuccessfully(img);
         }
     }
 
