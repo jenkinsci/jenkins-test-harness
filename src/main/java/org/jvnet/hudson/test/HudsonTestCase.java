@@ -952,15 +952,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         assertTrue("needle found in haystack", found); 
     }
 
-    public void assertImageLoadsSuccessfully(HtmlImage img) {
-        try {
-            assertEquals("Failed to load " + img.getSrcAttribute(),
-                    200,
-                    img.getWebResponse(true).getStatusCode());
-        } catch (IOException e) {
-            throw new AssertionError("Failed to load " + img.getSrcAttribute());
-        }
-    }
 
     /**
      * Makes sure that all the images in the page loads successfully.
@@ -968,7 +959,13 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
-            assertImageLoadsSuccessfully(img);
+            try {
+                assertEquals("Failed to load " + img.getSrcAttribute(),
+                        200,
+                        img.getWebResponse(true).getStatusCode());
+            } catch (IOException e) {
+                throw new AssertionError("Failed to load " + img.getSrcAttribute());
+            }
         }
     }
 
