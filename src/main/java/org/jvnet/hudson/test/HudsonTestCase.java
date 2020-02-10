@@ -174,6 +174,8 @@ import java.net.HttpURLConnection;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Base class for all Jenkins test cases.
  *
@@ -950,17 +952,23 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         assertTrue("needle found in haystack", found); 
     }
 
+    public void assertImageLoadsSuccessfully(HtmlImage img) {
+        try {
+            assertEquals("Failed to load " + img.getSrcAttribute(),
+                    200,
+                    img.getWebResponse(true).getStatusCode());
+        } catch (IOException e) {
+            throw new Error("Failed to load " + img.getSrcAttribute());
+        }
+    }
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
      */
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
-            try {
-                img.getHeight();
-            } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
-            }
+            assertImageLoadsSuccessfully(img);
         }
     }
 
