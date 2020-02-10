@@ -1511,7 +1511,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         try {
             assertEquals(img.getWebResponse(true).getStatusCode(), 200);
         } catch (IOException e) {
-            throw new Error("Failed to load "+img.getSrcAttribute());
+            throw new Error("Failed to load " + img.getSrcAttribute());
         }
     }
 
