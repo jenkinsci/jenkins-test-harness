@@ -2682,6 +2682,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         {// enable debug assistance, since tests are often run from IDE
             Dispatcher.TRACE = true;
             MetaClass.NO_CACHE=true;
+            System.setProperty("jenkins.model.Jenkins.SHOW_STACK_TRACE", "true");
             // load resources from the source dir.
             File dir = new File("src/main/resources");
             if(dir.exists() && MetaClassLoader.debugLoader==null)
