@@ -155,10 +155,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.jar.Manifest;
@@ -216,7 +212,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import hudson.console.PlainTextConsoleOutputStream;
+import hudson.console.AnnotatedLargeText;
 import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.Slave;
@@ -225,7 +221,7 @@ import hudson.model.queue.QueueTaskFuture;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -1047,19 +1043,26 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
-        if (!s.getLauncher().isLaunchSupported()) {
-            while (!computer.isOnline()) {
+        AtomicBoolean run = new AtomicBoolean(true);
+        AnnotatedLargeText<?> logText = computer.getLogText();
+        Computer.threadPoolForRemoting.submit(() -> {
+            long pos = 0;
+            while (run.get() && !logText.isComplete()) {
+                pos = logText.writeLogTo(pos, System.out);
                 Thread.sleep(100);
             }
-            return;
-        }
+            return null;
+        });
         try {
-            computer.connect(false).get();
-        } catch (ExecutionException x) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PlainTextConsoleOutputStream ptcos = new PlainTextConsoleOutputStream(baos);
-            ptcos.write(computer.getLog().getBytes());
-            throw new AssertionError("failed to connect " + s.getNodeName() + ": " + baos, x);
+            if (s.getLauncher().isLaunchSupported()) {
+                computer.connect(false).get();
+            } else {
+                while (!computer.isOnline()) {
+                    Thread.sleep(100);
+                }
+            }
+        } finally {
+            run.set(false);
         }
     }
 
