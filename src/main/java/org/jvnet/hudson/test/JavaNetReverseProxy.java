@@ -8,7 +8,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -34,8 +34,9 @@ public class JavaNetReverseProxy extends HttpServlet {
     public JavaNetReverseProxy(File cacheFolder) throws Exception {
         this.cacheFolder = cacheFolder;
         cacheFolder.mkdirs();
-
-        server = new Server();
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (JavaNetReverseProxy)");
+        server = new Server(qtp);
 
         ContextHandlerCollection contexts = new ContextHandlerCollection();
         server.setHandler(contexts);

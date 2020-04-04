@@ -197,6 +197,7 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.security.Password;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
@@ -220,7 +221,6 @@ import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.Slave;
 import hudson.model.queue.QueueTaskFuture;
-import hudson.slaves.JNLPLauncher;
 
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
@@ -231,7 +231,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.MasterToSlaveCallable;
-import org.hamcrest.core.IsInstanceOf;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
@@ -509,21 +508,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             try {
                 env.dispose();
-            } catch (Exception x) {
-                x.printStackTrace();
-            }
+            } finally {
+                // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+                // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+                // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+                // see http://bugs.sun.com/view_bug.do?bug_id=4950148
+                // TODO use URLClassLoader.close() in Java 7
+                System.gc();
 
-            // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-            // TODO use URLClassLoader.close() in Java 7
-            System.gc();
-            
-            // restore defaultUseCache
-            if(Functions.isWindows()) {
-                URLConnection aConnection = new File(".").toURI().toURL().openConnection();
-                aConnection.setDefaultUseCaches(origDefaultUseCache);
+                // restore defaultUseCache
+                if(Functions.isWindows()) {
+                    URLConnection aConnection = new File(".").toURI().toURL().openConnection();
+                    aConnection.setDefaultUseCaches(origDefaultUseCache);
+                }
             }
         }
     }
@@ -737,13 +734,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                                                          ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        Server server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setName("Jetty Thread Pool");
-                return t;
-            }
-        })));
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (JenkinsRule)");
+        Server server = new Server(qtp);
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
         context.setClassLoader(classLoader);
@@ -754,7 +747,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
-        ServerConnector connector = new ServerConnector(server, 1, 1);
+        ServerConnector connector = new ServerConnector(server);
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
@@ -1054,7 +1047,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
-        if (s.getLauncher() instanceof JNLPLauncher) {
+        if (!s.getLauncher().isLaunchSupported()) {
             while (!computer.isOnline()) {
                 Thread.sleep(100);
             }
@@ -1370,22 +1363,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return assertBuildStatus(Result.SUCCESS, r);
     }
 
-    public <J extends Job<J,R>,R extends Run<J,R>> R buildAndAssertSuccess(final J job) throws Exception {
-        assertThat(job, IsInstanceOf.instanceOf(ParameterizedJobMixIn.ParameterizedJob.class));
-        QueueTaskFuture f = new ParameterizedJobMixIn() {
-            @Override protected Job asJob() {
+    @Nonnull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
+        return buildAndAssertStatus(Result.SUCCESS, job);
+    }
+
+    /**
+     * Runs specified job and asserts that in finished with given build result.
+     * @since TODO
+     */
+    @Nonnull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
+        final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
+            @Override protected J asJob() {
                 return job;
             }
         }.scheduleBuild2(0);
-        @SuppressWarnings("unchecked") // no way to make this compile checked
-        Future<R> f2 = f;
-        return assertBuildStatusSuccess(f2);
+        return assertBuildStatus(status, f);
     }
 
     /**
      * Avoids need for cumbersome {@code this.<J,R>buildAndAssertSuccess(...)} type hints under JDK 7 javac (and supposedly also IntelliJ).
      */
-    public FreeStyleBuild buildAndAssertSuccess(FreeStyleProject job) throws Exception {
+    @Nonnull
+    public FreeStyleBuild buildAndAssertSuccess(@Nonnull FreeStyleProject job) throws Exception {
         return assertBuildStatusSuccess(job.scheduleBuild2(0));
     }
 
@@ -1505,6 +1506,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertThat("needle found in haystack", found, is(true));
     }
 
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
@@ -1512,9 +1514,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                img.getHeight();
+                assertEquals("Failed to load " + img.getSrcAttribute(),
+                        200,
+                        img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
+                throw new AssertionError("Failed to load " + img.getSrcAttribute());
             }
         }
     }
@@ -2681,6 +2685,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         {// enable debug assistance, since tests are often run from IDE
             Dispatcher.TRACE = true;
             MetaClass.NO_CACHE=true;
+            System.setProperty("jenkins.model.Jenkins.SHOW_STACK_TRACE", "true");
             // load resources from the source dir.
             File dir = new File("src/main/resources");
             if(dir.exists() && MetaClassLoader.debugLoader==null)

@@ -133,6 +133,7 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.security.Password;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
@@ -172,6 +173,8 @@ import java.net.HttpURLConnection;
 
 
 import jenkins.model.JenkinsLocationConfiguration;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Base class for all Jenkins test cases.
@@ -504,13 +507,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setName("Jetty Thread Pool");
-                return t;
-            }
-        })));
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (HudsonTestCase)");
+        server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
         WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);
@@ -953,6 +952,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         assertTrue("needle found in haystack", found); 
     }
 
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
@@ -960,9 +960,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                img.getHeight();
+                assertEquals("Failed to load " + img.getSrcAttribute(),
+                        200,
+                        img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
+                throw new AssertionError("Failed to load " + img.getSrcAttribute());
             }
         }
     }

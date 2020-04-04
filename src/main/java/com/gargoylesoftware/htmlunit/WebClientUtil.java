@@ -51,7 +51,7 @@ public class WebClientUtil {
      * Wait for all async JavaScript tasks associated with the supplied {@link WebClient} instance
      * to complete.
      * @param webClient The {@link WebClient} instance.
-     * @param timeout The timeout in milliseconds.                  
+     * @param timeout The timeout in milliseconds.
      */
     public static void waitForJSExec(WebClient webClient, long timeout) {
         webClient.getJavaScriptEngine().processPostponedActions();
@@ -135,6 +135,13 @@ public class WebClientUtil {
          */
         @Override
         public void loadScriptError(HtmlPage htmlPage, URL scriptUrl, Exception exception) {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void warn(String message, String sourceName, int line, String lineSource, int lineOffset) {
         }
     }
 }
