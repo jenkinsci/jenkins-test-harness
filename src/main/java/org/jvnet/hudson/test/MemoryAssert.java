@@ -24,7 +24,7 @@
 
 package org.jvnet.hudson.test;
 
-import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
@@ -156,7 +156,7 @@ public class MemoryAssert {
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
      */
-    @SuppressWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
         // Disabled on Java 9+, because below will call Netbeans Insane Engine, which in turns tries to call setAccessible
         /* TODO version-number 1.6+:
@@ -197,6 +197,7 @@ public class MemoryAssert {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
                     }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
+                    System.err.println(softErr);
                 }
             }
         }

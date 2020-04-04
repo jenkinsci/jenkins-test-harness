@@ -10,6 +10,8 @@ import org.junit.runners.model.Statement;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.ServerSocket;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -62,7 +64,37 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     public File home;
 
+    /**
+     * TCP/IP port that the server is listening on.
+     */
+    private final int port;
+
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
+
+    public static class Builder {
+        private int port;
+
+        public Builder() {
+            this.port = 0;
+        }
+
+        public Builder withReusedPort() {
+            this.port = getRandomPort();
+            return this;
+        }
+
+        public RestartableJenkinsRule build() {
+            return new RestartableJenkinsRule(this.port);
+        }
+    }
+
+    public RestartableJenkinsRule() {
+        this.port = 0;
+    }
+
+    private RestartableJenkinsRule(int port) {
+        this.port = port;
+    }
 
     @Override
     public Statement apply(final Statement base, FrameworkMethod method, Object target) {
@@ -279,7 +311,18 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     protected JenkinsRule createJenkinsRule(Description description) {
-        return new JenkinsRule();
+        JenkinsRule result = new JenkinsRule();
+        if (port != 0) {
+            result.localPort = port;
+        }
+        return result;
     }
 
+    private static synchronized int getRandomPort() {
+        try (ServerSocket s = new ServerSocket(0)) {
+            return s.getLocalPort();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to find free port", e);
+        }
+    }
 }

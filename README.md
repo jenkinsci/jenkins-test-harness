@@ -1,4 +1,7 @@
 # Jenkins Unit Test Harness
+
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/jenkins-test-harness.svg?label=release)](https://github.com/jenkinsci/jenkins-test-harness/releases/latest)
+
 Defines test harness for Jenkins core and plugins that you can use during the `mvn test` phase.
 See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 
@@ -7,6 +10,13 @@ See [wiki page](//wiki.jenkins-ci.org/display/JENKINS/Unit+Test)
 See https://javadoc.jenkins.io/component/jenkins-test-harness/
 
 ## Changelog
+
+| WARNING: Changelogs have been moved to [GitHub Releases](https://github.com/jenkinsci/jenkins-test-harness/releases) |
+| --- |
+
+## New releases
+
+See [GitHub Releases](https://github.com/jenkinsci/jenkins-test-harness/releases).
 
 ### 2.49 (2019 Apr 02)
 

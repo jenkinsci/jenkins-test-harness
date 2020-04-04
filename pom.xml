@@ -28,13 +28,13 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.51</version>
+    <version>1.52</version>
     <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
-  <version>2.50-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
@@ -43,17 +43,16 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
     <url>https://github.com/jenkinsci/${project.artifactId}</url>
-    <tag>HEAD</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <properties>
+    <revision>2.56</revision>
+    <changelist>-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.4.5.v20170502</jetty.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix upper bounds -->
-    <!--Upper bounds: com.google.guava:guava:11.0.1, and com.google.code.findbugs:jsr305:1.3.9. Core update is needed-->
-    <enforcer.skip>true</enforcer.skip>
     <!--TODO: fix FindBugs-->
     <findbugs.failOnError>false</findbugs.failOnError>
   </properties>
@@ -147,12 +146,12 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE72</version>
+      <version>RELEASE802</version>
     </dependency>
     <dependency>
-      <groupId>com.github.stephenc.findbugs</groupId>
-      <artifactId>findbugs-annotations</artifactId>
-      <version>1.3.9-1</version>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-annotations</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
@@ -170,8 +169,17 @@ THE SOFTWARE.
       <artifactId>classgraph</artifactId>
       <version>4.4.7</version>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>1.21</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>1.21</version>
+    </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -184,6 +192,25 @@ THE SOFTWARE.
         <artifactId>maven-stapler-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <rules>
+            <requireUpperBoundDeps>
+              <excludes combine.children="append">
+                <!--
+                  Stapler requests Guava 14.0 and Jenkins core requests Guice 4.0 which requests
+                  Guava 16.0.1. Core actually provides 11.0.1. Work around this mess by just
+                  excluding Guava from the RequireUpperBoundDeps check. The long-term fix is
+                  tracked in JENKINS-36779.
+                -->
+                <exclude>com.google.guava:guava</exclude>
+              </excludes>
+            </requireUpperBoundDeps>
+          </rules>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -204,9 +231,9 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>1.7.1</version>
         <executions>
           <execution>
             <id>preset-packager</id>
@@ -215,7 +242,9 @@ THE SOFTWARE.
               <goal>execute</goal>
             </goals>
             <configuration>
-              <source>${pom.basedir}/src/main/preset-data/package.groovy</source>
+              <scripts>
+                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
+              </scripts>
             </configuration>
           </execution>
         </executions>
@@ -223,23 +252,9 @@ THE SOFTWARE.
           <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.8.0</version>
-          </dependency>
-          <!-- Usually a dependency of ant, but some people seem to have an incomplete ant POM. See JENKINS-11416 -->
-          <dependency>
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant-launcher</artifactId>
-            <version>1.8.0</version>
-          </dependency>
-          <dependency>
-            <groupId>org.codehaus.gmaven.runtime</groupId>
-            <artifactId>gmaven-runtime-2.0</artifactId>
-            <version>1.5-jenkins-1</version>
+            <version>1.10.6</version>
           </dependency>
         </dependencies>
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-        </configuration>
       </plugin>
     </plugins>
   </build>
