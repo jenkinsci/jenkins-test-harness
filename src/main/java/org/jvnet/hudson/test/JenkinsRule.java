@@ -159,6 +159,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.jar.Manifest;
@@ -712,8 +713,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
+        return createWebServer(null);
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * that we need for testing.
+     * 
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @since 2.63
+     */
+    protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer) throws Exception {
         ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
-                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm);
+                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm, contextAndServerConsumer);
         server = results.left;
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
         return results.right;
@@ -733,6 +745,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
                                                                          ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
+            throws Exception {
+        return _createWebServer(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+    }
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath              the context path at which to put Jenkins
+     * @param portSetter               the port on which the server runs will be set using this function
+     * @param classLoader              the class loader for the {@link WebAppContext}
+     * @param localPort                port on which the server runs
+     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
+     * @since 2.50
+     */
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
+                                                                         ClassLoader classLoader, int localPort,
+                                                                         Supplier<LoginService> loginServiceSupplier,
+                                                                         @CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (JenkinsRule)");
@@ -759,6 +790,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         server.addConnector(connector);
+        if (contextAndServerConsumer != null) {
+            contextAndServerConsumer.accept(context, server);
+        }
         server.start();
 
         portSetter.accept(connector.getLocalPort());
