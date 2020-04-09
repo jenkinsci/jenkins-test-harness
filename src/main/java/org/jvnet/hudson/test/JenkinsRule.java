@@ -1461,7 +1461,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public <R extends Run<?,?>> R waitForCompletion(R r) throws InterruptedException {
         // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
-        while (r.isBuilding()) {
+        while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
         return r;
