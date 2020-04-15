@@ -1398,7 +1398,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
         return buildAndAssertStatus(Result.SUCCESS, job);
     }
 
@@ -1407,7 +1407,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
         final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
             @Override protected J asJob() {
                 return job;
