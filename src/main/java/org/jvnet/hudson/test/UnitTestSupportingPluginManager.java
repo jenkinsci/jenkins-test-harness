@@ -44,11 +44,16 @@ import java.util.Set;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.servlet.ServletContext;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 
 /**
+ * {@link PluginManager} that can work with unit tests where dependencies are just jars.
  * {@link PluginManager} to speed up unit tests.
+ * 
  *
  * <p>
  * Instead of loading every plugin for every test case, this allows them to reuse a single plugin manager.
@@ -59,12 +64,10 @@ import org.junit.Assert;
  * @author Kohsuke Kawaguchi
  * @see HudsonTestCase#useLocalPluginManager
  */
-public class TestPluginManager extends PluginManager {
-    public static final PluginManager INSTANCE;
+public class UnitTestSupportingPluginManager extends PluginManager {
 
-    public TestPluginManager() throws IOException {
-        // TestPluginManager outlives a Jetty server, so can't pass in ServletContext.
-        super(null, Util.createTempDir());
+    public UnitTestSupportingPluginManager(File rootDir) {
+        super(null, new File(rootDir, "plugins"));
     }
 
     /** @see LocalPluginManager#loadBundledPlugins */
@@ -163,51 +166,13 @@ public class TestPluginManager extends PluginManager {
      * @param shortName {@code cvs} for example
      */
     public void installDetachedPlugin(String shortName) throws Exception {
-        URL r = TestPluginManager.class.getClassLoader().getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
+        URL r = UnitTestSupportingPluginManager.class.getClassLoader().getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
         Assert.assertNotNull("could not find " + shortName, r);
         File f = new File(rootDir, shortName + ".hpi");
         FileUtils.copyURLToFile(r, f);
         dynamicLoad(f);
     }
-    
-    // Overwrite PluginManager#stop, not to release plugins in each tests.
-    // Releasing plugins result fail to access files in webapp directory in following tests.
-    @Override
-    public void stop() {
-        for (PluginWrapper p : activePlugins)
-            p.stop();
-    }
 
-    /**
-     * As we don't actually shut down classloaders, we instead provide this method that does
-     * what {@link #stop()} normally does.
-     */
-    private void reallyStop() {
-        super.stop();
-    }
+    private static final Logger LOGGER = Logger.getLogger(UnitTestSupportingPluginManager.class.getName());
 
-    private static final Logger LOGGER = Logger.getLogger(TestPluginManager.class.getName());
-
-    static {
-        try {
-            INSTANCE = new TestPluginManager();
-            Runtime.getRuntime().addShutdownHook(new Thread("delete " + INSTANCE.rootDir) {
-                @Override public void run() {
-                    // Shutdown and release plugins as in PluginManager#stop
-                    ((TestPluginManager)INSTANCE).reallyStop();
-
-                    // allow JVM cleanup handles of jar files...
-                    System.gc();
-
-                    try {
-                        Util.deleteRecursive(INSTANCE.rootDir);
-                    } catch (IOException x) {
-                        x.printStackTrace();
-                    }
-                }
-            });
-        } catch (IOException e) {
-            throw new Error(e);
-        }
-    }
 }
