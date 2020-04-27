@@ -87,7 +87,6 @@ public class RestartableJenkinsRuleTest {
             Files.copy(srcLdap, dstLdap);
             //jr.getPluginManager().doCheckUpdatesServer();
             //jr.getPluginManager().install(Collections.singletonList("cvs"),true);
-            System.out.println("hello");
         });
         
         noPortReuse.then(jr -> {
@@ -99,9 +98,9 @@ public class RestartableJenkinsRuleTest {
         });
 
         noPortReuse.then(jr -> {
-            assertFalse("workflow-job is not enabled",
+            assertFalse(pluginId + " is not enabled",
                         jr.jenkins.getPluginManager().getPlugin(pluginId).isEnabled());
-            assertFalse("workflow-job should not be active",
+            assertFalse(pluginId + " should not be active",
                         jr.jenkins.getPluginManager().getPlugin(pluginId).isActive());
         });
     }
