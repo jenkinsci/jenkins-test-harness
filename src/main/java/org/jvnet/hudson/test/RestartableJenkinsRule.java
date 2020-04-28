@@ -45,7 +45,7 @@ import java.util.logging.Logger;
  * <p>
  * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
  * will need to be changed to {@link UnitTestSupportingPluginManager}.
- * This can be accomplished by annotating the test with {@Code @WithPluginManager(UnitTestSupportingPluginManager.class)}.
+ * This can be accomplished by annotating the test with {@code @WithPluginManager(UnitTestSupportingPluginManager.class)}.
  * 
  * @author Kohsuke Kawaguchi
  * @see JenkinsRule
