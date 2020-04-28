@@ -61,7 +61,7 @@ public class TestPluginManager extends UnitTestSupportingPluginManager {
 
     /**
      * As we don't actually shut down classloaders, we instead provide this method that does
-     * what {@link #stop()} normally does.
+     * what {@link PluginManager#stop()} normally does.
      */
     private void reallyStop() {
         super.stop();
