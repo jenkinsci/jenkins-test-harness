@@ -1,11 +1,15 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
+
+import hudson.PluginManager;
+
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.recipes.WithPluginManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,9 +40,13 @@ import java.util.logging.Logger;
  * then from your test method, call {@link #step(Closure)} or {@link #addStep(Statement)} repeatedly.
  *
  * <p>
- * The rule will evaluate your test method to collect all steps, then execute them in turn and restart
- * Jenkins in between.
- *
+ * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
+ * between.
+ * <p>
+ * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
+ * will need to be changed to {@link UnitTestSupportingPluginManager}.
+ * This can be accomplished by annotating the test with {@code @WithPluginManager(UnitTestSupportingPluginManager.class)}.
+ * 
  * @author Kohsuke Kawaguchi
  * @see JenkinsRule
  * @since 1.567
