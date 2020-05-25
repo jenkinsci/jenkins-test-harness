@@ -24,7 +24,6 @@
 package org.jvnet.hudson.test.recipes;
 
 import org.jvnet.hudson.test.HudsonTestCase;
-import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.lang.annotation.Documented;
@@ -38,12 +37,14 @@ import java.lang.annotation.Target;
  *
  * All the tests time out after some number of seconds by default, but this recipe
  * allows you to override that value.
+ * 
+ * No need for @JenkinsRecipe in JUnit 4 as it's implemented directly in {@link JenkinsRule} 
+ * by the private method: getTestTimeoutOverride.
  *
  * @author Kohsuke Kawaguchi
  */
 @Documented
 @Recipe(WithTimeout.RunnerImpl.class)
-@JenkinsRecipe(WithTimeout.RunnerImpl4.class)
 @Target(METHOD)
 @Retention(RUNTIME)
 public @interface WithTimeout {
@@ -62,17 +63,8 @@ public @interface WithTimeout {
     class RunnerImpl extends Recipe.Runner<WithTimeout> {
         @Override
         public void setup(HudsonTestCase testCase, WithTimeout recipe) throws Exception {
+            System.out.println("RunnerImpl call");
             testCase.timeout = recipe.value();
-        }
-    }
-
-    /**
-     * For JUnit 4 tests using JenkinsRule
-     */
-    class RunnerImpl4 extends JenkinsRecipe.Runner<WithTimeout> {
-        @Override 
-        public void setup(JenkinsRule jenkinsRule, WithTimeout recipe) throws Exception {
-            jenkinsRule.timeout = recipe.value();
         }
     }
 }
