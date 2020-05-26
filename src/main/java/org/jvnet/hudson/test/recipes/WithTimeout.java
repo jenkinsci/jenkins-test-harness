@@ -37,14 +37,13 @@ import java.lang.annotation.Target;
  *
  * All the tests time out after some number of seconds by default, but this recipe
  * allows you to override that value.
- * 
- * No need for @JenkinsRecipe in JUnit 4 as it's implemented directly in {@link JenkinsRule} 
- * by the private method: getTestTimeoutOverride.
  *
  * @author Kohsuke Kawaguchi
  */
 @Documented
 @Recipe(WithTimeout.RunnerImpl.class)
+// No need for @JenkinsRecipe in JUnit 4 as it's implemented directly in JenkinsRule 
+// by the private method: getTestTimeoutOverride.
 @Target(METHOD)
 @Retention(RUNTIME)
 public @interface WithTimeout {
