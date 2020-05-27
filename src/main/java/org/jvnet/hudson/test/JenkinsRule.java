@@ -322,6 +322,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Number of seconds until the test times out.
+     * 
+     * The {@link WithTimeout} rule can be used to specify this value per test.
+     * 
+     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes. 
      */
     public int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 180);
 

@@ -159,7 +159,7 @@ public class JenkinsRuleTimeoutTest {
     @Test 
     @WithTimeout(15)
     public void withTimeoutPropagation() throws Exception {
-        Thread.sleep(1000 * 15);
+        Thread.sleep(1000 * 20);
         fail("Should have been interrupted");
     }
 }
