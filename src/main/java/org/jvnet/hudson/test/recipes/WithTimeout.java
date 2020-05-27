@@ -62,7 +62,6 @@ public @interface WithTimeout {
     class RunnerImpl extends Recipe.Runner<WithTimeout> {
         @Override
         public void setup(HudsonTestCase testCase, WithTimeout recipe) throws Exception {
-            System.out.println("RunnerImpl call");
             testCase.timeout = recipe.value();
         }
     }
