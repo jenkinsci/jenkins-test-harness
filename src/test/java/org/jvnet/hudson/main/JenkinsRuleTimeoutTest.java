@@ -156,9 +156,10 @@ public class JenkinsRuleTimeoutTest {
         }
     }
 
-    @Test @WithTimeout(20)
+    @Test 
+    @WithTimeout(15)
     public void withTimeoutPropagation() throws Exception {
-        Thread.sleep(1000 * 30);
+        Thread.sleep(1000 * 20);
         fail("Should have been interrupted");
     }
 }
