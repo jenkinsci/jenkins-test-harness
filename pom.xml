@@ -51,7 +51,7 @@ THE SOFTWARE.
     <revision>2.65</revision>
     <changelist>-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.29.v20200521</jetty.version>
+    <jetty.version>9.4.30.v20200611</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.23</jmh.version>
     <java.level>8</java.level>
