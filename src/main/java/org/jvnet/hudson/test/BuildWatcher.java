@@ -130,7 +130,7 @@ public final class BuildWatcher extends ExternalResource {
                 // Anyway we can just rely on onFinalized to let us know when to stop.
             } catch (FileNotFoundException x) {
                 // build deleted or not started
-            } catch (Exception x) {
+            } catch (Throwable x) {
                 if (Jenkins.getInstance() != null) {
                     x.printStackTrace();
                 } else {
