@@ -591,12 +591,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 t.setName("Executing "+ testDescription.getDisplayName());
                 System.out.println("=== Starting " + testDescription.getDisplayName());
                 before();
+                Throwable testFailure = null;
                 try {
                     // so that test code has all the access to the system
                     ACL.impersonate(ACL.SYSTEM);
                     try {
                         base.evaluate();
                     } catch (Throwable th) {
+                        testFailure = th;
                         // allow the late attachment of a debugger in case of a failure. Useful
                         // for diagnosing a rare failure
                         try {
@@ -611,9 +613,20 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         throw th;
                     }
                 } finally {
-                    after();
-                    testDescription = null;
-                    t.setName(o);
+                    try {
+                        after();
+                    } catch (Exception e) {
+                        if (testFailure != null) {
+                            // Exceptions thrown by the test itself are more important than those thrown during cleanup.
+                            testFailure.addSuppressed(e);
+                            throw testFailure;
+                        } else {
+                            throw e;
+                        }
+                    } finally {
+                        testDescription = null;
+                        t.setName(o);
+                    }
                 }
             }
         };
