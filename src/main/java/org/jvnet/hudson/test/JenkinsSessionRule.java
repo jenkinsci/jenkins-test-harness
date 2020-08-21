@@ -28,27 +28,21 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.After;
-import org.junit.rules.MethodRule;
+import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 /**
  * Simpler alternative to {@link RestartableJenkinsRule}.
  * Most critically, {@link #then} runs immediately, so this rule plays nicely with things like {@link After}.
  */
-public class JenkinsSessionRule implements MethodRule {
+public class JenkinsSessionRule implements TestRule {
 
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
 
     private Description description;
 
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
-
-    /**
-     * Object that defines a test.
-     */
-    private Object target;
 
     /**
      * JENKINS_HOME needs to survive restarts, so we allocate our own.
@@ -61,9 +55,8 @@ public class JenkinsSessionRule implements MethodRule {
      */
     private int port;
 
-    @Override public Statement apply(final Statement base, FrameworkMethod method, Object target) {
-        this.description = Description.createTestDescription(method.getMethod().getDeclaringClass(), method.getName(), method.getAnnotations());
-        this.target = target;
+    @Override public Statement apply(final Statement base, Description description) {
+        this.description = description;
         return new Statement() {
             @Override public void evaluate() throws Throwable {
                 try {
@@ -96,7 +89,6 @@ public class JenkinsSessionRule implements MethodRule {
         r.apply(new Statement() {
             @Override public void evaluate() throws Throwable {
                 port = r.getPort();
-                r.jenkins.getInjector().injectMembers(target);
                 s.run(r);
             }
         }, description).evaluate();
