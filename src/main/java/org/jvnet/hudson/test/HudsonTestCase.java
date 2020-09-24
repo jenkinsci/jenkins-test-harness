@@ -1368,7 +1368,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Sometimes a part of a test case may ends up creeping into the serialization tree of {@link Saveable#save()},
      * so detect that and flag that as an error. 
      */
-    private Object writeReplace() {
+    protected Object writeReplace() {
         throw new AssertionError("HudsonTestCase "+getName()+" is not supposed to be serialized");
     }
 

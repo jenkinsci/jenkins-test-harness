@@ -2163,7 +2163,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Sometimes a part of a test case may ends up creeping into the serialization tree of {@link hudson.model.Saveable#save()},
      * so detect that and flag that as an error.
      */
-    private Object writeReplace() {
+    protected Object writeReplace() {
         throw new AssertionError("JenkinsRule " + testDescription.getDisplayName() + " is not supposed to be serialized");
     }
 
