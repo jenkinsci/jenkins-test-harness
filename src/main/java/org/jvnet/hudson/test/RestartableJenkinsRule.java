@@ -136,7 +136,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     /**
-     * Use {@link #then} instead.
+     * @deprecated Use {@link #then} instead.
      */
     @Deprecated
     public void step(final Closure c) {
@@ -274,7 +274,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     /**
-     * Use {@link #then} instead.
+     * @deprecated Use {@link #then} instead.
      */
     @Deprecated
     public void addStep(final Statement step) {
@@ -282,7 +282,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     /**
-     * Use {@link #then} or {@link #thenDoesNotStart} instead.
+     * @deprecated Use {@link #then} or {@link #thenDoesNotStart} instead.
      */
     @Deprecated
     public void addStep(final Statement step, boolean expectedToStartCorrectly) {
@@ -297,7 +297,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     /**
-     * Use {@link #thenWithHardShutdown} instead.
+     * @deprecated Use {@link #thenWithHardShutdown} instead.
      */
     @Deprecated
     public void addStepWithDirtyShutdown(final Statement step) {
