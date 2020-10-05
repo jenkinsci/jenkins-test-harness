@@ -37,11 +37,13 @@ import java.util.logging.Logger;
  *
  * <p>
  * To use this, add this rule instead of {@link JenkinsRule} to the test,
- * then from your test method, call {@link #step(Closure)} or {@link #addStep(Statement)} repeatedly.
- *
+ * then from your test method, call {@link #then} repeatedly.
+ * You may test scenarios related to abrupt shutdowns or failures to start using {@link #thenWithHardShutdown} and
+ * {@link #thenDoesNotStart}.
  * <p>
  * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
- * between.
+ * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
+ * {@link then} is called.
  * <p>
  * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
  * will need to be changed to {@link UnitTestSupportingPluginManager}.
@@ -133,6 +135,10 @@ public class RestartableJenkinsRule implements MethodRule {
         };
     }
 
+    /**
+     * @deprecated Use {@link #then} instead.
+     */
+    @Deprecated
     public void step(final Closure c) {
         addStep(new Statement() {
             @Override
@@ -267,10 +273,18 @@ public class RestartableJenkinsRule implements MethodRule {
         }, false);
     }
 
+    /**
+     * @deprecated Use {@link #then} instead.
+     */
+    @Deprecated
     public void addStep(final Statement step) {
         addStep(step, true);
     }
 
+    /**
+     * @deprecated Use {@link #then} or {@link #thenDoesNotStart} instead.
+     */
+    @Deprecated
     public void addStep(final Statement step, boolean expectedToStartCorrectly) {
         steps.put(new Statement() {
             @Override
@@ -282,9 +296,10 @@ public class RestartableJenkinsRule implements MethodRule {
         }, expectedToStartCorrectly);
     }
 
-    /** Similar to {@link #addStep(Statement)} but we simulate a dirty shutdown after the step, rather than a clean one.
-     *  See {@link #thenWithHardShutdown(Step)} for how this is done.
+    /**
+     * @deprecated Use {@link #thenWithHardShutdown} instead.
      */
+    @Deprecated
     public void addStepWithDirtyShutdown(final Statement step) {
         steps.put(new Statement() {
             @Override
