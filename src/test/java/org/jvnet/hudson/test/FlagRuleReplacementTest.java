@@ -31,7 +31,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 
-public class FlagRuleTest {
+public class FlagRuleReplacementTest {
 
     private static boolean FLAG;
 

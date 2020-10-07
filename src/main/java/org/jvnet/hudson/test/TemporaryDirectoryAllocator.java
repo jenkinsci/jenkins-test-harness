@@ -49,7 +49,8 @@ public class TemporaryDirectoryAllocator {
      * Whether there should be a space character in the allocated temporary directories names.
      * It forces slaves created from a {@link JenkinsRule} to work inside a hazardous path,
      * which can help catching shell quoting bugs.<br>
-     * This option is controlled by the <code>jenkins.test.noSpaceInTmpDirs</code> system property.
+     * If a particular test cannot be readily fixed to tolerate spaces, as a workaround try:
+     * {@code @ClassRule public static TestRule noSpaceInTmpDirs = FlagRule.systemProperty("jenkins.test.noSpaceInTmpDirs", "true");}
      */
     private final boolean withoutSpace = Boolean.getBoolean("jenkins.test.noSpaceInTmpDirs");
 

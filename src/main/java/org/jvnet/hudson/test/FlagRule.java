@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TestRule;
 
 /**
  * Saves and restores sort of a flag, such as a {@code static} field or system property.
@@ -36,24 +35,51 @@ public final class FlagRule<T> extends ExternalResource {
 
     private final Supplier<T> getter;
     private final Consumer<T> setter;
+    private final boolean replace;
     private final T replacement;
     private T orig;
+
+    public FlagRule(Supplier<T> getter, Consumer<T> setter) {
+        this.getter = getter;
+        this.setter = setter;
+        replace = false;
+        replacement = null;
+    }
 
     public FlagRule(Supplier<T> getter, Consumer<T> setter, T replacement) {
         this.getter = getter;
         this.setter = setter;
+        replace = true;
         this.replacement = replacement;
     }
 
     @Override
     protected void before() throws Throwable {
         orig = getter.get();
-        setter.accept(replacement);
+        if (replace) {
+            setter.accept(replacement);
+        }
     }
 
     @Override
     protected void after() {
         setter.accept(orig);
+    }
+
+    public static FlagRule<String> systemProperty(String key) {
+        return new FlagRule<>(() -> System.getProperty(key), value -> setProperty(key, value));
+    }
+
+    public static FlagRule<String> systemProperty(String key, String replacement) {
+        return new FlagRule<>(() -> System.getProperty(key), value -> setProperty(key, value), replacement);
+    }
+
+    private static String setProperty(String key, String value) {
+        if (value != null) {
+            return System.setProperty(key, value);
+        } else {
+            return (String) System.getProperties().remove(key);
+        }
     }
 
 }
