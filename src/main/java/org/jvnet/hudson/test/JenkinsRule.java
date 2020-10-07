@@ -155,10 +155,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.jar.Manifest;
@@ -216,7 +213,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import hudson.console.PlainTextConsoleOutputStream;
+import hudson.console.AnnotatedLargeText;
 import hudson.init.InitMilestone;
 import hudson.model.Job;
 import hudson.model.Slave;
@@ -225,7 +222,7 @@ import hudson.model.queue.QueueTaskFuture;
 import java.net.HttpURLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -325,6 +322,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Number of seconds until the test times out.
+     * 
+     * The {@link WithTimeout} rule can be used to specify this value per test.
+     * 
+     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes. 
      */
     public int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 180);
 
@@ -583,12 +584,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 t.setName("Executing "+ testDescription.getDisplayName());
                 System.out.println("=== Starting " + testDescription.getDisplayName());
                 before();
+                Throwable testFailure = null;
                 try {
                     // so that test code has all the access to the system
                     ACL.impersonate(ACL.SYSTEM);
                     try {
                         base.evaluate();
                     } catch (Throwable th) {
+                        testFailure = th;
                         // allow the late attachment of a debugger in case of a failure. Useful
                         // for diagnosing a rare failure
                         try {
@@ -603,9 +606,20 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         throw th;
                     }
                 } finally {
-                    after();
-                    testDescription = null;
-                    t.setName(o);
+                    try {
+                        after();
+                    } catch (Exception e) {
+                        if (testFailure != null) {
+                            // Exceptions thrown by the test itself are more important than those thrown during cleanup.
+                            testFailure.addSuppressed(e);
+                            throw testFailure;
+                        } else {
+                            throw e;
+                        }
+                    } finally {
+                        testDescription = null;
+                        t.setName(o);
+                    }
                 }
             }
         };
@@ -705,8 +719,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
+        return createWebServer(null);
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * that we need for testing.
+     * 
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @since 2.63
+     */
+    protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer) throws Exception {
         ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
-                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm);
+                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm, contextAndServerConsumer);
         server = results.left;
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
         return results.right;
@@ -726,6 +751,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
                                                                          ClassLoader classLoader, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
+            throws Exception {
+        return _createWebServer(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+    }
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath              the context path at which to put Jenkins
+     * @param portSetter               the port on which the server runs will be set using this function
+     * @param classLoader              the class loader for the {@link WebAppContext}
+     * @param localPort                port on which the server runs
+     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
+     * @since 2.50
+     */
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
+                                                                         ClassLoader classLoader, int localPort,
+                                                                         Supplier<LoginService> loginServiceSupplier,
+                                                                         @CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (JenkinsRule)");
@@ -752,6 +796,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         server.addConnector(connector);
+        if (contextAndServerConsumer != null) {
+            contextAndServerConsumer.accept(context, server);
+        }
         server.start();
 
         portSetter.accept(connector.getLocalPort());
@@ -1040,19 +1087,26 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
-        if (!s.getLauncher().isLaunchSupported()) {
-            while (!computer.isOnline()) {
+        AtomicBoolean run = new AtomicBoolean(true);
+        AnnotatedLargeText<?> logText = computer.getLogText();
+        Computer.threadPoolForRemoting.submit(() -> {
+            long pos = 0;
+            while (run.get() && !logText.isComplete()) {
+                pos = logText.writeLogTo(pos, System.out);
                 Thread.sleep(100);
             }
-            return;
-        }
+            return null;
+        });
         try {
-            computer.connect(false).get();
-        } catch (ExecutionException x) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PlainTextConsoleOutputStream ptcos = new PlainTextConsoleOutputStream(baos);
-            ptcos.write(computer.getLog().getBytes());
-            throw new AssertionError("failed to connect " + s.getNodeName() + ": " + baos, x);
+            if (s.getLauncher().isLaunchSupported()) {
+                computer.connect(false).get();
+            } else {
+                while (!computer.isOnline()) {
+                    Thread.sleep(100);
+                }
+            }
+        } finally {
+            run.set(false);
         }
     }
 
@@ -1357,7 +1411,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
         return buildAndAssertStatus(Result.SUCCESS, job);
     }
 
@@ -1366,7 +1420,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
         final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
             @Override protected J asJob() {
                 return job;
@@ -1420,7 +1474,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public <R extends Run<?,?>> R waitForCompletion(R r) throws InterruptedException {
         // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
-        while (r.isBuilding()) {
+        while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
         return r;
@@ -1499,6 +1553,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertThat("needle found in haystack", found, is(true));
     }
 
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
@@ -1506,9 +1561,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                img.getHeight();
+                assertEquals("Failed to load " + img.getSrcAttribute(),
+                        200,
+                        img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
+                throw new AssertionError("Failed to load " + img.getSrcAttribute());
             }
         }
     }
@@ -2099,7 +2156,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Sometimes a part of a test case may ends up creeping into the serialization tree of {@link hudson.model.Saveable#save()},
      * so detect that and flag that as an error.
      */
-    private Object writeReplace() {
+    protected Object writeReplace() {
         throw new AssertionError("JenkinsRule " + testDescription.getDisplayName() + " is not supposed to be serialized");
     }
 
@@ -2675,6 +2732,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         {// enable debug assistance, since tests are often run from IDE
             Dispatcher.TRACE = true;
             MetaClass.NO_CACHE=true;
+            System.setProperty("jenkins.model.Jenkins.SHOW_STACK_TRACE", "true");
             // load resources from the source dir.
             File dir = new File("src/main/resources");
             if(dir.exists() && MetaClassLoader.debugLoader==null)

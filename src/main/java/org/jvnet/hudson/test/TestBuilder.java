@@ -56,5 +56,5 @@ public abstract class TestBuilder extends Builder {
         };
     }
 
-    private Object writeReplace() { return new Object(); }
+    protected Object writeReplace() { return new Object(); }
 }

@@ -174,6 +174,8 @@ import java.net.HttpURLConnection;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Base class for all Jenkins test cases.
  *
@@ -950,6 +952,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         assertTrue("needle found in haystack", found); 
     }
 
+
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
@@ -957,9 +960,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                img.getHeight();
+                assertEquals("Failed to load " + img.getSrcAttribute(),
+                        200,
+                        img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
-                throw new Error("Failed to load "+img.getSrcAttribute(),e);
+                throw new AssertionError("Failed to load " + img.getSrcAttribute());
             }
         }
     }
@@ -1363,7 +1368,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Sometimes a part of a test case may ends up creeping into the serialization tree of {@link Saveable#save()},
      * so detect that and flag that as an error. 
      */
-    private Object writeReplace() {
+    protected Object writeReplace() {
         throw new AssertionError("HudsonTestCase "+getName()+" is not supposed to be serialized");
     }
 
