@@ -48,12 +48,12 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>2.68</revision>
+    <revision>2.69</revision>
     <changelist>-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.31.v20200723</jetty.version>
+    <jetty.version>9.4.32.v20200930</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.25</jmh.version>
+    <jmh.version>1.25.2</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
     <!--TODO: fix FindBugs-->
@@ -256,7 +256,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.10.0</version>
+        <version>1.10.1</version>
         <executions>
           <execution>
             <id>preset-packager</id>
