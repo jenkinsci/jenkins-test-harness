@@ -48,13 +48,9 @@ public class RestartableJenkinsRuleTest {
 
         AtomicInteger port = new AtomicInteger();
         noPortReuse.then(
-                s -> {
-                    port.set(noPortReuse.j.getURL().getPort());
-                });
+                s -> port.set(noPortReuse.j.getURL().getPort()));
         noPortReuse.then(
-                s -> {
-                    assertNotEquals(port.get(), noPortReuse.j.getURL().getPort());
-                });
+                s -> assertNotEquals(port.get(), noPortReuse.j.getURL().getPort()));
     }
 
     @Test
@@ -66,13 +62,9 @@ public class RestartableJenkinsRuleTest {
 
         AtomicInteger port = new AtomicInteger();
         portReuse.then(
-                s -> {
-                    port.set(portReuse.j.getURL().getPort());
-                });
+                s -> port.set(portReuse.j.getURL().getPort()));
         portReuse.then(
-                s -> {
-                    assertEquals(port.get(), portReuse.j.getURL().getPort());
-                });
+                s -> assertEquals(port.get(), portReuse.j.getURL().getPort()));
     }
 
     @Test
