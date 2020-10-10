@@ -96,7 +96,7 @@ public class MockAuthorizationStrategyTest {
     }
 
     @Test
-    public void noPermissionsByDefault() throws Exception {
+    public void noPermissionsByDefault() {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy());
         assertFalse(r.jenkins.getACL().hasPermission(User.get("alice").impersonate(), Jenkins.ADMINISTER));

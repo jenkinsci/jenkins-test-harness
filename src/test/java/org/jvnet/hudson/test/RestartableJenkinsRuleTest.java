@@ -40,7 +40,7 @@ public class RestartableJenkinsRuleTest {
             new RestartableJenkinsRule.Builder().withReusedPort().build();
 
     @Test
-    public void testNoPortReuse() throws Exception {
+    public void testNoPortReuse() {
         assumeThat(
                 "This test requires a custom port to not be set.",
                 System.getProperty("port"),
@@ -54,7 +54,7 @@ public class RestartableJenkinsRuleTest {
     }
 
     @Test
-    public void testPortReuse() throws Exception {
+    public void testPortReuse() {
         assumeThat(
                 "This test requires a custom port to not be set.",
                 System.getProperty("port"),
@@ -69,7 +69,7 @@ public class RestartableJenkinsRuleTest {
 
     @Test
     @WithPluginManager(UnitTestSupportingPluginManager.class)
-    public void pluginsCanBeDisabled() throws Exception {
+    public void pluginsCanBeDisabled() {
         final String pluginId = "display-url-api";
         noPortReuse.then(jr -> {
             System.out.println(WarExploder.getExplodedDir());

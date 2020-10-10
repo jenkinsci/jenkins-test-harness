@@ -50,7 +50,7 @@ public class JenkinsRuleTimeoutTest {
     public RuleChain chain = RuleChain.outerRule(thrown).around(r);
 
     @Test
-    public void hangInterruptiblyInTest() throws Exception {
+    public void hangInterruptiblyInTest() {
         try {
             hangInterruptibly();
         } catch (InterruptedException x) {
@@ -59,12 +59,12 @@ public class JenkinsRuleTimeoutTest {
     }
 
     @Test
-    public void hangUninterruptiblyInTest() throws Exception {
+    public void hangUninterruptiblyInTest() {
         hangUninterruptibly();
     }
 
     @Test
-    public void hangInterruptiblyInShutdown() throws Exception {
+    public void hangInterruptiblyInShutdown() {
         System.err.println("Test itself passed…");
     }
     @TestExtension("hangInterruptiblyInShutdown")
@@ -80,7 +80,7 @@ public class JenkinsRuleTimeoutTest {
     }
 
     @Test
-    public void hangUninterruptiblyInShutdown() throws Exception {
+    public void hangUninterruptiblyInShutdown() {
         System.err.println("Test itself passed…");
     }
     @TestExtension("hangUninterruptiblyInShutdown")
@@ -92,7 +92,7 @@ public class JenkinsRuleTimeoutTest {
     }
 
     @Test
-    public void hangInterruptiblyInStartup() throws Exception {
+    public void hangInterruptiblyInStartup() {
         assert false : "should not get here";
     }
     @TestExtension("hangInterruptiblyInStartup")
@@ -108,7 +108,7 @@ public class JenkinsRuleTimeoutTest {
     }
 
     @Test
-    public void hangUninterruptiblyInStartup() throws Exception {
+    public void hangUninterruptiblyInStartup() {
         assert false : "should not get here";
     }
     @TestExtension("hangUninterruptiblyInStartup")
