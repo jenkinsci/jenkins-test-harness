@@ -349,7 +349,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             d.load();
 
         // allow the test class to inject Jenkins components
-        jenkins.lookup(Injector.class).injectMembers(this);
+        Jenkins.lookup(Injector.class).injectMembers(this);
 
         setUpTimeout();
     }
