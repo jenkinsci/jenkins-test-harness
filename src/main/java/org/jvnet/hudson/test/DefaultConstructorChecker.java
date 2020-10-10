@@ -19,9 +19,7 @@ public class DefaultConstructorChecker extends TestCase {
     protected void runTest() throws Throwable {
         try {
             clazz.getConstructor();
-        } catch (NoSuchMethodException e) {
-            throw new Error(clazz+" must have the default constructor",e);
-        } catch (SecurityException e) {
+        } catch (NoSuchMethodException | SecurityException e) {
             throw new Error(clazz+" must have the default constructor",e);
         }
     }
