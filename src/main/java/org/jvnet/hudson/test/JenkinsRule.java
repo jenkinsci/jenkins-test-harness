@@ -1156,9 +1156,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 @Override public void close() throws SecurityException {}
             };
             handler.setLevel(Level.ALL);
-            loggers.entrySet().forEach(e -> {
-                Logger logger = Logger.getLogger(e.getKey());
-                logger.setLevel(e.getValue());
+            loggers.forEach((key, value) -> {
+                Logger logger = Logger.getLogger(key);
+                logger.setLevel(value);
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
