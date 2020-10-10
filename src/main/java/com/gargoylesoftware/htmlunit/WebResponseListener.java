@@ -30,7 +30,7 @@ public interface WebResponseListener {
         }
 
         public void assertHasResponses() {
-            Assert.assertTrue(!responses.isEmpty());
+            Assert.assertFalse(responses.isEmpty());
         }
 
         public List<WebResponse> getResponses() {
