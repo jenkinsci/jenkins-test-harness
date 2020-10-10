@@ -340,7 +340,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private boolean origDefaultUseCache = true;
 
-    private static final Charset UTF8 = Charset.forName("UTF-8");
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
 
     public Jenkins getInstance() {
         return jenkins;
