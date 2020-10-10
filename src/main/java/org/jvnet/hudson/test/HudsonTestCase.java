@@ -1660,7 +1660,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             com.gargoylesoftware.htmlunit.util.NameValuePair crumb = new com.gargoylesoftware.htmlunit.util.NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                     jenkins.getCrumbIssuer().getCrumb( null ));
-            req.setRequestParameters(Arrays.asList( crumb ));
+            req.setRequestParameters(Collections.singletonList(crumb));
             return req;
         }
         
