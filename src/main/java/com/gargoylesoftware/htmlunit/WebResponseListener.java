@@ -13,7 +13,7 @@ public interface WebResponseListener {
 
     void onLoadWebResponse(WebRequest webRequest, WebResponse webResponse) throws IOException;
 
-    public final class StatusListener implements WebResponseListener {
+    final class StatusListener implements WebResponseListener {
 
         private final int statusCode;
         private final List<WebResponse> responses = new CopyOnWriteArrayList<WebResponse>();
