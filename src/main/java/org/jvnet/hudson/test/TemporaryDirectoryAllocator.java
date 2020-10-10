@@ -38,7 +38,7 @@ public class TemporaryDirectoryAllocator {
     /**
      * Remember allocated directories to delete them later.
      */
-    private final Set<File> tmpDirectories = new HashSet<File>();
+    private final Set<File> tmpDirectories = new HashSet<>();
 
     /**
      * Directory in which we allocate temporary directories.
@@ -110,7 +110,7 @@ public class TemporaryDirectoryAllocator {
      * Deletes all allocated temporary directories asynchronously.
      */
     public synchronized void disposeAsync() {
-        final Set<File> tbr = new HashSet<File>(tmpDirectories);
+        final Set<File> tbr = new HashSet<>(tmpDirectories);
         tmpDirectories.clear();
 
         new Thread("Disposing "+base) {

@@ -87,7 +87,7 @@ public class UnitTestSupportingPluginManager extends PluginManager {
     }
 
     private Set<String> loadBundledPlugins(File fromDir) throws IOException, URISyntaxException {
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
 
         File[] children = fromDir.listFiles();
         if (children!=null) {

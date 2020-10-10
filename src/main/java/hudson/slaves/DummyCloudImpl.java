@@ -70,7 +70,7 @@ public class DummyCloudImpl extends Cloud {
     }
 
     List<NodeProperty<?>> nodeProperties =
-            new ArrayList<NodeProperty<?>>();
+            new ArrayList<>();
 
     public DummyCloudImpl(JenkinsRule rule, int delay) {
         super("test");
@@ -86,7 +86,7 @@ public class DummyCloudImpl extends Cloud {
     }
 
     public Collection<PlannedNode> provision(Label label, int excessWorkload) {
-        List<PlannedNode> r = new ArrayList<PlannedNode>();
+        List<PlannedNode> r = new ArrayList<>();
         if(label!=this.label)   return r;   // provisioning impossible
 
         while(excessWorkload>0) {

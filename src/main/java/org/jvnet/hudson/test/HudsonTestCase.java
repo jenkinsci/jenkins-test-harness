@@ -211,14 +211,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * {@link Runnable}s to be invoked at {@link #tearDown()}.
      */
-    protected List<LenientRunnable> tearDowns = new ArrayList<LenientRunnable>();
+    protected List<LenientRunnable> tearDowns = new ArrayList<>();
 
-    protected List<Runner> recipes = new ArrayList<Runner>();
+    protected List<Runner> recipes = new ArrayList<>();
 
     /**
      * Remember {@link WebClient}s that are created, to release them properly.
      */
-    private List<WebClient> clients = new ArrayList<WebClient>();
+    private List<WebClient> clients = new ArrayList<>();
 
     /**
      * JavaScript "debugger" that provides you information about the JavaScript call stack
@@ -1135,7 +1135,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
         assertEquals("Data bound constructor mismatch. Different type?",lc,rc);
 
-        List<String> primitiveProperties = new ArrayList<String>();
+        List<String> primitiveProperties = new ArrayList<>();
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
@@ -1238,7 +1238,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return;
 
             if (System.currentTimeMillis()-startTime > timeout) {
-                List<Executable> building = new ArrayList<Executable>();
+                List<Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
                         if (e.isBusy())
@@ -1503,7 +1503,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public <V> V executeOnServer(final Callable<V> c) throws Exception {
             final Exception[] t = new Exception[1];
-            final List<V> r = new ArrayList<V>(1);  // size 1 list
+            final List<V> r = new ArrayList<>(1);  // size 1 list
 
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();

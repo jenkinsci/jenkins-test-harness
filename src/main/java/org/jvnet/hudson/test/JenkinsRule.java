@@ -289,14 +289,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * {@link Runnable}s to be invoked at {@link #after()} .
      */
-    protected List<LenientRunnable> tearDowns = new ArrayList<LenientRunnable>();
+    protected List<LenientRunnable> tearDowns = new ArrayList<>();
 
-    protected List<JenkinsRecipe.Runner> recipes = new ArrayList<JenkinsRecipe.Runner>();
+    protected List<JenkinsRecipe.Runner> recipes = new ArrayList<>();
 
     /**
      * Remember {@link WebClient}s that are created, to release them properly.
      */
-    private List<WebClient> clients = new ArrayList<WebClient>();
+    private List<WebClient> clients = new ArrayList<>();
 
     /**
      * JavaScript "debugger" that provides you information about the JavaScript call stack
@@ -948,7 +948,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /** @see #createDummySecurityRealm */
     public static class DummySecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
-        private final Map<String,Set<String>> groupsByUser = new HashMap<String,Set<String>>();
+        private final Map<String,Set<String>> groupsByUser = new HashMap<>();
 
         DummySecurityRealm() {}
 
@@ -962,7 +962,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         @Override
         public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException,
                 DataAccessException {
-            List<GrantedAuthority> auths = new ArrayList<GrantedAuthority>();
+            List<GrantedAuthority> auths = new ArrayList<>();
             auths.add(AUTHENTICATED_AUTHORITY);
             Set<String> groups = groupsByUser.get(username);
             if (groups != null) {
@@ -992,7 +992,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public void addGroups(String username, String... groups) {
             Set<String> gs = groupsByUser.get(username);
             if (gs == null) {
-                groupsByUser.put(username, gs = new TreeSet<String>());
+                groupsByUser.put(username, gs = new TreeSet<>());
             }
             gs.addAll(Arrays.asList(groups));
         }
@@ -1279,7 +1279,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     private List<NameValuePair> extractHeaders(HttpURLConnection conn) {
-        List<NameValuePair> headers = new ArrayList<NameValuePair>();
+        List<NameValuePair> headers = new ArrayList<>();
         Set<Map.Entry<String,List<String>>> headerFields = conn.getHeaderFields().entrySet();
         for (Map.Entry<String,List<String>> headerField : headerFields) {
             String name = headerField.getKey();
@@ -1755,8 +1755,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         Map<String, Class<?>> lprops = extractDataBoundSetterProperties(lhs.getClass());
         Map<String, Class<?>> rprops = extractDataBoundSetterProperties(rhs.getClass());
         assertThat("Data bound setters mismatch. Different type?", lprops, is(rprops));
-        List<String> setterNames = new ArrayList<String>();
-        List<Class<?>> setterTypes = new ArrayList<Class<?>>();
+        List<String> setterNames = new ArrayList<>();
+        List<Class<?>> setterTypes = new ArrayList<>();
         for (Map.Entry<String, Class<?>> e : lprops.entrySet()) {
             setterNames.add(e.getKey());
             setterTypes.add(e.getValue());
@@ -1765,7 +1765,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     private void assertEqualProperties(@Nonnull Object lhs, @Nonnull Object rhs, @Nonnull String[] names, @Nonnull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
-        List<String> primitiveProperties = new ArrayList<String>();
+        List<String> primitiveProperties = new ArrayList<>();
 
         for (int i=0; i<types.length; i++) {
             Object lv = ReflectionUtils.getPublicProperty(lhs, names[i]);
@@ -1803,7 +1803,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     @Nonnull
     private Map<String, Class<?>> extractDataBoundSetterProperties(@Nonnull Class<?> c) {
-        Map<String, Class<?>> ret = new HashMap<String, Class<?>>();
+        Map<String, Class<?>> ret = new HashMap<>();
         for ( ;c != null; c = c.getSuperclass()) {
 
             for (Field f: c.getDeclaredFields()) {
@@ -1845,7 +1845,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
         
         // setXyz -> xyz
-        return new AbstractMap.SimpleEntry<String, Class<?>>(
+        return new AbstractMap.SimpleEntry<>(
                 Introspector.decapitalize(m.getName().substring(3)),
                 m.getParameterTypes()[0]
         );
@@ -1914,7 +1914,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 return;
 
             if (System.currentTimeMillis()-startTime > timeout) {
-                List<Queue.Executable> building = new ArrayList<Queue.Executable>();
+                List<Queue.Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
                         if (e.isBusy())
@@ -1992,7 +1992,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     static void decorateHomeFor(File home, List<URL> all) throws Exception {
-        List<Jpl> jpls = new ArrayList<Jpl>();
+        List<Jpl> jpls = new ArrayList<>();
         for (URL hpl : all) {
             Jpl jpl = new Jpl(home, hpl);
             jpl.loadManifest();
@@ -2181,7 +2181,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public class WebClient extends com.gargoylesoftware.htmlunit.WebClient {
         private static final long serialVersionUID = -7944895389154288881L;
 
-        private List<WebResponseListener> webResponseListeners = new ArrayList<WebResponseListener>();
+        private List<WebResponseListener> webResponseListeners = new ArrayList<>();
 
         public WebClient() {
             super(BrowserVersion.BEST_SUPPORTED);
@@ -2439,7 +2439,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public <V> V executeOnServer(final Callable<V> c) throws Exception {
             final Exception[] t = new Exception[1];
-            final List<V> r = new ArrayList<V>(1);  // size 1 list
+            final List<V> r = new ArrayList<>(1);  // size 1 list
 
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();

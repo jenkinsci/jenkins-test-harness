@@ -71,8 +71,8 @@ import org.kohsuke.stapler.WebMethod;
 @SuppressWarnings({"unchecked", "rawtypes"}) // the usual API mistakes
 public class MockFolder extends AbstractItem implements DirectlyModifiableTopLevelItemGroup, TopLevelItem, ModifiableViewGroup, StaplerFallback {
 
-    private transient Map<String,TopLevelItem> items = new TreeMap<String,TopLevelItem>();
-    private final List<View> views = new ArrayList<View>(Collections.singleton(new AllView("All", this)));
+    private transient Map<String,TopLevelItem> items = new TreeMap<>();
+    private final List<View> views = new ArrayList<>(Collections.singleton(new AllView("All", this)));
     private String primaryView;
     private ViewsTabBar viewsTabBar;
 
@@ -97,7 +97,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     }
 
     @Override public Collection<? extends Job> getAllJobs() {
-        Set<Job> jobs = new HashSet<Job>();
+        Set<Job> jobs = new HashSet<>();
         for (TopLevelItem i : getItems()) {
             jobs.addAll(i.getAllJobs());
         }

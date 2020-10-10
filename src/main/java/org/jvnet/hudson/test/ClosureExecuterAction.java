@@ -41,7 +41,7 @@ import java.util.UUID;
  */
 @Extension
 public final class ClosureExecuterAction implements RootAction {
-    private final Map<UUID,Runnable> runnables = Collections.synchronizedMap(new HashMap<UUID, Runnable>());
+    private final Map<UUID,Runnable> runnables = Collections.synchronizedMap(new HashMap<>());
 
     public void add(UUID uuid, Runnable r) {
         runnables.put(uuid,r);

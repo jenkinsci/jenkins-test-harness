@@ -50,7 +50,7 @@ import org.junit.rules.ExternalResource;
 public final class BuildWatcher extends ExternalResource {
 
     private static boolean active;
-    private static final Map<File,RunningBuild> builds = new ConcurrentHashMap<File,RunningBuild>();
+    private static final Map<File,RunningBuild> builds = new ConcurrentHashMap<>();
 
     private Thread thread;
 

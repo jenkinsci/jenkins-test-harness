@@ -59,7 +59,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     /**
      * Changes to be reported in the next build.
      */
-    private List<EntryImpl> entries = new ArrayList<EntryImpl>();
+    private List<EntryImpl> entries = new ArrayList<>();
 
     public EntryImpl addChange() {
         EntryImpl e = new EntryImpl();
@@ -71,7 +71,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     public void checkout(Run<?, ?> build, Launcher launcher, FilePath remoteDir, TaskListener listener, File changeLogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         new FilePath(changeLogFile).touch(0);
         build.addAction(new ChangelogAction(entries, changeLogFile.getName()));
-        entries = new ArrayList<EntryImpl>();
+        entries = new ArrayList<>();
     }
 
     @Override
