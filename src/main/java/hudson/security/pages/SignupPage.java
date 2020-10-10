@@ -36,7 +36,6 @@ public class SignupPage {
     /**
      * Enters the password in password1 and password2.
      * You can then call {@link #enterPassword2(String)} if you want them to be different.
-     * @param password
      */
     public void enterPassword(String password) {
         signupForm.getInputByName("password1").setValueAttribute(password);

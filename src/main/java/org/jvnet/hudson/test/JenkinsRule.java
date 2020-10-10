@@ -1228,8 +1228,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param path The url path on Jenkins.
      * @param json An object that produces a JSON string from it's {@code toString} method.
      * @return A JSON response.
-     * @throws IOException
-     * @throws SAXException
      */
     public JSONWebResponse postJSON(@Nonnull String path, @Nonnull Object json) throws IOException, SAXException {
         assert !path.startsWith("/");
@@ -1398,7 +1396,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /** Assert that the specified page can be served with a "good" HTTP status,
      * eg, the page is not missing and can be served without a server error
-     * @param page
      */
     public void assertGoodStatus(Page page) {
         assertThat(isGoodHttpStatus(page.getWebResponse().getStatusCode()), is(true));
@@ -1512,8 +1509,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /** Asserts that the XPath matches the contents of a DomNode page. This
      * variant of assertXPath(HtmlPage page, String xpath) allows us to
      * examine XmlPages.
-     * @param page
-     * @param xpath
      */
     public void assertXPath(DomNode page, String xpath) {
         List<? extends Object> nodes = page.getByXPath(xpath);
@@ -2573,8 +2568,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * assertXPath(DomNode page, String xpath)
          * @param path   the path part of the url to visit
          * @return  the XmlPage found at that url
-         * @throws IOException
-         * @throws SAXException
          */
         public XmlPage goToXml(String path) throws IOException, SAXException {
             Page page = goTo(path, "application/xml");

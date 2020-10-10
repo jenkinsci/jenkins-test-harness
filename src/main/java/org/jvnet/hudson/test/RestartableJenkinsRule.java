@@ -208,8 +208,6 @@ public class RestartableJenkinsRule implements MethodRule {
      * that for the next restart. Thus we only have the data actually persisted to disk at that time to work with.
      *
      * Should be run as the last part of a {@link org.jvnet.hudson.test.RestartableJenkinsRule.Step}.
-     *
-     * @throws IOException
      */
      void simulateAbruptShutdown() throws IOException {
          LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");

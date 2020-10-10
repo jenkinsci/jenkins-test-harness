@@ -842,7 +842,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     /** Assert that the specified page can be served with a "good" HTTP status,
      * eg, the page is not missing and can be served without a server error 
-     * @param page
      */
     public void assertGoodStatus(Page page) {
         assertTrue(isGoodHttpStatus(page.getWebResponse().getStatusCode()));
@@ -905,8 +904,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /** Asserts that the XPath matches the contents of a DomNode page. This
      * variant of assertXPath(HtmlPage page, String xpath) allows us to
      * examine XmlPages.
-     * @param page
-     * @param xpath
      */
     public void assertXPath(DomNode page, String xpath) {
         List< ? extends Object> nodes = page.getByXPath(xpath);
@@ -1625,8 +1622,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * assertXPath(DomNode page, String xpath)
          * @param path   the path part of the url to visit
          * @return  the XmlPage found at that url
-         * @throws IOException
-         * @throws SAXException
          */
         public XmlPage goToXml(String path) throws IOException, SAXException {
             Page page = goTo(path, "application/xml");
