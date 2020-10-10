@@ -42,7 +42,7 @@ import java.util.logging.Logger;
  * <p>
  * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
  * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
- * {@link then} is called.
+ * {@link #then} is called.
  * <p>
  * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
  * will need to be changed to {@link UnitTestSupportingPluginManager}.
