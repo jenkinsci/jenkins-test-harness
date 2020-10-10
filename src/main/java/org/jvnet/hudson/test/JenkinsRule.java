@@ -990,10 +990,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         /** Associate some groups with a username. */
         public void addGroups(String username, String... groups) {
-            Set<String> gs = groupsByUser.get(username);
-            if (gs == null) {
-                groupsByUser.put(username, gs = new TreeSet<>());
-            }
+            Set<String> gs = groupsByUser.computeIfAbsent(username, k -> new TreeSet<>());
             gs.addAll(Arrays.asList(groups));
         }
 
