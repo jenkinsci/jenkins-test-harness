@@ -174,8 +174,6 @@ import java.net.HttpURLConnection;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * Base class for all Jenkins test cases.
  *

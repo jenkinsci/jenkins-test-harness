@@ -9,7 +9,6 @@ import org.junit.rules.MethodRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.recipes.WithPluginManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;

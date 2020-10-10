@@ -9,7 +9,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;

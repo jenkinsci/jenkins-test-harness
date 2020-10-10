@@ -27,8 +27,7 @@ package org.jvnet.hudson.test;
 import hudson.LocalPluginManager;
 import hudson.Plugin;
 import hudson.PluginManager;
-import hudson.PluginWrapper;
-import hudson.Util;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -44,8 +43,6 @@ import java.util.Set;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.servlet.ServletContext;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
