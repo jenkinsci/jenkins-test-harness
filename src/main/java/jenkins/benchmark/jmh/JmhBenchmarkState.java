@@ -93,7 +93,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         server = results.left;
         ServletContext webServer = results.right;
 
-        jenkins = new (temporaryDirectoryAllocator.allocate(), webServer);
+        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer);
         JenkinsRule._configureJenkinsForTest(jenkins);
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);
