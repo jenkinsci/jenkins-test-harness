@@ -155,6 +155,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -2431,7 +2432,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public <V> V executeOnServer(final Callable<V> c) throws Exception {
             final Exception[] t = new Exception[1];
-            final List<V> r = new ArrayList<>(1);  // size 1 list
+            final AtomicReference<V> r = new AtomicReference<>();
 
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
@@ -2441,7 +2442,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         StaplerResponse rsp = Stapler.getCurrentResponse();
                         rsp.setStatus(200);
                         rsp.setContentType("text/html");
-                        r.add(c.call());
+                        r.set(c.call());
                     } catch (Exception e) {
                         t[0] = e;
                     }
@@ -2451,7 +2452,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             if (t[0]!=null)
                 throw t[0];
-            return r.get(0);
+            return r.get();
         }
 
         public HtmlPage search(String q) throws IOException, SAXException {
