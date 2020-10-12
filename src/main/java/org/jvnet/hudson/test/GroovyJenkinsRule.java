@@ -55,7 +55,7 @@ public class GroovyJenkinsRule extends JenkinsRule {
     public Builder builder(final Closure c) {
         return new TestBuilder() {
             @Override public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-                Object r = c.call(new Object[] {build, launcher, listener});
+                Object r = c.call(build, launcher, listener);
                 if (r instanceof Boolean) {
                     return (Boolean) r;
                 }
