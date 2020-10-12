@@ -137,7 +137,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
-import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
+import org.jvnet.hudson.test.JenkinsHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
 import org.jvnet.hudson.test.recipes.WithPlugin;
@@ -185,7 +185,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Deprecated
 @SuppressWarnings("rawtypes")
-public abstract class HudsonTestCase extends TestCase implements RootAction {
+public abstract class JenkinsTestCase extends TestCase implements RootAction {
     /**
      * Points to the same object as {@link #jenkins} does.
      */
@@ -194,7 +194,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public Jenkins jenkins;
 
     protected final TestEnvironment env = new TestEnvironment(this);
-    protected HudsonHomeLoader homeLoader = HudsonHomeLoader.NEW;
+    protected JenkinsHomeLoader homeLoader = JenkinsHomeLoader.NEW;
     /**
      * TCP/IP port that the server is listening on.
      */
@@ -265,11 +265,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     private boolean origDefaultUseCache = true;
 
-    protected HudsonTestCase(String name) {
+    protected JenkinsTestCase(String name) {
         super(name);
     }
 
-    protected HudsonTestCase() {
+    protected JenkinsTestCase() {
     }
 
     @Override
@@ -317,7 +317,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         DescriptorExtensionList.clearLegacyInstances();
 
         try {
-            jenkins = hudson = newHudson();
+            jenkins = hudson = newJenkins();
         } catch (Exception e) {
             // if Jenkins instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
             Field f = Jenkins.class.getDeclaredField("theInstance");
@@ -482,7 +482,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Creates a new instance of {@link jenkins.model.Jenkins}. If the derived class wants to create it in a different way,
      * you can override it.
      */
-    protected Hudson newHudson() throws Exception {
+    protected Hudson newJenkins() throws Exception {
         File home = homeLoader.allocate();
         for (Runner r : recipes)
             r.decorateHome(this,home);
@@ -508,7 +508,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     protected ServletContext createWebServer() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (HudsonTestCase)");
+        qtp.setName("Jetty (JenkinsTestCase)");
         server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
@@ -1019,7 +1019,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Jenkins.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
@@ -1277,7 +1277,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 recipes.add(runner);
                 tearDowns.add(new LenientRunnable() {
                     public void run() throws Exception {
-                        runner.tearDown(HudsonTestCase.this,a);
+                        runner.tearDown(JenkinsTestCase.this,a);
                     }
                 });
                 runner.setup(this,a);
@@ -1306,17 +1306,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         recipes.add(new Runner() {
             @Override
-            public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
+            public void decorateHome(JenkinsTestCase testCase, File home) throws Exception {
                 JenkinsRule.decorateHomeFor(home, all);
             }
         });
     }
 
-    public HudsonTestCase withNewHome() {
-        return with(HudsonHomeLoader.NEW);
+    public JenkinsTestCase withNewHome() {
+        return with(JenkinsHomeLoader.NEW);
     }
 
-    public HudsonTestCase withExistingHome(File source) throws Exception {
+    public JenkinsTestCase withExistingHome(File source) throws Exception {
         return with(new CopyExisting(source));
     }
 
@@ -1325,7 +1325,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * See {@code test/src/main/preset-data/}
      * for available datasets and what they mean.
      */
-    public HudsonTestCase withPresetData(String name) {
+    public JenkinsTestCase withPresetData(String name) {
         name = "/" + name + ".zip";
         URL res = getClass().getResource(name);
         if(res==null)   throw new IllegalArgumentException("No such data set found: "+name);
@@ -1333,7 +1333,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         return with(new CopyExisting(res));
     }
 
-    public HudsonTestCase with(HudsonHomeLoader homeLoader) {
+    public JenkinsTestCase with(JenkinsHomeLoader homeLoader) {
         this.homeLoader = homeLoader;
         return this;
     }
@@ -1344,7 +1344,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * in the context of an HTTP request.
      *
      * <p>
-     * In {@link HudsonTestCase}, a thread that's executing the test code is different from the thread
+     * In {@link JenkinsTestCase}, a thread that's executing the test code is different from the thread
      * that carries out HTTP requests made through {@link WebClient}. But sometimes you want to
      * make assertions and other calls with side-effect from within the request handling thread.
      *
@@ -1369,7 +1369,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * so detect that and flag that as an error. 
      */
     protected Object writeReplace() {
-        throw new AssertionError("HudsonTestCase "+getName()+" is not supposed to be serialized");
+        throw new AssertionError("JenkinsTestCase "+getName()+" is not supposed to be serialized");
     }
 
     /**
@@ -1389,7 +1389,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public WebClient() {
             super(BrowserVersion.BEST_SUPPORTED);
 
-            setPageCreator(HudsonPageCreator.INSTANCE);
+            setPageCreator(JenkinsPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
@@ -1472,7 +1472,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * Logs in to Hudson, by using the user name as the password.
          *
          * <p>
-         * See {@link HudsonTestCase#configureUserRealm()} for how the container is set up with the user names
+         * See {@link JenkinsTestCase#configureUserRealm()} for how the container is set up with the user names
          * and passwords. All the test accounts have the same user name and password.
          */
         public WebClient login(String username) throws Exception {
@@ -1485,7 +1485,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * in the context of an HTTP request.
          *
          * <p>
-         * In {@link HudsonTestCase}, a thread that's executing the test code is different from the thread
+         * In {@link JenkinsTestCase}, a thread that's executing the test code is different from the thread
          * that carries out HTTP requests made through {@link WebClient}. But sometimes you want to
          * make assertions and other calls with side-effect from within the request handling thread.
          *
@@ -1760,14 +1760,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         System.setProperty("org.mortbay.jetty.Request.maxFormContentSize","-1");
     }
 
-    private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(JenkinsTestCase.class.getName());
 
     protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
      */
-    public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
+    public static int SLAVE_DEBUG_PORT = Integer.getInteger(JenkinsTestCase.class.getName()+".slaveDebugPort",-1);
 
     public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {

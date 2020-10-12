@@ -38,13 +38,13 @@ import java.util.List;
  * Test bed to verify the configuration roundtripness of the {@link ComputerConnector}.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#computerConnectorTester
+ * @see JenkinsTestCase#computerConnectorTester
  */
 public class ComputerConnectorTester extends AbstractDescribableImpl<ComputerConnectorTester> {
-    public final HudsonTestCase testCase;
+    public final JenkinsTestCase testCase;
     public ComputerConnector connector;
 
-    public ComputerConnectorTester(HudsonTestCase testCase) {
+    public ComputerConnectorTester(JenkinsTestCase testCase) {
         this.testCase = testCase;
     }
 

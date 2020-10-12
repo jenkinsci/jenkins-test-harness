@@ -1,5 +1,5 @@
 # Overview
-Jenkins used to maintain a forked version of HtmlUnit and use it via `JenkinsRule` (and `HudsonTestCase`). Moving
+Jenkins used to maintain a forked version of HtmlUnit and use it via `JenkinsRule` (and `JenkinsTestCase`). Moving
 away from the forked version has allowed Jenkins GUI to start using more modern JavaScript libraries than were
 possible through the forked version.
 

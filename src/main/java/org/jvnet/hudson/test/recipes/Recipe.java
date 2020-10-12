@@ -23,7 +23,7 @@
  */
 package org.jvnet.hudson.test.recipes;
 
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 
 import java.lang.annotation.Documented;
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
@@ -66,17 +66,17 @@ public @interface Recipe {
         /**
          * Called during {@link TestCase#setUp()} to prepare the test environment.
          */
-        public void setup(HudsonTestCase testCase, T recipe) throws Exception {}
+        public void setup(JenkinsTestCase testCase, T recipe) throws Exception {}
 
         /**
          * Called right before {@link jenkins.model.Jenkins#Jenkins(File, javax.servlet.ServletContext)} is invoked
          * to decorate the hudson home directory.
          */
-        public void decorateHome(HudsonTestCase testCase, File home) throws Exception {}
+        public void decorateHome(JenkinsTestCase testCase, File home) throws Exception {}
 
         /**
          * Called during {@link TestCase#tearDown()} to shut down the test environment.
          */
-        public void tearDown(HudsonTestCase testCase, T recipe) throws Exception {}
+        public void tearDown(JenkinsTestCase testCase, T recipe) throws Exception {}
     }
 }

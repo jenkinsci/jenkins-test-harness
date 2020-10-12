@@ -18,7 +18,7 @@ import hudson.Util;
 * TODO: {@link Plugin} start/stop/postInitialize invocation semantics gets different. Perhaps
 * 
 * @author Kohsuke Kawaguchi
-* @see HudsonTestCase#useLocalPluginManager
+* @see JenkinsTestCase#useLocalPluginManager
 */
 public class TestPluginManager extends UnitTestSupportingPluginManager {
 

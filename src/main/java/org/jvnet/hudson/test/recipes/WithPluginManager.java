@@ -24,7 +24,7 @@
 package org.jvnet.hudson.test.recipes;
 
 import hudson.PluginManager;
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -53,12 +53,12 @@ public @interface WithPluginManager {
     class RunnerImpl extends Recipe.Runner<WithPluginManager> {
         private WithPluginManager recipe;
         @Override
-        public void setup(HudsonTestCase testCase, WithPluginManager recipe) throws Exception {
+        public void setup(JenkinsTestCase testCase, WithPluginManager recipe) throws Exception {
             this.recipe = recipe;
         }
 
         @Override
-        public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
+        public void decorateHome(JenkinsTestCase testCase, File home) throws Exception {
             Class<? extends PluginManager> c = recipe.value();
             Constructor ctr = c.getConstructors()[0];
 

@@ -133,10 +133,10 @@ public class JellyTestSuiteBuilder {
     }
 
     /**
-     * Execute all the Jelly tests in a servlet request handling context. To do so, we reuse HudsonTestCase
+     * Execute all the Jelly tests in a servlet request handling context. To do so, we reuse JenkinsTestCase
      */
     private static final class JellyTestSuite extends GroupedTest {
-        HudsonTestCase h = new HudsonTestCase("Jelly test wrapper") {};
+        JenkinsTestCase h = new JenkinsTestCase("Jelly test wrapper") {};
 
         @Override
         protected void setUp() throws Exception {

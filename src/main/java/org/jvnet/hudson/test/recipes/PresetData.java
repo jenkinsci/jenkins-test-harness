@@ -23,7 +23,7 @@
  */
 package org.jvnet.hudson.test.recipes;
 
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -70,7 +70,7 @@ public @interface PresetData {
     }
 
     class RunnerImpl extends Recipe.Runner<PresetData> {
-        public void setup(HudsonTestCase testCase, PresetData recipe) {
+        public void setup(JenkinsTestCase testCase, PresetData recipe) {
             testCase.withPresetData(recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_','-'));
         }
     }

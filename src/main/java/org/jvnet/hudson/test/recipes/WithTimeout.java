@@ -23,7 +23,7 @@
  */
 package org.jvnet.hudson.test.recipes;
 
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.lang.annotation.Documented;
@@ -55,13 +55,13 @@ public @interface WithTimeout {
     int value();
 
     /**
-     * For JUnit 3 tests extending HudsonTestCase
+     * For JUnit 3 tests extending JenkinsTestCase
      * @deprecated New code should use {@link JenkinsRule}.
      */
     @Deprecated
     class RunnerImpl extends Recipe.Runner<WithTimeout> {
         @Override
-        public void setup(HudsonTestCase testCase, WithTimeout recipe) throws Exception {
+        public void setup(JenkinsTestCase testCase, WithTimeout recipe) throws Exception {
             testCase.timeout = recipe.value();
         }
     }

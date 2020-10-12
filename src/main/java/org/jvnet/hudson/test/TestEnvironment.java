@@ -42,7 +42,7 @@ public class TestEnvironment {
     /**
      * Current test case being run (null for a JUnit 4 test).
      */
-    public final @CheckForNull HudsonTestCase testCase;
+    public final @CheckForNull JenkinsTestCase testCase;
 
     /**
      * Current test case being run (null for a JUnit 3 test).
@@ -51,7 +51,7 @@ public class TestEnvironment {
 
     public final TemporaryDirectoryAllocator temporaryDirectoryAllocator = new TemporaryDirectoryAllocator();
 
-    public TestEnvironment(@Nonnull HudsonTestCase testCase) {
+    public TestEnvironment(@Nonnull JenkinsTestCase testCase) {
         this.testCase = testCase;
         this.description = null;
     }

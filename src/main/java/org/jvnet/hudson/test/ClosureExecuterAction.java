@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Server-side logic that implements {@link HudsonTestCase#executeOnServer(java.util.concurrent.Callable)}.
+ * Server-side logic that implements {@link JenkinsTestCase#executeOnServer(java.util.concurrent.Callable)}.
  *
  * @author Kohsuke Kawaguchi
  */

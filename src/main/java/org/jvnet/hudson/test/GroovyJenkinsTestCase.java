@@ -11,13 +11,13 @@ import hudson.Launcher;
 import java.io.IOException;
 
 /**
- * {@link HudsonTestCase} with more convenience methods for Groovy.
+ * {@link JenkinsTestCase} with more convenience methods for Groovy.
  *
  * @author Kohsuke Kawaguchi
  * @deprecated Use {@link GroovyJenkinsRule} instead.
  */
 @Deprecated
-public abstract class GroovyHudsonTestCase extends HudsonTestCase {
+public abstract class GroovyJenkinsTestCase extends JenkinsTestCase {
     /**
      * Executes the given closure on the server, in the context of an HTTP request.
      * This is useful for testing some methods that require {@link StaplerRequest} and {@link StaplerResponse}.

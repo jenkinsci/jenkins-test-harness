@@ -17,7 +17,7 @@ import java.util.Collections;
  * Slave that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#createPretendSlave(FakeLauncher) 
+ * @see JenkinsTestCase#createPretendSlave(FakeLauncher) 
  */
 public class PretendSlave extends Slave {
     private transient FakeLauncher faker;

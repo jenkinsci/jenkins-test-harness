@@ -79,7 +79,7 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     private final int port;
 
-    private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(JenkinsTestCase.class.getName());
 
     public static class Builder {
         private int port;
@@ -313,7 +313,7 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     private void run() throws Throwable {
-        HudsonHomeLoader loader = () -> home;
+        JenkinsHomeLoader loader = () -> home;
 
         // run each step inside its own JenkinsRule
         for (Map.Entry<Statement, Boolean> entry : steps.entrySet()) {

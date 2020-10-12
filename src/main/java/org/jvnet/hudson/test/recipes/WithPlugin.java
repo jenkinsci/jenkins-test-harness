@@ -23,7 +23,7 @@
  */
 package org.jvnet.hudson.test.recipes;
 
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.apache.commons.io.FileUtils;
@@ -62,13 +62,13 @@ public @interface WithPlugin {
         private WithPlugin a;
 
         @Override
-        public void setup(HudsonTestCase testCase, WithPlugin recipe) throws Exception {
+        public void setup(JenkinsTestCase testCase, WithPlugin recipe) throws Exception {
             a = recipe;
             testCase.useLocalPluginManager = true;
         }
 
         @Override
-        public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
+        public void decorateHome(JenkinsTestCase testCase, File home) throws Exception {
             for (String plugin : a.value()) {
                 URL res = getClass().getClassLoader().getResource("plugins/" + plugin);
                 FileUtils.copyURLToFile(res, new File(home, "plugins/" + plugin));

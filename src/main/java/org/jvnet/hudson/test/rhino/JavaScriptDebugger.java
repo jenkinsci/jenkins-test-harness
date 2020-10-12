@@ -27,7 +27,7 @@ import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.debug.DebugFrame;
 import net.sourceforge.htmlunit.corejs.javascript.debug.DebuggableScript;
 import net.sourceforge.htmlunit.corejs.javascript.debug.Debugger;
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import java.util.ArrayList;
  * allow arbitrary script evaluation in arbitrary stack frame.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#jsDebugger
+ * @see JenkinsTestCase#jsDebugger
  */
 public class JavaScriptDebugger implements Debugger {
     /**

@@ -24,9 +24,9 @@
 package org.jvnet.hudson.test.recipes;
 
 import org.junit.runner.Description;
-import org.jvnet.hudson.test.HudsonTestCase;
+import org.jvnet.hudson.test.JenkinsTestCase;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.HudsonHomeLoader.Local;
+import org.jvnet.hudson.test.JenkinsHomeLoader.Local;
 import org.jvnet.hudson.test.JenkinsRecipe;
 
 
@@ -87,7 +87,7 @@ public @interface LocalData {
     String value() default "";
 
     class RunnerImpl extends Recipe.Runner<LocalData> {
-        public void setup(HudsonTestCase testCase, LocalData recipe) throws Exception {
+        public void setup(JenkinsTestCase testCase, LocalData recipe) throws Exception {
             testCase.with(new Local(testCase.getClass().getMethod(testCase.getName()), recipe.value()));
         }
     }

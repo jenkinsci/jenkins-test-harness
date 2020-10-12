@@ -54,7 +54,7 @@ public @interface TestExtension {
      *
      * <h2>Example</h2>
      * <pre>
-     * class FooTest extends HudsonTestCase {
+     * class FooTest extends JenkinsTestCase {
      *     public void test1() { ... }
      *     public void test2() { ... }
      *

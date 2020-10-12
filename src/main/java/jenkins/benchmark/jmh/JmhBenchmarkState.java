@@ -1,6 +1,6 @@
 package jenkins.benchmark.jmh;
 
-import hudson.model.Hudson;
+import hudson.model.*;       //syntax warning fix
 import hudson.model.RootAction;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
@@ -93,7 +93,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         server = results.left;
         ServletContext webServer = results.right;
 
-        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer);
+        jenkins = new (temporaryDirectoryAllocator.allocate(), webServer);
         JenkinsRule._configureJenkinsForTest(jenkins);
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);

@@ -271,7 +271,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     public Jenkins jenkins;
 
-    protected HudsonHomeLoader homeLoader = HudsonHomeLoader.NEW;
+    protected JenkinsHomeLoader homeLoader = JenkinsHomeLoader.NEW;
     /**
      * TCP/IP port that the server is listening on.
      */
@@ -399,7 +399,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         try {
-            jenkins = hudson = newHudson();
+            jenkins = hudson = newJenkins();
             // If the initialization graph is corrupted, we cannot expect that Jenkins is in the good shape.
             // Likely it is an issue in @Initializer() definitions (see JENKINS-37759).
             // So we just fail the test.
@@ -676,7 +676,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a new instance of {@link jenkins.model.Jenkins}. If the derived class wants to create it in a different way,
      * you can override it.
      */
-    protected Hudson newHudson() throws Exception {
+    protected Hudson newJenkins() throws Exception {
         jettyLevel(Level.WARNING);
         ServletContext webServer = createWebServer();
         File home = homeLoader.allocate();
@@ -1174,7 +1174,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Blocks until the ENTER key is hit.
-     * This is useful during debugging a test so that one can inspect the state of Hudson through the web browser.
+     * This is useful during debugging a test so that one can inspect the state of Jenkins through the web browser.
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at " + getURL());
@@ -1311,7 +1311,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Hits the Hudson system configuration and submits without any modification.
+     * Hits the Jenkins system configuration and submits without any modification.
      */
     public void configRoundtrip() throws Exception {
         submit(createWebClient().goTo("configure").getFormByName("config"));
@@ -2108,11 +2108,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public JenkinsRule withNewHome() {
-        return with(HudsonHomeLoader.NEW);
+        return with(JenkinsHomeLoader.NEW);
     }
 
     public JenkinsRule withExistingHome(File source) throws Exception {
-        return with(new HudsonHomeLoader.CopyExisting(source));
+        return with(new JenkinsHomeLoader.CopyExisting(source));
     }
 
     /**
@@ -2125,10 +2125,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         URL res = getClass().getResource(name);
         if(res==null)   throw new IllegalArgumentException("No such data set found: "+name);
 
-        return with(new HudsonHomeLoader.CopyExisting(res));
+        return with(new JenkinsHomeLoader.CopyExisting(res));
     }
 
-    public JenkinsRule with(HudsonHomeLoader homeLoader) {
+    public JenkinsRule with(JenkinsHomeLoader homeLoader) {
         this.homeLoader = homeLoader;
         return this;
     }
@@ -2187,7 +2187,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             super(BrowserVersion.BEST_SUPPORTED);
 
 //            setJavaScriptEnabled(false);
-            setPageCreator(HudsonPageCreator.INSTANCE);
+            setPageCreator(JenkinsPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
@@ -2780,14 +2780,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         System.setProperty("org.mortbay.jetty.Request.maxFormContentSize","-1");
     }
 
-    private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(JenkinsTestCase.class.getName());
 
     public static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
      */
-    public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
+    public static final int SLAVE_DEBUG_PORT = Integer.getInteger(JenkinsTestCase.class.getName()+".slaveDebugPort",-1);
 
     public static final MimeTypes MIME_TYPES;
     static {

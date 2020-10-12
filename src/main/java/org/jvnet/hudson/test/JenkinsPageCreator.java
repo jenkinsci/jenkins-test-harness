@@ -37,7 +37,7 @@ import java.util.Locale;
  * 
  * @author Kohsuke Kawaguchi
  */
-public class HudsonPageCreator extends DefaultPageCreator {
+public class JenkinsPageCreator extends DefaultPageCreator {
     @Override
     public Page createPage(WebResponse webResponse, WebWindow webWindow) throws IOException {
         String contentType = webResponse.getContentType().toLowerCase(Locale.ENGLISH);
@@ -54,5 +54,5 @@ public class HudsonPageCreator extends DefaultPageCreator {
         return super.createPage(webResponse, webWindow);
     }
 
-    public static final HudsonPageCreator INSTANCE = new HudsonPageCreator();
+    public static final JenkinsPageCreator INSTANCE = new JenkinsPageCreator();
 }
