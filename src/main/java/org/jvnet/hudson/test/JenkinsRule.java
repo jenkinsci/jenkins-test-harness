@@ -136,7 +136,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -340,8 +339,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public JenkinsComputerConnectorTester computerConnectorTester = new JenkinsComputerConnectorTester(this);
 
     private boolean origDefaultUseCache = true;
-
-    private static final Charset UTF8 = StandardCharsets.UTF_8;
 
     public Jenkins getInstance() {
         return jenkins;
@@ -1246,7 +1243,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             NameValuePair crumb = getCrumbHeaderNVP();
             conn.setRequestProperty(crumb.getName(), crumb.getValue());
 
-            byte[] content = json.toString().getBytes(UTF8);
+            byte[] content = json.toString().getBytes(StandardCharsets.UTF_8);
             conn.setRequestProperty("Content-Length", String.valueOf(content.length));
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(content);
