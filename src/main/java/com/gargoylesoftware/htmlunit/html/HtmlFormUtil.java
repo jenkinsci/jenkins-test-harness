@@ -101,9 +101,7 @@ public class HtmlFormUtil {
         final List<HtmlElement> list = htmlForm.getElementsByAttribute("input", "type", "submit");
 
         // collect inputs from lost children
-        for (final HtmlElement elt : htmlForm.getLostChildren()) {
-            list.add(elt);
-        }
+        list.addAll(htmlForm.getLostChildren());
 
         return list;
     }

@@ -53,14 +53,14 @@ public class ExtractChangeLogParser extends ChangeLogParser {
             fis.close();
             return logSet;
         } else {
-            return new ExtractChangeLogSet(build, new ArrayList<ExtractChangeLogEntry>());
+            return new ExtractChangeLogSet(build, new ArrayList<>());
         }
     }
 
     @SuppressWarnings("rawtypes")
     public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
 
-        ArrayList<ExtractChangeLogEntry> changeLog = new ArrayList<ExtractChangeLogEntry>();
+        ArrayList<ExtractChangeLogEntry> changeLog = new ArrayList<>();
 
         Digester digester = new Digester();
         digester.setClassLoader(ExtractChangeLogSet.class.getClassLoader());
@@ -83,7 +83,7 @@ public class ExtractChangeLogParser extends ChangeLogParser {
 
     @ExportedBean(defaultVisibility = 999)
     public static class ExtractChangeLogEntry extends ChangeLogSet.Entry {
-        private List<FileInZip> files = new ArrayList<FileInZip>();
+        private List<FileInZip> files = new ArrayList<>();
         private String zipFile;
 
         public ExtractChangeLogEntry() {
@@ -109,7 +109,7 @@ public class ExtractChangeLogParser extends ChangeLogParser {
 
         @Override
         public Collection<String> getAffectedPaths() {
-            Collection<String> paths = new ArrayList<String>(files.size());
+            Collection<String> paths = new ArrayList<>(files.size());
             for (FileInZip file : files) {
                 paths.add(file.getFileName());
             }

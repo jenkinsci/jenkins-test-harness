@@ -52,7 +52,7 @@ import org.acegisecurity.acls.sid.Sid;
  */
 public class MockAuthorizationStrategy extends AuthorizationStrategy {
     
-    private final List<Grant.GrantOn.GrantOnTo> grantsOnTo = new ArrayList<Grant.GrantOn.GrantOnTo>();
+    private final List<Grant.GrantOn.GrantOnTo> grantsOnTo = new ArrayList<>();
 
     /** Creates a new strategy granting no permissions. */
     public MockAuthorizationStrategy() {}
@@ -63,7 +63,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * @param permissions which permissions to grant ({@link Permission#impliedBy} is honored)
      */
     public Grant grant(Permission... permissions) {
-        Set<Permission> effective = new HashSet<Permission>(Arrays.asList(permissions));
+        Set<Permission> effective = new HashSet<>(Arrays.asList(permissions));
         boolean added = true;
         while (added) {
             added = false;
@@ -78,7 +78,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * Like {@link #grant} but does <em>not</em> honor {@link Permission#impliedBy}.
      */
     public Grant grantWithoutImplication(Permission... permissions) {
-        return new Grant(new HashSet<Permission>(Arrays.asList(permissions)));
+        return new Grant(new HashSet<>(Arrays.asList(permissions)));
     }
 
     /**
@@ -165,7 +165,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
             /** To some users or groups. */
             public MockAuthorizationStrategy to(String... sids) {
-                return new GrantOnTo(new HashSet<String>(Arrays.asList(sids))).add();
+                return new GrantOnTo(new HashSet<>(Arrays.asList(sids))).add();
             }
 
             /** To some users. */

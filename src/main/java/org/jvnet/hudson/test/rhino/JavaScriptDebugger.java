@@ -54,7 +54,7 @@ public class JavaScriptDebugger implements Debugger {
      * Call stack as a list. The list grows at the end, so the first element in the list
      * is the oldest stack frame.
      */
-    private final List<CallStackFrame> callStack = new ArrayList<CallStackFrame>();
+    private final List<CallStackFrame> callStack = new ArrayList<>();
     
     synchronized void addCallStackFrame(CallStackFrame frame) {
         this.callStack.add(frame);

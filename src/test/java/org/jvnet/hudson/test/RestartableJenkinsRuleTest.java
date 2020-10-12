@@ -5,29 +5,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeThat;
 
 import java.io.File;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.recipes.WithPlugin;
 import org.jvnet.hudson.test.recipes.WithPluginManager;
-import org.kohsuke.stapler.HttpResponse;
 
 import hudson.PluginManager;
 import hudson.PluginWrapper;
-import hudson.model.UpdateCenter.UpdateCenterJob;
-import hudson.util.IOUtils;
 
 import jenkins.model.Jenkins;
 
@@ -40,7 +30,7 @@ public class RestartableJenkinsRuleTest {
             new RestartableJenkinsRule.Builder().withReusedPort().build();
 
     @Test
-    public void testNoPortReuse() throws Exception {
+    public void testNoPortReuse() {
         assumeThat(
                 "This test requires a custom port to not be set.",
                 System.getProperty("port"),
@@ -48,17 +38,13 @@ public class RestartableJenkinsRuleTest {
 
         AtomicInteger port = new AtomicInteger();
         noPortReuse.then(
-                s -> {
-                    port.set(noPortReuse.j.getURL().getPort());
-                });
+                s -> port.set(noPortReuse.j.getURL().getPort()));
         noPortReuse.then(
-                s -> {
-                    assertNotEquals(port.get(), noPortReuse.j.getURL().getPort());
-                });
+                s -> assertNotEquals(port.get(), noPortReuse.j.getURL().getPort()));
     }
 
     @Test
-    public void testPortReuse() throws Exception {
+    public void testPortReuse() {
         assumeThat(
                 "This test requires a custom port to not be set.",
                 System.getProperty("port"),
@@ -66,18 +52,14 @@ public class RestartableJenkinsRuleTest {
 
         AtomicInteger port = new AtomicInteger();
         portReuse.then(
-                s -> {
-                    port.set(portReuse.j.getURL().getPort());
-                });
+                s -> port.set(portReuse.j.getURL().getPort()));
         portReuse.then(
-                s -> {
-                    assertEquals(port.get(), portReuse.j.getURL().getPort());
-                });
+                s -> assertEquals(port.get(), portReuse.j.getURL().getPort()));
     }
 
     @Test
     @WithPluginManager(UnitTestSupportingPluginManager.class)
-    public void pluginsCanBeDisabled() throws Exception {
+    public void pluginsCanBeDisabled() {
         final String pluginId = "display-url-api";
         noPortReuse.then(jr -> {
             System.out.println(WarExploder.getExplodedDir());

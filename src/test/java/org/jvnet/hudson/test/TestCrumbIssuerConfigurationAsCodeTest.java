@@ -2,7 +2,7 @@ package org.jvnet.hudson.test;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.jvnet.hudson.test.LoggerRule.recorded;
 
 import io.jenkins.plugins.casc.ConfigurationAsCode;

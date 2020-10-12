@@ -45,10 +45,6 @@ public class ExtractResourceSCM extends NullSCM {
 
     private String parentFolder;
 
-    /**
-     *
-     * @param zip
-     */
     public ExtractResourceSCM(URL zip) {
         if(zip==null)
             throw new IllegalArgumentException();
@@ -58,8 +54,6 @@ public class ExtractResourceSCM extends NullSCM {
     /**
      * with this constructor your zip can contains a folder
      * more useful to create a project test zip foo.zip foo
-     * @param zip
-     * @param parentFolder
      */
     public ExtractResourceSCM(URL zip, String parentFolder) {
         if(zip==null)

@@ -13,10 +13,10 @@ public interface WebResponseListener {
 
     void onLoadWebResponse(WebRequest webRequest, WebResponse webResponse) throws IOException;
 
-    public final class StatusListener implements WebResponseListener {
+    final class StatusListener implements WebResponseListener {
 
         private final int statusCode;
-        private final List<WebResponse> responses = new CopyOnWriteArrayList<WebResponse>();
+        private final List<WebResponse> responses = new CopyOnWriteArrayList<>();
 
         public StatusListener(final int statusCode) {
             this.statusCode = statusCode;
@@ -30,7 +30,7 @@ public interface WebResponseListener {
         }
 
         public void assertHasResponses() {
-            Assert.assertTrue(!responses.isEmpty());
+            Assert.assertFalse(responses.isEmpty());
         }
 
         public List<WebResponse> getResponses() {

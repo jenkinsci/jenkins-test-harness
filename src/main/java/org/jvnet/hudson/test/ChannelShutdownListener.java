@@ -23,7 +23,7 @@ public class ChannelShutdownListener extends ComputerListener implements EndOfTe
     /**
      * Remember channels that are created, to release them at the end.
      */
-    private List<Channel> channels = new ArrayList<Channel>();
+    private List<Channel> channels = new ArrayList<>();
 
     public ChannelShutdownListener() {
         if (!Main.isUnitTest) {

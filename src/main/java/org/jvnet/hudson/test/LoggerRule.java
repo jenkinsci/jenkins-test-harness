@@ -59,7 +59,7 @@ import org.junit.rules.RuleChain;
 public class LoggerRule extends ExternalResource {
 
     private final Handler consoleHandler = new ConsoleHandler();
-    private final Map<Logger,Level> loggers = new HashMap<Logger,Level>();
+    private final Map<Logger,Level> loggers = new HashMap<>();
     // initialized iff capture is called:
     private RingBufferLogHandler ringHandler;
     private List<String> messages;

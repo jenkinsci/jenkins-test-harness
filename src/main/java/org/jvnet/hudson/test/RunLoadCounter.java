@@ -48,8 +48,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @SuppressWarnings({"unchecked", "rawtypes"}) // API design mistakes
 public final class RunLoadCounter {
 
-    private static final ThreadLocal<String> currProject = new ThreadLocal<String>();
-    private static final ThreadLocal<AtomicInteger> currCount = new ThreadLocal<AtomicInteger>();
+    private static final ThreadLocal<String> currProject = new ThreadLocal<>();
+    private static final ThreadLocal<AtomicInteger> currCount = new ThreadLocal<>();
 
     /**
      * Prepares a new project to be measured.

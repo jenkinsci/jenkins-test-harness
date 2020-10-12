@@ -86,7 +86,7 @@ public class CallStackFrame implements DebugFrame {
      * In-scope variables.
      */
     public SortedMap<String,Object> getVariables() {
-        SortedMap<String,Object> r = new TreeMap<String,Object>();
+        SortedMap<String,Object> r = new TreeMap<>();
         for( int i=fnOrScript.getParamAndVarCount()-1; i>=0; i-- ) {
             String name =fnOrScript.getParamOrVarName(i);
             r.put(name,activation.get(name,activation));

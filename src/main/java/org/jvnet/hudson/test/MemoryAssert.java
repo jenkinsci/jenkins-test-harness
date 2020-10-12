@@ -133,7 +133,7 @@ public class MemoryAssert {
         callable.call();
         CountingVisitor v2 = new CountingVisitor();
         ScannerUtils.scan(f, v2, Collections.singleton(Jenkins.getInstance()), false);
-        List<HistogramElement> elements = new ArrayList<HistogramElement>();
+        List<HistogramElement> elements = new ArrayList<>();
         for (Class<?> c : v2.getClasses()) {
             int delta = v2.getCountForClass(c) - (old.contains(c) ? v1.getCountForClass(c) : 0);
             if (delta > 0) {
@@ -165,7 +165,7 @@ public class MemoryAssert {
         assumeTrue(new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
-        Set<Object[]> objects = new HashSet<Object[]>();
+        Set<Object[]> objects = new HashSet<>();
         int size = 1024;
         String softErr = null;
         while (reference.get() != null) {
@@ -253,7 +253,7 @@ public class MemoryAssert {
             // * to recognizeClass, before queue.add(cls): objects.getID(cls)
             // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects, cls, cl, null)
             // Also Path.getField confusingly returns "<changed>" when printing the Class → ClassLoader link.
-            List<Class> classes = new ArrayList<Class>();
+            List<Class> classes = new ArrayList<>();
             @Override public void visitClass(Class cls) {
                 getID(cls);
                 super.visitClass(cls);
@@ -285,7 +285,7 @@ public class MemoryAssert {
         }
         
         // ScannerUtils.interestingRoots includes our own ClassLoader, thus any static fields in any classes loaded in any visible class…but not in the bootstrap classpath, since this has no ClassLoader object to traverse.
-        Set<Object> rootsHint2 = new HashSet<Object>();
+        Set<Object> rootsHint2 = new HashSet<>();
         if (rootsHint != null) {
             rootsHint2.addAll(rootsHint);
         }

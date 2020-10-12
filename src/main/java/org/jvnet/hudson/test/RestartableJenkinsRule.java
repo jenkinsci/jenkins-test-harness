@@ -9,7 +9,6 @@ import org.junit.rules.MethodRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.recipes.WithPluginManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,7 +42,7 @@ import java.util.logging.Logger;
  * <p>
  * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
  * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
- * {@link then} is called.
+ * {@link #then} is called.
  * <p>
  * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
  * will need to be changed to {@link UnitTestSupportingPluginManager}.
@@ -209,8 +208,6 @@ public class RestartableJenkinsRule implements MethodRule {
      * that for the next restart. Thus we only have the data actually persisted to disk at that time to work with.
      *
      * Should be run as the last part of a {@link org.jvnet.hudson.test.RestartableJenkinsRule.Step}.
-     *
-     * @throws IOException
      */
      void simulateAbruptShutdown() throws IOException {
          LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");

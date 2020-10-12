@@ -86,7 +86,7 @@ public class SecuredMockFolder extends MockFolder {
     public void setPermissions(String username, Permission... permissions) {
         this.grantedUser = username;
         if (grantedPermissions == null) {
-            grantedPermissions = new HashSet<String>();
+            grantedPermissions = new HashSet<>();
         } else {
             grantedPermissions.clear();
         }

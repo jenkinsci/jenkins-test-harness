@@ -174,8 +174,6 @@ import java.net.HttpURLConnection;
 
 import jenkins.model.JenkinsLocationConfiguration;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * Base class for all Jenkins test cases.
  *
@@ -211,14 +209,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * {@link Runnable}s to be invoked at {@link #tearDown()}.
      */
-    protected List<LenientRunnable> tearDowns = new ArrayList<LenientRunnable>();
+    protected List<LenientRunnable> tearDowns = new ArrayList<>();
 
-    protected List<Runner> recipes = new ArrayList<Runner>();
+    protected List<Runner> recipes = new ArrayList<>();
 
     /**
      * Remember {@link WebClient}s that are created, to release them properly.
      */
-    private List<WebClient> clients = new ArrayList<WebClient>();
+    private List<WebClient> clients = new ArrayList<>();
 
     /**
      * JavaScript "debugger" that provides you information about the JavaScript call stack
@@ -349,7 +347,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             d.load();
 
         // allow the test class to inject Jenkins components
-        jenkins.lookup(Injector.class).injectMembers(this);
+        Jenkins.lookup(Injector.class).injectMembers(this);
 
         setUpTimeout();
     }
@@ -844,7 +842,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     /** Assert that the specified page can be served with a "good" HTTP status,
      * eg, the page is not missing and can be served without a server error 
-     * @param page
      */
     public void assertGoodStatus(Page page) {
         assertTrue(isGoodHttpStatus(page.getWebResponse().getStatusCode()));
@@ -907,8 +904,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /** Asserts that the XPath matches the contents of a DomNode page. This
      * variant of assertXPath(HtmlPage page, String xpath) allows us to
      * examine XmlPages.
-     * @param page
-     * @param xpath
      */
     public void assertXPath(DomNode page, String xpath) {
         List< ? extends Object> nodes = page.getByXPath(xpath);
@@ -1135,7 +1130,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
         assertEquals("Data bound constructor mismatch. Different type?",lc,rc);
 
-        List<String> primitiveProperties = new ArrayList<String>();
+        List<String> primitiveProperties = new ArrayList<>();
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
@@ -1238,7 +1233,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return;
 
             if (System.currentTimeMillis()-startTime > timeout) {
-                List<Executable> building = new ArrayList<Executable>();
+                List<Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
                         if (e.isBusy())
@@ -1503,7 +1498,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public <V> V executeOnServer(final Callable<V> c) throws Exception {
             final Exception[] t = new Exception[1];
-            final List<V> r = new ArrayList<V>(1);  // size 1 list
+            final List<V> r = new ArrayList<>(1);  // size 1 list
 
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
@@ -1627,8 +1622,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * assertXPath(DomNode page, String xpath)
          * @param path   the path part of the url to visit
          * @return  the XmlPage found at that url
-         * @throws IOException
-         * @throws SAXException
          */
         public XmlPage goToXml(String path) throws IOException, SAXException {
             Page page = goTo(path, "application/xml");
@@ -1667,7 +1660,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             com.gargoylesoftware.htmlunit.util.NameValuePair crumb = new com.gargoylesoftware.htmlunit.util.NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                     jenkins.getCrumbIssuer().getCrumb( null ));
-            req.setRequestParameters(Arrays.asList( crumb ));
+            req.setRequestParameters(Collections.singletonList(crumb));
             return req;
         }
         

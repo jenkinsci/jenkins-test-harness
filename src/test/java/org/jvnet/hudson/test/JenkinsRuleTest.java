@@ -9,7 +9,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.net.URL;
@@ -122,7 +121,7 @@ public class JenkinsRuleTest {
         makeRequestAndAssertLogin(wc, "charlotte");
     }
 
-    private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException, SAXException {
+    private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException {
         WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
         Page p = wc.getPage(req);
         String pageContent = p.getWebResponse().getContentAsString();
