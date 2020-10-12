@@ -46,7 +46,7 @@ public class FlagRuleReplacementTest {
     }
 
     @Rule
-    public TestRule flagRule = new FlagRule<Boolean>(() -> FLAG, x -> FLAG = x, true);
+    public TestRule flagRule = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
 
     @Test
     public void smokes() {
