@@ -351,7 +351,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void before() throws Throwable {
         for (Handler h : Logger.getLogger("").getHandlers()) {
             if (h instanceof ConsoleHandler) {
-                ((ConsoleHandler) h).setFormatter(new DeltaSupportLogFormatter());
+                h.setFormatter(new DeltaSupportLogFormatter());
             }
         }
 
