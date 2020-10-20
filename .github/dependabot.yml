@@ -1,0 +1,15 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+  reviewers:
+  - oleg-nenashev
+  - jglick
+  ignore:
+  - dependency-name: io.jenkins.plugins*
+  - dependency-name: org.jenkins-ci.main:jenkins-core
+  - dependency-name: org.jenkins-ci.main:jenkins-war
+  - dependency-name: org.jenkins-ci.plugins*
