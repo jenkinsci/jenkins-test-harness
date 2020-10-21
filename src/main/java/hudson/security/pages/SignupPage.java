@@ -5,7 +5,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * The the signup page for {@link hudson.security.HudsonPrivateSecurityRealm}

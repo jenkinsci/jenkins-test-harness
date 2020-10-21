@@ -47,7 +47,7 @@ public class DomNodeUtil {
      */
     public static <E> List<E> selectNodes(final DomNode domNode, final String xpathExpr) {
         WebClientUtil.waitForJSExec(domNode.getPage().getWebClient());
-        return (List) XPathHelper.getByXPath(domNode, xpathExpr, null);
+        return XPathHelper.getByXPath(domNode, xpathExpr, null);
     }
 
     /**

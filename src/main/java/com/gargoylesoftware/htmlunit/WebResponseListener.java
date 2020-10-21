@@ -1,6 +1,8 @@
 package com.gargoylesoftware.htmlunit;
 
-import org.junit.Assert;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,7 +32,7 @@ public interface WebResponseListener {
         }
 
         public void assertHasResponses() {
-            Assert.assertFalse(responses.isEmpty());
+            assertThat(responses, not(empty()));
         }
 
         public List<WebResponse> getResponses() {
