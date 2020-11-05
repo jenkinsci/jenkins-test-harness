@@ -1,5 +1,6 @@
 package org.jvnet.hudson.test;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import hudson.model.User;
@@ -16,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class JenkinsRuleTest {
 
@@ -107,7 +109,11 @@ public class JenkinsRuleTest {
         wc = j.createWebClient();
         makeRequestAndAssertLogin(wc, "anonymous");
 
+        // Alice has no legacy API token
         wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken());
+        makeRequestAndAssertLoginUnauthorized(wc);
+
+        wc.withBasicApiToken("alice");
         makeRequestAndAssertLogin(wc, "alice");
 
         wc = j.createWebClient();
@@ -127,6 +133,17 @@ public class JenkinsRuleTest {
         String pageContent = p.getWebResponse().getContentAsString();
         String loginReceived = (String) JSONObject.fromObject(pageContent).get("name");
         assertEquals(expectedLogin, loginReceived.trim());
+    }
+
+    private void makeRequestAndAssertLoginUnauthorized(JenkinsRule.WebClient wc) throws IOException {
+        WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
+        try {
+            wc.getPage(req);
+            fail();
+        }
+        catch(FailingHttpStatusCodeException e) {
+            assertEquals(401, e.getStatusCode());
+        }
     }
 
     public static class SomeClassWithSetters {

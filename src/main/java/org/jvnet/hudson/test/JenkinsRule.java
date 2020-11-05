@@ -111,6 +111,7 @@ import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
+import hudson.util.VersionNumber;
 import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
@@ -137,6 +138,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -167,6 +169,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
@@ -238,6 +241,7 @@ import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Dispatcher;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
@@ -1081,6 +1085,56 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         DumbSlave s = createSlave(l, env);
         waitOnline(s);
         return s;
+    }
+
+    /**
+     * Use the new API token system introduced in 2.129 to generate a token for the given user.
+     */
+    public @Nonnull String createApiToken(@Nonnull User user) {
+        try {
+            // TODO could be simplified when core dependency will be higher
+            if (Jenkins.getVersion().isOlderThan(new VersionNumber("2.260"))) {
+                ApiTokenProperty.DescriptorImpl descriptor = this.jenkins.getDescriptorByType(ApiTokenProperty.DescriptorImpl.class);
+                HttpResponse httpResponse = descriptor.doGenerateNewToken(user, null);
+
+                // hacky way to prevent call to WebClient
+                ResponseCapturingOutput mockResponse = new ResponseCapturingOutput();
+                httpResponse.generateResponse(null, mockResponse, null);
+                String content = mockResponse.getOutputContent();
+                JSONObject json = JSONObject.fromObject(content);
+                return json.getJSONObject("data").getString("tokenValue");
+            } else {
+                // we can use the new methods from
+                // https://github.com/jenkinsci/jenkins/commit/eb0876cdb981a83c9f4c6f07d1eede585614612a
+                Method addFixedNewTokenMethod = ApiTokenProperty.class.getDeclaredMethod("addFixedNewToken", String.class, String.class);
+
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                if (apiTokenProperty == null) {
+                    apiTokenProperty = new ApiTokenProperty();
+                    user.addProperty(apiTokenProperty);
+                }
+
+                String tokenRandomName = "TestToken_" + (int) Math.floor(Math.random() * 1_000_000);
+                String tokenValue = generateNewApiTokenValue();
+                // could also use generateNewToken but only after 2.265
+                // https://github.com/jenkinsci/jenkins/commit/9c256ad8305db82e7186b7687e3300a8115a2d10
+                addFixedNewTokenMethod.invoke(apiTokenProperty, tokenRandomName, tokenValue);
+                return tokenValue;
+            }
+        }
+        catch (IOException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ServletException e) {
+            throw new AssertionError(e);
+        }
+    }
+    
+    // copy from ApiTokenStore#generateNewToken, version 2.138.4
+    private String generateNewApiTokenValue() {
+        byte[] random = new byte[16];
+        new SecureRandom().nextBytes(random);
+        String secretValue = Util.toHexString(random);
+        // 11 is the version for the new API Token system
+        String plainTextValue = 11 + secretValue;
+        return plainTextValue;
     }
 
     /**
@@ -2653,12 +2707,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         /**
-         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header
+         * Retrieve the {@link ApiTokenProperty} from the user, derive credentials from it and place it in Basic authorization header.
+         * If there is not available token it will generate one using the new system.
+         *
          * @see #withBasicCredentials(String, String)
-         * @since 2.32
+         * @since 2.32 (since TODO it creates a new token everytime it's called)
          */
         public @Nonnull WebClient withBasicApiToken(@Nonnull User user){
-            return withBasicCredentials(user.getId(), user.getProperty(ApiTokenProperty.class).getApiToken());
+            String apiToken = JenkinsRule.this.createApiToken(user);
+            return withBasicCredentials(user.getId(), apiToken);
         }
 
         /**
