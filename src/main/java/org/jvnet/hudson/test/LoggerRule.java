@@ -311,7 +311,7 @@ public class LoggerRule extends ExternalResource {
         @Override
         public void publish(LogRecord record) {
             if (record.getLevel().intValue() < initialLevel.intValue()) {
-                this.publish(record);
+                super.publish(record);
             }
         }
     }
