@@ -60,7 +60,7 @@ public class LoggerRule extends ExternalResource {
 
     private final Handler consoleHandler = new ConsoleHandlerWithMaxLevel();
     private final Map<Logger,Level> loggers = new HashMap<>();
-    // initialized if capture is called:
+    // initialized if and only if capture is called:
     private RingBufferLogHandler ringHandler;
     private List<String> messages;
     private boolean verbose = true;
