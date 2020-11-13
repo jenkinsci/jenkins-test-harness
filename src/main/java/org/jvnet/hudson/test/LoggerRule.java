@@ -58,11 +58,12 @@ import org.junit.rules.RuleChain;
  */
 public class LoggerRule extends ExternalResource {
 
-    private final Handler consoleHandler = new ConsoleHandler();
+    private final Handler consoleHandler = new ConsoleHandlerWithMaxLevel();
     private final Map<Logger,Level> loggers = new HashMap<>();
-    // initialized iff capture is called:
+    // initialized if and only if capture is called:
     private RingBufferLogHandler ringHandler;
     private List<String> messages;
+    private boolean verbose = true;
 
     /**
      * Initializes the rule, by default not recording anything.
@@ -70,6 +71,14 @@ public class LoggerRule extends ExternalResource {
     public LoggerRule() {
         consoleHandler.setFormatter(new DeltaSupportLogFormatter());
         consoleHandler.setLevel(Level.ALL);
+    }
+
+    /**
+     * Don't emit logs to the console, only record.
+     */
+    public LoggerRule quiet() {
+        this.verbose = false;
+        return this;
     }
 
     /**
@@ -114,7 +123,9 @@ public class LoggerRule extends ExternalResource {
     public LoggerRule record(Logger logger, Level level) {
         loggers.put(logger, logger.getLevel());
         logger.setLevel(level);
-        logger.addHandler(consoleHandler);
+        if (verbose) {
+            logger.addHandler(consoleHandler);
+        }
         if (ringHandler != null) {
             logger.addHandler(ringHandler);
         }
@@ -173,7 +184,9 @@ public class LoggerRule extends ExternalResource {
         for (Map.Entry<Logger,Level> entry : loggers.entrySet()) {
             Logger logger = entry.getKey();
             logger.setLevel(entry.getValue());
-            logger.removeHandler(consoleHandler);
+            if (verbose) {
+                logger.removeHandler(consoleHandler);
+            }
             if (ringHandler != null) {
                 logger.removeHandler(ringHandler);
             }
@@ -284,4 +297,22 @@ public class LoggerRule extends ExternalResource {
         }
     }
 
+    /**
+     * Delegates to the given Handler but filter out records higher or equal to its initial level
+     */
+    private static class ConsoleHandlerWithMaxLevel extends ConsoleHandler {
+        private final Level initialLevel;
+
+        public ConsoleHandlerWithMaxLevel() {
+            super();
+            initialLevel = getLevel();
+        }
+
+        @Override
+        public void publish(LogRecord record) {
+            if (record.getLevel().intValue() < initialLevel.intValue()) {
+                super.publish(record);
+            }
+        }
+    }
 }
