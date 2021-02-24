@@ -2266,7 +2266,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     String uri = exception.getURI();
                     return uri.contains("/yui/")
                         // TODO JENKINS-14749: these are a mess today, and we know that
-                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
+                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
                 }
             });
 
