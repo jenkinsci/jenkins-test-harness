@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <url>https://github.com/jenkinsci/jenkins-test-harness</url>
@@ -48,8 +48,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>2.73</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.4.38.v20210224</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
