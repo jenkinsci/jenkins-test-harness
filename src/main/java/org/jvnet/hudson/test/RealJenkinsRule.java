@@ -109,29 +109,31 @@ public final class RealJenkinsRule implements TestRule {
                         FileUtils.copyURLToFile(u, new File(plugins, thisPlugin + ".jpl"));
                     }
                     URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
-                    try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
-                        String line;
-                        while ((line = r.readLine()) != null) {
-                            final URL url = new URL(index, line + ".jpi");
-                            File f;
-                            try {
-                                f = new File(url.toURI());
-                            } catch (IllegalArgumentException x) {
-                                if (x.getMessage().equals("URI is not hierarchical")) {
-                                    throw new IOException(
-                                            "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                            " you are running this in your IDE and see this message, it is likely" +
-                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                            "from the command line (once only), which will copy the required plugins " +
-                                            "into target/test-classes/test-dependencies - then retry your test", x);
-                                } else {
-                                    throw new IOException(index + " contains bogus line " + line, x);
+                    if (index != null) {
+                        try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = r.readLine()) != null) {
+                                final URL url = new URL(index, line + ".jpi");
+                                File f;
+                                try {
+                                    f = new File(url.toURI());
+                                } catch (IllegalArgumentException x) {
+                                    if (x.getMessage().equals("URI is not hierarchical")) {
+                                        throw new IOException(
+                                                "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                                " you are running this in your IDE and see this message, it is likely" +
+                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                                "from the command line (once only), which will copy the required plugins " +
+                                                "into target/test-classes/test-dependencies - then retry your test", x);
+                                    } else {
+                                        throw new IOException(index + " contains bogus line " + line, x);
+                                    }
                                 }
-                            }
-                            if (f.exists()) {
-                                FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
-                            } else {
-                                FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                if (f.exists()) {
+                                    FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                } else {
+                                    FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                }
                             }
                         }
                     }
