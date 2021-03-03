@@ -89,6 +89,7 @@ public final class RealJenkinsRule implements TestRule {
                     home = tmp.allocate();
                     File initGroovyD = new File(home, "init.groovy.d");
                     initGroovyD.mkdir();
+                    // TODO perhaps do this with a tiny custom plugin rather than a Groovy init script
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
@@ -195,6 +196,7 @@ public final class RealJenkinsRule implements TestRule {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
             ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Body::pathToURL).toArray(URL[]::new), uberClassLoader);
+            tests.setDefaultAssertionStatus(true);
             String home = System.getenv("JENKINS_HOME");
             Object s = readSer(new File(home, "step.ser"), tests);
             System.err.println("Running step: " + s);
@@ -277,6 +279,9 @@ public final class RealJenkinsRule implements TestRule {
             for (Throwable suppressed : cause.getSuppressed()) {
                 addSuppressed(new ProxyException(suppressed));
             }
+        }
+        @Override public String toString() {
+            return getMessage();
         }
     }
 

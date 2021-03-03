@@ -24,6 +24,8 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -36,6 +38,21 @@ public class RealJenkinsRuleTest {
     }
     private static void _smokes(JenkinsRule r) throws Throwable {
         System.err.println("running in: " + r.jenkins.getRootUrl());
+    }
+
+    @Test public void error() {
+        boolean erred = false;
+        try {
+            rr.then(RealJenkinsRuleTest::_error);
+        } catch (Throwable t) {
+            erred = true;
+            t.printStackTrace();
+            assertEquals("java.lang.AssertionError: oops", t.toString());
+        }
+        assertTrue(erred);
+    }
+    private static void _error(JenkinsRule r) throws Throwable {
+        assert false: "oops";
     }
 
 }
