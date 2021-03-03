@@ -153,6 +153,17 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * One step to run.
+     * <p>Since this thunk will be sent to a different JVM, it must be serializable.
+     * The test class will certainly not be serializable, so you cannot use an anonymous inner class.
+     * If your thunk requires no parameters from the test JVM, the friendliest idiom is a static method reference:
+     * <pre>
+     * &#64;Test public void stuff() throws Throwable {
+     *     rr.then(YourTest::_stuff);
+     * }
+     * private static void _stuff(JenkinsRule r) throws Throwable {
+     *     // as needed
+     * }
+     * </pre>
      */
     @FunctionalInterface
     public interface Step extends Serializable {
