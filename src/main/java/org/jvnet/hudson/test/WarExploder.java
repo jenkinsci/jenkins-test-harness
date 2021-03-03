@@ -52,45 +52,17 @@ public final class WarExploder {
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
-    public static File getExplodedDir() throws Exception {
-        // rethrow an exception every time someone tries to do this, so that when explode()
-        // fails, you can see the cause no matter which test case you look at.
-        // see http://www.nabble.com/Failing-tests-in-test-harness-module-on-hudson.ramfelt.se-td19258722.html
-        if(FAILURE !=null)   throw new Exception("Failed to initialize exploded war", FAILURE);
+    public static synchronized File getExplodedDir() throws Exception {
+        if (EXPLODE_DIR == null) {
+            EXPLODE_DIR = explode();
+        }
         return EXPLODE_DIR;
     }
 
     private static File EXPLODE_DIR;
-    private static Exception FAILURE;
 
-    static {
-        try {
-            EXPLODE_DIR = explode();
-        } catch (Exception e) {
-            FAILURE = e;
-        }
-    }
-
-    /**
-     * Explodes jenkins.war, if necessary, and returns its root dir.
-     */
-    private static File explode() throws Exception {
-        // are we in the Jenkins main workspace? If so, pick up hudson/main/war/resources
-        // this saves the effort of packaging a war file and makes the debug cycle faster
-
-        File d = new File(".").getAbsoluteFile();
-
-        for( ; d!=null; d=d.getParentFile()) {
-            if(new File(d,".jenkins").exists()) {
-                File dir = new File(d,"war/target/jenkins");
-                if(dir.exists()) {
-                    LOGGER.log(Level.INFO, "Using jenkins.war resources from {0}", dir);
-                    return dir;
-                }
-            }
-        }
-
-        final File war;
+    static File findJenkinsWar() throws Exception {
+        File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
             LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
@@ -120,6 +92,29 @@ public final class WarExploder {
                 }
             }
         }
+        return war;
+    }
+
+    /**
+     * Explodes jenkins.war, if necessary, and returns its root dir.
+     */
+    private static File explode() throws Exception {
+        // are we in the Jenkins main workspace? If so, pick up hudson/main/war/resources
+        // this saves the effort of packaging a war file and makes the debug cycle faster
+
+        File d = new File(".").getAbsoluteFile();
+
+        for( ; d!=null; d=d.getParentFile()) {
+            if(new File(d,".jenkins").exists()) {
+                File dir = new File(d,"war/target/jenkins");
+                if(dir.exists()) {
+                    LOGGER.log(Level.INFO, "Using jenkins.war resources from {0}", dir);
+                    return dir;
+                }
+            }
+        }
+
+        final File war = findJenkinsWar();
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case
         File buildDirectory = new File(System.getProperty("buildDirectory", "target"));
