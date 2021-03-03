@@ -31,6 +31,7 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import jenkins.model.Jenkins;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
@@ -84,9 +85,11 @@ public class RealJenkinsRuleTest {
         rr.then(RealJenkinsRuleTest::_htmlUnit);
     }
     private static void _htmlUnit(JenkinsRule r) throws Throwable {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
         FreeStyleProject p = r.createFreeStyleProject();
         p.setDescription("hello");
-        r.configRoundtrip(p);
+        r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
         assertEquals("hello", p.getDescription());
     }
 
