@@ -24,6 +24,13 @@
 
 package org.jvnet.hudson.test;
 
+import hudson.Launcher;
+import hudson.Main;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.FreeStyleProject;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
@@ -38,6 +45,7 @@ public class RealJenkinsRuleTest {
     }
     private static void _smokes(JenkinsRule r) throws Throwable {
         System.err.println("running in: " + r.jenkins.getRootUrl());
+        assertTrue(Main.isUnitTest);
     }
 
     @Test public void error() {
@@ -55,8 +63,24 @@ public class RealJenkinsRuleTest {
         assert false: "oops";
     }
 
+    @Test public void agentBuild() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_agentBuild);
+    }
+    private static void _agentBuild(JenkinsRule r) throws Throwable {
+        FreeStyleProject p = r.createFreeStyleProject();
+        AtomicReference<Boolean> ran = new AtomicReference<>(false);
+        p.getBuildersList().add(new TestBuilder() {
+            @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                ran.set(true);
+                return true;
+            }
+        });
+        p.setAssignedNode(r.createOnlineSlave());
+        r.buildAndAssertSuccess(p);
+        assertTrue(ran.get());
+    }
+
     // TODO interesting scenarios to test:
-    // · create a project and an agent, run a build
     // · throw an exception of a type defined in Jenkins code
     // · use WebClient to test GUIs, incl. configRoundtrip
     // · run with optional dependencies disabled
