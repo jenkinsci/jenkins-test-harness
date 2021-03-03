@@ -80,9 +80,18 @@ public class RealJenkinsRuleTest {
         assertTrue(ran.get());
     }
 
+    @Test public void htmlUnit() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_htmlUnit);
+    }
+    private static void _htmlUnit(JenkinsRule r) throws Throwable {
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.setDescription("hello");
+        r.configRoundtrip(p);
+        assertEquals("hello", p.getDescription());
+    }
+
     // TODO interesting scenarios to test:
     // · throw an exception of a type defined in Jenkins code
-    // · use WebClient to test GUIs, incl. configRoundtrip
     // · run with optional dependencies disabled
 
 }
