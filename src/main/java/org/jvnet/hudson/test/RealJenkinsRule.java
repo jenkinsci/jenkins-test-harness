@@ -88,7 +88,7 @@ public final class RealJenkinsRule implements TestRule {
                     home = tmp.allocate();
                     File initGroovyD = new File(home, "init.groovy.d");
                     initGroovyD.mkdir();
-                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRule.groovy"), new File(initGroovyD, "RealJenkinsRule.groovy"));
+                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
