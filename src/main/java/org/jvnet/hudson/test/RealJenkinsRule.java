@@ -182,16 +182,18 @@ public final class RealJenkinsRule implements TestRule {
      */
     public void then(Step s) throws Throwable {
         Body.writeSer(new File(home, "step.ser"), s);
+        String cp = System.getProperty("java.class.path");
         ProcessBuilder pb = new ProcessBuilder(
                 /* TODO take from current JRE */"java",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
-                "-DRealJenkinsRule.cp=" + System.getProperty("java.class.path"),
+                "-DRealJenkinsRule.cp=" + cp,
                 "-DRealJenkinsRule.port=" + port,
                 "-DRealJenkinsRule.description=" + description,
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins");
+        System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
         // TODO options to set env, Java options, Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
