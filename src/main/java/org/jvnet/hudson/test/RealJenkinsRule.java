@@ -27,11 +27,13 @@ package org.jvnet.hudson.test;
 import hudson.model.DownloadService;
 import hudson.model.UpdateSite;
 import hudson.util.StreamCopyThread;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
@@ -42,8 +44,10 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Random;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -86,7 +90,51 @@ public final class RealJenkinsRule implements TestRule {
                     initGroovyD.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRule.groovy"), new File(initGroovyD, "RealJenkinsRule.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
-                    // TODO prepopulate plugins dir
+                    File plugins = new File(home, "plugins");
+                    plugins.mkdir();
+                    // Adapted from UnitTestSupportingPluginManager:
+                    URL u = RealJenkinsRule.class.getResource("/the.jpl");
+                    if (u == null) {
+                        u = RealJenkinsRule.class.getResource("/the.hpl");
+                    }
+                    if (u != null) {
+                        String thisPlugin;
+                        try (InputStream is = u.openStream()) {
+                            thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+                        }
+                        if (thisPlugin == null) {
+                            throw new IOException("malformed " + u);
+                        }
+                        // Not totally realistic, but test phase is run before package phase so :shrug:
+                        FileUtils.copyURLToFile(u, new File(plugins, thisPlugin + ".jpl"));
+                    }
+                    URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
+                    try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = r.readLine()) != null) {
+                            final URL url = new URL(index, line + ".jpi");
+                            File f;
+                            try {
+                                f = new File(url.toURI());
+                            } catch (IllegalArgumentException x) {
+                                if (x.getMessage().equals("URI is not hierarchical")) {
+                                    throw new IOException(
+                                            "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                            " you are running this in your IDE and see this message, it is likely" +
+                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                            "from the command line (once only), which will copy the required plugins " +
+                                            "into target/test-classes/test-dependencies - then retry your test", x);
+                                } else {
+                                    throw new IOException(index + " contains bogus line " + line, x);
+                                }
+                            }
+                            if (f.exists()) {
+                                FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                            } else {
+                                FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                            }
+                        }
+                    }
                     base.evaluate();
                 } finally {
                     try {
