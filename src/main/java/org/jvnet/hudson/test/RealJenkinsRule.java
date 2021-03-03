@@ -84,6 +84,7 @@ public final class RealJenkinsRule implements TestRule {
         this.description = description;
         return new Statement() {
             @Override public void evaluate() throws Throwable {
+                System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
                     File initGroovyD = new File(home, "init.groovy.d");
