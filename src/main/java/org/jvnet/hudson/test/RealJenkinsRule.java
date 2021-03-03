@@ -59,6 +59,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
  * Like {@link JenkinsSessionRule} but running Jenkins in a more realistic environment.
@@ -82,6 +83,8 @@ import org.junit.runners.model.Statement;
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available.
+ * <li>{@link LocalData} is not available.
+ * <li>{@link LoggerRule} is not available.
  * <li>There is no automatic test timeout.
  * <li>There is not currently a way to disable plugins.
  * <li>There is not currently a way to run multiple controllers in parallel or to run “blackbox” operations from the test JVM while the controller is running.
