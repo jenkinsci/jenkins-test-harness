@@ -55,4 +55,12 @@ public class RealJenkinsRuleTest {
         assert false: "oops";
     }
 
+    // TODO interesting scenarios to test:
+    // · create a project and an agent, run a build
+    // · throw an exception of a type defined in Jenkins code
+    // · use WebClient to test GUIs, incl. configRoundtrip
+    // · run with optional dependencies disabled
+    // · use ExtensionList.add rather than @TestExtension
+    // Also check behavior when using snapshot core and/or plugin deps (PluginWorkspaceMap)
+
 }

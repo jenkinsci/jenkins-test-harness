@@ -90,6 +90,7 @@ public final class RealJenkinsRule implements TestRule {
                     File initGroovyD = new File(home, "init.groovy.d");
                     initGroovyD.mkdir();
                     // TODO perhaps do this with a tiny custom plugin rather than a Groovy init script
+                    // (this could also use a simple HTTP API rather than *.ser files, making it easier to implement a separate runRemotely step)
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
@@ -107,7 +108,7 @@ public final class RealJenkinsRule implements TestRule {
                         if (thisPlugin == null) {
                             throw new IOException("malformed " + u);
                         }
-                        // Not totally realistic, but test phase is run before package phase so :shrug:
+                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
                         FileUtils.copyURLToFile(u, new File(plugins, thisPlugin + ".jpl"));
                     }
                     URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
@@ -136,6 +137,7 @@ public final class RealJenkinsRule implements TestRule {
                                 } else {
                                     FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
                                 }
+                                // TODO add method to disable a plugin (e.g. to test optional dependencies)
                             }
                         }
                     }
@@ -191,7 +193,9 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins");
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        // TODO options to set env, Java options, Winstone options, run in Docker, …
+        // TODO options to set env, Java options, Winstone options, etc.
+        // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
+        // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
         Process proc = pb.start();
         // TODO prefix streams with per-test timestamps
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
