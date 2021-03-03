@@ -184,7 +184,7 @@ public final class RealJenkinsRule implements TestRule {
         Body.writeSer(new File(home, "step.ser"), s);
         String cp = System.getProperty("java.class.path");
         ProcessBuilder pb = new ProcessBuilder(
-                /* TODO take from current JRE */"java",
+                new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.cp=" + cp,
