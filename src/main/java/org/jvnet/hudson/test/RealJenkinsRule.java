@@ -161,10 +161,7 @@ public final class RealJenkinsRule implements TestRule {
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
-        try (OutputStream os = new FileOutputStream(new File(home, "step.ser"));
-                ObjectOutputStream oos = new ObjectOutputStream(os)) {
-            oos.writeObject(s);
-        }
+        Body.writeSer(new File(home, "step.ser"), s);
         ProcessBuilder pb = new ProcessBuilder(
                 /* TODO take from current JRE */"java",
                 "-Dhudson.Main.development=true",
@@ -185,44 +182,27 @@ public final class RealJenkinsRule implements TestRule {
         }
         File error = new File(home, "error.ser");
         if (error.isFile()) {
-            try (InputStream is = new FileInputStream(error);
-                    ObjectInputStream ois = new ObjectInputStream(is)) {
-                Throwable t = (Throwable) ois.readObject();
-                throw t;
-            }
+            throw (Throwable) Body.readSer(error, null);
         }
     }
 
+    // Should not refer to any types outside the JRE.
     public static final class Body {
 
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
             ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Body::pathToURL).toArray(URL[]::new), uberClassLoader);
-            Object s;
-            try (InputStream is = new FileInputStream(new File(System.getenv("JENKINS_HOME"), "step.ser"));
-                    ObjectInputStream ois = new ObjectInputStream(is) {
-                @Override protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-                    try {
-                        return tests.loadClass(desc.getName());
-                    } catch (ClassNotFoundException x) {
-                        return super.resolveClass(desc);
-                    }
-                }
-            }) {
-                s = ois.readObject();
-            }
+            String home = System.getenv("JENKINS_HOME");
+            Object s = readSer(new File(home, "step.ser"), tests);
             System.err.println("Running step: " + s);
             Object cjr = tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$CustomJenkinsRule").getConstructor(Object.class, int.class).newInstance(jenkins, Integer.getInteger("RealJenkinsRule.port"));
             Method run = tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Step").getMethod("run", tests.loadClass("org.jvnet.hudson.test.JenkinsRule"));
             try {
                 run.invoke(s, cjr);
             } catch (InvocationTargetException x) {
-                try (OutputStream os = new FileOutputStream(new File(System.getenv("JENKINS_HOME"), "error.ser"));
-                        ObjectOutputStream oos = new ObjectOutputStream(os)) {
-                    // TODO use raw cause if it seems safe enough
-                    oos.writeObject(new ProxyException(x.getCause()));
-                }
+                // TODO use raw cause if it seems safe enough
+                writeSer(new File(home, "error.ser"), new ProxyException(x.getCause()));
             }
             jenkins.getClass().getMethod("cleanUp").invoke(jenkins);
             System.exit(0);
@@ -233,6 +213,31 @@ public final class RealJenkinsRule implements TestRule {
                 return Paths.get(path).toUri().toURL();
             } catch (MalformedURLException x) {
                 throw new IllegalArgumentException(x);
+            }
+        }
+
+        static void writeSer(File f, Object o) throws Exception {
+            try (OutputStream os = new FileOutputStream(f);
+                    ObjectOutputStream oos = new ObjectOutputStream(os)) {
+                oos.writeObject(o);
+            }
+        }
+
+        static Object readSer(File f, ClassLoader loader) throws Exception {
+            try (InputStream is = new FileInputStream(f);
+                    ObjectInputStream ois = new ObjectInputStream(is) {
+                @Override
+                protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                    if (loader != null) {
+                        try {
+                            return loader.loadClass(desc.getName());
+                        } catch (ClassNotFoundException x) {
+                        }
+                    }
+                    return super.resolveClass(desc);
+                }
+            }) {
+                return ois.readObject();
             }
         }
 
