@@ -168,6 +168,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.cp=" + System.getProperty("java.class.path"),
                 "-DRealJenkinsRule.port=" + port,
+                "-DRealJenkinsRule.description=" + description,
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins");
@@ -205,6 +206,7 @@ public final class RealJenkinsRule implements TestRule {
                 writeSer(new File(home, "error.ser"), new ProxyException(x.getCause()));
             }
             jenkins.getClass().getMethod("cleanUp").invoke(jenkins);
+            ((AutoCloseable) cjr).close();
             System.exit(0);
         }
 
@@ -245,7 +247,7 @@ public final class RealJenkinsRule implements TestRule {
 
     }
 
-    public static final class CustomJenkinsRule extends JenkinsRule {
+    public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
         public CustomJenkinsRule(Object jenkins, int port) throws Exception {
             this.jenkins = (Jenkins) jenkins;
             localPort = port;
@@ -254,7 +256,12 @@ public final class RealJenkinsRule implements TestRule {
             this.jenkins.setNoUsageStatistics(true);
             DownloadService.neverUpdate = true;
             UpdateSite.neverUpdate = true;
-            // TODO set JenkinsRule.testDescription
+            testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
+            env = new TestEnvironment(this.testDescription);
+            env.pin();
+        }
+        @Override public void close() throws Exception {
+            env.dispose();
         }
     }
 
