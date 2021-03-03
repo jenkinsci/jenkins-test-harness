@@ -170,8 +170,13 @@ public final class RealJenkinsRule implements TestRule {
         void run(JenkinsRule r) throws Throwable;
     }
 
+    // TODO add methods for more advanced use cases (such as multiple Jenkins services interacting):
+    // · withSession: run a Jenkins session, run a test thunk _locally_ (blackbox testing), shut down
+    // · runRemotely: run a test thunk remotely, given a running session (whitebox testing)
+    // Thus rr.then(s) would be shorthand for rr.withSession(() -> rr.runRemotely(s))
+
     /**
-     * Run one Jenkins session and shut down.
+     * Run one Jenkins session, send a test thunk, and shut down.
      */
     public void then(Step s) throws Throwable {
         Body.writeSer(new File(home, "step.ser"), s);
