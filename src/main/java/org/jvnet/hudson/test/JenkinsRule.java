@@ -2259,7 +2259,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     String uri = exception.getURI();
                     return uri.contains("/yui/")
                         // TODO JENKINS-14749: these are a mess today, and we know that
-                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
+                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
                 }
             });
 
@@ -2717,8 +2717,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since 2.32
          */
         public @Nonnull WebClient withBasicApiToken(@Nonnull String userId){
-            User user = User.getById(userId, false);
-            assertNotNull("The userId must correspond to an already created User", user);
+            User user = User.getById(userId, true);
             return withBasicApiToken(user);
         }
 

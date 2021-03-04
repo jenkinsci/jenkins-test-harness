@@ -28,13 +28,13 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.60</version>
+    <version>1.63</version>
     <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <url>https://github.com/jenkinsci/jenkins-test-harness</url>
@@ -48,12 +48,11 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>2.72</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.34.v20201102</jetty.version>
+    <jetty.version>9.4.38.v20210224</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.26</jmh.version>
+    <jmh.version>1.28</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
     <!--TODO: fix FindBugs-->
@@ -244,13 +243,13 @@ THE SOFTWARE.
           </systemPropertyVariables>
           <reuseForks>true</reuseForks>
           <forkCount>${concurrency}</forkCount>
-          <rerunFailingTestsCount>4</rerunFailingTestsCount>
+          <trimStackTrace>false</trimStackTrace>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.11.0</version>
+        <version>1.12.1</version>
         <executions>
           <execution>
             <id>preset-packager</id>
@@ -288,6 +287,17 @@ THE SOFTWARE.
         <properties>
           <skipTests>true</skipTests>
         </properties>
+    </profile>
+    <profile>
+      <id>rerunFailingTests</id>
+      <activation>
+        <property>
+          <name>!test</name>
+        </property>
+      </activation>
+      <properties>
+        <surefire.rerunFailingTestsCount>4</surefire.rerunFailingTestsCount>
+      </properties>
     </profile>
   </profiles>
 

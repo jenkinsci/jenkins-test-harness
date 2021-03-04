@@ -13,3 +13,7 @@ updates:
   - dependency-name: org.jenkins-ci.main:jenkins-core
   - dependency-name: org.jenkins-ci.main:jenkins-war
   - dependency-name: org.jenkins-ci.plugins*
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily
