@@ -13,6 +13,9 @@ updates:
   - dependency-name: org.jenkins-ci.main:jenkins-core
   - dependency-name: org.jenkins-ci.main:jenkins-war
   - dependency-name: org.jenkins-ci.plugins*
+  - dependency-name: org.netbeans.modules:org-netbeans-insane
+    versions:
+    - RELEASE802
 - package-ecosystem: github-actions
   directory: /
   schedule:
