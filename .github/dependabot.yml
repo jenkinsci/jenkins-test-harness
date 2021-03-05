@@ -13,9 +13,29 @@ updates:
   - dependency-name: org.jenkins-ci.main:jenkins-core
   - dependency-name: org.jenkins-ci.main:jenkins-war
   - dependency-name: org.jenkins-ci.plugins*
+  # INFRA-2914
   - dependency-name: org.netbeans.modules:org-netbeans-insane
     versions:
+    - RELEASE65
+    - RELEASE67
+    - RELEASE68
+    - RELEASE69
+    - RELEASE691
+    - RELEASE70
+    - RELEASE701
+    - RELEASE71
+    - RELEASE711
+    - RELEASE712
+    - RELEASE72
+    - RELEASE721
+    - RELEASE73
+    - RELEASE731
+    - RELEASE74
+    - RELEASE80
+    - RELEASE801
     - RELEASE802
+    - RELEASE81
+    - RELEASE82
 - package-ecosystem: github-actions
   directory: /
   schedule:
