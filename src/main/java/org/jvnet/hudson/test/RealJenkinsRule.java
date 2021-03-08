@@ -239,8 +239,15 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    /**
+     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     */
+    public URL getUrl() throws MalformedURLException {
+        return new URL("http://localhost:" + port + "/jenkins/");
+    }
+
     private URL endpoint(String method) throws MalformedURLException {
-        return new URL("http://127.0.0.1:" + port + "/jenkins/RealJenkinsRule/" + method + "?token=" + token);
+        return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
     public void startJenkins() throws Throwable {
