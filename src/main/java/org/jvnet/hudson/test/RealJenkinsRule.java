@@ -410,7 +410,7 @@ public final class RealJenkinsRule implements TestRule {
                 err = t;
             }
             // TODO use raw err if it seems safe enough
-            Init2.writeSer(rsp.getOutputStream(), new ProxyException(err));
+            Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
