@@ -28,6 +28,8 @@ import hudson.ExtensionList;
 import hudson.model.DownloadService;
 import hudson.model.UnprotectedRootAction;
 import hudson.model.UpdateSite;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
@@ -404,7 +406,7 @@ public final class RealJenkinsRule implements TestRule {
             checkToken((String) tokenAndStep.get(0));
             Step s = (Step) tokenAndStep.get(1);
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule()) {
+            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 s.run(rule);
             } catch (Throwable t) {
                 err = t;
@@ -414,7 +416,9 @@ public final class RealJenkinsRule implements TestRule {
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
-            return Jenkins.get().doSafeExit(null);
+            try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                return Jenkins.get().doSafeExit(null);
+            }
         }
     }
 
