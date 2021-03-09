@@ -259,6 +259,7 @@ public final class RealJenkinsRule implements TestRule {
         String cp = System.getProperty("java.class.path");
         ProcessBuilder pb = new ProcessBuilder(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
+                "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.cp=" + cp,
@@ -314,7 +315,6 @@ public final class RealJenkinsRule implements TestRule {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
             ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
-            tests.setDefaultAssertionStatus(true);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 
