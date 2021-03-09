@@ -51,6 +51,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -106,7 +107,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>There is no automatic test timeout.
  * <li>There is not currently a way to disable plugins.
  * <li>There is not currently any flexibility in how the controller is launched (such as custom system properties).
- * <li>There is not yet a way to run the controller JVM in a debugger.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -256,7 +256,7 @@ public final class RealJenkinsRule implements TestRule {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         String cp = System.getProperty("java.class.path");
-        ProcessBuilder pb = new ProcessBuilder(
+        List<String> argv = new ArrayList<>(Arrays.asList(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
@@ -264,10 +264,15 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.cp=" + cp,
                 "-DRealJenkinsRule.port=" + port,
                 "-DRealJenkinsRule.description=" + description,
-                "-DRealJenkinsRule.token=" + token,
+                "-DRealJenkinsRule.token=" + token));
+        if (System.getProperty("maven.surefire.debug") != null) {
+            argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
+        }
+        argv.addAll(Arrays.asList(
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
-                "--prefix=/jenkins");
+                "--prefix=/jenkins"));
+        ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
         // TODO options to set env, Java options, Winstone options, etc.
