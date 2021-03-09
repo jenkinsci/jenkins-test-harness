@@ -105,7 +105,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link BuildWatcher} is not available.
  * <li>There is no automatic test timeout.
  * <li>There is not currently a way to disable plugins.
- * <li>There is not currently a way to run multiple controllers in parallel or to run “blackbox” operations from the test JVM while the controller is running.
  * <li>There is not currently any flexibility in how the controller is launched (such as custom system properties).
  * <li>There is not yet a way to run the controller JVM in a debugger.
  * </ul>
