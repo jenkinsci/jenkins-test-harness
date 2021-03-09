@@ -67,6 +67,7 @@ import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.FileUtils;
+import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
@@ -265,7 +266,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.port=" + port,
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
-        if (System.getProperty("maven.surefire.debug") != null) {
+        if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
         argv.addAll(Arrays.asList(
