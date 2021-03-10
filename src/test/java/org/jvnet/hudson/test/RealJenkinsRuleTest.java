@@ -82,13 +82,23 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void htmlUnit() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_htmlUnit);
+        rr.startJenkins();
+        try {
+            rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+            System.err.println("running against " + rr.getUrl());
+            rr.runRemotely(RealJenkinsRuleTest::_htmlUnit2);
+        } finally {
+            rr.stopJenkins();
+        }
     }
-    private static void _htmlUnit(JenkinsRule r) throws Throwable {
+    private static void _htmlUnit1(JenkinsRule r) throws Throwable {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
-        FreeStyleProject p = r.createFreeStyleProject();
+        FreeStyleProject p = r.createFreeStyleProject("p");
         p.setDescription("hello");
+    }
+    private static void _htmlUnit2(JenkinsRule r) throws Throwable {
+        FreeStyleProject p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
         r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
         assertEquals("hello", p.getDescription());
     }

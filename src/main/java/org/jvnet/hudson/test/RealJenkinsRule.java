@@ -26,7 +26,11 @@ package org.jvnet.hudson.test;
 
 import hudson.ExtensionList;
 import hudson.model.DownloadService;
+import hudson.model.UnprotectedRootAction;
 import hudson.model.UpdateSite;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
+import hudson.security.csrf.CrumbExclusion;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,26 +44,41 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.FileUtils;
+import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.HttpResponses;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * Like {@link JenkinsSessionRule} but running Jenkins in a more realistic environment.
@@ -88,9 +107,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
  * <li>{@link BuildWatcher} is not available.
  * <li>There is no automatic test timeout.
  * <li>There is not currently a way to disable plugins.
- * <li>There is not currently a way to run multiple controllers in parallel or to run “blackbox” operations from the test JVM while the controller is running.
  * <li>There is not currently any flexibility in how the controller is launched (such as custom system properties).
- * <li>There is not yet a way to run the controller JVM in a debugger.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -118,6 +135,10 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
+    private final String token = UUID.randomUUID().toString();
+
+    private Process proc;
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -127,8 +148,6 @@ public final class RealJenkinsRule implements TestRule {
                     home = tmp.allocate();
                     File initGroovyD = new File(home, "init.groovy.d");
                     initGroovyD.mkdir();
-                    // TODO perhaps do this with a tiny custom plugin rather than a Groovy init script
-                    // (this could also use a simple HTTP API rather than *.ser files, making it easier to implement a separate runRemotely step)
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
@@ -210,67 +229,98 @@ public final class RealJenkinsRule implements TestRule {
         void run(JenkinsRule r) throws Throwable;
     }
 
-    // TODO add methods for more advanced use cases (such as multiple Jenkins services interacting):
-    // · withSession: run a Jenkins session, run a test thunk _locally_ (blackbox testing), shut down
-    // · runRemotely: run a test thunk remotely, given a running session (whitebox testing)
-    // Thus rr.then(s) would be shorthand for rr.withSession(() -> rr.runRemotely(s))
-
     /**
      * Run one Jenkins session, send a test thunk, and shut down.
      */
     public void then(Step s) throws Throwable {
-        Body.writeSer(new File(home, "step.ser"), s);
+        startJenkins();
+        try {
+            runRemotely(s);
+        } finally {
+            stopJenkins();
+        }
+    }
+
+    /**
+     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     */
+    public URL getUrl() throws MalformedURLException {
+        return new URL("http://localhost:" + port + "/jenkins/");
+    }
+
+    private URL endpoint(String method) throws MalformedURLException {
+        return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
+    }
+
+    public void startJenkins() throws Throwable {
+        if (proc != null) {
+            throw new IllegalStateException("Jenkins is (supposedly) already running");
+        }
         String cp = System.getProperty("java.class.path");
-        ProcessBuilder pb = new ProcessBuilder(
+        List<String> argv = new ArrayList<>(Arrays.asList(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
+                "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.cp=" + cp,
                 "-DRealJenkinsRule.port=" + port,
                 "-DRealJenkinsRule.description=" + description,
+                "-DRealJenkinsRule.token=" + token));
+        if (new DisableOnDebug(null).isDebugging()) {
+            argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
+        }
+        argv.addAll(Arrays.asList(
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
-                "--prefix=/jenkins");
+                "--prefix=/jenkins"));
+        ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
         // TODO options to set env, Java options, Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
-        Process proc = pb.start();
+        proc = pb.start();
         // TODO prefix streams with per-test timestamps
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
+        URL status = endpoint("status");
+        while (true) {
+            try {
+                status.openStream().close();
+                break;
+            } catch (Exception x) {
+                // not ready
+            }
+            Thread.sleep(100);
+        }
+    }
+
+    public void stopJenkins() throws Throwable {
+        endpoint("exit").openStream().close();
         if (proc.waitFor() != 0) {
             throw new AssertionError("nonzero exit code");
         }
-        File error = new File(home, "error.ser");
-        if (error.isFile()) {
-            throw (Throwable) Body.readSer(error, null);
+        proc = null;
+    }
+
+    public void runRemotely(Step s) throws Throwable {
+        HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        conn.setDoOutput(true);
+        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
+        Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        if (error != null) {
+            throw error;
         }
     }
 
     // Should not refer to any types outside the JRE.
-    public static final class Body {
+    public static final class Init2 {
 
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Body::pathToURL).toArray(URL[]::new), uberClassLoader);
-            tests.setDefaultAssertionStatus(true);
-            String home = System.getenv("JENKINS_HOME");
-            Object s = readSer(new File(home, "step.ser"), tests);
-            System.err.println("Running step: " + s);
-            Object cjr = tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$CustomJenkinsRule").getConstructor(Object.class, int.class).newInstance(jenkins, Integer.getInteger("RealJenkinsRule.port"));
-            Method run = tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Step").getMethod("run", tests.loadClass("org.jvnet.hudson.test.JenkinsRule"));
-            try {
-                run.invoke(s, cjr);
-            } catch (InvocationTargetException x) {
-                // TODO use raw cause if it seems safe enough
-                writeSer(new File(home, "error.ser"), new ProxyException(x.getCause()));
-            }
-            jenkins.getClass().getMethod("cleanUp").invoke(jenkins);
-            ((AutoCloseable) cjr).close();
-            System.exit(0);
+            ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 
         private static URL pathToURL(String path) {
@@ -282,15 +332,25 @@ public final class RealJenkinsRule implements TestRule {
         }
 
         static void writeSer(File f, Object o) throws Exception {
-            try (OutputStream os = new FileOutputStream(f);
-                    ObjectOutputStream oos = new ObjectOutputStream(os)) {
+            try (OutputStream os = new FileOutputStream(f)) {
+                writeSer(os, o);
+            }
+        }
+
+        static void writeSer(OutputStream os, Object o) throws Exception {
+            try (ObjectOutputStream oos = new ObjectOutputStream(os)) {
                 oos.writeObject(o);
             }
         }
 
         static Object readSer(File f, ClassLoader loader) throws Exception {
-            try (InputStream is = new FileInputStream(f);
-                    ObjectInputStream ois = new ObjectInputStream(is) {
+            try (InputStream is = new FileInputStream(f)) {
+                return readSer(is, loader);
+            }
+        }
+
+        static Object readSer(InputStream is, ClassLoader loader) throws Exception {
+            try (ObjectInputStream ois = new ObjectInputStream(is) {
                 @Override
                 protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
                     if (loader != null) {
@@ -306,19 +366,73 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
 
-        private Body() {}
+        private Init2() {}
 
     }
 
-    public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
-        public CustomJenkinsRule(Object jenkins, int port) throws Exception {
-            this.jenkins = (Jenkins) jenkins;
-            localPort = port;
-            // Stuff picked out of before(), configureUpdateCenter():
-            JenkinsLocationConfiguration.get().setUrl(getURL().toString());
-            this.jenkins.setNoUsageStatistics(true);
+    public static final class Endpoint implements UnprotectedRootAction {
+        @SuppressWarnings("deprecation")
+        public static void register() throws Exception {
+            Jenkins.get().getActions().add(new Endpoint());
+            CrumbExclusion.all().add(new CrumbExclusion() {
+                @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+                    if (request.getPathInfo().startsWith("/RealJenkinsRule/")) {
+                        chain.doFilter(request, response);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            Jenkins.get().setNoUsageStatistics(true);
             DownloadService.neverUpdate = true;
             UpdateSite.neverUpdate = true;
+        }
+        @Override public String getUrlName() {
+            return "RealJenkinsRule";
+        }
+        @Override public String getIconFileName() {
+            return null;
+        }
+        @Override public String getDisplayName() {
+            return null;
+        }
+        private final byte[] actualToken = System.getProperty("RealJenkinsRule.token").getBytes(StandardCharsets.US_ASCII);
+        private void checkToken(String token) {
+            if (!MessageDigest.isEqual(actualToken, token.getBytes(StandardCharsets.US_ASCII))) {
+                throw HttpResponses.forbidden();
+            }
+        }
+        public void doStatus(@QueryParameter String token) {
+            checkToken(token);
+        }
+        @POST
+        public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
+            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+            checkToken((String) tokenAndStep.get(0));
+            Step s = (Step) tokenAndStep.get(1);
+            Throwable err = null;
+            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                s.run(rule);
+            } catch (Throwable t) {
+                err = t;
+            }
+            // TODO use raw err if it seems safe enough
+            Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
+        }
+        public HttpResponse doExit(@QueryParameter String token) throws IOException {
+            checkToken(token);
+            try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                return Jenkins.get().doSafeExit(null);
+            }
+        }
+    }
+
+    public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
+        public CustomJenkinsRule() throws Exception {
+            this.jenkins = Jenkins.get();
+            localPort = Integer.getInteger("RealJenkinsRule.port");
+            // Stuff picked out of before(), configureUpdateCenter():
+            JenkinsLocationConfiguration.get().setUrl(getURL().toString());
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
@@ -330,7 +444,7 @@ public final class RealJenkinsRule implements TestRule {
 
     // Copied from hudson.remoting
     public static final class ProxyException extends IOException {
-        public ProxyException(Throwable cause) {
+        ProxyException(Throwable cause) {
             super(cause.toString());
             setStackTrace(cause.getStackTrace());
             if (cause.getCause() != null) {
