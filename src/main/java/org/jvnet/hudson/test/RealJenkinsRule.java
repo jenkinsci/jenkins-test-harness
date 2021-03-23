@@ -46,19 +46,27 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -113,7 +121,6 @@ import org.kohsuke.stapler.verb.POST;
  * <ul>
  * <li>Possibly {@link Timeout} can be used.
  * <li>Possibly {@link ExtensionList#add(Object)} can be used as an alternative to {@link TestExtension}.
- * <li>It is unknown whether plugin-to-plugin snapshot dependencies support cross-plugin “compile-on-save” mode.
  * </ul>
  */
 public final class RealJenkinsRule implements TestRule {
@@ -139,6 +146,9 @@ public final class RealJenkinsRule implements TestRule {
 
     private Process proc;
 
+    // TODO may need to be relaxed for Gradle-based plugins
+    private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -152,27 +162,45 @@ public final class RealJenkinsRule implements TestRule {
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
-                    // Adapted from UnitTestSupportingPluginManager:
-                    URL u = RealJenkinsRule.class.getResource("/the.jpl");
-                    if (u == null) {
-                        u = RealJenkinsRule.class.getResource("/the.hpl");
-                    }
-                    if (u != null) {
-                        String thisPlugin;
-                        try (InputStream is = u.openStream()) {
-                            thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+                    // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
+                    Set<String> snapshotPlugins = new TreeSet<>();
+                    Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+                    while (indexJellies.hasMoreElements()) {
+                        String indexJelly = indexJellies.nextElement().toString();
+                        Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
+                        if (m.matches()) {
+                            Path snapshotManifest;
+                            snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
+                            if (!Files.exists(snapshotManifest)) {
+                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
+                            }
+                            if (Files.exists(snapshotManifest)) {
+                                String shortName;
+                                try (InputStream is = Files.newInputStream(snapshotManifest)) {
+                                    shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
+                                }
+                                if (shortName == null) {
+                                    throw new IOException("malformed " + snapshotManifest);
+                                }
+                                // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                                Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
+                                snapshotPlugins.add(shortName);
+                            } else {
+                                System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                            }
+                        } else {
+                            // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
                         }
-                        if (thisPlugin == null) {
-                            throw new IOException("malformed " + u);
-                        }
-                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
-                        FileUtils.copyURLToFile(u, new File(plugins, thisPlugin + ".jpl"));
                     }
+                    System.out.println("Loading plugins as exploded snapshots from *.jpl: " + snapshotPlugins);
                     URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
                     if (index != null) {
                         try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                             String line;
                             while ((line = r.readLine()) != null) {
+                                if (snapshotPlugins.contains(line)) {
+                                    continue;
+                                }
                                 final URL url = new URL(index, line + ".jpi");
                                 File f;
                                 try {
