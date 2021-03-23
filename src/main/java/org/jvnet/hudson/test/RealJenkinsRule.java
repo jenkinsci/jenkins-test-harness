@@ -146,6 +146,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private Process proc;
 
+    // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     @Override public Statement apply(final Statement base, Description description) {
