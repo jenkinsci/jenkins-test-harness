@@ -114,8 +114,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
  * <li>There is no automatic test timeout.
- * <li>There is not currently a way to disable plugins.
- * <li>There is not currently any flexibility in how the controller is launched (such as custom system properties).
+ * <li>There is not currently enough flexibility in how the controller is launched (such as custom environment variables).
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -144,10 +143,32 @@ public final class RealJenkinsRule implements TestRule {
 
     private final String token = UUID.randomUUID().toString();
 
+    private final Set<String> disabledPlugins = new TreeSet<>();
+
+    private final List<String> javaOptions = new ArrayList<>();
+
     private Process proc;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+
+    /**
+     * Disable some plugins in the test classpath.
+     * @param plugins one or more code names, like {@code token-macro}
+     */
+    public RealJenkinsRule disablePlugins(String... plugins) {
+        disabledPlugins.addAll(Arrays.asList(plugins));
+        return this;
+    }
+
+    /**
+     * Add some JVM startup options.
+     * @param options one or more options, like {@code -Dorg.jenkinsci.Something.FLAG=true}
+     */
+    public RealJenkinsRule javaOptions(String... options) {
+        javaOptions.addAll(Arrays.asList(options));
+        return this;
+    }
 
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
@@ -222,9 +243,11 @@ public final class RealJenkinsRule implements TestRule {
                                 } else {
                                     FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
                                 }
-                                // TODO add method to disable a plugin (e.g. to test optional dependencies)
                             }
                         }
+                    }
+                    for (String p : disabledPlugins) {
+                        try (OutputStream os = new FileOutputStream(new File(plugins, p + ".jpi.disabled"))) {}
                     }
                     base.evaluate();
                 } finally {
@@ -300,6 +323,7 @@ public final class RealJenkinsRule implements TestRule {
         if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
+        argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
@@ -307,11 +331,11 @@ public final class RealJenkinsRule implements TestRule {
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        // TODO options to set env, Java options, Winstone options, etc.
+        // TODO options to set env, Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
         proc = pb.start();
-        // TODO prefix streams with per-test timestamps
+        // TODO prefix streams with per-test timestamps & port
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         URL status = endpoint("status");
