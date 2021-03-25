@@ -228,6 +228,9 @@ public final class RealJenkinsRule implements TestRule {
                     }
                     base.evaluate();
                 } finally {
+                    if (proc != null) {
+                        stopJenkins();
+                    }
                     try {
                         tmp.dispose();
                     } catch (Exception x) {
