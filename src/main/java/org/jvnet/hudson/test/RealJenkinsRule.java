@@ -150,6 +150,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private final List<String> javaOptions = new ArrayList<>();
 
+    private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
+
     private Process proc;
 
     // TODO may need to be relaxed for Gradle-based plugins
@@ -170,6 +172,17 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule javaOptions(String... options) {
         javaOptions.addAll(Arrays.asList(options));
+        return this;
+    }
+
+    /**
+     * Adjusts the test timeout.
+     * The timer starts when {@link #startJenkins} completes and {@link #runRemotely} is ready.
+     * The default is currently set to 600 (10m).
+     * @param timeout number of seconds before exiting, or zero to disable
+     */
+    public RealJenkinsRule withTimeout(int timeout) {
+        this.timeout = timeout;
         return this;
     }
 
@@ -369,6 +382,15 @@ public final class RealJenkinsRule implements TestRule {
             }
             Thread.sleep(100);
         }
+        if (timeout > 0) {
+            Timer.get().schedule(() -> {
+                if (proc != null) {
+                    System.err.println("Test timeout expired, killing Jenkins process");
+                    proc.destroyForcibly();
+                    proc = null;
+                }
+            }, timeout, TimeUnit.SECONDS);
+        }
     }
 
     public void stopJenkins() throws Throwable {
@@ -463,11 +485,7 @@ public final class RealJenkinsRule implements TestRule {
             DownloadService.neverUpdate = true;
             UpdateSite.neverUpdate = true;
             System.err.println("RealJenkinsRule ready");
-            Timer.get().schedule(JenkinsRule::dumpThreads, 2, TimeUnit.MINUTES);
-            Timer.get().schedule(() -> {
-                JenkinsRule.dumpThreads();
-                System.exit(1);
-            }, 5, TimeUnit.MINUTES);
+            Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
