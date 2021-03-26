@@ -339,12 +339,20 @@ public final class RealJenkinsRule implements TestRule {
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         URL status = endpoint("status");
+        int tries = 0;
         while (true) {
             try {
                 status.openStream().close();
                 break;
             } catch (Exception x) {
-                // not ready
+                tries++;
+                if (tries == /* 3m */ 1800) {
+                    throw new AssertionError("Jenkins did not start after 3m");
+                } else if (tries % /* 1m */ 600 == 0) {
+                    x.printStackTrace();
+                } else if (tries % /* 5s */ 50 == 0) {
+                    System.err.println("Jenkins is not yet ready: " + x);
+                }
             }
             Thread.sleep(100);
         }
