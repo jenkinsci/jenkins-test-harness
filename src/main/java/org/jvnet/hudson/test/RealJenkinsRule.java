@@ -68,6 +68,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -145,7 +146,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private final String token = UUID.randomUUID().toString();
 
-    private final Set<String> disabledPlugins = new TreeSet<>();
+    private final Set<String> skippedPlugins = new TreeSet<>();
 
     private final List<String> javaOptions = new ArrayList<>();
 
@@ -155,11 +156,11 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     /**
-     * Disable some plugins in the test classpath.
+     * Omit some plugins in the test classpath.
      * @param plugins one or more code names, like {@code token-macro}
      */
-    public RealJenkinsRule disablePlugins(String... plugins) {
-        disabledPlugins.addAll(Arrays.asList(plugins));
+    public RealJenkinsRule omitPlugins(String... plugins) {
+        skippedPlugins.addAll(Arrays.asList(plugins));
         return this;
     }
 
@@ -205,6 +206,9 @@ public final class RealJenkinsRule implements TestRule {
                                 if (shortName == null) {
                                     throw new IOException("malformed " + snapshotManifest);
                                 }
+                                if (skippedPlugins.contains(shortName)) {
+                                    continue;
+                                }
                                 // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
                                 Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
                                 snapshotPlugins.add(shortName);
@@ -215,13 +219,12 @@ public final class RealJenkinsRule implements TestRule {
                             // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
                         }
                     }
-                    System.out.println("Loading plugins as exploded snapshots from *.jpl: " + snapshotPlugins);
                     URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
                     if (index != null) {
                         try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                             String line;
                             while ((line = r.readLine()) != null) {
-                                if (snapshotPlugins.contains(line)) {
+                                if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
                                     continue;
                                 }
                                 final URL url = new URL(index, line + ".jpi");
@@ -248,9 +251,7 @@ public final class RealJenkinsRule implements TestRule {
                             }
                         }
                     }
-                    for (String p : disabledPlugins) {
-                        try (OutputStream os = new FileOutputStream(new File(plugins, p + ".jpi.disabled"))) {}
-                    }
+                    System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
                 } finally {
                     if (proc != null) {
