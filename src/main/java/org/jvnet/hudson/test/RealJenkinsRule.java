@@ -364,8 +364,6 @@ public final class RealJenkinsRule implements TestRule {
                     throw new AssertionError("Jenkins did not start after 3m");
                 } else if (tries % /* 1m */ 600 == 0) {
                     x.printStackTrace();
-                } else if (tries % /* 5s */ 50 == 0) {
-                    System.err.println("Jenkins is not yet ready: " + x);
                 }
             }
             Thread.sleep(100);
