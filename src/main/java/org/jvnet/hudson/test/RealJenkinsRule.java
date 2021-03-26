@@ -356,7 +356,7 @@ public final class RealJenkinsRule implements TestRule {
                     } catch (Exception x) {
                         x.printStackTrace();
                     }
-                    throw new IOException("Response code " + code + " for " + status + ": " + err);
+                    throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
                 }
             } catch (Exception x) {
                 tries++;
