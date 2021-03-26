@@ -445,7 +445,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
     }
     
-    private static void dumpThreads() {
+    static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
         for (ThreadInfo ti : threadInfos) {

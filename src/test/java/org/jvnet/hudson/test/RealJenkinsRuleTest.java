@@ -83,13 +83,9 @@ public class RealJenkinsRuleTest {
 
     @Test public void htmlUnit() throws Throwable {
         rr.startJenkins();
-        try {
-            rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
-            System.err.println("running against " + rr.getUrl());
-            rr.runRemotely(RealJenkinsRuleTest::_htmlUnit2);
-        } finally {
-            rr.stopJenkins();
-        }
+        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+        System.err.println("running against " + rr.getUrl());
+        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit2);
     }
     private static void _htmlUnit1(JenkinsRule r) throws Throwable {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());

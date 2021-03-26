@@ -62,11 +62,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -74,7 +76,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -113,9 +117,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link LocalData} is not available.
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
- * <li>There is no automatic test timeout.
- * <li>There is not currently a way to disable plugins.
- * <li>There is not currently any flexibility in how the controller is launched (such as custom system properties).
+ * <li>There is not currently enough flexibility in how the controller is launched (such as custom environment variables).
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -144,10 +146,45 @@ public final class RealJenkinsRule implements TestRule {
 
     private final String token = UUID.randomUUID().toString();
 
+    private final Set<String> skippedPlugins = new TreeSet<>();
+
+    private final List<String> javaOptions = new ArrayList<>();
+
+    private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
+
     private Process proc;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+
+    /**
+     * Omit some plugins in the test classpath.
+     * @param plugins one or more code names, like {@code token-macro}
+     */
+    public RealJenkinsRule omitPlugins(String... plugins) {
+        skippedPlugins.addAll(Arrays.asList(plugins));
+        return this;
+    }
+
+    /**
+     * Add some JVM startup options.
+     * @param options one or more options, like {@code -Dorg.jenkinsci.Something.FLAG=true}
+     */
+    public RealJenkinsRule javaOptions(String... options) {
+        javaOptions.addAll(Arrays.asList(options));
+        return this;
+    }
+
+    /**
+     * Adjusts the test timeout.
+     * The timer starts when {@link #startJenkins} completes and {@link #runRemotely} is ready.
+     * The default is currently set to 600 (10m).
+     * @param timeout number of seconds before exiting, or zero to disable
+     */
+    public RealJenkinsRule withTimeout(int timeout) {
+        this.timeout = timeout;
+        return this;
+    }
 
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
@@ -182,6 +219,9 @@ public final class RealJenkinsRule implements TestRule {
                                 if (shortName == null) {
                                     throw new IOException("malformed " + snapshotManifest);
                                 }
+                                if (skippedPlugins.contains(shortName)) {
+                                    continue;
+                                }
                                 // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
                                 Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
                                 snapshotPlugins.add(shortName);
@@ -192,13 +232,12 @@ public final class RealJenkinsRule implements TestRule {
                             // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
                         }
                     }
-                    System.out.println("Loading plugins as exploded snapshots from *.jpl: " + snapshotPlugins);
                     URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
                     if (index != null) {
                         try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                             String line;
                             while ((line = r.readLine()) != null) {
-                                if (snapshotPlugins.contains(line)) {
+                                if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
                                     continue;
                                 }
                                 final URL url = new URL(index, line + ".jpi");
@@ -222,12 +261,15 @@ public final class RealJenkinsRule implements TestRule {
                                 } else {
                                     FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
                                 }
-                                // TODO add method to disable a plugin (e.g. to test optional dependencies)
                             }
                         }
                     }
+                    System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
                 } finally {
+                    if (proc != null) {
+                        stopJenkins();
+                    }
                     try {
                         tmp.dispose();
                     } catch (Exception x) {
@@ -297,6 +339,7 @@ public final class RealJenkinsRule implements TestRule {
         if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
+        argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
                 "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
@@ -304,22 +347,49 @@ public final class RealJenkinsRule implements TestRule {
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        // TODO options to set env, Java options, Winstone options, etc.
+        // TODO options to set env, Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
         proc = pb.start();
-        // TODO prefix streams with per-test timestamps
+        // TODO prefix streams with per-test timestamps & port
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         URL status = endpoint("status");
+        int tries = 0;
         while (true) {
             try {
-                status.openStream().close();
-                break;
+                HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+                int code = conn.getResponseCode();
+                if (code == 200) {
+                    conn.getInputStream().close();
+                    break;
+                } else {
+                    String err = "?";
+                    try (InputStream is = conn.getErrorStream()) {
+                        err = IOUtils.toString(is);
+                    } catch (Exception x) {
+                        x.printStackTrace();
+                    }
+                    throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
+                }
             } catch (Exception x) {
-                // not ready
+                tries++;
+                if (tries == /* 3m */ 1800) {
+                    throw new AssertionError("Jenkins did not start after 3m");
+                } else if (tries % /* 1m */ 600 == 0) {
+                    x.printStackTrace();
+                }
             }
             Thread.sleep(100);
+        }
+        if (timeout > 0) {
+            Timer.get().schedule(() -> {
+                if (proc != null) {
+                    System.err.println("Test timeout expired, killing Jenkins process");
+                    proc.destroyForcibly();
+                    proc = null;
+                }
+            }, timeout, TimeUnit.SECONDS);
         }
     }
 
@@ -414,6 +484,8 @@ public final class RealJenkinsRule implements TestRule {
             Jenkins.get().setNoUsageStatistics(true);
             DownloadService.neverUpdate = true;
             UpdateSite.neverUpdate = true;
+            System.err.println("RealJenkinsRule ready");
+            Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
@@ -431,6 +503,7 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         public void doStatus(@QueryParameter String token) {
+            System.err.println("Checking status");
             checkToken(token);
         }
         @POST
