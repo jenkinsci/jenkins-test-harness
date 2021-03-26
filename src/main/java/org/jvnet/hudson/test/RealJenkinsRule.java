@@ -62,6 +62,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +75,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
@@ -113,7 +115,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link LocalData} is not available.
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
- * <li>There is no automatic test timeout.
  * <li>There is not currently enough flexibility in how the controller is launched (such as custom environment variables).
  * </ul>
  * <p>Systems not yet tested:
@@ -449,6 +450,12 @@ public final class RealJenkinsRule implements TestRule {
             Jenkins.get().setNoUsageStatistics(true);
             DownloadService.neverUpdate = true;
             UpdateSite.neverUpdate = true;
+            System.err.println("RealJenkinsRule ready");
+            Timer.get().schedule(JenkinsRule::dumpThreads, 2, TimeUnit.MINUTES);
+            Timer.get().schedule(() -> {
+                JenkinsRule.dumpThreads();
+                System.exit(1);
+            }, 5, TimeUnit.MINUTES);
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
