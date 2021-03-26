@@ -77,6 +77,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -343,8 +344,20 @@ public final class RealJenkinsRule implements TestRule {
         int tries = 0;
         while (true) {
             try {
-                status.openStream().close();
-                break;
+                HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+                int code = conn.getResponseCode();
+                if (code == 200) {
+                    conn.getInputStream().close();
+                    break;
+                } else {
+                    String err = "?";
+                    try (InputStream is = conn.getErrorStream()) {
+                        err = IOUtils.toString(is);
+                    } catch (Exception x) {
+                        x.printStackTrace();
+                    }
+                    throw new IOException("Response code " + code + " for " + status + ": " + err);
+                }
             } catch (Exception x) {
                 tries++;
                 if (tries == /* 3m */ 1800) {
@@ -473,6 +486,7 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         public void doStatus(@QueryParameter String token) {
+            System.err.println("Checking status");
             checkToken(token);
         }
         @POST
