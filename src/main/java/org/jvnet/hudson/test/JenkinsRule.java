@@ -280,6 +280,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * TCP/IP port that the server is listening on.
      */
     protected int localPort;
+    /**
+     * If null or 0.0.0.0, then bind to all interfaces.
+     */
+    protected String host = "localhost";
     protected Server server;
 
     /**
@@ -740,7 +744,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer) throws Exception {
         ImmutablePair<Server,  ServletContext> results = _createWebServer(contextPath,
-                (x) -> localPort = x, getClass().getClassLoader(), localPort, this::configureUserRealm, contextAndServerConsumer);
+                (x) -> host = x, (x) -> localPort = x, getClass().getClassLoader(), host, localPort, this::configureUserRealm, contextAndServerConsumer);
         server = results.left;
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
         return results.right;
@@ -757,11 +761,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
      * @since 2.50
      */
-    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                         ClassLoader classLoader, int localPort,
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<String> hostSetter, Consumer<Integer> portSetter,
+                                                                         ClassLoader classLoader, String host, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        return _createWebServer(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+        return _createWebServer(contextPath, hostSetter, portSetter, classLoader, host, localPort, loginServiceSupplier, null);
     }
     /**
      * Creates a web server on which Jenkins can run
@@ -775,8 +779,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return ImmutablePair consisting of the {@link Server} and the {@link ServletContext}
      * @since 2.50
      */
-    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<Integer> portSetter,
-                                                                         ClassLoader classLoader, int localPort,
+    public static ImmutablePair<Server, ServletContext> _createWebServer(String contextPath, Consumer<String> hostSetter, Consumer<Integer> portSetter,
+                                                                         ClassLoader classLoader, String host, int localPort,
                                                                          Supplier<LoginService> loginServiceSupplier,
                                                                          @CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
@@ -797,7 +801,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
-        connector.setHost("localhost");
+        connector.setHost(host);
         if (System.getProperty("port") != null) {
             connector.setPort(Integer.parseInt(System.getProperty("port")));
         } else if (localPort != 0) {
@@ -810,6 +814,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
         server.start();
 
+        hostSetter.accept(connector.getHost());
         portSetter.accept(connector.getLocalPort());
 
         ServletContext servletContext =  context.getServletContext();
@@ -1003,7 +1008,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * URL ends with '/'.
      */
     public URL getURL() throws IOException {
-        return new URL("http://localhost:"+localPort+contextPath+"/");
+        return new URL(String.format("http://%s:%d%s/", getHost(), localPort, contextPath));
+    }
+
+    public String getHost() {
+        if (host == null) {
+            return "localhost";
+        }
+        return host;
     }
 
     public DumbSlave createSlave(EnvVars env) throws Exception {

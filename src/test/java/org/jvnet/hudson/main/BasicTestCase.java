@@ -23,25 +23,35 @@
  */
 package org.jvnet.hudson.main;
 
-import org.junit.Rule;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.tasks.Shell;
+import hudson.tasks.BatchFile;
+import org.apache.commons.io.FileUtils;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Experimenting with Hudson test suite.
  */
-public class AppTest extends BasicTestCase {
+public class BasicTestCase {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    protected void meat(JenkinsRule jenkinsRule) throws IOException, InterruptedException, ExecutionException {
+        FreeStyleProject project = jenkinsRule.createFreeStyleProject();
+        if(System.getProperty("os.name").contains("Windows")) {
+            project.getBuildersList().add(new BatchFile("echo hello"));
+        } else {
+            project.getBuildersList().add(new Shell("echo hello"));
+        }
 
-    @Test
-    public void test1() throws Exception {
-        meat(j);
-    }
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        System.out.println(build.getDisplayName()+" completed");
 
-    @Test
-    public void test2() throws Exception {
-        meat(j);
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertTrue(s,s.contains("echo hello"));
     }
 }
