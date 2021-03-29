@@ -22,6 +22,24 @@
  * THE SOFTWARE.
  */
 
-import jenkins.model.Jenkins
-URL[] urls = [new URL(System.getProperty('RealJenkinsRule.location'))]
-new URLClassLoader(urls, ClassLoader.systemClassLoader.parent).loadClass('org.jvnet.hudson.test.RealJenkinsRule$Init2').getMethod('run', Object).invoke(null, Jenkins.instance)
+package org.jvnet.hudson.test;
+
+import hudson.Plugin;
+import java.net.URL;
+import java.net.URLClassLoader;
+import jenkins.model.Jenkins;
+
+public class RealJenkinsRuleInit extends Plugin {
+
+    @SuppressWarnings("deprecation") // @Initializer just gets run too late, even with before = InitMilestone.PLUGINS_PREPARED
+    public RealJenkinsRuleInit() {}
+
+    @Override
+    public void start() throws Exception {
+        new URLClassLoader(new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))}, ClassLoader.getSystemClassLoader().getParent()).
+                loadClass("org.jvnet.hudson.test.RealJenkinsRule$Init2").
+                getMethod("run", Object.class).
+                invoke(null, Jenkins.get());
+    }
+
+}
