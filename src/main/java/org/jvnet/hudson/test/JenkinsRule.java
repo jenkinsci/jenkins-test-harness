@@ -2852,13 +2852,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // this also prevents tests from falsely advertising Hudson
         DNSMultiCast.disabled = true;
 
-        try {
-            GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
-            GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
-        } catch (LinkageError x) {
-            // skip; TODO 1.630+ can use Functions.isGlibcSupported
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
+        if (Functions.isGlibcSupported()) {
+            try {
+                GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to cancel out MAVEN_OPTS", e);
+            }
         }
     }
 
