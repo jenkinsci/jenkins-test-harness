@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Verify CI status
-      uses: jenkins-infra/verify-ci-status-action@v1.1.0
+      uses: jenkins-infra/verify-ci-status-action@v1.2.0
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Release Drafter
