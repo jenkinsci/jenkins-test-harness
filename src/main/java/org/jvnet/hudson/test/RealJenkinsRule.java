@@ -25,9 +25,7 @@
 package org.jvnet.hudson.test;
 
 import hudson.ExtensionList;
-import hudson.model.DownloadService;
 import hudson.model.UnprotectedRootAction;
-import hudson.model.UpdateSite;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
@@ -193,12 +191,10 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    File initGroovyD = new File(home, "init.groovy.d");
-                    initGroovyD.mkdir();
-                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
+                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
                     // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
                     Set<String> snapshotPlugins = new TreeSet<>();
                     Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
@@ -471,7 +467,8 @@ public final class RealJenkinsRule implements TestRule {
     public static final class Endpoint implements UnprotectedRootAction {
         @SuppressWarnings("deprecation")
         public static void register() throws Exception {
-            Jenkins.get().getActions().add(new Endpoint());
+            Jenkins j = Jenkins.get();
+            j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
                 @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
                     if (request.getPathInfo().startsWith("/RealJenkinsRule/")) {
@@ -481,9 +478,7 @@ public final class RealJenkinsRule implements TestRule {
                     return false;
                 }
             });
-            Jenkins.get().setNoUsageStatistics(true);
-            DownloadService.neverUpdate = true;
-            UpdateSite.neverUpdate = true;
+            JenkinsRule._configureUpdateCenter(j);
             System.err.println("RealJenkinsRule ready");
             Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
         }
@@ -532,7 +527,7 @@ public final class RealJenkinsRule implements TestRule {
         public CustomJenkinsRule() throws Exception {
             this.jenkins = Jenkins.get();
             localPort = Integer.getInteger("RealJenkinsRule.port");
-            // Stuff picked out of before(), configureUpdateCenter():
+            jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
             JenkinsLocationConfiguration.get().setUrl(getURL().toString());
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
