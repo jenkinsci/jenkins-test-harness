@@ -70,7 +70,7 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         listener.getLogger().println("Copying a " + fileName + " from " + jobName + "#" + buildNumber);
         
-        Jenkins inst = Jenkins.getInstance();
+        Jenkins inst = Jenkins.get();
         AbstractProject<?,?> item = inst.getItemByFullName(jobName, AbstractProject.class);
         if (item == null) {
             throw new AbortException("Cannot find a source job: " + jobName);

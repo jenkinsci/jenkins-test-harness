@@ -95,11 +95,11 @@ public class PluginAutomaticTestBuilder {
             String plugin = (String) params.get("artifactId");
             if (plugin != null) {
                 // did any plugin fail to start?
-                for (FailedPlugin fp : Jenkins.getInstance().getPluginManager().getFailedPlugins()) {
+                for (FailedPlugin fp : Jenkins.get().getPluginManager().getFailedPlugins()) {
                     throw new Error("Plugin "+fp.name+" failed to start", fp.cause);
                 }
 
-                PluginWrapper pw = Jenkins.getInstance().getPluginManager().getPlugin(plugin);
+                PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(plugin);
 
                 assertNotNull(plugin+" failed to start", pw);
                 assertTrue(plugin + " was not active", pw.isActive());
