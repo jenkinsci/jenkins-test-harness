@@ -362,7 +362,9 @@ public final class RealJenkinsRule implements TestRule {
                 } else {
                     String err = "?";
                     try (InputStream is = conn.getErrorStream()) {
-                        err = IOUtils.toString(is);
+                        if (is != null) {
+                            err = IOUtils.toString(is);
+                        }
                     } catch (Exception x) {
                         x.printStackTrace();
                     }
