@@ -24,7 +24,7 @@
 
 package hudson.cli;
 
-import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
@@ -78,13 +78,7 @@ public class CLICommandInvoker {
 
     public CLICommandInvoker(final JenkinsRule rule, final CLICommand command) {
 
-        if (command.getClass().getAnnotation(Extension.class) == null) {
-
-            throw new AssertionError(String.format(
-                    "Command %s is missing @Extension annotation.",
-                    command.getClass()
-            ));
-        }
+        ExtensionList.lookupSingleton(command.getClass()); // verify that it was registered e.g. with @Extension
 
         this.rule = rule;
         this.command = command;
