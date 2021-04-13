@@ -411,8 +411,14 @@ public final class RealJenkinsRule implements TestRule {
 
     public void stopJenkins() throws Throwable {
         endpoint("exit").openStream().close();
-        if (proc.waitFor() != 0) {
-            throw new AssertionError("nonzero exit code");
+        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
+            System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
+            proc.destroyForcibly();
+            throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+        }
+        int exitValue = proc.exitValue();
+        if (exitValue != 0) {
+            throw new AssertionError("onzero exit code: " + exitValue);
         }
         proc = null;
     }
