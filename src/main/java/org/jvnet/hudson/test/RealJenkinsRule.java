@@ -418,7 +418,7 @@ public final class RealJenkinsRule implements TestRule {
         }
         int exitValue = proc.exitValue();
         if (exitValue != 0) {
-            throw new AssertionError("onzero exit code: " + exitValue);
+            throw new AssertionError("nonzero exit code: " + exitValue);
         }
         proc = null;
     }
