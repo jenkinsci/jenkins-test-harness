@@ -506,7 +506,9 @@ public final class RealJenkinsRule implements TestRule {
             });
             JenkinsRule._configureUpdateCenter(j);
             System.err.println("RealJenkinsRule ready");
-            Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            if (!new DisableOnDebug(null).isDebugging()) {
+                Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            }
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
