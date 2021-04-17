@@ -25,9 +25,7 @@
 package org.jvnet.hudson.test;
 
 import hudson.ExtensionList;
-import hudson.model.DownloadService;
 import hudson.model.UnprotectedRootAction;
-import hudson.model.UpdateSite;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
@@ -152,6 +150,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
+    private String host = "localhost";
+
     private Process proc;
 
     // TODO may need to be relaxed for Gradle-based plugins
@@ -186,6 +186,22 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Sets a custom host name for the Jenkins root URL.
+     * <p>By default, this is just {@code localhost}.
+     * But you may wish to set it to something else that resolves to localhost,
+     * such as {@code some-id.127.0.0.1.nip.io}.
+     * This is particularly useful when running multiple copies of Jenkins (and/or other services) in one test case,
+     * since browser cookies are sensitive to host but not port and so otherwise {@link HttpServletRequest#getSession}
+     * might accidentally be shared across otherwise distinct services.
+     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
+     * (so others in the same network cannot access your system under test, especially if it lacks authentication).
+     */
+    public RealJenkinsRule withHost(String host) {
+        this.host = host;
+        return this;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -193,12 +209,10 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    File initGroovyD = new File(home, "init.groovy.d");
-                    initGroovyD.mkdir();
-                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.groovy"), new File(initGroovyD, "RealJenkinsRuleInit.groovy"));
                     port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
+                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
                     // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
                     Set<String> snapshotPlugins = new TreeSet<>();
                     Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
@@ -315,7 +329,7 @@ public final class RealJenkinsRule implements TestRule {
      * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
      */
     public URL getUrl() throws MalformedURLException {
-        return new URL("http://localhost:" + port + "/jenkins/");
+        return new URL("http://" + host + ":" + port + "/jenkins/");
     }
 
     private URL endpoint(String method) throws MalformedURLException {
@@ -333,7 +347,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.cp=" + cp,
-                "-DRealJenkinsRule.port=" + port,
+                "-DRealJenkinsRule.url=" + getUrl(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
         if (new DisableOnDebug(null).isDebugging()) {
@@ -366,7 +380,9 @@ public final class RealJenkinsRule implements TestRule {
                 } else {
                     String err = "?";
                     try (InputStream is = conn.getErrorStream()) {
-                        err = IOUtils.toString(is);
+                        if (is != null) {
+                            err = IOUtils.toString(is);
+                        }
                     } catch (Exception x) {
                         x.printStackTrace();
                     }
@@ -395,8 +411,14 @@ public final class RealJenkinsRule implements TestRule {
 
     public void stopJenkins() throws Throwable {
         endpoint("exit").openStream().close();
-        if (proc.waitFor() != 0) {
-            throw new AssertionError("nonzero exit code");
+        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
+            System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
+            proc.destroyForcibly();
+            throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+        }
+        int exitValue = proc.exitValue();
+        if (exitValue != 0) {
+            throw new AssertionError("nonzero exit code: " + exitValue);
         }
         proc = null;
     }
@@ -471,7 +493,8 @@ public final class RealJenkinsRule implements TestRule {
     public static final class Endpoint implements UnprotectedRootAction {
         @SuppressWarnings("deprecation")
         public static void register() throws Exception {
-            Jenkins.get().getActions().add(new Endpoint());
+            Jenkins j = Jenkins.get();
+            j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
                 @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
                     if (request.getPathInfo().startsWith("/RealJenkinsRule/")) {
@@ -481,11 +504,11 @@ public final class RealJenkinsRule implements TestRule {
                     return false;
                 }
             });
-            Jenkins.get().setNoUsageStatistics(true);
-            DownloadService.neverUpdate = true;
-            UpdateSite.neverUpdate = true;
+            JenkinsRule._configureUpdateCenter(j);
             System.err.println("RealJenkinsRule ready");
-            Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            if (!new DisableOnDebug(null).isDebugging()) {
+                Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            }
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
@@ -529,18 +552,24 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
+
         public CustomJenkinsRule() throws Exception {
             this.jenkins = Jenkins.get();
-            localPort = Integer.getInteger("RealJenkinsRule.port");
-            // Stuff picked out of before(), configureUpdateCenter():
+            jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
             JenkinsLocationConfiguration.get().setUrl(getURL().toString());
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
         }
+
+        @Override public URL getURL() throws IOException {
+            return new URL(System.getProperty("RealJenkinsRule.url"));
+        }
+
         @Override public void close() throws Exception {
             env.dispose();
         }
+
     }
 
     // Copied from hudson.remoting
