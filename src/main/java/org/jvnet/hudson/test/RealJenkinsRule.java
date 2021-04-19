@@ -411,8 +411,14 @@ public final class RealJenkinsRule implements TestRule {
 
     public void stopJenkins() throws Throwable {
         endpoint("exit").openStream().close();
-        if (proc.waitFor() != 0) {
-            throw new AssertionError("nonzero exit code");
+        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
+            System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
+            proc.destroyForcibly();
+            throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+        }
+        int exitValue = proc.exitValue();
+        if (exitValue != 0) {
+            throw new AssertionError("nonzero exit code: " + exitValue);
         }
         proc = null;
     }
@@ -500,7 +506,9 @@ public final class RealJenkinsRule implements TestRule {
             });
             JenkinsRule._configureUpdateCenter(j);
             System.err.println("RealJenkinsRule ready");
-            Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            if (!new DisableOnDebug(null).isDebugging()) {
+                Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
+            }
         }
         @Override public String getUrlName() {
             return "RealJenkinsRule";
