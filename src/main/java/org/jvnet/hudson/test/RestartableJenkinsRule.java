@@ -191,7 +191,10 @@ public class RestartableJenkinsRule implements MethodRule {
         @Override
         public FileVisitResult visitFileFailed(Path file, IOException exc) {
             if (exc instanceof FileNotFoundException) {
-                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: "+file.toString());
+                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: " + file.toString());
+                return FileVisitResult.CONTINUE;
+            } else if (exc instanceof NoSuchFileException) {
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: " + file.toString());
                 return FileVisitResult.CONTINUE;
             } else {
                 LOGGER.log(Level.WARNING, "Error copying file", exc);
