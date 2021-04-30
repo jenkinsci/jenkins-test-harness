@@ -53,6 +53,7 @@ THE SOFTWARE.
     <jetty.version>9.4.40.v20210413</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.30</jmh.version>
+    <junit.jupiter.version>5.7.1</junit.jupiter.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
     <!--TODO: fix FindBugs-->
@@ -147,6 +148,23 @@ THE SOFTWARE.
           <artifactId>commons-io</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jvnet.hudson</groupId>
