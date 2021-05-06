@@ -48,9 +48,10 @@ public class ExtractChangeLogParser extends ChangeLogParser {
     @Override
     public ExtractChangeLogSet parse(AbstractBuild build, File changeLogFile) throws IOException, SAXException {
         if (changeLogFile.exists()) {
-            FileInputStream fis = new FileInputStream(changeLogFile);
-            ExtractChangeLogSet logSet = parse(build, fis);
-            fis.close();
+            ExtractChangeLogSet logSet;
+            try (FileInputStream fis = new FileInputStream(changeLogFile)) {
+                logSet = parse(build, fis);
+            }
             return logSet;
         } else {
             return new ExtractChangeLogSet(build, new ArrayList<>());
