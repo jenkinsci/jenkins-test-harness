@@ -52,7 +52,7 @@ THE SOFTWARE.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.4.40.v20210413</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.29</jmh.version>
+    <jmh.version>1.31</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
     <!--TODO: fix FindBugs-->
