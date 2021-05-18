@@ -12,7 +12,7 @@ import static org.hamcrest.collection.IsEmptyCollection.empty;
 class JenkinsRuleResolverTest {
 
     @Test
-    public void jenkinsRuleIsAccessible(JenkinsRuleExtension r) throws IOException {
+   void jenkinsRuleIsAccessible(JenkinsRuleExtension r) throws IOException {
         assertThat(r.jenkins.getJobNames(), empty());
         r.createFreeStyleProject("job-0");
         assertThat(r.jenkins.getJobNames(), hasSize(1));
