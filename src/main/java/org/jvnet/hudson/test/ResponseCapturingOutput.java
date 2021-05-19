@@ -98,7 +98,7 @@ class ResponseCapturingOutput implements StaplerResponse {
         @Override
         public void setWriteListener(WriteListener writeListener) {
         }
-    };
+    }
     
     // Rest of the non-implementation
     

@@ -207,7 +207,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.*;
 import org.junit.internal.AssumptionViolatedException;
-import static org.junit.matchers.JUnitMatchers.containsString;
+import static org.hamcrest.CoreMatchers.containsString;
 import org.junit.rules.MethodRule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -2852,13 +2852,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // this also prevents tests from falsely advertising Hudson
         DNSMultiCast.disabled = true;
 
-        try {
-            GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
-            GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
-        } catch (LinkageError x) {
-            // skip; TODO 1.630+ can use Functions.isGlibcSupported
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
+        if (Functions.isGlibcSupported()) {
+            try {
+                GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to cancel out MAVEN_OPTS", e);
+            }
         }
     }
 

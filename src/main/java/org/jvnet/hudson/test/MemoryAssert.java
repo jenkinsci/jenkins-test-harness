@@ -128,11 +128,11 @@ public class MemoryAssert {
             f = ScannerUtils.compoundFilter(fs);
         }
         CountingVisitor v1 = new CountingVisitor();
-        ScannerUtils.scan(f, v1, Collections.singleton(Jenkins.getInstance()), false);
+        ScannerUtils.scan(f, v1, Collections.singleton(Jenkins.get()), false);
         Set<Class<?>> old = v1.getClasses();
         callable.call();
         CountingVisitor v2 = new CountingVisitor();
-        ScannerUtils.scan(f, v2, Collections.singleton(Jenkins.getInstance()), false);
+        ScannerUtils.scan(f, v2, Collections.singleton(Jenkins.get()), false);
         List<HistogramElement> elements = new ArrayList<>();
         for (Class<?> c : v2.getClasses()) {
             int delta = v2.getCountForClass(c) - (old.contains(c) ? v1.getCountForClass(c) : 0);

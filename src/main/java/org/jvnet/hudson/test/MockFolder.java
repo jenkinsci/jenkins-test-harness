@@ -158,7 +158,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     /** Convenience method to create a {@link FreeStyleProject} or similar. */
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.getInstance().getDescriptor(type), name, true));
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name, true));
     }
 
     @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
@@ -204,7 +204,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     }
 
     @Override public TopLevelItemDescriptor getDescriptor() {
-        return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
     @Override public void addView(View view) throws IOException {
