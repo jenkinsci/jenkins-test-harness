@@ -9,6 +9,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 /**
  * JUnit 5 extension providing {@link JenkinsRule} integration.
+ *
+ * @see org.jvnet.hudson.test.junit.jupiter.JenkinsRule
  */
 public class JenkinsRuleResolver implements ParameterResolver, AfterEachCallback {
     private static final String key = "jenkins-instance";
