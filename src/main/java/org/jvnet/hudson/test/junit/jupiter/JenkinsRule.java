@@ -17,38 +17,34 @@ import java.lang.annotation.Target;
  * <p>
  * Annotating a <i>class</i> provides access for all of it's tests. Unrelated test cases can omit the parameter.
  *
- * <pre>
- * {@code
- * @JenkinsRule
+ * <blockquote><pre>
+ * &#64;JenkinsRule
  * class ExampleJUnit5Test {
  *
- *     @Test
+ *     &#64;Test
  *     public void example(JenkinsRuleExtension r) {
  *         // use 'r' ...
  *     }
  *
- *     @Test
+ *     &#64;Test
  *     public void exampleNotUsingRule() {
  *         // ...
  *     }
  * }
- * }
- * </pre>
+ * </pre></blockquote>
  * <p>
  * Annotating a <i>method</i> limits access to the method.
  *
- * <pre>
- * {@code
+ * <blockquote><pre>
  * class ExampleJUnit5Test {
  *
- *     @JenkinsRule
- *     @Test
+ *     &#64;JenkinsRule
+ *     &#64;Test
  *     public void example(JenkinsRuleExtension r) {
  *         // use 'r' ...
  *     }
  * }
- * }
- * </pre>
+ * </pre></blockquote>
  *
  * @see org.jvnet.hudson.test.junit.jupiter.JenkinsRuleResolver
  * @see org.junit.jupiter.api.extension.ExtendWith
