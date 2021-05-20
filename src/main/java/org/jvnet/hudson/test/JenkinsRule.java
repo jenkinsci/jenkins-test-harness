@@ -1133,8 +1133,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         new SecureRandom().nextBytes(random);
         String secretValue = Util.toHexString(random);
         // 11 is the version for the new API Token system
-        String plainTextValue = 11 + secretValue;
-        return plainTextValue;
+        return 11 + secretValue;
     }
 
     /**
@@ -1440,10 +1439,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if ((400 <= status) && (status <= 417)) {
             return false;
         }
-        if ((500 <= status) && (status <= 505)) {
-            return false;
-        }
-        return true;
+        return (500 > status) || (status > 505);
     }
 
     /** Assert that the specified page can be served with a "good" HTTP status,

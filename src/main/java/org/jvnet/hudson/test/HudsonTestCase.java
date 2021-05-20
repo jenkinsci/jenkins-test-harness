@@ -834,10 +834,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         if ((400 <= status) && (status <= 417)) {
             return false;
         }
-        if ((500 <= status) && (status <= 505)) {
-            return false;
-        }
-        return true;
+        return (500 > status) || (status > 505);
     }
 
     /** Assert that the specified page can be served with a "good" HTTP status,

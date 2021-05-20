@@ -71,9 +71,7 @@ public class SecuredMockFolder extends MockFolder {
     
     private boolean hasPermissionInField(String sid, @Nonnull Permission p) {
         if (sid.equals(grantedUser)) {
-            if (grantedPermissions != null && grantedPermissions.contains(p.getId())) {
-                return true;
-            }
+            return grantedPermissions != null && grantedPermissions.contains(p.getId());
         }
         return false;
     }
