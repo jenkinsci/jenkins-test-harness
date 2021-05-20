@@ -13,6 +13,8 @@ import java.io.IOException;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
+
 /**
  * Forces the build result to be some pre-configured value.
  *
@@ -38,7 +40,7 @@ public class MockBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @Nonnull JSONObject data) {
             throw new UnsupportedOperationException();
         }
     }

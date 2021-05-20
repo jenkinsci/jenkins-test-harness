@@ -10,6 +10,7 @@ import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.RetentionStrategy;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
 
@@ -37,6 +38,7 @@ public class PretendSlave extends Slave {
     }
 
 
+    @Nonnull
     @Override
     public Launcher createLauncher(TaskListener listener) {
         return new LocalLauncher(listener) {

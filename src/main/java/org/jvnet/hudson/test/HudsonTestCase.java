@@ -108,6 +108,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 
@@ -1804,7 +1805,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
         }

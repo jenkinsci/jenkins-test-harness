@@ -85,11 +85,12 @@ public class CreateFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @Nonnull JSONObject data) {
             throw new UnsupportedOperationException("This is a temporary test class, "
                     + "which should not be configured from UI");
         }
 
+        @Nonnull
         @Override
         public String getDisplayName() {
             return "Create a file";

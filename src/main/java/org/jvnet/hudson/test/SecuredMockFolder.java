@@ -76,6 +76,7 @@ public class SecuredMockFolder extends MockFolder {
         return false;
     }
 
+    @Nonnull
     @Override
     public ACL getACL() {
         return new ACLWrapper();
@@ -96,6 +97,7 @@ public class SecuredMockFolder extends MockFolder {
     @Extension
     public static class DescriptorImpl extends TopLevelItemDescriptor {
 
+        @Nonnull
         @Override
         public String getDisplayName() {
             return "MockFolder with security control";

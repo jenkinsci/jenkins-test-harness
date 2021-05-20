@@ -31,6 +31,7 @@ import hudson.scm.NullSCM;
 import hudson.scm.SCM;
 import org.apache.commons.io.FileUtils;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -63,7 +64,7 @@ public class ExtractResourceSCM extends NullSCM {
     }
 
     @Override
-    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changeLogFile) throws IOException, InterruptedException {
+    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, @Nonnull File changeLogFile) throws IOException, InterruptedException {
     	if (workspace.exists()) {
             listener.getLogger().println("Deleting existing workspace " + workspace.getRemote());
     		workspace.deleteRecursive();

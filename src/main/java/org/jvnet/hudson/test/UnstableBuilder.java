@@ -30,6 +30,8 @@ import hudson.tasks.Builder;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
+
 /**
  * Mock {@link Builder} that always cause a build to fail.
  *
@@ -42,7 +44,7 @@ public class UnstableBuilder extends MockBuilder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        public UnstableBuilder newInstance(StaplerRequest req, JSONObject data) {
+        public UnstableBuilder newInstance(StaplerRequest req, @Nonnull JSONObject data) {
             return new UnstableBuilder();
         }
     }

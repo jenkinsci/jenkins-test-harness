@@ -53,6 +53,8 @@ import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
+import javax.annotation.Nonnull;
+
 /**
  * Helper class to invoke {@link CLICommand} and check the response.
  *
@@ -159,6 +161,7 @@ public class CLICommandInvoker {
                 p.setEnabled(true);
             }
         }
+        @Nonnull
         @Override
         public ACL getRootACL() {
             return new SidACL() {
@@ -175,6 +178,7 @@ public class CLICommandInvoker {
                 }
             };
         }
+        @Nonnull
         @Override
         public Collection<String> getGroups() {
             return Collections.emptySet();

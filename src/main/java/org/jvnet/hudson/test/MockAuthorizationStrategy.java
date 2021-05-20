@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.Sid;
 
+import javax.annotation.Nonnull;
+
 /**
  * An authorization strategy configured in a fluent style from test code.
  * Install using {@link Jenkins#setAuthorizationStrategy}.
@@ -212,18 +214,21 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @Nonnull
     @Override
     public ACL getRootACL() {
         return new ACLImpl("");
     }
 
+    @Nonnull
     @Override
     public ACL getACL(AbstractItem item) {
         return new ACLImpl(item.getFullName());
     }
 
+    @Nonnull
     @Override
-    public ACL getACL(Job<?, ?> project) {
+    public ACL getACL(@Nonnull Job<?, ?> project) {
         return getACL((AbstractItem) project); // stupid overload
     }
 
@@ -247,6 +252,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @Nonnull
     @Override
     public Collection<String> getGroups() {
         return Collections.emptySet(); // we do not differentiate usernames from groups

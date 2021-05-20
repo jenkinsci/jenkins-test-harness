@@ -12,6 +12,8 @@ import hudson.security.csrf.CrumbIssuerDescriptor;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+
+import javax.annotation.Nonnull;
 import javax.servlet.ServletRequest;
 
 /**
@@ -42,7 +44,7 @@ public class TestCrumbIssuer extends CrumbIssuer {
             load();
         }
 
-        public TestCrumbIssuer newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public TestCrumbIssuer newInstance(StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
             return new TestCrumbIssuer();
         }
     }

@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
@@ -121,6 +122,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     private ViewGroupMixIn vgmixin() {
         return new ViewGroupMixIn(this) {
+            @Nonnull
             @Override protected List<View> views() {
                 return views;
             }
@@ -207,7 +209,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    @Override public void addView(View view) throws IOException {
+    @Override public void addView(@Nonnull View view) throws IOException {
         vgmixin().addView(view);
     }
 

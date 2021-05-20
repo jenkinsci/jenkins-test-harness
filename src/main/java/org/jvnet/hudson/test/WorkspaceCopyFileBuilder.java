@@ -37,6 +37,8 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
+
 /**
  * Test Builder, which copies a file from a workspace of another job.
  * Supports {@link AbstractProject}s only.
@@ -104,10 +106,11 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @Nonnull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
+        @Nonnull
         @Override
         public String getDisplayName() {
             return "Copy a file from the workspace of another build";

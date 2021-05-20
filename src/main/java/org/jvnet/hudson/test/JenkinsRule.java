@@ -2880,10 +2880,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest req, @Nonnull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
 
+            @Nonnull
             @Override
             public String getDisplayName() {
                 return "TestBuildWrapper";
