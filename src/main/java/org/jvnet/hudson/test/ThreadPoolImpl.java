@@ -27,7 +27,7 @@ public class ThreadPoolImpl extends AbstractLifeCycle implements ThreadPool {
     }
 
     public void join() throws InterruptedException {
-        while(!es.awaitTermination(999 * 60 * 60 * 24, TimeUnit.SECONDS)) {
+        while(!es.awaitTermination(TimeUnit.DAYS.toSeconds(999), TimeUnit.SECONDS)) {
             // noop
         }
     }
