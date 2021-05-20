@@ -1563,7 +1563,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * examine XmlPages.
      */
     public void assertXPath(DomNode page, String xpath) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertThat("There should be an object that matches XPath:" + xpath, nodes.isEmpty(), is(false));
     }
 
@@ -1588,7 +1588,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertThat("no nodes matching xpath found", nodes.isEmpty(), is(false));
         boolean found = false;
         for (Object o : nodes) {
@@ -1789,7 +1789,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         Constructor<?> lc = findDataBoundConstructor(lhs.getClass());
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
-        assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is((Constructor)lc));
+        assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is(lc));
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();

@@ -60,13 +60,13 @@ public @interface WithPluginManager {
         @Override
         public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
             Class<? extends PluginManager> c = recipe.value();
-            Constructor ctr = c.getConstructors()[0];
+            Constructor<?> ctr = c.getConstructors()[0];
 
             // figure out parameters
-            Class[] pt = ctr.getParameterTypes();
+            Class<?>[] pt = ctr.getParameterTypes();
             Object[] args = new Object[pt.length];
             for (int i=0; i<args.length; i++) {
-                Class t = pt[i];
+                Class<?> t = pt[i];
                 if (t==File.class) {
                     args[i] = home;
                     continue;

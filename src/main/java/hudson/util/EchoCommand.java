@@ -35,6 +35,6 @@ public final class EchoCommand {
             if (sb.length() != 0) sb.append(' ');
             sb.append(a);
         }
-        System.out.println(sb.toString());
+        System.out.println(sb);
     }
 }

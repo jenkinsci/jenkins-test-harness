@@ -906,7 +906,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * examine XmlPages.
      */
     public void assertXPath(DomNode page, String xpath) {
-        List< ? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertFalse("There should be an object that matches XPath:" + xpath, nodes.isEmpty());
     }
 
@@ -931,7 +931,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertFalse("no nodes matching xpath found", nodes.isEmpty());
         boolean found = false;
         for (Object o : nodes) {

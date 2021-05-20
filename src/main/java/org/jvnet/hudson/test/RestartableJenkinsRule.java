@@ -182,7 +182,7 @@ public class RestartableJenkinsRule implements MethodRule {
                 }
             } catch (NoSuchFileException nsfe) {
                 // File removed in between scan beginning and when we try to copy it, ignore it
-                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+file.toString());
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+ file);
             }
 
             return FileVisitResult.CONTINUE;
