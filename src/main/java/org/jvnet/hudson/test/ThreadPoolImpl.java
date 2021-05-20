@@ -1,9 +1,9 @@
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.thread.ThreadPool;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -19,7 +19,7 @@ public class ThreadPoolImpl extends AbstractLifeCycle implements ThreadPool {
     }
 
     @Override
-    public void execute(@Nonnull Runnable job) {
+    public void execute(@NonNull Runnable job) {
         if (!isRunning() || job==null)
             throw new RejectedExecutionException();
 

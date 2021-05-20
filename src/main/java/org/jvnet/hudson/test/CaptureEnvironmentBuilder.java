@@ -23,9 +23,10 @@
  */
 package org.jvnet.hudson.test;
 
-import hudson.Launcher;
-import hudson.Extension;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
+import hudson.Extension;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
@@ -33,7 +34,6 @@ import hudson.tasks.Builder;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 
 /**
@@ -56,11 +56,11 @@ public class CaptureEnvironmentBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        public Builder newInstance(StaplerRequest req, @Nonnull JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NonNull
         public String getDisplayName() {
             return "Capture Environment Variables";
         }

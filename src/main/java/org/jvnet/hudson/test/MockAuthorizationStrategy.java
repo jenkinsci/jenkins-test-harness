@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -33,6 +34,9 @@ import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+import jenkins.model.Jenkins;
+import org.acegisecurity.acls.sid.Sid;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,10 +46,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import jenkins.model.Jenkins;
-import org.acegisecurity.acls.sid.Sid;
-
-import javax.annotation.Nonnull;
 
 /**
  * An authorization strategy configured in a fluent style from test code.
@@ -214,21 +214,21 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public ACL getRootACL() {
         return new ACLImpl("");
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public ACL getACL(AbstractItem item) {
         return new ACLImpl(item.getFullName());
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public ACL getACL(@Nonnull Job<?, ?> project) {
+    public ACL getACL(@NonNull Job<?, ?> project) {
         return getACL((AbstractItem) project); // stupid overload
     }
 
@@ -252,7 +252,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public Collection<String> getGroups() {
         return Collections.emptySet(); // we do not differentiate usernames from groups

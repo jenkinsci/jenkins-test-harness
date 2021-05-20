@@ -1,12 +1,12 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.runner.Description;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
@@ -16,7 +16,7 @@ import java.util.Optional;
 public class JenkinsRuleExtension extends JenkinsRule {
     private final ParameterContext context;
 
-    JenkinsRuleExtension(@Nonnull ParameterContext context, @Nonnull ExtensionContext extensionContext) {
+    JenkinsRuleExtension(@NonNull ParameterContext context, @NonNull ExtensionContext extensionContext) {
         this.context = context;
         this.testDescription = Description.createTestDescription(extensionContext.getTestClass().map(Class::getName).orElse(null),
                 extensionContext.getTestMethod().map(Method::getName).orElse(null));

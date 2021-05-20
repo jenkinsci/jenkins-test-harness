@@ -24,6 +24,7 @@
 
 package hudson.cli;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.model.User;
 import hudson.security.ACL;
@@ -31,9 +32,15 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-
+import jenkins.model.Jenkins;
+import org.acegisecurity.acls.sid.PrincipalSid;
+import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -43,17 +50,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import jenkins.model.Jenkins;
-import org.acegisecurity.acls.sid.PrincipalSid;
-import org.acegisecurity.acls.sid.Sid;
-
-import org.hamcrest.Description;
-import org.hamcrest.TypeSafeMatcher;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.MockAuthorizationStrategy;
-
-import javax.annotation.Nonnull;
 
 /**
  * Helper class to invoke {@link CLICommand} and check the response.
@@ -161,7 +157,8 @@ public class CLICommandInvoker {
                 p.setEnabled(true);
             }
         }
-        @Nonnull
+
+        @NonNull
         @Override
         public ACL getRootACL() {
             return new SidACL() {
@@ -178,7 +175,8 @@ public class CLICommandInvoker {
                 }
             };
         }
-        @Nonnull
+
+        @NonNull
         @Override
         public Collection<String> getGroups() {
             return Collections.emptySet();

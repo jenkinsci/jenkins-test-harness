@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -33,8 +34,8 @@ import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
-import hudson.model.ModifiableViewGroup;
 import hudson.model.Job;
+import hudson.model.ModifiableViewGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
@@ -42,6 +43,14 @@ import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.StaplerFallback;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.WebMethod;
+
+import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,14 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-import jenkins.model.DirectlyModifiableTopLevelItemGroup;
-import jenkins.model.Jenkins;
-import org.kohsuke.stapler.StaplerFallback;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.WebMethod;
 
 /**
  * Minimal implementation of a modifiable item group akin to the CloudBees Folders plugin.
@@ -122,7 +123,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     private ViewGroupMixIn vgmixin() {
         return new ViewGroupMixIn(this) {
-            @Nonnull
+            @NonNull
             @Override protected List<View> views() {
                 return views;
             }
@@ -209,7 +210,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    @Override public void addView(@Nonnull View view) throws IOException {
+    @Override public void addView(@NonNull View view) throws IOException {
         vgmixin().addView(view);
     }
 

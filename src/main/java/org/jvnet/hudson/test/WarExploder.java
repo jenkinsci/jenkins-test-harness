@@ -23,17 +23,17 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
 import hudson.remoting.Which;
+import jenkins.model.Jenkins;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.model.Jenkins;
-
-import javax.annotation.CheckForNull;
 
 /**
  * Ensures that <tt>jenkins.war</tt> is exploded.

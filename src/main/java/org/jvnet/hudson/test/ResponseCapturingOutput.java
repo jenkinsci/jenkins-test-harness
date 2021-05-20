@@ -23,13 +23,13 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
 import net.sf.json.JsonConfig;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Flavor;
 
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
@@ -111,11 +111,11 @@ class ResponseCapturingOutput implements StaplerResponse {
     }
 
     @Override
-    public void sendRedirect2(@Nonnull String url) throws IOException {
+    public void sendRedirect2(@NonNull String url) throws IOException {
     }
 
     @Override
-    public void sendRedirect(int statusCore, @Nonnull String url) throws IOException {
+    public void sendRedirect(int statusCore, @NonNull String url) throws IOException {
     }
 
     @Override

@@ -1,5 +1,6 @@
 package jenkins.benchmark.jmh;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
@@ -15,7 +16,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
-import javax.annotation.CheckForNull;
 import javax.servlet.ServletContext;
 import java.io.IOException;
 import java.net.MalformedURLException;
