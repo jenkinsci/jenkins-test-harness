@@ -55,24 +55,6 @@ public class JavaNetReverseProxy extends HttpServlet {
         server.stop();
     }
 
-//    class Response {
-//        final URL url;
-//        final String contentType;
-//        final ByteArrayOutputStream data = new ByteArrayOutputStream();
-//
-//        Response(URL url) throws IOException {
-//            this.url = url;
-//            URLConnection con = url.openConnection();
-//            contentType = con.getContentType();
-//            IOUtils.copy(con.getInputStream(),data);
-//        }
-//
-//        void reproduceTo(HttpServletResponse rsp) throws IOException {
-//            rsp.setContentType(contentType);
-//            data.writeTo(rsp.getOutputStream());
-//        }
-//    }
-
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getServletPath();

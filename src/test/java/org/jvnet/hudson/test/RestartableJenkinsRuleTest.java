@@ -72,8 +72,6 @@ public class RestartableJenkinsRuleTest {
             Path dstLdap = new File(jr.jenkins.pluginManager.rootDir, pluginId + ".jpi").toPath();
             Files.createDirectories(dstLdap.getParent());
             Files.copy(srcLdap, dstLdap);
-            //jr.getPluginManager().doCheckUpdatesServer();
-            //jr.getPluginManager().install(Collections.singletonList("cvs"),true);
         });
 
         noPortReuse.then(jr -> {
