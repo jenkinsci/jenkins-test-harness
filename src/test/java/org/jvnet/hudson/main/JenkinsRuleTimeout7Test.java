@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Bruce Chapman
- * 
+ *
+ * Copyright 2021 CloudBees, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,45 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.jvnet.hudson.main;
 
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.tasks.Shell;
-import hudson.tasks.BatchFile;
-import org.junit.Rule;
+import static org.junit.Assert.fail;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.recipes.WithTimeout;
 
-/**
- * Experimenting with Hudson test suite.
- */
-public class AppTest extends BasicTestCase {
-
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+public class JenkinsRuleTimeout7Test extends JenkinsRuleTimeoutTestBase {
 
     @Test
-    public void test1() throws Exception {
-        meat(j);
+    @WithTimeout(15)
+    public void withTimeoutPropagation() throws Exception {
+        Thread.sleep(1000 * 20);
+        fail("Should have been interrupted");
     }
 
-    @Test
-    public void test2() throws Exception {
-        meat();
-    }
-
-    private void meat() throws IOException, InterruptedException, ExecutionException {
-        FreeStyleProject project = j.createFreeStyleProject();
-        if(System.getProperty("os.name").contains("Windows")) {
-            project.getBuildersList().add(new BatchFile("echo hello"));
-        } else {
-            project.getBuildersList().add(new Shell("echo hello"));
-        }
-
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-        System.out.println(build.getDisplayName()+" completed");
-
-        j.assertLogContains("echo hello", build);
-    }
 }

@@ -131,7 +131,7 @@ public final class BuildWatcher extends ExternalResource {
             } catch (FileNotFoundException x) {
                 // build deleted or not started
             } catch (Throwable x) {
-                if (Jenkins.getInstance() != null) {
+                if (Jenkins.getInstanceOrNull() != null) {
                     x.printStackTrace();
                 } else {
                     // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is missing its descriptor, etc.
