@@ -336,6 +336,24 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
+    private static File findJenkinsWar() throws Exception {
+        // Adapted from WarExploder.explode
+
+        // Are we in Jenkins core? If so, pick up "war/target/jenkins.war".
+        File d = new File(".").getAbsoluteFile();
+        for (; d != null; d = d.getParentFile()) {
+            if (new File(d, ".jenkins").exists()) {
+                File war = new File(d, "war/target/jenkins.war");
+                if (war.exists()) {
+                    LOGGER.log(Level.INFO, "Using jenkins.war from {0}", war);
+                    return war;
+                }
+            }
+        }
+
+        return WarExploder.findJenkinsWar();
+    }
+
     public void startJenkins() throws Throwable {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
@@ -355,7 +373,7 @@ public final class RealJenkinsRule implements TestRule {
         }
         argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
-                "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
+                "-jar", findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
         ProcessBuilder pb = new ProcessBuilder(argv);
