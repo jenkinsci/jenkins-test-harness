@@ -30,11 +30,10 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.scm.NullSCM;
 import hudson.scm.SCM;
-import org.apache.commons.io.FileUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import org.apache.commons.io.FileUtils;
 
 /**
  * {@link SCM} useful for testing that extracts the given resource as a zip file.

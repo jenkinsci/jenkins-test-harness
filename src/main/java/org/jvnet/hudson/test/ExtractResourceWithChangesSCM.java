@@ -33,7 +33,6 @@ import hudson.scm.ChangeLogParser;
 import hudson.scm.NullSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

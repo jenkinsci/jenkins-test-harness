@@ -34,9 +34,6 @@ import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SidACL;
-import jenkins.model.Jenkins;
-import org.acegisecurity.acls.sid.Sid;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +43,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
+import org.acegisecurity.acls.sid.Sid;
 
 /**
  * An authorization strategy configured in a fluent style from test code.

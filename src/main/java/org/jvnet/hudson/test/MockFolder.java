@@ -43,14 +43,6 @@ import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
-import jenkins.model.DirectlyModifiableTopLevelItemGroup;
-import jenkins.model.Jenkins;
-import org.kohsuke.stapler.StaplerFallback;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.WebMethod;
-
-import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,6 +54,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import javax.servlet.ServletException;
+import jenkins.model.DirectlyModifiableTopLevelItemGroup;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.StaplerFallback;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.WebMethod;
 
 /**
  * Minimal implementation of a modifiable item group akin to the CloudBees Folders plugin.

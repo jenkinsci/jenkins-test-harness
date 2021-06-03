@@ -28,7 +28,6 @@ import hudson.model.FreeStyleProject;
 import hudson.model.labels.LabelExpression;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.SlaveComputer;
-
 import java.util.concurrent.TimeUnit;
 
 /**

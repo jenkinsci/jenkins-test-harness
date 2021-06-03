@@ -32,11 +32,10 @@ import hudson.model.TopLevelItemDescriptor;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.security.SidACL;
-import jenkins.model.Jenkins;
-import org.acegisecurity.acls.sid.Sid;
-
 import java.util.HashSet;
 import java.util.Set;
+import jenkins.model.Jenkins;
+import org.acegisecurity.acls.sid.Sid;
 
 /**
  * Folder stub with a configurable permission control.

@@ -1,12 +1,7 @@
 package org.jvnet.hudson.test;
 
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeThat;
-
+import hudson.PluginManager;
+import hudson.PluginWrapper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -15,15 +10,16 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import jenkins.model.Jenkins;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.WithPluginManager;
-
-import hudson.PluginManager;
-import hudson.PluginWrapper;
-
-import jenkins.model.Jenkins;
 
 public class RestartableJenkinsRuleTest {
 

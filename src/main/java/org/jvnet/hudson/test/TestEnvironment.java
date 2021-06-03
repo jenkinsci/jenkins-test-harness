@@ -27,11 +27,10 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
-import org.junit.runner.Description;
-
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.runner.Description;
 
 /**
  * @author Kohsuke Kawaguchi

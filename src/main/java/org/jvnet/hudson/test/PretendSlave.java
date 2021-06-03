@@ -10,7 +10,6 @@ import hudson.model.Slave;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.RetentionStrategy;
-
 import java.io.IOException;
 import java.util.Collections;
 

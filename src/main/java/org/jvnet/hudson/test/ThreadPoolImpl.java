@@ -1,12 +1,11 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.thread.ThreadPool;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.thread.ThreadPool;
 
 /**
  * @author Kohsuke Kawaguchi
