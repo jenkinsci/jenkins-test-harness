@@ -2551,7 +2551,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         public HtmlPage getPage(View view, String relative) throws IOException, SAXException {
-            return goTo(view.getUrl()+relative);
+            return goTo(view.getViewUrl() + relative);
         }
 
         /**
