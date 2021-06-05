@@ -24,12 +24,12 @@
 package org.jvnet.hudson.test;
 
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import org.junit.runner.Description;
 
 /**
@@ -51,12 +51,12 @@ public class TestEnvironment {
 
     public final TemporaryDirectoryAllocator temporaryDirectoryAllocator = new TemporaryDirectoryAllocator();
 
-    public TestEnvironment(@Nonnull HudsonTestCase testCase) {
+    public TestEnvironment(@NonNull HudsonTestCase testCase) {
         this.testCase = testCase;
         this.description = null;
     }
 
-    public TestEnvironment(@Nonnull Description description) {
+    public TestEnvironment(@NonNull Description description) {
         this.testCase = null;
         this.description = description;
     }
@@ -65,7 +65,7 @@ public class TestEnvironment {
      * Current test case being run (works for JUnit 3 or 4).
      * Warning: {@link Description#getTestClass} is currently broken in some environments (claimed fixed in JUnit 4.11). Use {@link Description#getClassName} instead.
      */
-    public @Nonnull Description description() {
+    public @NonNull Description description() {
         if (description != null) {
             return description;
         } else {

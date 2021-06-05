@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -33,7 +34,6 @@ import hudson.security.Permission;
 import hudson.security.SidACL;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.Sid;
 
@@ -68,16 +68,12 @@ public class SecuredMockFolder extends MockFolder {
         }
         return hasPermissionInField(Jenkins.getAuthentication().getName(), p);
     }
-    
-    private boolean hasPermissionInField(String sid, @Nonnull Permission p) {
-        if (sid.equals(grantedUser)) {
-            if (grantedPermissions != null && grantedPermissions.contains(p.getId())) {
-                return true;
-            }
-        }
-        return false;
+
+    private boolean hasPermissionInField(String sid, @NonNull Permission p) {
+        return sid.equals(grantedUser) && grantedPermissions != null && grantedPermissions.contains(p.getId());
     }
 
+    @NonNull
     @Override
     public ACL getACL() {
         return new ACLWrapper();
@@ -98,6 +94,7 @@ public class SecuredMockFolder extends MockFolder {
     @Extension
     public static class DescriptorImpl extends TopLevelItemDescriptor {
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "MockFolder with security control";

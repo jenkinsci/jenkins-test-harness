@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -33,8 +34,8 @@ import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
-import hudson.model.ModifiableViewGroup;
 import hudson.model.Job;
+import hudson.model.ModifiableViewGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
@@ -121,6 +122,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     private ViewGroupMixIn vgmixin() {
         return new ViewGroupMixIn(this) {
+            @NonNull
             @Override protected List<View> views() {
                 return views;
             }
@@ -207,7 +209,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    @Override public void addView(View view) throws IOException {
+    @Override public void addView(@NonNull View view) throws IOException {
         vgmixin().addView(view);
     }
 

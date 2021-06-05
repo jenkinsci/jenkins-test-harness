@@ -24,6 +24,7 @@
 
 package hudson.cli;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.model.User;
 import hudson.security.ACL;
@@ -31,10 +32,6 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -43,11 +40,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
-
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -159,6 +156,8 @@ public class CLICommandInvoker {
                 p.setEnabled(true);
             }
         }
+
+        @NonNull
         @Override
         public ACL getRootACL() {
             return new SidACL() {
@@ -175,6 +174,8 @@ public class CLICommandInvoker {
                 }
             };
         }
+
+        @NonNull
         @Override
         public Collection<String> getGroups() {
             return Collections.emptySet();

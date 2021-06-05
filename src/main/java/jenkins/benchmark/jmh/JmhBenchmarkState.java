@@ -1,8 +1,16 @@
 package jenkins.benchmark.jmh;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -14,15 +22,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-
-import javax.annotation.CheckForNull;
-import javax.servlet.ServletContext;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Standard benchmark {@link State} for JMH when a Jenkins instance is required.
