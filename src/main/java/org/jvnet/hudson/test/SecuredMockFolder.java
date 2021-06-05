@@ -68,12 +68,9 @@ public class SecuredMockFolder extends MockFolder {
         }
         return hasPermissionInField(Jenkins.getAuthentication().getName(), p);
     }
-    
+
     private boolean hasPermissionInField(String sid, @NonNull Permission p) {
-        if (sid.equals(grantedUser)) {
-            return grantedPermissions != null && grantedPermissions.contains(p.getId());
-        }
-        return false;
+        return sid.equals(grantedUser) && grantedPermissions != null && grantedPermissions.contains(p.getId());
     }
 
     @NonNull
