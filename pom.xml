@@ -167,7 +167,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE123</version>
+      <version>RELEASE124</version>
     </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
