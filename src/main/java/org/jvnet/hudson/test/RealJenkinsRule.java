@@ -31,6 +31,8 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -55,6 +57,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
@@ -90,6 +93,8 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
+
+import static org.jvnet.hudson.test.WarExploder.findJenkinsWar;
 
 /**
  * Like {@link JenkinsSessionRule} but running Jenkins in a more realistic environment.
@@ -337,24 +342,6 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
-    private static File findJenkinsWar() throws Exception {
-        // Adapted from WarExploder.explode
-
-        // Are we in Jenkins core? If so, pick up "war/target/jenkins.war".
-        File d = new File(".").getAbsoluteFile();
-        for (; d != null; d = d.getParentFile()) {
-            if (new File(d, ".jenkins").exists()) {
-                File war = new File(d, "war/target/jenkins.war");
-                if (war.exists()) {
-                    LOGGER.log(Level.INFO, "Using jenkins.war from {0}", war);
-                    return war;
-                }
-            }
-        }
-
-        return WarExploder.findJenkinsWar();
-    }
-
     public void startJenkins() throws Throwable {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
@@ -444,8 +431,17 @@ public final class RealJenkinsRule implements TestRule {
 
     public void runRemotely(Step s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        conn.setRequestProperty("Content-Type", "text/plain; utf-8");
         conn.setDoOutput(true);
-        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Init2.writeSer(baos, Arrays.asList(token, s));
+        baos.close();
+
+        String object = new String(Base64.getEncoder().encode(baos.toByteArray()), Charset.defaultCharset());
+
+        IOUtils.write(object, conn.getOutputStream(), Charset.defaultCharset());
+
         Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
         if (error != null) {
             throw error;
@@ -545,12 +541,15 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         public void doStatus(@QueryParameter String token) {
-            System.err.println("Checking status");
             checkToken(token);
         }
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+            String text = IOUtils.toString(req.getInputStream(), StandardCharsets.UTF_8.name());
+            byte[] bytes = Base64.getDecoder().decode(text.getBytes(StandardCharsets.UTF_8));
+
+            List<?> tokenAndStep = (List<?>) Init2.readSer(new ByteArrayInputStream(bytes), null);
+
             checkToken((String) tokenAndStep.get(0));
             Step s = (Step) tokenAndStep.get(1);
             Throwable err = null;
