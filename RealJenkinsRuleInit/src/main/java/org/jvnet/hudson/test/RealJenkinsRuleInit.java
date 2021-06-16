@@ -61,16 +61,12 @@ public class RealJenkinsRuleInit extends Plugin {
               chain.doFilter(request, response);
           }
 
-        @Override
-        public void destroy() {
-        }
+          @Override
+          public void destroy() {}
 
-            @Override
-            public void init(FilterConfig filterConfig) throws ServletException {
-                System.out.println("init RealJenkinsRuleInit");
-            }
-      }
-        );
+          @Override
+          public void init(FilterConfig filterConfig) throws ServletException {}
+        });
 
         new URLClassLoader(new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))}, ClassLoader.getSystemClassLoader().getParent()).
                 loadClass("org.jvnet.hudson.test.RealJenkinsRule$Init2").
