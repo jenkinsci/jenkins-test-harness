@@ -31,8 +31,6 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -57,7 +55,6 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
@@ -449,15 +446,7 @@ public final class RealJenkinsRule implements TestRule {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
         conn.setRequestProperty("Content-Type", "text/plain; utf-8");
         conn.setDoOutput(true);
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Init2.writeSer(baos, Arrays.asList(token, s));
-        baos.close();
-
-        String object = new String(Base64.getEncoder().encode(baos.toByteArray()), Charset.defaultCharset());
-
-        IOUtils.write(object, conn.getOutputStream(), Charset.defaultCharset());
-
+        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
         Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
         if (error != null) {
             throw error;
@@ -557,15 +546,12 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         public void doStatus(@QueryParameter String token) {
+            System.err.println("Checking status");
             checkToken(token);
         }
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            String text = IOUtils.toString(req.getInputStream(), StandardCharsets.UTF_8.name());
-            byte[] bytes = Base64.getDecoder().decode(text.getBytes(StandardCharsets.UTF_8));
-
-            List<?> tokenAndStep = (List<?>) Init2.readSer(new ByteArrayInputStream(bytes), null);
-
+            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken((String) tokenAndStep.get(0));
             Step s = (Step) tokenAndStep.get(1);
             Throwable err = null;
