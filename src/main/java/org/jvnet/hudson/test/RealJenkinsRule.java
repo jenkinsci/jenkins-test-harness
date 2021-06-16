@@ -94,8 +94,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
 
-import static org.jvnet.hudson.test.WarExploder.findJenkinsWar;
-
 /**
  * Like {@link JenkinsSessionRule} but running Jenkins in a more realistic environment.
  * <p>Though Jenkins is run in a separate JVM using Winstone ({@code java -jar jenkins.war}),
@@ -340,6 +338,24 @@ public final class RealJenkinsRule implements TestRule {
 
     private URL endpoint(String method) throws MalformedURLException {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
+    }
+
+    private static File findJenkinsWar() throws Exception {
+        // Adapted from WarExploder.explode
+
+        // Are we in Jenkins core? If so, pick up "war/target/jenkins.war".
+        File d = new File(".").getAbsoluteFile();
+        for (; d != null; d = d.getParentFile()) {
+            if (new File(d, ".jenkins").exists()) {
+                File war = new File(d, "war/target/jenkins.war");
+                if (war.exists()) {
+                    LOGGER.log(Level.INFO, "Using jenkins.war from {0}", war);
+                    return war;
+                }
+            }
+        }
+
+        return WarExploder.findJenkinsWar();
     }
 
     public void startJenkins() throws Throwable {
