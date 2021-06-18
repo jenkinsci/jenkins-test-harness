@@ -29,8 +29,15 @@ import hudson.Main;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
+import hudson.util.PluginServletFilter;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -47,6 +54,30 @@ public class RealJenkinsRuleTest {
     private static void _smokes(JenkinsRule r) throws Throwable {
         System.err.println("running in: " + r.jenkins.getRootUrl());
         assertTrue(Main.isUnitTest);
+    }
+
+    @Test public void testFilter() throws Throwable{
+        rr.startJenkins();
+        rr.runRemotely(RealJenkinsRuleTest::_testFilter);
+        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+
+    }
+
+    private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
+        PluginServletFilter.addFilter(new Filter() {
+
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                String fake = request.getParameter("fake");
+                chain.doFilter(request, response);
+            }
+
+            @Override
+            public void destroy() {}
+
+            @Override
+            public void init(FilterConfig filterConfig) throws ServletException {}
+        });
     }
 
     @Test public void error() {
