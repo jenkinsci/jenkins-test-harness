@@ -444,6 +444,7 @@ public final class RealJenkinsRule implements TestRule {
 
     public void runRemotely(Step s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
         Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
