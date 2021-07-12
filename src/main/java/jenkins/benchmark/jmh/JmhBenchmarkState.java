@@ -14,6 +14,7 @@ import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -42,6 +43,7 @@ public abstract class JmhBenchmarkState implements RootAction {
 
     private final TemporaryDirectoryAllocator temporaryDirectoryAllocator = new TemporaryDirectoryAllocator();
     private final MutableInt localPort = new MutableInt();
+    private final MutableObject<String> host = new MutableObject<String>("localhost");
 
     private Jenkins jenkins = null;
     private Server server = null;
@@ -86,8 +88,8 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::setValue,
-                getClass().getClassLoader(), localPort.getValue(), JenkinsRule::_configureUserRealm);
+        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, host::setValue, localPort::setValue,
+                getClass().getClassLoader(), host.getValue(), localPort.getValue(),JenkinsRule::_configureUserRealm);
 
         server = results.left;
         ServletContext webServer = results.right;
@@ -103,7 +105,7 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private URL getJenkinsURL() throws MalformedURLException {
-        return new URL("http://localhost:" + localPort.getValue() + contextPath + "/");
+        return new URL("http://"+host.getValue()+":" + localPort.getValue() + contextPath + "/");
     }
 
     /**
