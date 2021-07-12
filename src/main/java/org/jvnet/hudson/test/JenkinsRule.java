@@ -60,7 +60,6 @@ import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.ClassicPluginStrategy;
 import hudson.CloseProofOutputStream;
 import hudson.DNSMultiCast;
 import hudson.DescriptorExtensionList;
@@ -2844,10 +2843,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
-
-        // during the unit test, predictably releasing classloader is important to avoid
-        // file descriptor leak.
-        ClassicPluginStrategy.useAntClassLoader = true;
 
         // DNS multicast support takes up a lot of time during tests, so just disable it altogether
         // this also prevents tests from falsely advertising Hudson
