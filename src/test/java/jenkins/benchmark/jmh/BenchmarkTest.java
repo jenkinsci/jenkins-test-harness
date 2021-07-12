@@ -26,6 +26,7 @@ public class BenchmarkTest {
         ChainedOptionsBuilder optionsBuilder =
                 new OptionsBuilder()
                         .forks(1)
+                        .threads(1)
                         .warmupIterations(0)
                         .measurementIterations(1)
                         .measurementBatchSize(1)
