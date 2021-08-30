@@ -40,6 +40,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
@@ -148,10 +150,10 @@ public class CLICommandInvoker {
 
     private static class GrantPermissions extends AuthorizationStrategy {
         final String username;
-        final List<Permission> permissions;
+        final Set<String> permissions;
         GrantPermissions(String username, List<Permission> permissions) {
             this.username = username;
-            this.permissions = permissions;
+            this.permissions = permissions.stream().map(Permission::getId).collect(Collectors.toSet());
             for (Permission p : permissions) {
                 p.setEnabled(true);
             }
@@ -165,7 +167,7 @@ public class CLICommandInvoker {
                 protected Boolean hasPermission(Sid u, Permission permission) {
                     if (u instanceof PrincipalSid && ((PrincipalSid) u).getPrincipal().equals(username)) {
                         for (Permission p = permission; p != null; p = p.impliedBy) {
-                            if (permissions.contains(p)) {
+                            if (permissions.contains(p.getId())) {
                                 return true;
                             }
                         }
