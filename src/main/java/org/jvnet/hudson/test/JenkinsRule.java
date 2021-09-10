@@ -61,7 +61,6 @@ import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
-import hudson.DNSMultiCast;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -2843,10 +2842,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
-
-        // DNS multicast support takes up a lot of time during tests, so just disable it altogether
-        // this also prevents tests from falsely advertising Hudson
-        DNSMultiCast.disabled = true;
 
         if (Functions.isGlibcSupported()) {
             try {

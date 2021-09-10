@@ -52,7 +52,6 @@ import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
-import hudson.DNSMultiCast;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -1784,10 +1783,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     static {
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
-
-        // DNS multicast support takes up a lot of time during tests, so just disable it altogether
-        // this also prevents tests from falsely advertising Hudson
-        DNSMultiCast.disabled = true;
 
         if (!Functions.isWindows()) {
             try {
