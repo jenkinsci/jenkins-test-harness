@@ -13,11 +13,12 @@ import hudson.slaves.RetentionStrategy;
 import java.io.IOException;
 import java.util.Collections;
 
+//TODO: Rename Slave to Agent in an non-breaking way
 /**
- * Slave that pretends to fork processes.
+ * Agent that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#createPretendSlave(FakeLauncher) 
+ * @see JenkinsRule#createPretendSlave(FakeLauncher)
  */
 public class PretendSlave extends Slave {
     private transient FakeLauncher faker;

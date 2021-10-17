@@ -903,39 +903,89 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return env.temporaryDirectoryAllocator.allocate();
     }
 
+    // TODO replace return types once the Jenkins core is updated
+
+    /**
+     * @deprecated Use {@link #createAgent(boolean)}
+     */
+    @Deprecated
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        DumbSlave slave = createSlave();
+        return createAgent(waitForChannelConnect)
+    }
+
+    /**
+     * Creates new agent.
+     * @param waitForChannelConnect wait until the agent is connected for remoting operations
+     * @since TODO
+     */
+    public DumbSlave createAgent(boolean waitForChannelConnect) throws Exception {
+        DumbSlave agent = createSlave();
         if (waitForChannelConnect) {
             long start = System.currentTimeMillis();
-            while (slave.getChannel() == null) {
+            while (agent.getChannel() == null) {
                 if (System.currentTimeMillis() > (start + 10000)) {
-                    throw new IllegalStateException("Timed out waiting on DumbSlave channel to connect.");
+                    throw new IllegalStateException("Timed out waiting on Agent channel to connect.");
                 }
                 Thread.sleep(200);
             }
         }
-        return slave;
+        return agent;
     }
 
-    public void disconnectSlave(DumbSlave slave) throws Exception {
+    /**
+     * @deprecated Use {@link #disconnect(DumbSlave)}
+     */
+    @Deprecated
+    public void disconnectSlave(DumbSlave agent) throws Exception {
+        disconnect(agent);
+    }
+
+    /**
+     * Disconnects the agent.
+     * @param agent Agent to disconnect
+     * @since TODO
+     */
+    public void disconnect(DumbSlave agent) throws Exception {
         slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
         long start = System.currentTimeMillis();
         while (slave.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
-                throw new IllegalStateException("Timed out waiting on DumbSlave channel to disconnect.");
+                throw new IllegalStateException("Timed out waiting on Agent channel to disconnect.");
             }
             Thread.sleep(200);
         }
     }
 
+    /**
+     * @deprecated Use {@link #createAgent()}
+     */
+    @Deprecated
     public DumbSlave createSlave() throws Exception {
-        return createSlave("",null);
+        return createAgent();
     }
 
     /**
-     * Creates and launches a new slave on the local host.
+     * Creates agent
+     * @since TODO
      */
+    public DumbSlave createAgent() throws Exception {
+        return createAgent(null, "", null);
+    }
+
+    /**
+     * @deprecated Use {@link #createAgent(Label)}
+     */
+    @Deprecated
     public DumbSlave createSlave(Label l) throws Exception {
+        return createAgent(l);
+    }
+
+    /**
+     * Creates and launches a new agent on the local host.
+     * @param l Label to be set
+     * @since TODO
+     */
+    public DumbSlave createAgent(@CheckForNull Label l) throws Exception {
     	return createSlave(l, null);
     }
 
@@ -1006,39 +1056,71 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new URL("http://localhost:"+localPort+contextPath+"/");
     }
 
+    /**
+     * @deprecated Use {@link #createAgent(String, String, EnvVars)}
+     */
+    @Deprecated
     public DumbSlave createSlave(EnvVars env) throws Exception {
         return createSlave("",env);
     }
 
+    /**
+     * @deprecated Use {@link #createAgent(String, String, EnvVars)}
+     */
+    @Deprecated
     public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
         return createSlave(l==null ? null : l.getExpression(), env);
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * Creates an agent with certain additional environment variables
+     * @deprecated Use {@link #createAgent(String, String, EnvVars)}
      */
+    @Deprecated
     public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            return createSlave("slave" + sz,labels,env);
+            return createSlave("agent" + sz,labels,env);
     	}
     }
 
+    /**
+     * @deprecated Use {@link #createAgent(String, String, EnvVars)}
+     */
+    @Deprecated
     public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
+        return createAgent(nodeName, labels, env);
+    }
+
+    /**
+     * Creates agent.
+     * @param nodeName Node name to use.
+     *                 Random name will be assigned in {@code null}
+     * @param labels Label string to be set
+     * @return Created agent
+     * @throws Exception Creation error
+     * @since TODO
+     */
+    public DumbSlave createAgent(@CheckForNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(nodeName, "dummy",
-    				createTmpDir().getPath(), "1", Node.Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env), RetentionStrategy.NOOP, Collections.EMPTY_LIST);                        
-    		jenkins.addNode(slave);
-    		return slave;
+            DumbSlave agent = new DumbSlave(
+                    nodeName != null ? nodeName : "agent" + jenkins.getNodes().size(),
+                    "dummy",
+    				createTmpDir().getPath(), "1", Node.Mode.NORMAL,
+                    labels == null? "" : labels,
+                    createComputerLauncher(env),
+                    RetentionStrategy.NOOP, Collections.EMPTY_LIST);
+    		jenkins.addNode(agent);
+    		return agent;
     	}
     }
 
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave = new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
-    		jenkins.addNode(slave);
-    		return slave;
+            PretendSlave agent = new PretendSlave("agent" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
+    		jenkins.addNode(agent);
+    		return agent;
         }
     }
 
@@ -1046,33 +1128,58 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      *
      * @param env
-     *      Environment variables to add to the slave process. Can be null.
+     *      Environment variables to add to the agent process. Can be null.
      */
-    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
+    public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
                 String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
                         System.getProperty("java.home"),
-                        SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        AGENT_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(AGENT_DEBUG_PORT+sz): "",
                         "-Djava.awt.headless=true",
                         new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
                 env);
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
-     * before returning.
+     * @deprecated Use {@link #createOnlineAgent()}
      */
+    @Deprecated
     public DumbSlave createOnlineSlave() throws Exception {
-        return createOnlineSlave(null);
+        return createOnlineAgent();
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
+     * @since TODO
+     */
+    public DumbSlave createOnlineAgent() throws Exception {
+        return createOnlineAgent(null);
+    }
+
+    /**
+     * @deprecated Use {@link #createOnlineAgent(Label)}
      */
     public DumbSlave createOnlineSlave(Label l) throws Exception {
-        return createOnlineSlave(l, null);
+        return createOnlineAgent(l);
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning.
+     * @since TODO
+     */
+    public DumbSlave createOnlineAgent(Label l) throws Exception {
+        return createOnlineAgent(l, null);
+    }
+
+    /**
+     * @deprecated Use {@link #createOnlineAgent(Label, EnvVars)}
+     */
+    @Deprecated
+    public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
+        return createOnlineAgent(l, env);
     }
 
     /**
@@ -1081,7 +1188,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @see #waitOnline
      */
     @SuppressWarnings({"deprecation"})
-    public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
+    public DumbSlave createOnlineAgent(Label l, EnvVars env) throws Exception {
         DumbSlave s = createSlave(l, env);
         waitOnline(s);
         return s;
@@ -1137,11 +1244,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Waits for a newly created slave to come online.
-     * @see #createSlave()
+     * Waits for a newly created agent to come online.
+     * @see #createAgent()
      */
-    public void waitOnline(Slave s) throws Exception {
-        Computer computer = s.toComputer();
+    public void waitOnline(Slave agent) throws Exception {
+        Computer computer = agent.toComputer();
         AtomicBoolean run = new AtomicBoolean(true);
         AnnotatedLargeText<?> logText = computer.getLogText();
         Computer.threadPoolForRemoting.submit(() -> {
@@ -1153,7 +1260,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             return null;
         });
         try {
-            if (s.getLauncher().isLaunchSupported()) {
+            if (agent.getLauncher().isLaunchSupported()) {
                 computer.connect(false).get();
             } else {
                 while (!computer.isOnline()) {
@@ -1168,19 +1275,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
      */
-    public void showAgentLogs(Slave s, LoggerRule loggerRule) throws Exception {
-        showAgentLogs(s, loggerRule.getRecordedLevels());
+    public void showAgentLogs(Slave agent, LoggerRule loggerRule) throws Exception {
+        showAgentLogs(agent, loggerRule.getRecordedLevels());
     }
 
     /**
      * Forward agent logs to standard error of the test process.
      * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
      * or discarded entirely (if below {@link Level#INFO}).
-     * @param s an <em>online</em> agent
+     * @param agent an <em>online</em> agent
      * @param loggers {@link Logger#getName} tied to log level
      */
-    public void showAgentLogs(Slave s, Map<String, Level> loggers) throws Exception {
-        s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers));
+    public void showAgentLogs(Slave agent, Map<String, Level> loggers) throws Exception {
+        agent.getChannel().call(new RemoteLogDumper(agent.getNodeName(), loggers));
     }
 
     private static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
@@ -2828,9 +2935,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
 
     /**
-     * Specify this to a TCP/IP port number to have slaves started with the debugger.
+     * @deprecated Use {@link #AGENT_DEBUG_PORT}
      */
+    @Deprecated
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
+
+    /**
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
+     */
+    public static final int AGENT_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".agentDebugPort", SLAVE_DEBUG_PORT);
 
     public static final MimeTypes MIME_TYPES;
     static {
