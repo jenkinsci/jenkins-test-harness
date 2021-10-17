@@ -13,3 +13,6 @@ out
 .classpath
 .project
 build
+
+# VSCode
+.factorypath
