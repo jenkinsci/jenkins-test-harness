@@ -910,7 +910,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     @Deprecated
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        return createAgent(waitForChannelConnect)
+        return createAgent(waitForChannelConnect);
     }
 
     /**
