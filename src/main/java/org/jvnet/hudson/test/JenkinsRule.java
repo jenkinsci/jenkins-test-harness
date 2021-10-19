@@ -946,9 +946,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     public void disconnect(DumbSlave agent) throws Exception {
-        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
+        agent.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
         long start = System.currentTimeMillis();
-        while (slave.getChannel() != null) {
+        while (agent.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
                 throw new IllegalStateException("Timed out waiting on Agent channel to disconnect.");
             }
