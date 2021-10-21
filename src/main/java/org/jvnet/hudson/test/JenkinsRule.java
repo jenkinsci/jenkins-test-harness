@@ -903,6 +903,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return env.temporaryDirectoryAllocator.allocate();
     }
 
+    @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
         DumbSlave slave = createSlave();
         if (waitForChannelConnect) {
@@ -928,6 +929,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    @NonNull
     public DumbSlave createSlave() throws Exception {
         return createSlave("",null);
     }
@@ -935,7 +937,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Creates and launches a new slave on the local host.
      */
-    public DumbSlave createSlave(Label l) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
     	return createSlave(l, null);
     }
 
@@ -1006,25 +1009,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new URL("http://localhost:"+localPort+contextPath+"/");
     }
 
-    public DumbSlave createSlave(EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull EnvVars env) throws Exception {
         return createSlave("",env);
     }
 
-    public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         return createSlave(l==null ? null : l.getExpression(), env);
     }
 
     /**
      * Creates a slave with certain additional environment variables
      */
-    public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             return createSlave("slave" + sz,labels,env);
     	}
     }
 
-    public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Node.Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env), RetentionStrategy.NOOP, Collections.EMPTY_LIST);                        
@@ -1048,7 +1055,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param env
      *      Environment variables to add to the slave process. Can be null.
      */
-    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
+    @NonNull
+    public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
                 String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
@@ -1063,6 +1071,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
+    @NonNull
     public DumbSlave createOnlineSlave() throws Exception {
         return createOnlineSlave(null);
     }
@@ -1071,7 +1080,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
-    public DumbSlave createOnlineSlave(Label l) throws Exception {
+    @NonNull
+    public DumbSlave createOnlineSlave(@CheckForNull Label l) throws Exception {
         return createOnlineSlave(l, null);
     }
 
@@ -1080,8 +1090,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning
      * @see #waitOnline
      */
+    @NonNull
     @SuppressWarnings({"deprecation"})
-    public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
+    public DumbSlave createOnlineSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         DumbSlave s = createSlave(l, env);
         waitOnline(s);
         return s;
