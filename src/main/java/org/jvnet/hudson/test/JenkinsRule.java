@@ -1170,7 +1170,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning.
      * @since TODO
      */
-    public DumbSlave createOnlineAgent(Label l) throws Exception {
+    public DumbSlave createOnlineAgent(@CheckForNull Label l) throws Exception {
         return createOnlineAgent(l, null);
     }
 
