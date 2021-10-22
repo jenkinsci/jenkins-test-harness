@@ -62,7 +62,7 @@ public class SecuredMockFolder extends MockFolder {
     }
 
     @Override
-    public boolean hasPermission(Permission p) {
+    public boolean hasPermission(@NonNull Permission p) {
         if (super.hasPermission(p)) {
             return true;
         }
