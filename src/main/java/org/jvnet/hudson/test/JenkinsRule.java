@@ -1188,7 +1188,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @see #waitOnline
      */
     @SuppressWarnings({"deprecation"})
-    public DumbSlave createOnlineAgent(Label l, EnvVars env) throws Exception {
+    public DumbSlave createOnlineAgent(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         DumbSlave s = createSlave(l, env);
         waitOnline(s);
         return s;
