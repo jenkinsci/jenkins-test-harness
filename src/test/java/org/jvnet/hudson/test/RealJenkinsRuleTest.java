@@ -47,7 +47,7 @@ import org.junit.Test;
 
 public class RealJenkinsRuleTest {
 
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("structs.hpi");
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
 
     @Test public void smokes() throws Throwable {
         rr.then(RealJenkinsRuleTest::_smokes);

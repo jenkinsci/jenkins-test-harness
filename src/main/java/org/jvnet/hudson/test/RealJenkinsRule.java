@@ -62,6 +62,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -163,11 +164,9 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Add some plugins to the test classpath.
      *
-     * @param plugins Filenames of the plugins to install. These are expected to be of the form
-     *     {@code workflow-job.jpi}, where {@code /plugins/workflow-job.jpi} is a test classpath
-     *     resource. (The basename should be a plugin short name and the extension should be {@code
-     *     jpi}.)
-     *     <p>Committing that file to SCM (say, {@code src/test/resources/plugins/sample.jpi}) is
+     * @param plugins Filenames of the plugins to install. These are expected to be absolute test classpath resources,
+     *     such as {@code plugins/workflow-job.hpi} for example.
+     *     <p>Committing that file to SCM (say, {@code src/test/resources/sample.jpi}) is
      *     reasonable for small fake plugins built for this purpose and exercising some bit of code.
      *     If you wish to test with larger archives of real plugins, this is possible for example by
      *     binding {@code dependency:copy} to the {@code process-test-resources} phase.
@@ -304,8 +303,19 @@ public final class RealJenkinsRule implements TestRule {
                         }
                     }
                     for (String extraPlugin : extraPlugins) {
-                        URL url = RealJenkinsRule.class.getClassLoader().getResource("plugins/" + extraPlugin);
-                        FileUtils.copyURLToFile(url, new File(plugins, extraPlugin));
+                        URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
+                        String name;
+                        try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+                            Manifest man = jis.getManifest();
+                            if (man == null) {
+                                throw new IOException("No manifest found in " + extraPlugin);
+                            }
+                            name = man.getMainAttributes().getValue("Short-Name");
+                            if (name == null) {
+                                throw new IOException("No Short-Name found in " + extraPlugin);
+                            }
+                        }
+                        FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
                     }
                     System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
