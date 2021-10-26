@@ -24,6 +24,8 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.RingBufferLogHandler;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,8 +40,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.ClassRule;
@@ -209,7 +209,7 @@ public class LoggerRule extends ExternalResource {
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
      * passing {@link org.hamcrest.CoreMatchers#anything}
      */
-    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return new RecordedMatcher(level, message, thrown);
     }
 
@@ -221,7 +221,7 @@ public class LoggerRule extends ExternalResource {
      * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
      * @param message The matcher to match against {@link LogRecord#getMessage}.
      */
-    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @Nonnull Matcher<String> message) {
+    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @NonNull Matcher<String> message) {
         return recorded(level, message, null);
     }
 
@@ -235,7 +235,7 @@ public class LoggerRule extends ExternalResource {
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
      * passing {@link org.hamcrest.CoreMatchers#anything}
      */
-    public static Matcher<LoggerRule> recorded(@Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+    public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return recorded(null, message, thrown);
     }
 
@@ -246,16 +246,16 @@ public class LoggerRule extends ExternalResource {
      *
      * @param message the matcher to match against {@link LogRecord#getMessage}
      */
-    public static Matcher<LoggerRule> recorded(@Nonnull Matcher<String> message) {
+    public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message) {
         return recorded(null, message);
     }
 
     private static class RecordedMatcher extends TypeSafeMatcher<LoggerRule> {
         @CheckForNull Level level;
-        @Nonnull Matcher<String> message;
+        @NonNull Matcher<String> message;
         @CheckForNull Matcher<Throwable> thrown;
 
-        public RecordedMatcher(@CheckForNull Level level, @Nonnull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        public RecordedMatcher(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
             this.level = level;
             this.message = message;
             this.thrown = thrown;

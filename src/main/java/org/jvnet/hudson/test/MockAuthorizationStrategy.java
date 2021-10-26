@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -212,18 +213,21 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @NonNull
     @Override
     public ACL getRootACL() {
         return new ACLImpl("");
     }
 
+    @NonNull
     @Override
     public ACL getACL(AbstractItem item) {
         return new ACLImpl(item.getFullName());
     }
 
+    @NonNull
     @Override
-    public ACL getACL(Job<?, ?> project) {
+    public ACL getACL(@NonNull Job<?, ?> project) {
         return getACL((AbstractItem) project); // stupid overload
     }
 
@@ -247,6 +251,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @NonNull
     @Override
     public Collection<String> getGroups() {
         return Collections.emptySet(); // we do not differentiate usernames from groups

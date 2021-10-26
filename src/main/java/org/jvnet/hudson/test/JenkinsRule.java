@@ -41,10 +41,12 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.WebResponseData;
 import com.gargoylesoftware.htmlunit.WebResponseListener;
 import com.gargoylesoftware.htmlunit.html.DomNode;
+import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlElementUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlImage;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -56,9 +58,9 @@ import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
-import hudson.ClassicPluginStrategy;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
-import hudson.DNSMultiCast;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -69,6 +71,8 @@ import hudson.Main;
 import hudson.PluginManager;
 import hudson.Util;
 import hudson.WebAppMain;
+import hudson.console.AnnotatedLargeText;
+import hudson.init.InitMilestone;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -82,17 +86,20 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.JDK;
+import hudson.model.Job;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.RootAction;
 import hudson.model.Run;
+import hudson.model.Slave;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.model.UpdateSite;
 import hudson.model.User;
 import hudson.model.View;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.remoting.Which;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
@@ -131,12 +138,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
@@ -147,6 +156,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -156,25 +166,28 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Filter;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
-
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
+import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -201,38 +214,25 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import static org.hamcrest.CoreMatchers.containsString;
 import org.hamcrest.Matchers;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.internal.AssumptionViolatedException;
-import static org.hamcrest.CoreMatchers.containsString;
+import org.junit.rules.DisableOnDebug;
 import org.junit.rules.MethodRule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import hudson.console.AnnotatedLargeText;
-import hudson.init.InitMilestone;
-import hudson.model.Job;
-import hudson.model.Slave;
-import hudson.model.queue.QueueTaskFuture;
-
-import java.net.HttpURLConnection;
-import java.nio.channels.ClosedByInterruptException;
-import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import jenkins.model.ParameterizedJobMixIn;
-import jenkins.security.MasterToSlaveCallable;
-import org.junit.rules.DisableOnDebug;
-import org.junit.rules.Timeout;
 import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.WithTimeout;
@@ -903,6 +903,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return env.temporaryDirectoryAllocator.allocate();
     }
 
+    @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
         DumbSlave slave = createSlave();
         if (waitForChannelConnect) {
@@ -928,6 +929,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    @NonNull
     public DumbSlave createSlave() throws Exception {
         return createSlave("",null);
     }
@@ -935,7 +937,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Creates and launches a new slave on the local host.
      */
-    public DumbSlave createSlave(Label l) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
     	return createSlave(l, null);
     }
 
@@ -1006,25 +1009,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new URL("http://localhost:"+localPort+contextPath+"/");
     }
 
-    public DumbSlave createSlave(EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull EnvVars env) throws Exception {
         return createSlave("",env);
     }
 
-    public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         return createSlave(l==null ? null : l.getExpression(), env);
     }
 
     /**
      * Creates a slave with certain additional environment variables
      */
-    public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             return createSlave("slave" + sz,labels,env);
     	}
     }
 
-    public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Node.Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env), RetentionStrategy.NOOP, Collections.EMPTY_LIST);                        
@@ -1048,7 +1055,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param env
      *      Environment variables to add to the slave process. Can be null.
      */
-    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
+    @NonNull
+    public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
                 String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
@@ -1063,6 +1071,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
+    @NonNull
     public DumbSlave createOnlineSlave() throws Exception {
         return createOnlineSlave(null);
     }
@@ -1071,7 +1080,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Create a new slave on the local host and wait for it to come online
      * before returning.
      */
-    public DumbSlave createOnlineSlave(Label l) throws Exception {
+    @NonNull
+    public DumbSlave createOnlineSlave(@CheckForNull Label l) throws Exception {
         return createOnlineSlave(l, null);
     }
 
@@ -1080,8 +1090,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning
      * @see #waitOnline
      */
+    @NonNull
     @SuppressWarnings({"deprecation"})
-    public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
+    public DumbSlave createOnlineSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         DumbSlave s = createSlave(l, env);
         waitOnline(s);
         return s;
@@ -1090,7 +1101,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Use the new API token system introduced in 2.129 to generate a token for the given user.
      */
-    public @Nonnull String createApiToken(@Nonnull User user) {
+    public @NonNull String createApiToken(@NonNull User user) {
         try {
             // TODO could be simplified when core dependency will be higher
             if (Jenkins.getVersion().isOlderThan(new VersionNumber("2.260"))) {
@@ -1133,8 +1144,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         new SecureRandom().nextBytes(random);
         String secretValue = Util.toHexString(random);
         // 11 is the version for the new API Token system
-        String plainTextValue = 11 + secretValue;
-        return plainTextValue;
+        return 11 + secretValue;
     }
 
     /**
@@ -1259,7 +1269,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param path The endpoint URL.
      * @return The JSON.
      */
-    public JSONWebResponse getJSON(@Nonnull String path) throws IOException {
+    public JSONWebResponse getJSON(@NonNull String path) throws IOException {
         assert !path.startsWith("/");
 
         JenkinsRule.WebClient webClient = createWebClient();
@@ -1281,7 +1291,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param json An object that produces a JSON string from it's {@code toString} method.
      * @return A JSON response.
      */
-    public JSONWebResponse postJSON(@Nonnull String path, @Nonnull Object json) throws IOException, SAXException {
+    public JSONWebResponse postJSON(@NonNull String path, @NonNull Object json) throws IOException, SAXException {
         assert !path.startsWith("/");
 
         URL postUrl = new URL(getURL().toExternalForm() + path);
@@ -1463,8 +1473,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return assertBuildStatus(Result.SUCCESS, r);
     }
 
-    @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@Nonnull J job) throws Exception {
+    @NonNull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@NonNull J job) throws Exception {
         return buildAndAssertStatus(Result.SUCCESS, job);
     }
 
@@ -1472,8 +1482,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Runs specified job and asserts that in finished with given build result.
      * @since TODO
      */
-    @Nonnull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@Nonnull Result status, @Nonnull J job) throws Exception {
+    @NonNull
+    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@NonNull Result status, @NonNull J job) throws Exception {
         final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
             @Override protected J asJob() {
                 return job;
@@ -1485,8 +1495,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Avoids need for cumbersome {@code this.<J,R>buildAndAssertSuccess(...)} type hints under JDK 7 javac (and supposedly also IntelliJ).
      */
-    @Nonnull
-    public FreeStyleBuild buildAndAssertSuccess(@Nonnull FreeStyleProject job) throws Exception {
+    @NonNull
+    public FreeStyleBuild buildAndAssertSuccess(@NonNull FreeStyleProject job) throws Exception {
         return assertBuildStatusSuccess(job.scheduleBuild2(0));
     }
 
@@ -1563,7 +1573,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * examine XmlPages.
      */
     public void assertXPath(DomNode page, String xpath) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertThat("There should be an object that matches XPath:" + xpath, nodes.isEmpty(), is(false));
     }
 
@@ -1588,7 +1598,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertThat("no nodes matching xpath found", nodes.isEmpty(), is(false));
         boolean found = false;
         for (Object o : nodes) {
@@ -1789,7 +1799,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         Constructor<?> lc = findDataBoundConstructor(lhs.getClass());
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
-        assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is((Constructor)lc));
+        assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is(lc));
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
@@ -1808,7 +1818,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertEqualProperties(lhs, rhs, setterNames.toArray(new String[0]), setterTypes.toArray(new Class<?>[0]));
     }
 
-    private void assertEqualProperties(@Nonnull Object lhs, @Nonnull Object rhs, @Nonnull String[] names, @Nonnull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
+    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
         List<String> primitiveProperties = new ArrayList<>();
 
         for (int i=0; i<types.length; i++) {
@@ -1845,8 +1855,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             assertEqualBeans(lhs,rhs,Util.join(primitiveProperties,","));
     }
 
-    @Nonnull
-    private Map<String, Class<?>> extractDataBoundSetterProperties(@Nonnull Class<?> c) {
+    @NonNull
+    private Map<String, Class<?>> extractDataBoundSetterProperties(@NonNull Class<?> c) {
         Map<String, Class<?>> ret = new HashMap<>();
         for ( ;c != null; c = c.getSuperclass()) {
 
@@ -1873,7 +1883,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     @CheckForNull
-    private AbstractMap.SimpleEntry<String, Class<?>> extractDataBoundSetter(@Nonnull Method m) {
+    private AbstractMap.SimpleEntry<String, Class<?>> extractDataBoundSetter(@NonNull Method m) {
         // See org.kohsuke.stapler.RequestImpl::findDataBoundSetter
         if (!Modifier.isPublic(m.getModifiers())) {
             return null;
@@ -2551,7 +2561,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         public HtmlPage getPage(View view, String relative) throws IOException, SAXException {
-            return goTo(view.getUrl()+relative);
+            return goTo(view.getViewUrl() + relative);
         }
 
         /**
@@ -2690,7 +2700,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login and password using Base64
          * @since 2.32
          */
-        public @Nonnull WebClient withBasicCredentials(@Nonnull String login, @Nonnull String passwordOrToken) {
+        public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
             String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
 
             addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
@@ -2702,7 +2712,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login using Base64
          * @since 2.32
          */
-        public @Nonnull WebClient withBasicCredentials(@Nonnull String loginAndPassword){
+        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword){
             return withBasicCredentials(loginAndPassword, loginAndPassword);
         }
 
@@ -2713,7 +2723,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicCredentials(String, String)
          * @since 2.32 (since TODO it creates a new token everytime it's called)
          */
-        public @Nonnull WebClient withBasicApiToken(@Nonnull User user){
+        public @NonNull WebClient withBasicApiToken(@NonNull User user){
             String apiToken = JenkinsRule.this.createApiToken(user);
             return withBasicCredentials(user.getId(), apiToken);
         }
@@ -2723,7 +2733,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicApiToken(User)
          * @since 2.32
          */
-        public @Nonnull WebClient withBasicApiToken(@Nonnull String userId){
+        public @NonNull WebClient withBasicApiToken(@NonNull String userId){
             User user = User.getById(userId, true);
             return withBasicApiToken(user);
         }
@@ -2844,14 +2854,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
-        // during the unit test, predictably releasing classloader is important to avoid
-        // file descriptor leak.
-        ClassicPluginStrategy.useAntClassLoader = true;
-
-        // DNS multicast support takes up a lot of time during tests, so just disable it altogether
-        // this also prevents tests from falsely advertising Hudson
-        DNSMultiCast.disabled = true;
-
         if (Functions.isGlibcSupported()) {
             try {
                 GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
@@ -2884,10 +2886,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
 
+            @NonNull
             @Override
             public String getDisplayName() {
                 return "TestBuildWrapper";

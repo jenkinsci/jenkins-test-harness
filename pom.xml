@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.63</version>
+    <version>1.67</version>
     <relativePath />
   </parent>
 
@@ -50,10 +50,9 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.41.v20210516</jetty.version>
+    <jetty.version>9.4.44.v20210927</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.31</jmh.version>
-    <junit.jupiter.version>5.7.2</junit.jupiter.version>
+    <jmh.version>1.33</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
     <!--TODO: fix FindBugs-->
@@ -150,23 +149,6 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <version>${junit.jupiter.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>${junit.jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <version>${junit.jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jvnet.hudson</groupId>
       <artifactId>embedded-rhino-debugger</artifactId>
       <version>1.2</version>
@@ -185,7 +167,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE123</version>
+      <version>RELEASE125</version>
     </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
@@ -254,8 +236,6 @@ THE SOFTWARE.
           <!-- SUREFIRE-1588 workaround; too late for systemProperties: -->
           <argLine>-Dfile.encoding=UTF-8 -Xmx256m -Djava.awt.headless=true -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           <systemPropertyVariables>
-              <!-- use AntClassLoader that supports predictable file handle release -->
-              <hudson.ClassicPluginStrategy.useAntClassLoader>true</hudson.ClassicPluginStrategy.useAntClassLoader>
               <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
               <buildDirectory>${project.build.directory}</buildDirectory>
           </systemPropertyVariables>
@@ -267,7 +247,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.12.1</version>
+        <version>1.13.0</version>
         <executions>
           <execution>
             <id>preset-packager</id>
@@ -286,7 +266,7 @@ THE SOFTWARE.
           <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.10.10</version>
+            <version>1.10.12</version>
           </dependency>
         </dependencies>
       </plugin>

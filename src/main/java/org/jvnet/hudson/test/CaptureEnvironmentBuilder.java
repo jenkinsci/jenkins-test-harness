@@ -23,17 +23,17 @@
  */
 package org.jvnet.hudson.test;
 
-import hudson.Launcher;
-import hudson.Extension;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
+import hudson.Extension;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.tasks.Builder;
+import java.io.IOException;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
-
-import java.io.IOException;
 
 /**
  * {@link Builder} that captures the environment variables used during a build.
@@ -55,10 +55,11 @@ public class CaptureEnvironmentBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
+        @NonNull
         public String getDisplayName() {
             return "Capture Environment Variables";
         }

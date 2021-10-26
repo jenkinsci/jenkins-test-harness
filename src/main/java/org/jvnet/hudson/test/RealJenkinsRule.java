@@ -47,6 +47,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -364,17 +365,35 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
+    private static File findJenkinsWar() throws Exception {
+        // Adapted from WarExploder.explode
+
+        // Are we in Jenkins core? If so, pick up "war/target/jenkins.war".
+        File d = new File(".").getAbsoluteFile();
+        for (; d != null; d = d.getParentFile()) {
+            if (new File(d, ".jenkins").exists()) {
+                File war = new File(d, "war/target/jenkins.war");
+                if (war.exists()) {
+                    LOGGER.log(Level.INFO, "Using jenkins.war from {0}", war);
+                    return war;
+                }
+            }
+        }
+
+        return WarExploder.findJenkinsWar();
+    }
+
     public void startJenkins() throws Throwable {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         String cp = System.getProperty("java.class.path");
+        FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
         List<String> argv = new ArrayList<>(Arrays.asList(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
-                "-DRealJenkinsRule.cp=" + cp,
                 "-DRealJenkinsRule.url=" + getUrl(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
@@ -383,11 +402,11 @@ public final class RealJenkinsRule implements TestRule {
         }
         argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
-                "-jar", WarExploder.findJenkinsWar().getAbsolutePath(),
+                "-jar", findJenkinsWar().getAbsolutePath(),
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
         ProcessBuilder pb = new ProcessBuilder(argv);
-        System.out.println("Launching: " + pb.command().toString().replace(cp, "…"));
+        System.out.println("Launching: " + pb.command());
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
         // TODO options to set env, Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
@@ -453,6 +472,7 @@ public final class RealJenkinsRule implements TestRule {
 
     public void runRemotely(Step s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
         Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
@@ -467,7 +487,7 @@ public final class RealJenkinsRule implements TestRule {
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Stream.of(System.getProperty("RealJenkinsRule.cp").split(File.pathSeparator)).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            ClassLoader tests = new URLClassLoader(Files.lines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), Charset.defaultCharset()).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 

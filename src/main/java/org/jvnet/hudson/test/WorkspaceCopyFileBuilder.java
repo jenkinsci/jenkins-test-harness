@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
@@ -104,10 +105,11 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Copy a file from the workspace of another build";
