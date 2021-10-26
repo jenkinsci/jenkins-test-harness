@@ -40,13 +40,14 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 
 public class RealJenkinsRuleTest {
 
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule();
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
 
     @Test public void smokes() throws Throwable {
         rr.then(RealJenkinsRuleTest::_smokes);
@@ -54,6 +55,7 @@ public class RealJenkinsRuleTest {
     private static void _smokes(JenkinsRule r) throws Throwable {
         System.err.println("running in: " + r.jenkins.getRootUrl());
         assertTrue(Main.isUnitTest);
+        assertNotNull(r.jenkins.getPlugin("structs"));
     }
 
     @Test public void testFilter() throws Throwable{
