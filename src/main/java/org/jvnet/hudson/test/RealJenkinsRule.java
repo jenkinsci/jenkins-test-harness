@@ -205,6 +205,7 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Set an extra environment variable.
+     * @param value null to cancel a previously set variable
      */
     public RealJenkinsRule extraEnv(String key, String value) {
         extraEnv.put(key, value);
@@ -430,7 +431,11 @@ public final class RealJenkinsRule implements TestRule {
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command());
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        pb.environment().putAll(extraEnv);
+        for (Map.Entry<String, String> entry : extraEnv.entrySet()) {
+            if (entry.getValue() != null) {
+                pb.environment().put(entry.getKey(), entry.getValue());
+            }
+        }
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
