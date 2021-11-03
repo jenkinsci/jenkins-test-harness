@@ -57,8 +57,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -117,7 +119,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link LocalData} is not available.
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
- * <li>There is not currently enough flexibility in how the controller is launched (such as custom environment variables).
+ * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -151,6 +153,8 @@ public final class RealJenkinsRule implements TestRule {
     private final Set<String> skippedPlugins = new TreeSet<>();
 
     private final List<String> javaOptions = new ArrayList<>();
+
+    private final Map<String, String> extraEnv = new TreeMap<>();
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
@@ -196,6 +200,15 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule javaOptions(String... options) {
         javaOptions.addAll(Arrays.asList(options));
+        return this;
+    }
+
+    /**
+     * Set an extra environment variable.
+     * @param value null to cancel a previously set variable
+     */
+    public RealJenkinsRule extraEnv(String key, String value) {
+        extraEnv.put(key, value);
         return this;
     }
 
@@ -418,7 +431,12 @@ public final class RealJenkinsRule implements TestRule {
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command());
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        // TODO options to set env, Winstone options, etc.
+        for (Map.Entry<String, String> entry : extraEnv.entrySet()) {
+            if (entry.getValue() != null) {
+                pb.environment().put(entry.getKey(), entry.getValue());
+            }
+        }
+        // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
         proc = pb.start();
