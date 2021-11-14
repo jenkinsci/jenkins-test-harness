@@ -53,7 +53,7 @@ public class JenkinsComputerConnectorTester extends AbstractDescribableImpl<Jenk
         connector = req.bindJSON(ComputerConnector.class, req.getSubmittedForm().getJSONObject("connector"));
     }
 
-    public List getConnectorDescriptors() {
+    public List<ComputerConnectorDescriptor> getConnectorDescriptors() {
         return ComputerConnectorDescriptor.all();
     }
 
