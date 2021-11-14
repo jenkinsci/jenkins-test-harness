@@ -315,22 +315,6 @@ public final class RealJenkinsRule implements TestRule {
                             }
                         }
                     }
-                    for (String extraPlugin : extraPlugins) {
-                        URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
-                        String name;
-                        try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
-                            Manifest man = jis.getManifest();
-                            if (man == null) {
-                                throw new IOException("No manifest found in " + extraPlugin);
-                            }
-                            name = man.getMainAttributes().getValue("Short-Name");
-                            if (name == null) {
-                                throw new IOException("No Short-Name found in " + extraPlugin);
-                            }
-                        }
-                        FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
-                    }
-                    System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
                 } finally {
                     if (proc != null) {
@@ -410,6 +394,23 @@ public final class RealJenkinsRule implements TestRule {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
+        File plugins = new File(home, "plugins");
+        for (String extraPlugin : extraPlugins) {
+            URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
+            String name;
+            try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+                Manifest man = jis.getManifest();
+                if (man == null) {
+                    throw new IOException("No manifest found in " + extraPlugin);
+                }
+                name = man.getMainAttributes().getValue("Short-Name");
+                if (name == null) {
+                    throw new IOException("No Short-Name found in " + extraPlugin);
+                }
+            }
+            FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
+        }
+        System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
         String cp = System.getProperty("java.class.path");
         FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
         List<String> argv = new ArrayList<>(Arrays.asList(
