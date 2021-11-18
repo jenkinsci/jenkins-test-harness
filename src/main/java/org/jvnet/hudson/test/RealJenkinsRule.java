@@ -141,9 +141,9 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * TCP/IP port that the server is listening on.
-     *
+     * <p>
      * Before the first start, it will be 0. Once started, it is set to the actual port Jenkins is listening to.
-     *
+     * <p>
      * Like the home directory, this will be consistent across restarts.
      */
     private int port;
