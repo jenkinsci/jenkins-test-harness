@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 /**
  * Copied from https://github.com/jenkinsci/acceptance-test-harness/blob/f749d27b229ce5a4737d1614fa1f31d2e6402f4f/src/main/java/org/jenkinsci/test/acceptance/utils/IOUtil.java#L80-L115
  */
-public class IOUtil {
+class IOUtil {
 
     private static final Logger LOGGER = Logger.getLogger(IOUtil.class.getName());
 

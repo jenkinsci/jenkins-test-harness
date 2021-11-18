@@ -245,7 +245,7 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    port = IOUtil.randomTcpPort(); // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
+                    port = IOUtil.randomTcpPort();
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
