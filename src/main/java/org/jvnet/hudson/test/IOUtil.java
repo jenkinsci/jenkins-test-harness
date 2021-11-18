@@ -34,8 +34,8 @@ public class IOUtil {
     /**
      * Gives random available TCP port in the given range.
      *
-     * @param from if <=0 then default value 49152 is used
-     * @param to   if <=0 then default value 65535 is used
+     * @param from if &lt;=0 then default value 49152 is used
+     * @param to   if &lt;=0 then default value 65535 is used
      */
     public static int randomTcpPort(int from, int to){
         from = (from <=0) ? 49152 : from;
