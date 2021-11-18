@@ -34,7 +34,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -494,13 +493,11 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private static int readPort(File portFile) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(portFile))) {
-            String s = reader.readLine();
-            try {
-                return Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                throw new AssertionError("Unable to parse port from " + s + ". Jenkins did not start.");
-            }
+        String s = FileUtils.readFileToString(portFile, StandardCharsets.UTF_8);
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            throw new AssertionError("Unable to parse port from " + s + ". Jenkins did not start.");
         }
     }
 
