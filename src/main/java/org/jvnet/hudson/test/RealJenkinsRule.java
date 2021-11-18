@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -245,7 +246,6 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    port = IOUtil.randomTcpPort(); // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
@@ -412,12 +412,15 @@ public final class RealJenkinsRule implements TestRule {
         }
         String cp = System.getProperty("java.class.path");
         FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
+        File portFile = new File(home, "jenkins-port.txt");
         List<String> argv = new ArrayList<>(Arrays.asList(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
+                "-Dwinstone.portFileName=" + portFile,
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
-                "-DRealJenkinsRule.url=" + getUrl(),
+                "-DRealJenkinsRule.host=" + host,
+                "-DRealJenkinsRule.path=" + "/jenkins/",
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
         if (new DisableOnDebug(null).isDebugging()) {
@@ -426,7 +429,8 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
                 "-jar", findJenkinsWar().getAbsolutePath(),
-                "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
+                "--httpPort=" + port,
+                "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command());
@@ -443,32 +447,37 @@ public final class RealJenkinsRule implements TestRule {
         // TODO prefix streams with per-test timestamps & port
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
-        URL status = endpoint("status");
         int tries = 0;
         while (true) {
-            try {
-                HttpURLConnection conn = (HttpURLConnection) status.openConnection();
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    conn.getInputStream().close();
-                    break;
-                } else {
-                    String err = "?";
-                    try (InputStream is = conn.getErrorStream()) {
-                        if (is != null) {
-                            err = IOUtils.toString(is);
+            if (port != 0 || portFile.exists()) {
+                if (port == 0) {
+                    port = readPort(portFile);
+                }
+                try {
+                    URL status = endpoint("status");
+                    HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+                    int code = conn.getResponseCode();
+                    if (code == 200) {
+                        conn.getInputStream().close();
+                        break;
+                    } else {
+                        String err = "?";
+                        try (InputStream is = conn.getErrorStream()) {
+                            if (is != null) {
+                                err = IOUtils.toString(is);
+                            }
+                        } catch (Exception x) {
+                            x.printStackTrace();
                         }
-                    } catch (Exception x) {
+                        throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
+                    }
+                } catch (Exception x) {
+                    tries++;
+                    if (tries == /* 3m */ 1800) {
+                        throw new AssertionError("Jenkins did not start after 3m");
+                    } else if (tries % /* 1m */ 600 == 0) {
                         x.printStackTrace();
                     }
-                    throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
-                }
-            } catch (Exception x) {
-                tries++;
-                if (tries == /* 3m */ 1800) {
-                    throw new AssertionError("Jenkins did not start after 3m");
-                } else if (tries % /* 1m */ 600 == 0) {
-                    x.printStackTrace();
                 }
             }
             Thread.sleep(100);
@@ -481,6 +490,17 @@ public final class RealJenkinsRule implements TestRule {
                     proc = null;
                 }
             }, timeout, TimeUnit.SECONDS);
+        }
+    }
+
+    private static int readPort(File portFile) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(portFile))) {
+            String s = reader.readLine();
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                throw new AssertionError("Unable to parse port from " + s + ". Jenkins did not start.");
+            }
         }
     }
 
@@ -639,7 +659,8 @@ public final class RealJenkinsRule implements TestRule {
         }
 
         @Override public URL getURL() throws IOException {
-            return new URL(System.getProperty("RealJenkinsRule.url"));
+            int port = readPort(new File(System.getProperty("winstone.portFileName")));
+            return new URL("http://" + System.getProperty("RealJenkinsRule.host") + ":" + port + System.getProperty("RealJenkinsRule.path"));
         }
 
         @Override public void close() throws Exception {
