@@ -82,6 +82,7 @@ THE SOFTWARE.
 
   <dependencyManagement>
     <dependencies>
+      <!-- RequireUpperBoundDeps  -->
       <dependency>
         <groupId>commons-beanutils</groupId>
         <artifactId>commons-beanutils</artifactId>
@@ -159,6 +160,7 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
+      <!-- Removed from jenkins core but still used here apparently... -->
       <groupId>commons-digester</groupId>
       <artifactId>commons-digester</artifactId>
       <version>2.1</version>
