@@ -255,7 +255,7 @@ import org.xml.sax.SAXException;
 /**
  * JUnit rule to allow test cases to fire up a Jenkins instance.
  *
- * @see <a href="http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test">Wiki article about unit testing in Jenkins</a>
+ * @see <a href="https://www.jenkins.io/doc/developer/testing/">Wiki article about unit testing in Jenkins</a>
  * @author Stephen Connolly
  * @since 1.436
  * @see RestartableJenkinsRule
@@ -1378,7 +1378,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test#UnitTest-Configurationroundtriptesting
+     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
      */
     public <P extends Item> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job, "configure").getFormByName("config"));
