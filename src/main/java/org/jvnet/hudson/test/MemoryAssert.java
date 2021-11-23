@@ -253,7 +253,7 @@ public class MemoryAssert {
             // * to recognizeClass, before queue.add(cls): objects.getID(cls)
             // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects, cls, cl, null)
             // Also Path.getField confusingly returns "<changed>" when printing the Class → ClassLoader link.
-            List<Class> classes = new ArrayList<>();
+            List<Class<?>> classes = new ArrayList<>();
             @Override public void visitClass(Class cls) {
                 getID(cls);
                 super.visitClass(cls);
@@ -266,7 +266,7 @@ public class MemoryAssert {
                 super.visitObject(map, object);
                 if (object instanceof ClassLoader) {
                     if (isKnown(object)) {
-                        for (Class c : classes) {
+                        for (Class<?> c : classes) {
                             if (c.getClassLoader() == object) {
                                 visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
                             }

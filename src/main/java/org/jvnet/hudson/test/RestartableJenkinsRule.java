@@ -135,7 +135,7 @@ public class RestartableJenkinsRule implements MethodRule {
      * @deprecated Use {@link #then} instead.
      */
     @Deprecated
-    public void step(final Closure c) {
+    public void step(final Closure<?> c) {
         addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -215,7 +215,7 @@ public class RestartableJenkinsRule implements MethodRule {
          File newHome = tmp.allocate();
 
          // Copy efficiently
-         Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
+         Files.walkFileTree(homeDir.toPath(), Collections.emptySet(), 99, new CopyFileVisitor(newHome.toPath()));
          LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
          home = newHome;
     }

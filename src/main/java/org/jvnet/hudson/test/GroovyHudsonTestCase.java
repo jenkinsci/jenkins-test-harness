@@ -24,14 +24,14 @@ public abstract class GroovyHudsonTestCase extends HudsonTestCase {
      * <p>
      * The closure will get the request and response as parameters.
      */
-    public Object executeOnServer(final Closure c) throws Exception {
+    public Object executeOnServer(final Closure<?> c) throws Exception {
         return executeOnServer(c::call);
     }
 
     /**
      * Wraps a closure as a {@link Builder}.
      */
-    public Builder builder(final Closure c) {
+    public Builder builder(final Closure<?> c) {
         return new TestBuilder() {
             public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
                 Object r = c.call(build, launcher, listener);

@@ -54,7 +54,7 @@ public @interface Recipe {
      * <p>
      * When a recipe annotation is placed on a test method, 
      */
-    Class<? extends Runner> value();
+    Class<? extends Runner<?>> value();
 
     /**
      * The code that implements the recipe semantics.
