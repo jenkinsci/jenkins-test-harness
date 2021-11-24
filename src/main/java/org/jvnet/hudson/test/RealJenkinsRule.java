@@ -380,7 +380,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     * Like {@link JenkinsRule#getURL} but can be called even does not require Jenkins to have been started yet.
      */
     public URL getUrl() throws MalformedURLException {
         return new URL("http://" + host + ":" + port + "/jenkins/");
@@ -422,7 +422,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-Dwinstone.portFileName=" + portFile,
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.host=" + host,
-                "-DRealJenkinsRule.path=" + "/jenkins/",
+                "-DRealJenkinsRule.path=/jenkins/",
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
         if (new DisableOnDebug(null).isDebugging()) {
@@ -466,7 +466,7 @@ public final class RealJenkinsRule implements TestRule {
                         String err = "?";
                         try (InputStream is = conn.getErrorStream()) {
                             if (is != null) {
-                                err = IOUtils.toString(is);
+                                err = IOUtils.toString(is, StandardCharsets.UTF_8);
                             }
                         } catch (Exception x) {
                             x.printStackTrace();
