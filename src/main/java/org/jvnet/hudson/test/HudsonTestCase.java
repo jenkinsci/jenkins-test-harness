@@ -90,7 +90,6 @@ import hudson.model.TaskListener;
 import hudson.model.UpdateSite;
 import hudson.model.User;
 import hudson.model.View;
-import hudson.os.PosixAPI;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
@@ -109,6 +108,7 @@ import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
+import hudson.util.jna.GNUCLibrary;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -1784,10 +1784,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
-        if (!Functions.isWindows()) {
+        if (Functions.isGlibcSupported()) {
             try {
-                PosixAPI.jnr().unsetenv("MAVEN_OPTS");
-                PosixAPI.jnr().unsetenv("MAVEN_DEBUG_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
             }
