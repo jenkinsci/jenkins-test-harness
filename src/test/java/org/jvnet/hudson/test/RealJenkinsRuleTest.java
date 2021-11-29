@@ -29,6 +29,7 @@ import hudson.Main;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
+import hudson.model.Item;
 import hudson.util.PluginServletFilter;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,11 +40,14 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.recipes.LocalData;
 
 public class RealJenkinsRuleTest {
 
@@ -132,6 +136,14 @@ public class RealJenkinsRuleTest {
         FreeStyleProject p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
         r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
         assertEquals("hello", p.getDescription());
+    }
+
+    @LocalData
+    @Test public void localData() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_localData);
+    }
+    private static void _localData(JenkinsRule r) throws Throwable {
+        assertThat(r.jenkins.getItems().stream().map(Item::getName).toArray(), arrayContainingInAnyOrder("x"));
     }
 
     // TODO interesting scenarios to test:
