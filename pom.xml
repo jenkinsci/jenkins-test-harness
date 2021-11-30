@@ -95,7 +95,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <version>2.323-rc31736.263df05ae5e0</version><!-- https://github.com/jenkinsci/jenkins/pull/5928 and https://github.com/jenkinsci/winstone/pull/174 -->
+      <version>2.323-rc31751.fdabb2223bda</version><!-- https://github.com/jenkinsci/jenkins/pull/5928 and https://github.com/jenkinsci/winstone/pull/174 -->
       <type>executable-war</type>
       <exclusions>
         <exclusion>
