@@ -391,6 +391,14 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
+    /**
+     * Obtains the Jenkins home directory.
+     * Normally it will suffice to use {@link LocalData} to populate files.
+     */
+    public File getHome() {
+        return home;
+    }
+
     private static File findJenkinsWar() throws Exception {
         // Adapted from WarExploder.explode
 
