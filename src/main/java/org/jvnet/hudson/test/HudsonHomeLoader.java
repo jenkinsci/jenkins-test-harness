@@ -50,11 +50,7 @@ public interface HudsonHomeLoader {
     /**
      * Allocates a new empty directory, meaning this will emulate the fresh Hudson installation.
      */
-    HudsonHomeLoader NEW = new HudsonHomeLoader() {
-        public File allocate() throws IOException {
-            return TestEnvironment.get().temporaryDirectoryAllocator.allocate();
-        }
-    };
+    HudsonHomeLoader NEW = () -> TestEnvironment.get().temporaryDirectoryAllocator.allocate();
 
     /**
      * Allocates a new directory by copying from an existing directory, or unzipping from a zip file.
@@ -80,8 +76,14 @@ public interface HudsonHomeLoader {
             this.source = source;
         }
 
+        @Override
         public File allocate() throws Exception {
             File target = NEW.allocate();
+            copy(target);
+            return target;
+        }
+
+        void copy(File target) throws Exception {
             if(source.getProtocol().equals("file")) {
                 File src = new File(source.toURI());
                 if(src.isDirectory())
@@ -98,7 +100,6 @@ public interface HudsonHomeLoader {
                     tmp.delete();
                 }
             }
-            return target;
         }
     }
 
@@ -114,14 +115,20 @@ public interface HudsonHomeLoader {
             this.alterName = alterName;
         }
 
+        @Override
         public File allocate() throws Exception {
+            File target = NEW.allocate();
+            copy(target);
+            return target;
+        }
+
+        void copy(File target) throws Exception {
             URL res = findDataResource();
             if(!res.getProtocol().equals("file"))
                 throw new AssertionError("Test data is not available in the file system: "+res);
-            File home = new File(res.toURI());
-            System.err.println("Loading $JENKINS_HOME from " + home);
-
-            return new CopyExisting(home).allocate();
+            File source = new File(res.toURI());
+            System.err.println("Loading $JENKINS_HOME from " + source);
+            new CopyExisting(source).copy(target);
         }
 
         public static boolean isJavaIdentifier(@CheckForNull String name) {

@@ -115,7 +115,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available.
- * <li>{@link LocalData} is not available.
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
  * <li>There is not currently enough flexibility in how the controller is launched.
@@ -245,6 +244,10 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
+                    LocalData localData = description.getAnnotation(LocalData.class);
+                    if (localData != null) {
+                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
+                    }
                     port = IOUtil.randomTcpPort();
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
@@ -386,6 +389,14 @@ public final class RealJenkinsRule implements TestRule {
 
     private URL endpoint(String method) throws MalformedURLException {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
+    }
+
+    /**
+     * Obtains the Jenkins home directory.
+     * Normally it will suffice to use {@link LocalData} to populate files.
+     */
+    public File getHome() {
+        return home;
     }
 
     private static File findJenkinsWar() throws Exception {
