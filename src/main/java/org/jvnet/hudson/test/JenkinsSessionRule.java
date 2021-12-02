@@ -60,7 +60,9 @@ public class JenkinsSessionRule implements TestRule {
      * Normally it will suffice to use {@link LocalData} to populate files.
      */
     public File getHome() {
-        assert home != null : "JENKINS_HOME has not been allocated yet";
+        if (home == null) {
+            throw new IllegalStateException("JENKINS_HOME has not been allocated yet");
+        }
         return home;
     }
 
