@@ -55,6 +55,15 @@ public class JenkinsSessionRule implements TestRule {
      */
     private int port;
 
+    /**
+     * Get the Jenkins home directory, which is consistent across restarts.
+     * Normally it will suffice to use {@link LocalData} to populate files.
+     */
+    public File getHome() {
+        assert home != null : "JENKINS_HOME has not been allocated yet";
+        return home;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
