@@ -31,7 +31,6 @@ import org.junit.After;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
  * Simpler alternative to {@link RestartableJenkinsRule}.
@@ -58,7 +57,6 @@ public class JenkinsSessionRule implements TestRule {
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
-     * Normally it will suffice to use {@link LocalData} to populate files.
      */
     public File getHome() {
         if (home == null) {
