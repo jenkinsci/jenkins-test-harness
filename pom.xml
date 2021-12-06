@@ -55,8 +55,8 @@ THE SOFTWARE.
     <jmh.version>1.33</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix FindBugs-->
-    <findbugs.failOnError>false</findbugs.failOnError>
+    <!--TODO fix SpotBugs-->
+    <spotbugs.failOnError>false</spotbugs.failOnError>
   </properties>
 
   <licenses>
