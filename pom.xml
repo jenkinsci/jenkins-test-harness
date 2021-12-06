@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.67</version>
+    <version>1.69</version>
     <relativePath />
   </parent>
 
@@ -55,8 +55,8 @@ THE SOFTWARE.
     <jmh.version>1.33</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix FindBugs-->
-    <findbugs.failOnError>false</findbugs.failOnError>
+    <!--TODO fix SpotBugs-->
+    <spotbugs.failOnError>false</spotbugs.failOnError>
   </properties>
 
   <licenses>
@@ -79,6 +79,16 @@ THE SOFTWARE.
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.kohsuke</groupId>
+        <artifactId>access-modifier-annotation</artifactId>
+        <version>1.16</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
