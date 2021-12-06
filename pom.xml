@@ -80,6 +80,16 @@ THE SOFTWARE.
     </pluginRepository>
   </pluginRepositories>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.kohsuke</groupId>
+        <artifactId>access-modifier-annotation</artifactId>
+        <version>1.16</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
