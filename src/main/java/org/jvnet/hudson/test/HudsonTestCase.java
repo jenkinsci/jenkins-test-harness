@@ -436,7 +436,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
             // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
             // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
+            // see https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4950148
             System.gc();
 
             try {
