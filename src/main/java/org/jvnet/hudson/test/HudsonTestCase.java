@@ -433,17 +433,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             ExtensionList.clearLegacyInstances();
             DescriptorExtensionList.clearLegacyInstances();
 
+            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+            // see https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4950148
+            System.gc();
+
             try {
                 env.dispose();
             } catch (Exception x) {
                 x.printStackTrace();
             }
-
-            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-            System.gc();
             
             // restore defaultUseCache
             if(Functions.isWindows()) {
