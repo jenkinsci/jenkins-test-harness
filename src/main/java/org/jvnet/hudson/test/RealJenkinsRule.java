@@ -80,6 +80,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.Assume;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -118,6 +119,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
  * <li>There is not currently enough flexibility in how the controller is launched.
+ * <li>{@link Assume} is not available.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
