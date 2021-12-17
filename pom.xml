@@ -83,6 +83,11 @@ THE SOFTWARE.
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>org.jenkins-ci</groupId>
+        <artifactId>annotation-indexer</artifactId>
+        <version>1.15</version>
+      </dependency>
+      <dependency>
         <groupId>org.kohsuke</groupId>
         <artifactId>access-modifier-annotation</artifactId>
         <version>1.27</version>
