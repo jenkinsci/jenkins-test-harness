@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.67</version>
+    <version>1.69</version>
     <relativePath />
   </parent>
 
@@ -55,8 +55,8 @@ THE SOFTWARE.
     <jmh.version>1.33</jmh.version>
     <java.level>8</java.level>
     <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix FindBugs-->
-    <findbugs.failOnError>false</findbugs.failOnError>
+    <!--TODO fix SpotBugs-->
+    <spotbugs.failOnError>false</spotbugs.failOnError>
   </properties>
 
   <licenses>
@@ -79,6 +79,21 @@ THE SOFTWARE.
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.jenkins-ci</groupId>
+        <artifactId>annotation-indexer</artifactId>
+        <version>1.15</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kohsuke</groupId>
+        <artifactId>access-modifier-annotation</artifactId>
+        <version>1.27</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -140,7 +155,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>56.vf1eabfc274f8</version>
+      <version>66.v712ea44bccba</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -162,12 +177,12 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.lib</groupId>
       <artifactId>support-log-formatter</artifactId>
-      <version>1.0</version>
+      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE125</version>
+      <version>RELEASE126</version>
     </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
@@ -247,7 +262,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.13.0</version>
+        <version>1.13.1</version>
         <executions>
           <execution>
             <id>preset-packager</id>
@@ -266,9 +281,36 @@ THE SOFTWARE.
           <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.10.11</version>
+            <version>1.10.12</version>
           </dependency>
         </dependencies>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>extra-plugins</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci.plugins</groupId>
+                  <artifactId>structs</artifactId>
+                  <version>1.21</version>
+                  <type>hpi</type>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.testOutputDirectory}/plugins</outputDirectory>
+              <stripVersion>true</stripVersion>
+              <overWriteIfNewer>true</overWriteIfNewer>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

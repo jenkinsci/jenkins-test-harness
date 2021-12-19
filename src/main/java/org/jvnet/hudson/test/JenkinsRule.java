@@ -255,7 +255,7 @@ import org.xml.sax.SAXException;
 /**
  * JUnit rule to allow test cases to fire up a Jenkins instance.
  *
- * @see <a href="http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test">Wiki article about unit testing in Jenkins</a>
+ * @see <a href="https://www.jenkins.io/doc/developer/testing/">Wiki article about unit testing in Jenkins</a>
  * @author Stephen Connolly
  * @since 1.436
  * @see RestartableJenkinsRule
@@ -509,16 +509,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         } finally {
             _stopJenkins(server, tearDowns, jenkins);
 
+            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+            // see https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4950148
+            // TODO use URLClassLoader.close() in Java 7
+            System.gc();
+
             try {
                 env.dispose();
             } finally {
-                // Hudson creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-                // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-                // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-                // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-                // TODO use URLClassLoader.close() in Java 7
-                System.gc();
-
                 // restore defaultUseCache
                 if(Functions.isWindows()) {
                     URLConnection aConnection = new File(".").toURI().toURL().openConnection();
@@ -909,6 +909,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent(boolean)}
      */
     @Deprecated
+    @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
         return createAgent(waitForChannelConnect);
     }
@@ -960,6 +961,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent()}
      */
     @Deprecated
+    @NonNull
     public DumbSlave createSlave() throws Exception {
         return createAgent();
     }
@@ -968,6 +970,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates agent
      * @since TODO
      */
+    @NonNull
     public DumbSlave createAgent() throws Exception {
         return createAgent(null, "", null);
     }
@@ -985,7 +988,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param l Label to be set
      * @since TODO
      */
+    @NonNull
     public DumbSlave createAgent(@CheckForNull Label l) throws Exception {
+	    return createSlave(l, null);
+    }
+    
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
     	return createSlave(l, null);
     }
 
@@ -1060,7 +1069,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent(String, String, EnvVars)}
      */
     @Deprecated
-    public DumbSlave createSlave(EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull EnvVars env) throws Exception {
         return createSlave("",env);
     }
 
@@ -1068,7 +1078,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent(String, String, EnvVars)}
      */
     @Deprecated
-    public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         return createSlave(l==null ? null : l.getExpression(), env);
     }
 
@@ -1077,7 +1088,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent(String, String, EnvVars)}
      */
     @Deprecated
-    public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             return createSlave("agent" + sz,labels,env);
@@ -1088,7 +1100,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createAgent(String, String, EnvVars)}
      */
     @Deprecated
-    public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         return createAgent(nodeName, labels, env);
     }
 
@@ -1101,6 +1114,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @throws Exception Creation error
      * @since TODO
      */
+    @NonNull
     public DumbSlave createAgent(@CheckForNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             DumbSlave agent = new DumbSlave(
@@ -1130,6 +1144,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param env
      *      Environment variables to add to the agent process. Can be null.
      */
+    @NonNull
     public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
@@ -1145,6 +1160,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createOnlineAgent()}
      */
     @Deprecated
+    @NonNull
     public DumbSlave createOnlineSlave() throws Exception {
         return createOnlineAgent();
     }
@@ -1161,7 +1177,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * @deprecated Use {@link #createOnlineAgent(Label)}
      */
-    public DumbSlave createOnlineSlave(Label l) throws Exception {
+    @NonNull
+    public DumbSlave createOnlineSlave(@CheckForNull Label l) throws Exception {
         return createOnlineAgent(l);
     }
 
@@ -1170,6 +1187,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning.
      * @since TODO
      */
+    @NonNull
     public DumbSlave createOnlineAgent(@CheckForNull Label l) throws Exception {
         return createOnlineAgent(l, null);
     }
@@ -1178,7 +1196,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated Use {@link #createOnlineAgent(Label, EnvVars)}
      */
     @Deprecated
-    public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
+    @NonNull
+    public DumbSlave createOnlineSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         return createOnlineAgent(l, env);
     }
 
@@ -1187,6 +1206,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning
      * @see #waitOnline
      */
+    @NonNull
     @SuppressWarnings({"deprecation"})
     public DumbSlave createOnlineAgent(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
         DumbSlave s = createSlave(l, env);
@@ -1474,7 +1494,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test#UnitTest-Configurationroundtriptesting
+     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
      */
     public <P extends Item> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job, "configure").getFormByName("config"));

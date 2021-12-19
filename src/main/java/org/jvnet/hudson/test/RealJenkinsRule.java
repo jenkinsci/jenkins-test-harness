@@ -57,11 +57,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,10 +115,9 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available.
- * <li>{@link LocalData} is not available.
  * <li>{@link LoggerRule} is not available.
  * <li>{@link BuildWatcher} is not available.
- * <li>There is not currently enough flexibility in how the controller is launched (such as custom environment variables).
+ * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -145,9 +146,13 @@ public final class RealJenkinsRule implements TestRule {
 
     private final String token = UUID.randomUUID().toString();
 
+    private final Set<String> extraPlugins = new TreeSet<>();
+
     private final Set<String> skippedPlugins = new TreeSet<>();
 
     private final List<String> javaOptions = new ArrayList<>();
+
+    private final Map<String, String> extraEnv = new TreeMap<>();
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
@@ -157,6 +162,26 @@ public final class RealJenkinsRule implements TestRule {
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+
+    /**
+     * Add some plugins to the test classpath.
+     *
+     * @param plugins Filenames of the plugins to install. These are expected to be absolute test classpath resources,
+     *     such as {@code plugins/workflow-job.hpi} for example.
+     *     <p>Committing that file to SCM (say, {@code src/test/resources/sample.jpi}) is
+     *     reasonable for small fake plugins built for this purpose and exercising some bit of code.
+     *     If you wish to test with larger archives of real plugins, this is possible for example by
+     *     binding {@code dependency:copy} to the {@code process-test-resources} phase.
+     *     <p>In most cases you do not need this method. Simply add whatever plugins you are
+     *     interested in testing against to your POM in {@code test} scope. These, and their
+     *     transitive dependencies, will be loaded in all {@link RealJenkinsRule} tests. This method
+     *     is useful if only a particular test may load the tested plugin, or if the tested plugin
+     *     is not available in a repository for use as a test dependency.
+     */
+    public RealJenkinsRule addPlugins(String... plugins) {
+        extraPlugins.addAll(Arrays.asList(plugins));
+        return this;
+    }
 
     /**
      * Omit some plugins in the test classpath.
@@ -173,6 +198,15 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule javaOptions(String... options) {
         javaOptions.addAll(Arrays.asList(options));
+        return this;
+    }
+
+    /**
+     * Set an extra environment variable.
+     * @param value null to cancel a previously set variable
+     */
+    public RealJenkinsRule extraEnv(String key, String value) {
+        extraEnv.put(key, value);
         return this;
     }
 
@@ -210,7 +244,11 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
+                    LocalData localData = description.getAnnotation(LocalData.class);
+                    if (localData != null) {
+                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
+                    }
+                    port = IOUtil.randomTcpPort();
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
@@ -279,6 +317,21 @@ public final class RealJenkinsRule implements TestRule {
                             }
                         }
                     }
+                    for (String extraPlugin : extraPlugins) {
+                        URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
+                        String name;
+                        try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+                            Manifest man = jis.getManifest();
+                            if (man == null) {
+                                throw new IOException("No manifest found in " + extraPlugin);
+                            }
+                            name = man.getMainAttributes().getValue("Short-Name");
+                            if (name == null) {
+                                throw new IOException("No Short-Name found in " + extraPlugin);
+                            }
+                        }
+                        FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
+                    }
                     System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
                 } finally {
@@ -292,6 +345,7 @@ public final class RealJenkinsRule implements TestRule {
                     }
                 }
             }
+
         };
     }
 
@@ -337,6 +391,14 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
     }
 
+    /**
+     * Obtains the Jenkins home directory.
+     * Normally it will suffice to use {@link LocalData} to populate files.
+     */
+    public File getHome() {
+        return home;
+    }
+
     private static File findJenkinsWar() throws Exception {
         // Adapted from WarExploder.explode
 
@@ -380,7 +442,12 @@ public final class RealJenkinsRule implements TestRule {
         ProcessBuilder pb = new ProcessBuilder(argv);
         System.out.println("Launching: " + pb.command());
         pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
-        // TODO options to set env, Winstone options, etc.
+        for (Map.Entry<String, String> entry : extraEnv.entrySet()) {
+            if (entry.getValue() != null) {
+                pb.environment().put(entry.getKey(), entry.getValue());
+            }
+        }
+        // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
         proc = pb.start();

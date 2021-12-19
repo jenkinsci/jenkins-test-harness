@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  */
 public class JenkinsMatchers {
 
-    public static Matcher<Class> privateConstructorThrows(Class<? extends Throwable> cause) {
+    public static Matcher<Class<?>> privateConstructorThrows(Class<? extends Throwable> cause) {
         return new PrivateConstructorThrows(cause);
     }
 
@@ -34,7 +34,7 @@ public class JenkinsMatchers {
         return new FormValidationKindMatcher(kind);
     }
 
-    private static class PrivateConstructorThrows extends BaseMatcher<Class> {
+    private static class PrivateConstructorThrows extends BaseMatcher<Class<?>> {
         private final Class<? extends Throwable> cause;
 
         public PrivateConstructorThrows(Class<? extends Throwable> cause) {
