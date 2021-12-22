@@ -34,13 +34,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * Controls how a {@link HudsonTestCase} initializes <tt>JENKINS_HOME</tt>.
+ * Controls how a {@link HudsonTestCase} initializes {@code JENKINS_HOME}.
  *
  * @author Kohsuke Kawaguchi
  */
 public interface HudsonHomeLoader {
     /** 
-     * Returns a directory to be used as <tt>JENKINS_HOME</tt>
+     * Returns a directory to be used as {@code JENKINS_HOME}
      *
      * @throws Exception
      *      to cause a test to fail.

@@ -2021,12 +2021,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * If this test harness is launched for a Jenkins plugin, locate the <tt>target/test-classes/the.jpl</tt>
+     * If this test harness is launched for a Jenkins plugin, locate the {@code target/test-classes/the.jpl}
      * and add a recipe to install that to the new Jenkins.
      *
      * <p>
-     * This file is created by <tt>maven-hpi-plugin</tt> at the testCompile phase when the current
-     * packaging is <tt>jpi</tt>.
+     * This file is created by {@code maven-hpi-plugin} at the testCompile phase when the current
+     * packaging is {@code jpi}.
      */
     public void recipeLoadCurrentPlugin() throws Exception {
     	final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");

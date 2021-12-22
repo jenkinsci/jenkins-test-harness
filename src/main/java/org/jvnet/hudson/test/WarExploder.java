@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 
 /**
- * Ensures that <tt>jenkins.war</tt> is exploded.
+ * Ensures that {@code jenkins.war} is exploded.
  *
  * <p>
  * Depending on where the test is run (for example, inside Maven vs IDE), this code attempts to
