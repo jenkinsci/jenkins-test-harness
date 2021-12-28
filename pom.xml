@@ -37,14 +37,21 @@ THE SOFTWARE.
   <version>${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
-  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
+  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>http://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
 
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
-    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
     <tag>${scmTag}</tag>
+    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
   </scm>
 
   <properties>
@@ -54,31 +61,13 @@ THE SOFTWARE.
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.33</jmh.version>
     <java.level>8</java.level>
-    <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
+
+    <!-- may use e.g. 2C for 2 × (number of cores) -->
+    <concurrency>1</concurrency>
+
     <!--TODO fix SpotBugs-->
     <spotbugs.failOnError>false</spotbugs.failOnError>
   </properties>
-
-  <licenses>
-    <license>
-      <name>MIT</name>
-      <url>http://opensource.org/licenses/MIT</url>
-    </license>
-  </licenses>
-
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <dependencyManagement>
     <dependencies>
@@ -101,17 +90,17 @@ THE SOFTWARE.
       <artifactId>jenkins-war</artifactId>
       <version>2.204</version>
       <type>executable-war</type>
+      <!--
+        To ensure consistent set of core artifacts are used, force the users to declare
+        a dependency to war
+      -->
+      <optional>true</optional>
       <exclusions>
         <exclusion>
           <groupId>org.jenkins-ci.modules</groupId>
           <artifactId>sshd</artifactId>
         </exclusion>
       </exclusions>
-      <!--
-        To ensure consistent set of core artifacts are used, force the users to declare
-        a dependency to war
-      -->
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -123,14 +112,15 @@ THE SOFTWARE.
       <artifactId>jetty-security</artifactId>
       <version>${jetty.version}</version>
     </dependency>
-     <dependency>
-       <groupId>org.eclipse.jetty.websocket</groupId>
-       <artifactId>websocket-api</artifactId>
-       <version>${jetty.version}</version>
-     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-server</artifactId> <!-- or javax-websocket-server-impl -->
+      <artifactId>websocket-api</artifactId>
+      <version>${jetty.version}</version>
+    </dependency>
+    <dependency>
+      <!-- or javax-websocket-server-impl -->
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-server</artifactId>
       <version>${jetty.version}</version>
     </dependency>
     <dependency>
@@ -211,6 +201,20 @@ THE SOFTWARE.
       <version>${jmh.version}</version>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
   <build>
     <plugins>
       <plugin>
@@ -251,8 +255,8 @@ THE SOFTWARE.
           <!-- SUREFIRE-1588 workaround; too late for systemProperties: -->
           <argLine>-Dfile.encoding=UTF-8 -Xmx256m -Djava.awt.headless=true -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           <systemPropertyVariables>
-              <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
-              <buildDirectory>${project.build.directory}</buildDirectory>
+            <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
+            <buildDirectory>${project.build.directory}</buildDirectory>
           </systemPropertyVariables>
           <reuseForks>false</reuseForks>
           <forkCount>${concurrency}</forkCount>
@@ -263,20 +267,6 @@ THE SOFTWARE.
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
         <version>1.13.1</version>
-        <executions>
-          <execution>
-            <id>preset-packager</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
-              </scripts>
-            </configuration>
-          </execution>
-        </executions>
         <dependencies>
           <dependency>
             <groupId>org.apache.ant</groupId>
@@ -284,16 +274,30 @@ THE SOFTWARE.
             <version>1.10.12</version>
           </dependency>
         </dependencies>
+        <executions>
+          <execution>
+            <id>preset-packager</id>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <scripts>
+                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
+              </scripts>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
             <id>extra-plugins</id>
-            <phase>process-test-resources</phase>
             <goals>
               <goal>copy</goal>
             </goals>
+            <phase>process-test-resources</phase>
             <configuration>
               <artifactItems>
                 <artifactItem>
@@ -317,16 +321,16 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
-        <id>skip-tests-on-release</id>
-        <activation>
-          <property>
-            <name>performRelease</name>
-            <value>true</value>
-          </property>
-        </activation>
-        <properties>
-          <skipTests>true</skipTests>
-        </properties>
+      <id>skip-tests-on-release</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
     </profile>
     <profile>
       <id>rerunFailingTests</id>
