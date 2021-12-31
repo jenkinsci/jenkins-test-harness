@@ -60,6 +60,7 @@ THE SOFTWARE.
     <jetty.version>9.4.44.v20210927</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.34</jmh.version>
+    <junit.jupiter.version>5.8.2</junit.jupiter.version>
     <java.level>8</java.level>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
@@ -162,6 +163,22 @@ THE SOFTWARE.
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-library</artifactId>
       <version>${hamcrest.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jvnet.hudson</groupId>
