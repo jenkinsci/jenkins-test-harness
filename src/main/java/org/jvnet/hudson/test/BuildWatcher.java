@@ -104,7 +104,8 @@ public final class BuildWatcher extends ExternalResource {
             if (build != null) {
                 build.copy();
             } else {
-                System.err.println(r + " was finalized but not started?!");
+                System.err.println(r + " was finalized but never started; assuming it was started earlier using @LocalData");
+                new RunningBuild(r).copy();
             }
         }
 
