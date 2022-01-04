@@ -6,14 +6,15 @@ import static org.hamcrest.collection.IsEmptyCollection.empty;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 class JenkinsRuleResolverWithMethodScopeTest {
 
-	@JenkinsRule
+	@EnableJenkins
 	@Test
-	void jenkinsRuleIsAccessible(JenkinsRuleExtension r) throws IOException {
-		assertThat(r.jenkins.getJobNames(), empty());
-		r.createFreeStyleProject("job-0");
-		assertThat(r.jenkins.getJobNames(), hasSize(1));
+	void jenkinsRuleIsAccessible(JenkinsRule rule) throws IOException {
+		assertThat(rule.jenkins.getJobNames(), empty());
+		rule.createFreeStyleProject("job-0");
+		assertThat(rule.jenkins.getJobNames(), hasSize(1));
 	}
 }

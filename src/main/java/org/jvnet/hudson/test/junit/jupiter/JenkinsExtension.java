@@ -10,31 +10,31 @@ import org.jvnet.hudson.test.JenkinsRule;
 /**
  * JUnit 5 extension providing {@link JenkinsRule} integration.
  *
- * @see org.jvnet.hudson.test.junit.jupiter.JenkinsRule
+ * @see EnableJenkins
  */
-public class JenkinsRuleResolver implements ParameterResolver, AfterEachCallback {
+class JenkinsExtension implements ParameterResolver, AfterEachCallback {
 
-	private static final String key = "jenkins-instance";
-	private static final ExtensionContext.Namespace namespace = ExtensionContext.Namespace.create(JenkinsRuleResolver.class);
+	private static final String KEY = "jenkins-instance";
+	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(JenkinsExtension.class);
 
 	@Override
 	public void afterEach(ExtensionContext context) throws Exception {
-		final JenkinsRule rule = context.getStore(namespace).remove(key, JenkinsRule.class);
-
-		if (rule != null) {
-			rule.after();
+		final JenkinsRule rule = context.getStore(NAMESPACE).remove(KEY, JenkinsRule.class);
+		if (rule == null) {
+			return;
 		}
+		rule.after();
 	}
 
 	@Override
 	public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-		return parameterContext.getParameter().getType().equals(JenkinsRuleExtension.class);
+		return parameterContext.getParameter().getType().equals(JenkinsRule.class);
 	}
 
 	@Override
 	public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-		final JenkinsRule rule = extensionContext.getStore(namespace).getOrComputeIfAbsent(key, key
-				-> new JenkinsRuleExtension(parameterContext, extensionContext), JenkinsRule.class);
+		final JenkinsRule rule = extensionContext.getStore(NAMESPACE).getOrComputeIfAbsent(KEY, key
+				-> new Junit5JenkinsRule(parameterContext, extensionContext), JenkinsRule.class);
 
 		try {
 			rule.before();
