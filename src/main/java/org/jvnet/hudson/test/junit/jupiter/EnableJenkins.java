@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * Test methods using the rule extension need to accept it by {@link Junit5JenkinsRule} parameter; each test case
  * gets a new rule object.
  * <p>
- * Annotating a <i>class</i> provides access for all of it's tests. Unrelated test cases can omit the parameter.
+ * Annotating a <em>class</em> provides access for all of its tests. Unrelated test cases can omit the parameter.
  *
  * <blockquote><pre>
  * &#64;JenkinsRule
