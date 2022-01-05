@@ -11,7 +11,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 /**
  * Provides JUnit 5 compatibility for {@link JenkinsRule}.
  */
-class Junit5JenkinsRule extends JenkinsRule {
+class JUnit5JenkinsRule extends JenkinsRule {
 	private final ParameterContext context;
 
 	Junit5JenkinsRule(@NonNull ParameterContext context, @NonNull ExtensionContext extensionContext) {
