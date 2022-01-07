@@ -1272,15 +1272,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public JSONWebResponse getJSON(@NonNull String path) throws IOException {
 
         JenkinsRule.WebClient webClient = createWebClient();
-        Page runsPage = null;
-        try {
-            runsPage = webClient.goTo(path, "application/json");
-        } catch (SAXException e) {
-            // goTo shouldn't be throwing a SAXException for JSON.
-            throw new IllegalStateException("Unexpected SAXException.", e);
-        }
-        WebResponse webResponse = runsPage.getWebResponse();
-
         return getJSON(path, webClient);
     }
 

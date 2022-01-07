@@ -12,6 +12,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.WebMethod;
 import org.kohsuke.stapler.json.JsonHttpResponse;
 import org.kohsuke.stapler.verb.GET;
@@ -141,7 +142,7 @@ public class JenkinsRuleTest {
     public void simpleGetShouldWork() throws IOException {
 
         JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMe");
-        System.out.println("Response:" + response.getContentAsString());
+        System.out.println("Response1:" + response.getContentAsString());
         //FIXME response is empty here :(
         assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
 
@@ -149,7 +150,7 @@ public class JenkinsRuleTest {
         wc.setThrowExceptionOnFailingStatusCode(false);
 
         response = j.getJSON("testing-cli/getError500", wc);
-        System.out.println("Response:" + response.getContentAsString());
+        System.out.println("Response2:" + response.getContentAsString());
     }
 
     @TestExtension
@@ -174,13 +175,14 @@ public class JenkinsRuleTest {
 
         @GET
         @WebMethod(name = "getMe")
-        public JsonHttpResponse getMe() {
-            return new JsonHttpResponse(JSONObject.fromObject(new MyJsonObject("I am JenkinsRule")), 200);
+        public HttpResponse getMe() {
+            JSONObject response = JSONObject.fromObject(new MyJsonObject("I am JenkinsRule"));
+            throw new JsonHttpResponse(response, 200);
         }
 
         @GET
         @WebMethod(name = "getError500")
-        public JsonHttpResponse getError500() {o
+        public JsonHttpResponse getError500() {
             JsonHttpResponse error500 = new JsonHttpResponse(
                     JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
             return error500;
