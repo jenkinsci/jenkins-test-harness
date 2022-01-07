@@ -3,6 +3,8 @@ package org.jvnet.hudson.test;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
+
+import hudson.model.RootAction;
 import hudson.model.User;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
@@ -10,13 +12,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.WebMethod;
+import org.kohsuke.stapler.json.JsonHttpResponse;
+import org.kohsuke.stapler.verb.GET;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JenkinsRuleTest {
@@ -125,6 +135,76 @@ public class JenkinsRuleTest {
         wc = j.createWebClient();
         wc.withBasicApiToken("charlotte");
         makeRequestAndAssertLogin(wc, "charlotte");
+    }
+
+    @Test
+    public void simpleGetShouldWork() throws IOException {
+
+        JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMe");
+        System.out.println("Response:" + response.getContentAsString());
+        //FIXME response is empty here :(
+        assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
+
+        JenkinsRule.WebClient wc = j.createWebClient();
+        wc.setThrowExceptionOnFailingStatusCode(false);
+
+        response = j.getJSON("testing-cli/getError500", wc);
+        System.out.println("Response:" + response.getContentAsString());
+    }
+
+    @TestExtension
+    public static class JsonAPIForTests implements RootAction {
+
+        @CheckForNull
+        @Override
+        public String getIconFileName() {
+            return null;
+        }
+
+        @CheckForNull
+        @Override
+        public String getDisplayName() {
+            return null;
+        }
+
+        @Override
+        public String getUrlName() {
+            return "testing-cli";
+        }
+
+        @GET
+        @WebMethod(name = "getMe")
+        public JsonHttpResponse getMe() {
+            HashMap objectForResponse = new HashMap();
+            objectForResponse.put("key","I am JenkinsRule");
+            return new JsonHttpResponse(JSONObject.fromObject(new JenkinsRuleJsonCliTest.MyJsonObject("I am JenkinsRule")), 200);
+        }
+
+        @GET
+        @WebMethod(name = "getError500")
+        public JsonHttpResponse getError500() {
+            HashMap objectForResponse = new HashMap();
+            objectForResponse.put("key","You got an error 500");
+            JsonHttpResponse error500 = new JsonHttpResponse(JSONObject.fromObject(objectForResponse), 500);
+            return error500;
+        }
+
+    }
+
+    public static class MyJsonObject {
+        private String message;
+
+        public MyJsonObject(String message) {
+            this.message = message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException {

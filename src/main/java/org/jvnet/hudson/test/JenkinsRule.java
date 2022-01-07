@@ -1270,6 +1270,41 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return The JSON.
      */
     public JSONWebResponse getJSON(@NonNull String path) throws IOException {
+
+        JenkinsRule.WebClient webClient = createWebClient();
+        Page runsPage = null;
+        try {
+            runsPage = webClient.goTo(path, "application/json");
+        } catch (SAXException e) {
+            // goTo shouldn't be throwing a SAXException for JSON.
+            throw new IllegalStateException("Unexpected SAXException.", e);
+        }
+        WebResponse webResponse = runsPage.getWebResponse();
+
+        return getJSON(path, webClient);
+    }
+
+    public JSONWebResponse getJSON(@NonNull String path, @NonNull JenkinsRule.WebClient webClient) throws IOException {
+        assert !path.startsWith("/");
+
+        Page runsPage = null;
+        try {
+            runsPage = webClient.goTo(path, "application/json");
+        } catch (SAXException e) {
+            // goTo shouldn't be throwing a SAXException for JSON.
+            throw new IllegalStateException("Unexpected SAXException.", e);
+        }
+        WebResponse webResponse = runsPage.getWebResponse();
+
+        return new JSONWebResponse(webResponse);
+    }
+
+    /**
+     * Put JSON from A Jenkins endpoint.
+     * @param path The endpoint URL.
+     * @return The JSON.
+     */
+    public JSONWebResponse putJSON(@NonNull String path) throws IOException {
         assert !path.startsWith("/");
 
         JenkinsRule.WebClient webClient = createWebClient();
