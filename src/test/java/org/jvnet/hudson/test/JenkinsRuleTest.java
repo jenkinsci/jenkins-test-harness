@@ -175,17 +175,14 @@ public class JenkinsRuleTest {
         @GET
         @WebMethod(name = "getMe")
         public JsonHttpResponse getMe() {
-            HashMap objectForResponse = new HashMap();
-            objectForResponse.put("key","I am JenkinsRule");
-            return new JsonHttpResponse(JSONObject.fromObject(new JenkinsRuleJsonCliTest.MyJsonObject("I am JenkinsRule")), 200);
+            return new JsonHttpResponse(JSONObject.fromObject(new MyJsonObject("I am JenkinsRule")), 200);
         }
 
         @GET
         @WebMethod(name = "getError500")
-        public JsonHttpResponse getError500() {
-            HashMap objectForResponse = new HashMap();
-            objectForResponse.put("key","You got an error 500");
-            JsonHttpResponse error500 = new JsonHttpResponse(JSONObject.fromObject(objectForResponse), 500);
+        public JsonHttpResponse getError500() {o
+            JsonHttpResponse error500 = new JsonHttpResponse(
+                    JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
             return error500;
         }
 
