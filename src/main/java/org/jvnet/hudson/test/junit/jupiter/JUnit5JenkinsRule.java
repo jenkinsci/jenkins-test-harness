@@ -14,7 +14,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 class JUnit5JenkinsRule extends JenkinsRule {
 	private final ParameterContext context;
 
-	Junit5JenkinsRule(@NonNull ParameterContext context, @NonNull ExtensionContext extensionContext) {
+	JUnit5JenkinsRule(@NonNull ParameterContext context, @NonNull ExtensionContext extensionContext) {
 		this.context = context;
 		this.testDescription = Description.createTestDescription(extensionContext.getTestClass().map(Class::getName).orElse(null),
 				extensionContext.getTestMethod().map(Method::getName).orElse(null));

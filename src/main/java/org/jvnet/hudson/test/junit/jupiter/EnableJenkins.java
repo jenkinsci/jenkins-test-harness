@@ -12,17 +12,17 @@ import java.lang.annotation.Target;
  * JUnit 5 meta annotation providing {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} integration.
  *
  * <p>
- * Test methods using the rule extension need to accept it by {@link Junit5JenkinsRule} parameter; each test case
+ * Test methods using the rule extension need to accept it by {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} parameter; each test case
  * gets a new rule object.
  * <p>
  * Annotating a <em>class</em> provides access for all of its tests. Unrelated test cases can omit the parameter.
  *
  * <blockquote><pre>
- * &#64;JenkinsRule
+ * &#64;EnableJenkins
  * class ExampleJUnit5Test {
  *
  *     &#64;Test
- *     public void example(JenkinsRuleExtension r) {
+ *     public void example(JenkinsRule r) {
  *         // use 'r' ...
  *     }
  *
@@ -38,9 +38,9 @@ import java.lang.annotation.Target;
  * <blockquote><pre>
  * class ExampleJUnit5Test {
  *
- *     &#64;JenkinsRule
+ *     &#64;EnableJenkins
  *     &#64;Test
- *     public void example(JenkinsRuleExtension r) {
+ *     public void example(JenkinsRule r) {
  *         // use 'r' ...
  *     }
  * }

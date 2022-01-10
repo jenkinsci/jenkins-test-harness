@@ -34,7 +34,7 @@ class JenkinsExtension implements ParameterResolver, AfterEachCallback {
 	@Override
 	public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
 		final JenkinsRule rule = extensionContext.getStore(NAMESPACE).getOrComputeIfAbsent(KEY, key
-				-> new Junit5JenkinsRule(parameterContext, extensionContext), JenkinsRule.class);
+				-> new JUnit5JenkinsRule(parameterContext, extensionContext), JenkinsRule.class);
 
 		try {
 			rule.before();
