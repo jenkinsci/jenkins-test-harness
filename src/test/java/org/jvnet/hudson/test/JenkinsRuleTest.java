@@ -1,13 +1,11 @@
 package org.jvnet.hudson.test;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 
 import hudson.model.RootAction;
 import hudson.model.User;
-import hudson.security.AuthorizationStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
@@ -21,20 +19,17 @@ import org.kohsuke.stapler.WebMethod;
 import org.kohsuke.stapler.json.JsonBody;
 import org.kohsuke.stapler.json.JsonHttpResponse;
 import org.kohsuke.stapler.verb.GET;
-import org.kohsuke.stapler.verb.POST;
 import org.kohsuke.stapler.verb.PUT;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -249,7 +244,7 @@ public class JenkinsRuleTest {
         public HttpResponse getWithParameters(@QueryParameter(required = true) String paramValue) {
             assertNotNull(paramValue);
             JSONObject response = JSONObject.fromObject(new MyJsonObject("I am JenkinsRule " + paramValue));
-            throw new JsonHttpResponse(response, 200);
+            return new JsonHttpResponse(response, 200);
         }
 
         @GET
@@ -257,7 +252,7 @@ public class JenkinsRuleTest {
         public JsonHttpResponse getError500() {
             JsonHttpResponse error500 = new JsonHttpResponse(
                     JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
-            return error500;
+            throw error500;
         }
 
         @PUT
@@ -266,7 +261,7 @@ public class JenkinsRuleTest {
             MyJsonObject parsedBody = (MyJsonObject) body.toBean(MyJsonObject.class);
 
             JSONObject response = JSONObject.fromObject(parsedBody);
-            throw new JsonHttpResponse(response, 200);
+            return new JsonHttpResponse(response, 200);
         }
 
         @PUT
@@ -274,7 +269,7 @@ public class JenkinsRuleTest {
         public JsonHttpResponse putAndgetError500(@JsonBody JSONObject body) {
             JsonHttpResponse error500 = new JsonHttpResponse(
                     JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
-            return error500;
+            throw error500;
         }
     }
 
