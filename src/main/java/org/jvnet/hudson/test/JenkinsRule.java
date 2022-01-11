@@ -1278,16 +1278,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public JSONWebResponse getJSON(@NonNull String path, @NonNull JenkinsRule.WebClient webClient) throws IOException {
         assert !path.startsWith("/");
 
-        Page runsPage = null;
-        try {
-            runsPage = webClient.goTo(path, "application/json");
-        } catch (SAXException e) {
-            // goTo shouldn't be throwing a SAXException for JSON.
-            throw new IllegalStateException("Unexpected SAXException.", e);
-        }
-        WebResponse webResponse = runsPage.getWebResponse();
+        URL URLtoCall = new URL(getURL(), path);
+        WebRequest getRequest = new WebRequest(URLtoCall, HttpMethod.GET);
+        getRequest.setAdditionalHeader("Content-Type","application/json");
+        getRequest.setAdditionalHeader("Accept-Encoding", "*");
 
-        return new JSONWebResponse(webResponse);
+        WebResponse response = webClient.getPage(getRequest).getWebResponse();
+        return new JSONWebResponse(response);
     }
 
     /**
@@ -1296,19 +1293,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return The JSON.
      */
     public JSONWebResponse putJSON(@NonNull String path) throws IOException {
-        assert !path.startsWith("/");
-
-        JenkinsRule.WebClient webClient = createWebClient();
-        Page runsPage = null;
-        try {
-            runsPage = webClient.goTo(path, "application/json");
-        } catch (SAXException e) {
-            // goTo shouldn't be throwing a SAXException for JSON.
-            throw new IllegalStateException("Unexpected SAXException.", e);
-        }
-        WebResponse webResponse = runsPage.getWebResponse();
-
-        return new JSONWebResponse(webResponse);
+        throw new IOException("FIXME implementation not done yet, I am doing TDD");
     }
 
     /**

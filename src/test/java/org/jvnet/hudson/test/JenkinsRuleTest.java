@@ -6,6 +6,8 @@ import com.gargoylesoftware.htmlunit.WebRequest;
 
 import hudson.model.RootAction;
 import hudson.model.User;
+import hudson.security.AuthorizationStrategy;
+import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import org.junit.Rule;
@@ -139,18 +141,32 @@ public class JenkinsRuleTest {
     }
 
     @Test
-    public void simpleGetShouldWork() throws IOException {
+    public void getJSONTests() throws IOException {
 
+        // Testing a simple GET that should answer 200 OK and a json
         JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMe");
-        System.out.println("Response1:" + response.getContentAsString());
-        //FIXME response is empty here :(
         assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
 
-        JenkinsRule.WebClient wc = j.createWebClient();
-        wc.setThrowExceptionOnFailingStatusCode(false);
+        //Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
+        JenkinsRule.WebClient webClientAcceptException = j.createWebClient();
+        webClientAcceptException.setThrowExceptionOnFailingStatusCode(false);
+        response = j.getJSON("testing-cli/getError500", webClientAcceptException);
+        assertTrue(response.getStatusCode() == 500);
 
-        response = j.getJSON("testing-cli/getError500", wc);
-        System.out.println("Response2:" + response.getContentAsString());
+        //Testing a GET that requires the user to be authenticated
+        /*MockAuthorizationStrategy auth = new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to(
+                "root").
+                                                                                grantWithoutImplication(
+                                                                                        Jenkins.ADMINISTER).onRoot().to(
+                "admin");
+
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(auth);
+
+        JenkinsRule.JSONWebResponse response3 = j.getJSON("testing-cli/getMe", webClientAcceptException);
+
+        System.out.println("Response is :" + response3.getStatusCode());*/
+
     }
 
     @TestExtension
