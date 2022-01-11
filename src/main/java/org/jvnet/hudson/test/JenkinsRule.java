@@ -32,6 +32,7 @@ import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.FormEncodingType;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebClientOptions;
@@ -179,6 +180,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
@@ -1265,9 +1267,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Get JSON from A Jenkins endpoint.
-     * @param path The endpoint URL.
-     * @return The JSON.
+     * Get JSON from A Jenkins relative endpoint. Create a new default webclient. If you want to configure the
+     * webclient, for example to set a token for authentication, or accept other HTTP responses than 200, you can use
+     * {@link JenkinsRule#getJSON(String, WebClient)} .
+     * @param path relative path, should not start with '/'
+     * @return The JSON response from server.
      */
     public JSONWebResponse getJSON(@NonNull String path) throws IOException {
 
@@ -1275,25 +1279,45 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return getJSON(path, webClient);
     }
 
+    /**
+     * Get JSON from A Jenkins relative endpoint.
+     * You can preconfigure webClient for example to set a token for authentication, or accept error HTTP status.
+     * @param path relative path, should not start with '/'
+     * @param webClient a pre-configured web client.
+     * @return The JSON response from server.
+     * @throws IOException
+     */
     public JSONWebResponse getJSON(@NonNull String path, @NonNull JenkinsRule.WebClient webClient) throws IOException {
         assert !path.startsWith("/");
 
         URL URLtoCall = new URL(getURL(), path);
         WebRequest getRequest = new WebRequest(URLtoCall, HttpMethod.GET);
         getRequest.setAdditionalHeader("Content-Type","application/json");
+        getRequest.setAdditionalHeader("Accept", "application/json");
         getRequest.setAdditionalHeader("Accept-Encoding", "*");
 
-        WebResponse response = webClient.getPage(getRequest).getWebResponse();
-        return new JSONWebResponse(response);
+        return new JSONWebResponse(webClient.loadWebResponse(getRequest));
     }
 
     /**
-     * Put JSON from A Jenkins endpoint.
-     * @param path The endpoint URL.
-     * @return The JSON.
+     * Send JSON content to a Jenkins relative endpoint.
+     * You can preconfigure webClient for example to set a token for authentication, or accept error HTTP status.
+     * @param path relative path, should not start with '/'
+     * @param json the json payload to send
+     * @param webClient a pre-configured web client.
+     * @return The JSON response from server.
+     * @throws IOException
      */
-    public JSONWebResponse putJSON(@NonNull String path) throws IOException {
-        throw new IOException("FIXME implementation not done yet, I am doing TDD");
+    public JSONWebResponse putJSON(@NonNull String path, @NonNull Object json,@NonNull JenkinsRule.WebClient webClient) throws IOException {
+
+        URL URLtoCall = new URL(getURL(),path);
+        WebRequest putRequest = new WebRequest(URLtoCall, HttpMethod.PUT);
+        putRequest.setRequestBody(JSONObject.fromObject(json).toString());
+        putRequest.setAdditionalHeader("Content-Type","application/json");
+        putRequest.setAdditionalHeader("Accept", "application/json");
+        putRequest.setAdditionalHeader("Accept-Encoding", "*");
+
+        return new JSONWebResponse(webClient.loadWebResponse(putRequest));
     }
 
     /**

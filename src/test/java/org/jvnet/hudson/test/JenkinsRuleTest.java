@@ -1,6 +1,7 @@
 package org.jvnet.hudson.test;
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
+import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 
@@ -15,9 +16,13 @@ import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.WebMethod;
+import org.kohsuke.stapler.json.JsonBody;
 import org.kohsuke.stapler.json.JsonHttpResponse;
 import org.kohsuke.stapler.verb.GET;
+import org.kohsuke.stapler.verb.POST;
+import org.kohsuke.stapler.verb.PUT;
 
 import java.io.IOException;
 import java.net.URL;
@@ -28,6 +33,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -141,31 +147,73 @@ public class JenkinsRuleTest {
     }
 
     @Test
-    public void getJSONTests() throws IOException {
+    public void getJSONTests() throws Exception {
 
         // Testing a simple GET that should answer 200 OK and a json
         JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMe");
         assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
+        assertEquals(response.getStatusCode(), 200);
+
+        // Testing a simple GET with parameter that should answer 200 OK and a json
+        response = j.getJSON("testing-cli/getWithParameters?paramValue=whatelse");
+        assertTrue(response.getContentAsString().contains("I am JenkinsRule whatelse"));
+        assertEquals(response.getStatusCode(), 200);
 
         //Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
         JenkinsRule.WebClient webClientAcceptException = j.createWebClient();
         webClientAcceptException.setThrowExceptionOnFailingStatusCode(false);
         response = j.getJSON("testing-cli/getError500", webClientAcceptException);
-        assertTrue(response.getStatusCode() == 500);
+        assertEquals(response.getStatusCode(), 500);
 
         //Testing a GET that requires the user to be authenticated
-        /*MockAuthorizationStrategy auth = new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to(
-                "root").
-                                                                                grantWithoutImplication(
-                                                                                        Jenkins.ADMINISTER).onRoot().to(
-                "admin");
+        User admin = User.getById("admin", true);
+        MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
+                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
 
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         j.jenkins.setAuthorizationStrategy(auth);
 
-        JenkinsRule.JSONWebResponse response3 = j.getJSON("testing-cli/getMe", webClientAcceptException);
+        // - simple call without authentication should be forbidden
+        response = j.getJSON("testing-cli/getMe", webClientAcceptException);
+        assertEquals(response.getStatusCode(), 403);
 
-        System.out.println("Response is :" + response3.getStatusCode());*/
+        // - same call but authenticated should be fine
+        response = j.getJSON("testing-cli/getMe", webClientAcceptException.withBasicApiToken(admin));
+        assertEquals(response.getStatusCode(), 200);
+
+    }
+
+    @Test
+    public void putJSONTests() throws Exception {
+
+        JenkinsRule.WebClient webClient = j.createWebClient();
+        JenkinsRule.JSONWebResponse response;
+
+        // Testing a simple PUT that should answer 200 OK and return same json
+        MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
+        response = j.putJSON( "testing-cli/putSomething", objectToSend, webClient);
+        assertTrue(response.getContentAsString().contains("Jenkins is the way !"));
+
+        //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        response = j.putJSON( "testing-cli/putAndGetError500", objectToSend, webClient);
+        assertEquals(response.getStatusCode(), 500);
+
+        //Testing a PUT that requires the user to be authenticated
+        User admin = User.getById("admin", true);
+        MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
+                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
+
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(auth);
+
+        // - simple call without authentication should be forbidden
+        response = j.putJSON("testing-cli/putSomething", objectToSend, webClient);
+        assertEquals(response.getStatusCode(), 403);
+
+        // - same call but authenticated should be fine
+        response = j.putJSON("testing-cli/putSomething", objectToSend, webClient.withBasicApiToken(admin));
+        assertEquals(response.getStatusCode(), 200);
 
     }
 
@@ -197,6 +245,14 @@ public class JenkinsRuleTest {
         }
 
         @GET
+        @WebMethod(name = "getWithParameters")
+        public HttpResponse getWithParameters(@QueryParameter(required = true) String paramValue) {
+            assertNotNull(paramValue);
+            JSONObject response = JSONObject.fromObject(new MyJsonObject("I am JenkinsRule " + paramValue));
+            throw new JsonHttpResponse(response, 200);
+        }
+
+        @GET
         @WebMethod(name = "getError500")
         public JsonHttpResponse getError500() {
             JsonHttpResponse error500 = new JsonHttpResponse(
@@ -204,10 +260,29 @@ public class JenkinsRuleTest {
             return error500;
         }
 
+        @PUT
+        @WebMethod(name = "putSomething")
+        public JsonHttpResponse putSomething(@JsonBody JSONObject body) {
+            MyJsonObject parsedBody = (MyJsonObject) body.toBean(MyJsonObject.class);
+
+            JSONObject response = JSONObject.fromObject(parsedBody);
+            throw new JsonHttpResponse(response, 200);
+        }
+
+        @PUT
+        @WebMethod(name = "putAndGetError500")
+        public JsonHttpResponse putAndgetError500(@JsonBody JSONObject body) {
+            JsonHttpResponse error500 = new JsonHttpResponse(
+                    JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
+            return error500;
+        }
     }
 
     public static class MyJsonObject {
         private String message;
+
+        //empty constructor required for JSON parsing.
+        public MyJsonObject() {}
 
         public MyJsonObject(String message) {
             this.message = message;
