@@ -190,6 +190,8 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
+
+import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -1308,11 +1310,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return The JSON response from server.
      * @throws IOException
      */
-    public JSONWebResponse putJSON(@NonNull String path, @NonNull Object json,@NonNull JenkinsRule.WebClient webClient) throws IOException {
+    public JSONWebResponse putJSON(@NonNull String path, @NonNull JSON json, @NonNull JenkinsRule.WebClient webClient) throws IOException {
 
         URL URLtoCall = new URL(getURL(),path);
         WebRequest putRequest = new WebRequest(URLtoCall, HttpMethod.PUT);
-        putRequest.setRequestBody(JSONObject.fromObject(json).toString());
+        putRequest.setRequestBody(json.toString());
         putRequest.setAdditionalHeader("Content-Type","application/json");
         putRequest.setAdditionalHeader("Accept", "application/json");
         putRequest.setAdditionalHeader("Accept-Encoding", "*");

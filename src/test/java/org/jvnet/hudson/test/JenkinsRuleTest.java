@@ -186,12 +186,12 @@ public class JenkinsRuleTest {
 
         // Testing a simple PUT that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
-        response = j.putJSON( "testing-cli/putSomething", objectToSend, webClient);
+        response = j.putJSON( "testing-cli/putSomething", JSONObject.fromObject(objectToSend), webClient);
         assertTrue(response.getContentAsString().contains("Jenkins is the way !"));
 
         //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = j.putJSON( "testing-cli/putAndGetError500", objectToSend, webClient);
+        response = j.putJSON( "testing-cli/putAndGetError500", JSONObject.fromObject(objectToSend), webClient);
         assertEquals(response.getStatusCode(), 500);
 
         //Testing a PUT that requires the user to be authenticated
@@ -203,11 +203,13 @@ public class JenkinsRuleTest {
         j.jenkins.setAuthorizationStrategy(auth);
 
         // - simple call without authentication should be forbidden
-        response = j.putJSON("testing-cli/putSomething", objectToSend, webClient);
+        response = j.putJSON("testing-cli/putSomething", JSONObject.fromObject(objectToSend), webClient);
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = j.putJSON("testing-cli/putSomething", objectToSend, webClient.withBasicApiToken(admin));
+        response = j.putJSON("testing-cli/putSomething",
+                             JSONObject.fromObject(objectToSend),
+                             webClient.withBasicApiToken(admin));
         assertEquals(response.getStatusCode(), 200);
 
     }
@@ -257,10 +259,9 @@ public class JenkinsRuleTest {
 
         @PUT
         @WebMethod(name = "putSomething")
-        public JsonHttpResponse putSomething(@JsonBody JSONObject body) {
-            MyJsonObject parsedBody = (MyJsonObject) body.toBean(MyJsonObject.class);
+        public JsonHttpResponse putSomething(@JsonBody MyJsonObject body) {
 
-            JSONObject response = JSONObject.fromObject(parsedBody);
+            JSONObject response = JSONObject.fromObject(body);
             return new JsonHttpResponse(response, 200);
         }
 
