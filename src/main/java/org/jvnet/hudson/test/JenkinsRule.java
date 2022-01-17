@@ -1267,7 +1267,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Get JSON from A Jenkins relative endpoint. Create a new default webclient. If you want to configure the
+     * Get JSON from a Jenkins relative endpoint. Create a new default webclient. If you want to configure the
      * webclient, for example to set a token for authentication, or accept other HTTP responses than 200, you can use
      * {@link JenkinsRule#getJSON(String, WebClient)} .
      * @param path relative path, should not start with '/'
@@ -1280,7 +1280,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Get JSON from A Jenkins relative endpoint.
+     * Get JSON from a Jenkins relative endpoint.
      * You can preconfigure webClient for example to set a token for authentication, or accept error HTTP status.
      * @param path relative path, should not start with '/'
      * @param webClient a pre-configured web client.
