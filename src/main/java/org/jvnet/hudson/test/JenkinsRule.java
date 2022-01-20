@@ -1311,6 +1311,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @throws IOException
      */
     public JSONWebResponse putJSON(@NonNull String path, @NonNull JSON json, @NonNull JenkinsRule.WebClient webClient) throws IOException {
+        assert !path.startsWith("/");
 
         URL URLtoCall = new URL(getURL(),path);
         WebRequest putRequest = new WebRequest(URLtoCall, HttpMethod.PUT);
@@ -1323,7 +1324,34 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * POST a JSON payload to a URL on the underlying Jenkins instance.
+     * POST JSON content to a Jenkins relative endpoint using the user token for authentication.
+     * You can preconfigure webClient for example to accept error HTTP status.
+     *
+     * @param path relative path, should not start with '/'
+     * @param json the json payload to send
+     * @param webClient a pre-configured web client either with crumb or token.
+     * @param user user to use for authentication
+     * @return The JSON response from server.
+     * @throws IOException
+     */
+    public JSONWebResponse postJSON(@NonNull String path, @NonNull JSON json, @NonNull WebClient webClient,
+                                    @NonNull User user) throws IOException {
+        assert !path.startsWith("/");
+
+        URL URLtoCall = new URL(getURL(),path);
+        WebRequest postRequest = new WebRequest(URLtoCall, HttpMethod.POST);
+
+        postRequest.setAdditionalHeader("Content-Type","application/json");
+        postRequest.setAdditionalHeader("Accept", "application/json");
+        postRequest.setAdditionalHeader("Accept-Encoding", "*");
+
+        postRequest.setRequestBody(json.toString());
+
+        return new JSONWebResponse(webClient.withBasicApiToken(user).loadWebResponse(postRequest));
+    }
+
+    /**
+     * POST a JSON payload to a URL on the underlying Jenkins instance using the crumb.
      * @param path The url path on Jenkins.
      * @param json An object that produces a JSON string from it's {@code toString} method.
      * @return A JSON response.

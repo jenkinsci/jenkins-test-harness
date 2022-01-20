@@ -19,6 +19,7 @@ import org.kohsuke.stapler.WebMethod;
 import org.kohsuke.stapler.json.JsonBody;
 import org.kohsuke.stapler.json.JsonHttpResponse;
 import org.kohsuke.stapler.verb.GET;
+import org.kohsuke.stapler.verb.POST;
 import org.kohsuke.stapler.verb.PUT;
 
 import java.io.IOException;
@@ -179,6 +180,35 @@ public class JenkinsRuleTest {
     }
 
     @Test
+    public void postJSONTests() throws IOException {
+
+        User admin = User.getById("admin", true);
+        MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
+                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
+
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        j.jenkins.setAuthorizationStrategy(auth);
+
+        JenkinsRule.WebClient webClient = j.createWebClient();
+        JenkinsRule.JSONWebResponse response;
+
+        // Testing an authenticated POST that should answer 200 OK and return same json
+        MyJsonObject objectToSend = new MyJsonObject("Creating a new Object with Json.");
+        response = j.postJSON( "testing-cli/create", JSONObject.fromObject(objectToSend),
+                               webClient, admin);
+        assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - CREATED"));
+        assertEquals(response.getStatusCode(), 200);
+
+        // Testing an authenticated POST that return error 500
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        response = j.postJSON( "testing-cli/createFailure", JSONObject.fromObject(objectToSend),
+                               webClient, admin);
+        assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - NOT CREATED"));
+        assertEquals(response.getStatusCode(), 500);
+
+    }
+
+    @Test
     public void putJSONTests() throws Exception {
 
         JenkinsRule.WebClient webClient = j.createWebClient();
@@ -186,13 +216,14 @@ public class JenkinsRuleTest {
 
         // Testing a simple PUT that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
-        response = j.putJSON( "testing-cli/putSomething", JSONObject.fromObject(objectToSend), webClient);
-        assertTrue(response.getContentAsString().contains("Jenkins is the way !"));
+        response = j.putJSON( "testing-cli/update", JSONObject.fromObject(objectToSend), webClient);
+        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
 
         //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = j.putJSON( "testing-cli/putAndGetError500", JSONObject.fromObject(objectToSend), webClient);
+        response = j.putJSON( "testing-cli/updateFailure", JSONObject.fromObject(objectToSend), webClient);
         assertEquals(response.getStatusCode(), 500);
+        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - NOT UPDATED"));
 
         //Testing a PUT that requires the user to be authenticated
         User admin = User.getById("admin", true);
@@ -203,14 +234,15 @@ public class JenkinsRuleTest {
         j.jenkins.setAuthorizationStrategy(auth);
 
         // - simple call without authentication should be forbidden
-        response = j.putJSON("testing-cli/putSomething", JSONObject.fromObject(objectToSend), webClient);
+        response = j.putJSON("testing-cli/update", JSONObject.fromObject(objectToSend), webClient);
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = j.putJSON("testing-cli/putSomething",
+        response = j.putJSON("testing-cli/update",
                              JSONObject.fromObject(objectToSend),
                              webClient.withBasicApiToken(admin));
         assertEquals(response.getStatusCode(), 200);
+        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
 
     }
 
@@ -235,8 +267,8 @@ public class JenkinsRuleTest {
         }
 
         @GET
-        @WebMethod(name = "getMe")
-        public HttpResponse getMe() {
+        @WebMethod(name = "getMyJsonObject")
+        public HttpResponse getMyJsonObject() {
             JSONObject response = JSONObject.fromObject(new MyJsonObject("I am JenkinsRule"));
             throw new JsonHttpResponse(response, 200);
         }
@@ -258,19 +290,36 @@ public class JenkinsRuleTest {
         }
 
         @PUT
-        @WebMethod(name = "putSomething")
-        public JsonHttpResponse putSomething(@JsonBody MyJsonObject body) {
-
+        @WebMethod(name = "update")
+        public JsonHttpResponse update(@JsonBody MyJsonObject body) {
+            body.setMessage(body.getMessage()+" - UPDATED");
             JSONObject response = JSONObject.fromObject(body);
             return new JsonHttpResponse(response, 200);
         }
 
         @PUT
-        @WebMethod(name = "putAndGetError500")
-        public JsonHttpResponse putAndgetError500(@JsonBody JSONObject body) {
+        @WebMethod(name = "updateFailure")
+        public JsonHttpResponse updateFailure(@JsonBody MyJsonObject body) {
+            body.setMessage(body.getMessage()+" - NOT UPDATED");
             JsonHttpResponse error500 = new JsonHttpResponse(
-                    JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
+                    JSONObject.fromObject(body), 500);
             throw error500;
+        }
+
+        @POST
+        @WebMethod(name = "create")
+        public JsonHttpResponse create(@JsonBody MyJsonObject body) {
+            body.setMessage(body.getMessage()+" - CREATED");
+            JSONObject response = JSONObject.fromObject(body);
+            return new JsonHttpResponse(response, 200);
+        }
+
+        @POST
+        @WebMethod(name = "createFailure")
+        public JsonHttpResponse createFailure(@JsonBody MyJsonObject body) {
+            body.setMessage(body.getMessage()+" - NOT CREATED");
+            JSONObject response = JSONObject.fromObject(body);
+            return new JsonHttpResponse(response, 500);
         }
     }
 
