@@ -146,7 +146,7 @@ public class JenkinsRuleTest {
     public void getJSONTests() throws Exception {
 
         // Testing a simple GET that should answer 200 OK and a json
-        JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMe");
+        JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMyJsonObject");
         assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
         assertEquals(response.getStatusCode(), 200);
 
@@ -170,11 +170,11 @@ public class JenkinsRuleTest {
         j.jenkins.setAuthorizationStrategy(auth);
 
         // - simple call without authentication should be forbidden
-        response = j.getJSON("testing-cli/getMe", webClientAcceptException);
+        response = j.getJSON("testing-cli/getMyJsonObject", webClientAcceptException);
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = j.getJSON("testing-cli/getMe", webClientAcceptException.withBasicApiToken(admin));
+        response = j.getJSON("testing-cli/getMyJsonObject", webClientAcceptException.withBasicApiToken(admin));
         assertEquals(response.getStatusCode(), 200);
 
     }
@@ -270,7 +270,7 @@ public class JenkinsRuleTest {
         @WebMethod(name = "getMyJsonObject")
         public HttpResponse getMyJsonObject() {
             JSONObject response = JSONObject.fromObject(new MyJsonObject("I am JenkinsRule"));
-            throw new JsonHttpResponse(response, 200);
+            return new JsonHttpResponse(response, 200);
         }
 
         @GET
@@ -301,8 +301,7 @@ public class JenkinsRuleTest {
         @WebMethod(name = "updateFailure")
         public JsonHttpResponse updateFailure(@JsonBody MyJsonObject body) {
             body.setMessage(body.getMessage()+" - NOT UPDATED");
-            JsonHttpResponse error500 = new JsonHttpResponse(
-                    JSONObject.fromObject(body), 500);
+            JsonHttpResponse error500 = new JsonHttpResponse(JSONObject.fromObject(body), 500);
             throw error500;
         }
 
@@ -319,7 +318,8 @@ public class JenkinsRuleTest {
         public JsonHttpResponse createFailure(@JsonBody MyJsonObject body) {
             body.setMessage(body.getMessage()+" - NOT CREATED");
             JSONObject response = JSONObject.fromObject(body);
-            return new JsonHttpResponse(response, 500);
+            JsonHttpResponse error500 = new JsonHttpResponse(response, 500);
+            throw error500;
         }
     }
 
