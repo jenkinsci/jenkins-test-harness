@@ -1053,13 +1053,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      *
      * @param env
-     *      Environment variables to add to the slave process. Can be null.
+     *      Environment variables to add to the slave process. Can be {@code null}.
      */
     @NonNull
     public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -Xmx512M -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
                         "-Djava.awt.headless=true",
