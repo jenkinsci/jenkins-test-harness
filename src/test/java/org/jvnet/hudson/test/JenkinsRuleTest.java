@@ -158,7 +158,7 @@ public class JenkinsRuleTest {
         //Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
         JenkinsRule.WebClient webClientAcceptException = j.createWebClient();
         webClientAcceptException.setThrowExceptionOnFailingStatusCode(false);
-        response = j.getJSON("testing-cli/getError500", webClientAcceptException);
+        response = webClientAcceptException.getJSON("testing-cli/getError500");
         assertEquals(response.getStatusCode(), 500);
 
         //Testing a GET that requires the user to be authenticated
@@ -170,11 +170,11 @@ public class JenkinsRuleTest {
         j.jenkins.setAuthorizationStrategy(auth);
 
         // - simple call without authentication should be forbidden
-        response = j.getJSON("testing-cli/getMyJsonObject", webClientAcceptException);
+        response = webClientAcceptException.getJSON("testing-cli/getMyJsonObject");
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = j.getJSON("testing-cli/getMyJsonObject", webClientAcceptException.withBasicApiToken(admin));
+        response = webClientAcceptException.withBasicApiToken(admin).getJSON("testing-cli/getMyJsonObject");
         assertEquals(response.getStatusCode(), 200);
 
     }
@@ -194,15 +194,15 @@ public class JenkinsRuleTest {
 
         // Testing an authenticated POST that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Creating a new Object with Json.");
-        response = j.postJSON( "testing-cli/create", JSONObject.fromObject(objectToSend),
-                               webClient, admin);
+        response = webClient
+                        .withBasicApiToken(admin)
+                        .postJSON( "testing-cli/create", JSONObject.fromObject(objectToSend));
         assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - CREATED"));
         assertEquals(response.getStatusCode(), 200);
 
         // Testing an authenticated POST that return error 500
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = j.postJSON( "testing-cli/createFailure", JSONObject.fromObject(objectToSend),
-                               webClient, admin);
+        response = webClient.postJSON( "testing-cli/createFailure", JSONObject.fromObject(objectToSend));
         assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - NOT CREATED"));
         assertEquals(response.getStatusCode(), 500);
 
@@ -216,12 +216,12 @@ public class JenkinsRuleTest {
 
         // Testing a simple PUT that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
-        response = j.putJSON( "testing-cli/update", JSONObject.fromObject(objectToSend), webClient);
+        response = webClient.putJSON( "testing-cli/update", JSONObject.fromObject(objectToSend));
         assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
 
         //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = j.putJSON( "testing-cli/updateFailure", JSONObject.fromObject(objectToSend), webClient);
+        response = webClient.putJSON( "testing-cli/updateFailure", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 500);
         assertTrue(response.getContentAsString().contains("Jenkins is the way ! - NOT UPDATED"));
 
@@ -234,13 +234,12 @@ public class JenkinsRuleTest {
         j.jenkins.setAuthorizationStrategy(auth);
 
         // - simple call without authentication should be forbidden
-        response = j.putJSON("testing-cli/update", JSONObject.fromObject(objectToSend), webClient);
+        response = webClient.putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = j.putJSON("testing-cli/update",
-                             JSONObject.fromObject(objectToSend),
-                             webClient.withBasicApiToken(admin));
+        response = webClient.withBasicApiToken(admin)
+                            .putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 200);
         assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
 
