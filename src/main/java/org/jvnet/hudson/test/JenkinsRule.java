@@ -2818,7 +2818,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         /**
          * POST JSON content to a Jenkins relative endpoint.
-         * You can preconfigure the web client for example to set a token for authenticaion or pass a crumb before calling this method.
+         * You can preconfigure the web client for example to set a token for authentication or pass a crumb before calling this method.
          *
          * @param path relative path, should not start with '/'
          * @param json the json payload to send
