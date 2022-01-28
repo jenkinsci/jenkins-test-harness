@@ -233,7 +233,7 @@ public class JenkinsRuleTest {
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         j.jenkins.setAuthorizationStrategy(auth);
 
-        // - simple call without authentication should be forbidden
+        // - simple call without authentication should be forbidden due to use of RootAction
         response = webClient.putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 403);
 
