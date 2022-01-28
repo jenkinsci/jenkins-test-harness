@@ -188,6 +188,8 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
+
+import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import net.sourceforge.htmlunit.corejs.javascript.Context;
 import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
@@ -1265,28 +1267,20 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Get JSON from A Jenkins endpoint.
-     * @param path The endpoint URL.
-     * @return The JSON.
+     * Get JSON from a Jenkins relative endpoint. Create a new default webclient. If you want to configure the
+     * webclient, for example to set a token for authentication, or accept other HTTP responses than 200, you can use
+     * {@link WebClient#getJSON(String)} directly.
+     *
+     * @param path relative path, should not start with '/'
+     * @return The JSON response from server.
      */
     public JSONWebResponse getJSON(@NonNull String path) throws IOException {
-        assert !path.startsWith("/");
-
         JenkinsRule.WebClient webClient = createWebClient();
-        Page runsPage = null;
-        try {
-            runsPage = webClient.goTo(path, "application/json");
-        } catch (SAXException e) {
-            // goTo shouldn't be throwing a SAXException for JSON.
-            throw new IllegalStateException("Unexpected SAXException.", e);
-        }
-        WebResponse webResponse = runsPage.getWebResponse();
-
-        return new JSONWebResponse(webResponse);
+        return webClient.getJSON(path);
     }
 
     /**
-     * POST a JSON payload to a URL on the underlying Jenkins instance.
+     * POST a JSON payload to a URL on the underlying Jenkins instance using the crumb.
      * @param path The url path on Jenkins.
      * @param json An object that produces a JSON string from it's {@code toString} method.
      * @return A JSON response.
@@ -2777,6 +2771,75 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             return dim;
         }
+
+        /**
+         * Get JSON from a Jenkins relative endpoint.
+         * You can preconfigure the web client for example to set a token for authentication, or accept error HTTP status
+         * before calling this method.
+         *
+         * @param path relative path, should not start with '/'
+         * @return The JSON response from server.
+         * @throws IOException
+         */
+        public JSONWebResponse getJSON(@NonNull String path) throws IOException {
+            assert !path.startsWith("/");
+
+            URL URLtoCall = new URL(getURL(), path);
+            WebRequest getRequest = new WebRequest(URLtoCall, HttpMethod.GET);
+            getRequest.setAdditionalHeader("Content-Type", "application/json");
+            getRequest.setAdditionalHeader("Accept", "application/json");
+            getRequest.setAdditionalHeader("Accept-Encoding", "*");
+
+            return new JSONWebResponse(loadWebResponse(getRequest));
+        }
+
+        /**
+         * Send JSON content to a Jenkins relative endpoint.
+         * You can preconfigure the web client for example to set a token for authentication, or accept error HTTP status
+         * before calling this method.
+         *
+         * @param path relative path, should not start with '/'
+         * @param json the json payload to send
+         * @return The JSON response from server.
+         * @throws IOException
+         */
+        public JSONWebResponse putJSON(@NonNull String path, @NonNull JSON json) throws IOException {
+            assert !path.startsWith("/");
+
+            URL URLtoCall = new URL(getURL(), path);
+            WebRequest putRequest = new WebRequest(URLtoCall, HttpMethod.PUT);
+            putRequest.setRequestBody(json.toString());
+            putRequest.setAdditionalHeader("Content-Type", "application/json");
+            putRequest.setAdditionalHeader("Accept", "application/json");
+            putRequest.setAdditionalHeader("Accept-Encoding", "*");
+
+            return new JSONWebResponse(loadWebResponse(putRequest));
+        }
+
+        /**
+         * POST JSON content to a Jenkins relative endpoint.
+         * You can preconfigure the web client for example to set a token for authentication or pass a crumb before calling this method.
+         *
+         * @param path relative path, should not start with '/'
+         * @param json the json payload to send
+         * @return The JSON response from server.
+         * @throws IOException
+         */
+        public JSONWebResponse postJSON(@NonNull String path, @NonNull JSON json) throws IOException {
+            assert !path.startsWith("/");
+
+            URL URLtoCall = new URL(getURL(), path);
+            WebRequest postRequest = new WebRequest(URLtoCall, HttpMethod.POST);
+
+            postRequest.setAdditionalHeader("Content-Type", "application/json");
+            postRequest.setAdditionalHeader("Accept", "application/json");
+            postRequest.setAdditionalHeader("Accept-Encoding", "*");
+
+            postRequest.setRequestBody(json.toString());
+
+            return new JSONWebResponse(loadWebResponse(postRequest));
+        }
+
     }
 
     // needs to keep reference, or it gets GC-ed.
