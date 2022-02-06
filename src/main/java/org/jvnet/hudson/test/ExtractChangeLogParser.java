@@ -27,7 +27,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.User;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
-import org.apache.commons.digester.Digester;
+import org.apache.commons.digester3.Digester;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
 import org.xml.sax.SAXException;
@@ -61,7 +61,7 @@ public class ExtractChangeLogParser extends ChangeLogParser {
     @SuppressWarnings("rawtypes")
     public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
 
-        ArrayList<ExtractChangeLogEntry> changeLog = new ArrayList<>();
+        List<ExtractChangeLogEntry> changeLog = new ArrayList<>();
 
         Digester digester = new Digester();
         digester.setClassLoader(ExtractChangeLogSet.class.getClassLoader());
