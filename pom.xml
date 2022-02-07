@@ -57,7 +57,7 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.44.v20210927</jetty.version>
+    <jetty.version>9.4.45.v20220203</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.34</jmh.version>
     <java.level>8</java.level>
