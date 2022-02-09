@@ -26,7 +26,6 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.scm.ChangeLogParser;
@@ -34,7 +33,6 @@ import hudson.scm.NullSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -106,30 +104,13 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         return new ExtractChangeLogParser();
     }
 
-    private static String escapeForXml(String string) {
-        return Util.xmlEscape(Util.fixNull(string));
-    }
-
     public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
-        FileOutputStream outputStream = new FileOutputStream(changeLogFile);
-
-        PrintStream stream = new PrintStream(outputStream, false, "UTF-8");
-
-        stream.println("<?xml version='1.0' encoding='UTF-8'?>");
-        stream.println("<extractChanges>");
-        stream.println("<entry>");
-        stream.println("<zipFile>" + escapeForXml(changeLog.getZipFile()) + "</zipFile>");
-
-        for (String fileName : changeLog.getAffectedPaths()) {
-            stream.println("<file>");
-            stream.println("<fileName>" + escapeForXml(fileName) + "</fileName>");
-            stream.println("</file>");
+        try (PrintStream ps = new PrintStream(changeLogFile)) {
+            ps.println(changeLog.getZipFile());
+            for (String fileName : changeLog.getAffectedPaths()) {
+                ps.println(fileName);
+            }
         }
-
-        stream.println("</entry>");
-        stream.println("</extractChanges>");
-
-        stream.close();
     }
 
     /**
