@@ -31,7 +31,6 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Controls how a {@link HudsonTestCase} initializes {@code JENKINS_HOME}.
@@ -132,7 +131,7 @@ public interface HudsonHomeLoader {
         }
 
         public static boolean isJavaIdentifier(@CheckForNull String name) {
-            if (StringUtils.isEmpty(name)) {
+            if (name == null || name.isEmpty()) {
                 return false;
             }
             if (!Character.isJavaIdentifierStart(name.charAt(0))) {
