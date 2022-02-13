@@ -41,6 +41,7 @@ public class PretendSlave extends Slave {
     @Override
     public Launcher createLauncher(TaskListener listener) {
         return new LocalLauncher(listener) {
+            @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 synchronized (PretendSlave.this) {
                     numLaunch++;

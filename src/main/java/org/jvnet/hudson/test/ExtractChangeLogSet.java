@@ -50,6 +50,7 @@ public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.Ext
         return changeLogs.isEmpty();
     }
 
+    @Override
     public Iterator<ExtractChangeLogParser.ExtractChangeLogEntry> iterator() {
         return changeLogs.iterator();
     }

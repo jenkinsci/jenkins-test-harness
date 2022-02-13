@@ -156,6 +156,7 @@ public class JellyTestSuiteBuilder {
         protected void runGroupedTests(final TestResult result) throws Exception {
             h.executeOnServer(new Callable<Object>() {
                 // this code now inside a request handling thread
+                @Override
                 public Object call() throws Exception {
                     doTests(result);
                     return null;
