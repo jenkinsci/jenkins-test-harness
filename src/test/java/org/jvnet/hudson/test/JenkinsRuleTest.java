@@ -27,7 +27,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
