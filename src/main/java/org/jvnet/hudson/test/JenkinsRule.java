@@ -130,6 +130,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -147,6 +148,8 @@ import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -239,6 +242,7 @@ import org.junit.runners.model.TestTimedOutException;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
+import org.kohsuke.file_leak_detector.Listener;
 import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -520,6 +524,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             try {
                 env.dispose();
+            } catch (IOException e) {
+                if (Listener.isAgentInstalled()) {
+                    Path tempFile = Files.createTempFile("file-handles", ".txt");
+                    try (PrintWriter w = new PrintWriter(tempFile.toFile())) {
+                        Listener.dump(w);
+                    }
+                    System.err.println("[[ATTACHMENT|" + tempFile + "]]");
+                }
+                throw e;
             } finally {
                 // restore defaultUseCache
                 if(Functions.isWindows()) {

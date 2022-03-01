@@ -200,6 +200,13 @@ THE SOFTWARE.
       <version>1.0.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>file-leak-detector</artifactId>
+      <version>1.13</version>
+      <type>jar</type>
+      <classifier>jar-with-dependencies</classifier>
+    </dependency>
   </dependencies>
 
   <repositories>
