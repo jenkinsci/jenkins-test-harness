@@ -177,7 +177,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE126</version>
+      <version>RELEASE130</version>
     </dependency>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
