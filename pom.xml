@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.67</version>
+    <version>1.71</version>
     <relativePath />
   </parent>
 
@@ -37,27 +37,8 @@ THE SOFTWARE.
   <version>${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
-  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
-
-  <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
-    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
-    <tag>${scmTag}</tag>
-  </scm>
-
-  <properties>
-    <changelist>999999-SNAPSHOT</changelist>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.44.v20210927</jetty.version>
-    <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.33</jmh.version>
-    <java.level>8</java.level>
-    <concurrency>1</concurrency> <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <!--TODO: fix FindBugs-->
-    <findbugs.failOnError>false</findbugs.failOnError>
-  </properties>
+  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
 
   <licenses>
     <license>
@@ -66,27 +47,39 @@ THE SOFTWARE.
     </license>
   </licenses>
 
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
+    <tag>${scmTag}</tag>
+    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+  </scm>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
+  <properties>
+    <changelist>999999-SNAPSHOT</changelist>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jetty.version>9.4.45.v20220203</jetty.version>
+    <hamcrest.version>2.2</hamcrest.version>
+    <jmh.version>1.34</jmh.version>
+    <java.level>8</java.level>
+
+    <!-- may use e.g. 2C for 2 × (number of cores) -->
+    <concurrency>1</concurrency>
+
+    <!--TODO fix SpotBugs-->
+    <spotbugs.failOnError>false</spotbugs.failOnError>
+  </properties>
 
   <dependencyManagement>
     <dependencies>
-      <!-- RequireUpperBoundDeps  -->
       <dependency>
-        <groupId>commons-beanutils</groupId>
-        <artifactId>commons-beanutils</artifactId>
-        <version>1.9.4</version>
+        <groupId>org.jenkins-ci</groupId>
+        <artifactId>annotation-indexer</artifactId>
+        <version>1.16</version>
+      </dependency>
+      <dependency>
+        <groupId>org.kohsuke</groupId>
+        <artifactId>access-modifier-annotation</artifactId>
+        <version>1.27</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -97,17 +90,47 @@ THE SOFTWARE.
       <artifactId>jenkins-war</artifactId>
       <version>2.323-rc31751.fdabb2223bda</version><!-- https://github.com/jenkinsci/jenkins/pull/5928 and https://github.com/jenkinsci/winstone/pull/174 -->
       <type>executable-war</type>
+      <!--
+        To ensure consistent set of core artifacts are used, force the users to declare
+        a dependency to war
+      -->
+      <optional>true</optional>
       <exclusions>
         <exclusion>
           <groupId>org.jenkins-ci.modules</groupId>
           <artifactId>sshd</artifactId>
         </exclusion>
       </exclusions>
-      <!--
-        To ensure consistent set of core artifacts are used, force the users to declare
-        a dependency to war
-      -->
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jenkins-test-harness-htmlunit</artifactId>
+      <version>75.v279ef177dc2c</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-annotations</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.lib</groupId>
+      <artifactId>support-log-formatter</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-security</artifactId>
+      <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -115,18 +138,14 @@ THE SOFTWARE.
       <version>${jetty.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-security</artifactId>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-api</artifactId>
       <version>${jetty.version}</version>
     </dependency>
-     <dependency>
-       <groupId>org.eclipse.jetty.websocket</groupId>
-       <artifactId>websocket-api</artifactId>
-       <version>${jetty.version}</version>
-     </dependency>
     <dependency>
+      <!-- or javax-websocket-server-impl -->
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-server</artifactId> <!-- or javax-websocket-server-impl -->
+      <artifactId>websocket-server</artifactId>
       <version>${jetty.version}</version>
     </dependency>
     <dependency>
@@ -145,27 +164,6 @@ THE SOFTWARE.
       <version>${hamcrest.version}</version>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>56.vf1eabfc274f8</version>
-      <exclusions>
-        <exclusion>
-          <groupId>commons-io</groupId>
-          <artifactId>commons-io</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <!-- Removed from jenkins core but still used here apparently... -->
-      <groupId>commons-digester</groupId>
-      <artifactId>commons-digester</artifactId>
-      <version>2.1</version>
-    </dependency>
-    <dependency>
       <groupId>org.jvnet.hudson</groupId>
       <artifactId>embedded-rhino-debugger</artifactId>
       <version>1.2</version>
@@ -177,19 +175,19 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.jenkins.lib</groupId>
-      <artifactId>support-log-formatter</artifactId>
-      <version>1.0</version>
-    </dependency>
-    <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE125</version>
+      <version>RELEASE126</version>
     </dependency>
     <dependency>
-      <groupId>com.github.spotbugs</groupId>
-      <artifactId>spotbugs-annotations</artifactId>
-      <optional>true</optional>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>${jmh.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
@@ -202,29 +200,49 @@ THE SOFTWARE.
       <version>1.0.2</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <version>${jmh.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <version>${jmh.version}</version>
-    </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
   <build>
     <plugins>
       <plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <extensions>true</extensions>
-      </plugin>
-      <plugin>
-        <groupId>org.kohsuke.stapler</groupId>
-        <artifactId>maven-stapler-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
-        <extensions>true</extensions>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>extra-plugins</id>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <phase>process-test-resources</phase>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci.plugins</groupId>
+                  <artifactId>structs</artifactId>
+                  <version>1.21</version>
+                  <type>hpi</type>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.build.testOutputDirectory}/plugins</outputDirectory>
+              <stripVersion>true</stripVersion>
+              <overWriteIfNewer>true</overWriteIfNewer>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -253,8 +271,8 @@ THE SOFTWARE.
           <!-- SUREFIRE-1588 workaround; too late for systemProperties: -->
           <argLine>-Dfile.encoding=UTF-8 -Xmx256m -Djava.awt.headless=true -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
           <systemPropertyVariables>
-              <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
-              <buildDirectory>${project.build.directory}</buildDirectory>
+            <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
+            <buildDirectory>${project.build.directory}</buildDirectory>
           </systemPropertyVariables>
           <reuseForks>false</reuseForks>
           <forkCount>${concurrency}</forkCount>
@@ -264,21 +282,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>1.13.0</version>
-        <executions>
-          <execution>
-            <id>preset-packager</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>execute</goal>
-            </goals>
-            <configuration>
-              <scripts>
-                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
-              </scripts>
-            </configuration>
-          </execution>
-        </executions>
+        <version>1.13.1</version>
         <dependencies>
           <dependency>
             <groupId>org.apache.ant</groupId>
@@ -286,49 +290,47 @@ THE SOFTWARE.
             <version>1.10.12</version>
           </dependency>
         </dependencies>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
-            <id>extra-plugins</id>
-            <phase>process-test-resources</phase>
+            <id>preset-packager</id>
             <goals>
-              <goal>copy</goal>
+              <goal>execute</goal>
             </goals>
+            <phase>process-resources</phase>
             <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.jenkins-ci.plugins</groupId>
-                  <artifactId>structs</artifactId>
-                  <version>1.21</version>
-                  <type>hpi</type>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>${project.build.testOutputDirectory}/plugins</outputDirectory>
-              <stripVersion>true</stripVersion>
-              <overWriteIfNewer>true</overWriteIfNewer>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
+              <scripts>
+                <script>file:///${pom.basedir}/src/main/preset-data/package.groovy</script>
+              </scripts>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <extensions>true</extensions>
+      </plugin>
+      <plugin>
+        <groupId>org.kohsuke.stapler</groupId>
+        <artifactId>maven-stapler-plugin</artifactId>
+        <!-- version specified in grandparent pom -->
+        <extensions>true</extensions>
       </plugin>
     </plugins>
   </build>
 
   <profiles>
     <profile>
-        <id>skip-tests-on-release</id>
-        <activation>
-          <property>
-            <name>performRelease</name>
-            <value>true</value>
-          </property>
-        </activation>
-        <properties>
-          <skipTests>true</skipTests>
-        </properties>
+      <id>skip-tests-on-release</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
     </profile>
     <profile>
       <id>rerunFailingTests</id>

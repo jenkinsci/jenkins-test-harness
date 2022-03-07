@@ -90,7 +90,6 @@ import hudson.model.TaskListener;
 import hudson.model.UpdateSite;
 import hudson.model.User;
 import hudson.model.View;
-import hudson.os.PosixAPI;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
@@ -109,6 +108,7 @@ import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
+import hudson.util.jna.GNUCLibrary;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -433,17 +433,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             ExtensionList.clearLegacyInstances();
             DescriptorExtensionList.clearLegacyInstances();
 
+            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+            // see https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4950148
+            System.gc();
+
             try {
                 env.dispose();
             } catch (Exception x) {
                 x.printStackTrace();
             }
-
-            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-            System.gc();
             
             // restore defaultUseCache
             if(Functions.isWindows()) {
@@ -685,7 +685,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -Xmx512M -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
                         "-Djava.awt.headless=true",
@@ -1300,12 +1300,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * If this test harness is launched for a Jenkins plugin, locate the <tt>target/test-classes/the.jpl</tt>
+     * If this test harness is launched for a Jenkins plugin, locate the {@code target/test-classes/the.jpl}
      * and add a recipe to install that to the new Jenkins.
      *
      * <p>
-     * This file is created by <tt>maven-hpi-plugin</tt> at the testCompile phase when the current
-     * packaging is <tt>hpi</tt>.
+     * This file is created by {@code maven-hpi-plugin} at the testCompile phase when the current
+     * packaging is {@code hpi}.
      */
     protected void recipeLoadCurrentPlugin() throws Exception {
     	final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
@@ -1784,10 +1784,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
-        if (!Functions.isWindows()) {
+        if (Functions.isGlibcSupported()) {
             try {
-                PosixAPI.jnr().unsetenv("MAVEN_OPTS");
-                PosixAPI.jnr().unsetenv("MAVEN_DEBUG_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
             }

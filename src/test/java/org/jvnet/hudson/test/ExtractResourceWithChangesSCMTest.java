@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2009, Sun Microsystems, Inc.
+ * Copyright 2022 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,34 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jvnet.hudson.test.junit;
 
-import junit.framework.TestCase;
+package org.jvnet.hudson.test;
 
-/**
- * {@link TestCase} implementation that has already failed.
- * Used to represent a problem happened during a test suite construction.
- *
- * @author Kohsuke Kawaguchi
- */
-public class FailedTest extends TestCase {
-    /**
-     * The failure. If null, the test will succeed, despite the class name.
-     */
-    private final Throwable problem;
+import hudson.model.FreeStyleProject;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import static org.junit.Assert.assertEquals;
+import org.junit.Rule;
+import org.junit.Test;
 
-    public FailedTest(String name, Throwable problem) {
-        super(name);
-        this.problem = problem;
+public class ExtractResourceWithChangesSCMTest {
+
+    @Rule public JenkinsRule r = new JenkinsRule();
+
+    @Test public void smokes() throws Exception {
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.setScm(new ExtractResourceWithChangesSCM(
+            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/initial.zip"),
+            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/patch.zip")));
+        r.buildAndAssertSuccess(p);
+        assertEquals("[[dir/subdir/bottom, top]]", StreamSupport.stream(r.buildAndAssertSuccess(p).getChangeSet().spliterator(), false).map(entry -> entry.getAffectedPaths().stream().sorted().collect(Collectors.toList())).collect(Collectors.toList()).toString());
     }
 
-    public FailedTest(Class<?> name, Throwable problem) {
-        this(name.getName(),problem);
-    }
-
-    @Override
-    protected void runTest() throws Throwable {
-        if (problem!=null)
-            throw problem;
-    }
 }
