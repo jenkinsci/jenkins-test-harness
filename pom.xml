@@ -88,7 +88,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <version>2.323-rc31751.fdabb2223bda</version><!-- https://github.com/jenkinsci/jenkins/pull/5928 and https://github.com/jenkinsci/winstone/pull/174 -->
+      <version>2.338-rc32148.f12eee9c85e2</version><!-- https://github.com/jenkinsci/jenkins/pull/5928 and https://github.com/jenkinsci/winstone/pull/174 -->
       <type>executable-war</type>
       <!--
         To ensure consistent set of core artifacts are used, force the users to declare
