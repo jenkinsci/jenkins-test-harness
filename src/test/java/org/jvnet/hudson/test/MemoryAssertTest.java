@@ -54,8 +54,7 @@ public class MemoryAssertTest {
 
     @Test
     public void gc() {
-        // TODO JENKINS-67974 does not work on Java 9+
-        assumeTrue(new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
+        assumeTrue("TODO JENKINS-67974 does not work on Java 9+", new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));
