@@ -1148,7 +1148,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     // copy from ApiTokenStore#generateNewToken, version 2.138.4
     private String generateNewApiTokenValue() {
         byte[] random = new byte[16];
-        new SecureRandom().nextBytes(random);
+        RANDOM.nextBytes(random);
         String secretValue = Util.toHexString(random);
         // 11 is the version for the new API Token system
         return 11 + secretValue;
@@ -2913,6 +2913,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
     public static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
