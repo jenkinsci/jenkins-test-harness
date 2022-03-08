@@ -87,11 +87,13 @@ public @interface LocalData {
     String value() default "";
 
     class RunnerImpl extends Recipe.Runner<LocalData> {
+        @Override
         public void setup(HudsonTestCase testCase, LocalData recipe) throws Exception {
             testCase.with(new Local(testCase.getClass().getMethod(testCase.getName()), recipe.value()));
         }
     }
     class RuleRunnerImpl extends JenkinsRecipe.Runner<LocalData> {
+        @Override
         public void setup(JenkinsRule jenkinsRule, LocalData recipe) throws Exception {
             Description desc = jenkinsRule.getTestDescription();
             jenkinsRule.with(new Local(desc.getTestClass().getMethod(desc.getMethodName()), recipe.value()));

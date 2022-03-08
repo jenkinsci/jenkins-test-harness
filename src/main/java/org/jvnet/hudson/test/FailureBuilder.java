@@ -43,6 +43,7 @@ public class FailureBuilder extends MockBuilder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
+        @Override
         public FailureBuilder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             return new FailureBuilder();
         }

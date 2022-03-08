@@ -43,6 +43,7 @@ public class UnstableBuilder extends MockBuilder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
+        @Override
         public UnstableBuilder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             return new UnstableBuilder();
         }

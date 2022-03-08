@@ -115,6 +115,7 @@ public class TemporaryDirectoryAllocator {
         tmpDirectories.clear();
 
         new Thread("Disposing "+base) {
+            @Override
             public void run() {
                 for (File dir : tbr)
                     try {

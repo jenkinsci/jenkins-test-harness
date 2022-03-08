@@ -67,9 +67,11 @@ public class JavaScriptDebugger implements Debugger {
         this.callStack.remove(frame);
     }
 
+    @Override
     public void handleCompilationDone(Context cx, DebuggableScript fnOrScript, String source) {
     }
 
+    @Override
     public DebugFrame getFrame(Context cx, DebuggableScript fnOrScript) {
         return new CallStackFrame(this,fnOrScript);
     }
@@ -77,6 +79,7 @@ public class JavaScriptDebugger implements Debugger {
     /**
      * Formats the current call stack into a human readable string.
      */
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
         synchronized (this) {

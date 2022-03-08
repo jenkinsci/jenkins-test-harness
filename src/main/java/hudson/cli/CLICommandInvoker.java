@@ -298,6 +298,7 @@ public class CLICommandInvoker {
             description.appendText(result.toString());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText(this.description);
         }
