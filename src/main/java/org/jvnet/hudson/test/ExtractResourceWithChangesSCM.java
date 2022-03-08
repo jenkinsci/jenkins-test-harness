@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -94,7 +95,7 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
                     changeLog.addFile(new ExtractChangeLogParser.FileInZip(e.getName()));
             }
         }
-        saveToChangeLog(changeLogFile, changeLog);
+        saveToChangeLog(changeLogFile, build.getCharset(), changeLog);
 
         return true;
     }
@@ -104,8 +105,16 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         return new ExtractChangeLogParser();
     }
 
+    /**
+     * @deprecated use {@link #saveToChangeLog(File, Charset, ExtractChangeLogParser.ExtractChangeLogEntry)}
+     */
+    @Deprecated
     public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
-        try (PrintStream ps = new PrintStream(changeLogFile)) {
+        saveToChangeLog(changeLogFile, Charset.defaultCharset(), changeLog);
+    }
+
+    public void saveToChangeLog(File changeLogFile, Charset charset, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
+        try (PrintStream ps = new PrintStream(changeLogFile, charset.name())) {
             ps.println(changeLog.getZipFile());
             for (String fileName : changeLog.getAffectedPaths()) {
                 ps.println(fileName);

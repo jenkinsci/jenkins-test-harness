@@ -146,6 +146,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
@@ -1244,7 +1245,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at " + getURL());
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -1261,7 +1262,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * from an browser, while developing a test case.
      */
     public void pause() throws IOException {
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -2707,7 +2708,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since 2.32
          */
         public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
-            String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
+            String authCode = Base64.getEncoder().encodeToString((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8));
 
             addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
             return this;
