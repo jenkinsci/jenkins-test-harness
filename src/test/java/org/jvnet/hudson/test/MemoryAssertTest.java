@@ -25,8 +25,14 @@
 package org.jvnet.hudson.test;
 
 import java.lang.ref.WeakReference;
+import static org.junit.Assume.assumeTrue;
 import static org.jvnet.hudson.test.MemoryAssert.*;
 import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import hudson.util.VersionNumber;
 import org.junit.Test;
 
 public class MemoryAssertTest {
@@ -46,4 +52,22 @@ public class MemoryAssertTest {
         assertTrue(e.toString(), e.getMessage().contains("3000"));
     }
 
+    @Test
+    public void gc() {
+        // TODO JENKINS-67974 does not work on Java 9+
+        assumeTrue(new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
+        List<String> strings = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            strings.add(Integer.toString(i));
+        }
+        WeakReference<List<String>> ref = new WeakReference<>(strings);
+        AssertionError actual = assertThrows(AssertionError.class, () -> assertGC(ref, false));
+        assertEquals(
+                "Apparent soft references to ["
+                        + IntStream.range(0, strings.size())
+                                .mapToObj(Integer::toString)
+                                .collect(Collectors.joining(", "))
+                        + "]: {}; apparent weak references: {}",
+                actual.getMessage());
+    }
 }
