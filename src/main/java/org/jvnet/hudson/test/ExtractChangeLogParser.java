@@ -62,7 +62,7 @@ public class ExtractChangeLogParser extends ChangeLogParser {
 
     @SuppressWarnings("rawtypes")
     public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(changeLogStream))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(changeLogStream, build.getCharset()))) {
             ExtractChangeLogEntry entry = new ExtractChangeLogEntry(br.readLine());
             String fileName;
             while ((fileName = br.readLine()) != null) {

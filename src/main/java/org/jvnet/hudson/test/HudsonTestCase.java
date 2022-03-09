@@ -126,6 +126,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -740,7 +741,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at http://localhost:"+localPort+"/");
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -757,7 +758,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * from an browser, while developing a test case.
      */
     protected void pause() throws IOException {
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
