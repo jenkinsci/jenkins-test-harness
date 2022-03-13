@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.71</version>
+    <version>1.72</version>
     <relativePath />
   </parent>
 
@@ -65,8 +65,7 @@ THE SOFTWARE.
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
 
-    <!--TODO fix SpotBugs-->
-    <spotbugs.failOnError>false</spotbugs.failOnError>
+    <spotbugs.excludeFilterFile>${project.basedir}/src/spotbugs/excludesFilter.xml</spotbugs.excludeFilterFile>
   </properties>
 
   <dependencyManagement>
