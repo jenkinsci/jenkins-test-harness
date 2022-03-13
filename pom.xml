@@ -65,8 +65,7 @@ THE SOFTWARE.
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
 
-    <!--TODO fix SpotBugs-->
-    <spotbugs.failOnError>false</spotbugs.failOnError>
+    <spotbugs.excludeFilterFile>${project.basedir}/src/spotbugs/excludesFilter.xml</spotbugs.excludeFilterFile>
   </properties>
 
   <dependencyManagement>
