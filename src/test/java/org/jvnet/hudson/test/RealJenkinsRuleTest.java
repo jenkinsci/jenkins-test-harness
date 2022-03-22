@@ -31,7 +31,9 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.util.PluginServletFilter;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -40,6 +42,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
+import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -144,6 +147,19 @@ public class RealJenkinsRuleTest {
     }
     private static void _localData(JenkinsRule r) throws Throwable {
         assertThat(r.jenkins.getItems().stream().map(Item::getName).toArray(), arrayContainingInAnyOrder("x"));
+    }
+
+    @Test public void restart() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_restart1);
+        rr.then(RealJenkinsRuleTest::_restart2);
+    }
+    private static void _restart1(JenkinsRule r) throws Throwable {
+        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+        FileUtils.write(new File(r.jenkins.getRootDir(), "url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+    }
+    private static void _restart2(JenkinsRule r) throws Throwable {
+        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+        assertEquals(r.jenkins.getRootUrl(), FileUtils.readFileToString(new File(r.jenkins.getRootDir(), "url.txt"), StandardCharsets.UTF_8));
     }
 
     // TODO interesting scenarios to test:
