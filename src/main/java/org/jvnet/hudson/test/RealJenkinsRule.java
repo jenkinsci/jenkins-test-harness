@@ -442,6 +442,7 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
                 "-jar", findJenkinsWar().getAbsolutePath(),
+                "--enable-future-java",
                 "--httpPort=" + port,
                 "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));

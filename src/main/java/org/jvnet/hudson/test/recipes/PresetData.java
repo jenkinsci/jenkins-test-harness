@@ -70,11 +70,13 @@ public @interface PresetData {
     }
 
     class RunnerImpl extends Recipe.Runner<PresetData> {
+        @Override
         public void setup(HudsonTestCase testCase, PresetData recipe) {
             testCase.withPresetData(recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_','-'));
         }
     }
     class RuleRunnerImpl extends JenkinsRecipe.Runner<PresetData> {
+        @Override
         public void setup(JenkinsRule jenkinsRule, PresetData recipe) {
             jenkinsRule.withPresetData(recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_','-'));
         }

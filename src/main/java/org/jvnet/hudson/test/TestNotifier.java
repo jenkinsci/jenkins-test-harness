@@ -44,6 +44,7 @@ public abstract class TestNotifier extends Notifier {
         };
     }
 
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }

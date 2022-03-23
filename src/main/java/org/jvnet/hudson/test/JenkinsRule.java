@@ -146,6 +146,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
@@ -577,10 +578,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Backward compatibility with JUnit 4.8.
      */
+    @Override
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
         return apply(base,Description.createTestDescription(method.getMethod().getDeclaringClass(), method.getName(), method.getAnnotations()));
     }
 
+    @Override
     public Statement apply(final Statement base, final Description description) {
         if (description.getAnnotation(WithoutJenkins.class) != null) {
             // request has been made to not create the instance for this test method
@@ -664,14 +667,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     @SuppressWarnings("serial")
     public static class BreakException extends Exception {}
 
+    @Override
     public String getIconFileName() {
         return null;
     }
 
+    @Override
     public String getDisplayName() {
         return null;
     }
 
+    @Override
     public String getUrlName() {
         return "self";
     }
@@ -1143,7 +1149,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     // copy from ApiTokenStore#generateNewToken, version 2.138.4
     private String generateNewApiTokenValue() {
         byte[] random = new byte[16];
-        new SecureRandom().nextBytes(random);
+        RANDOM.nextBytes(random);
         String secretValue = Util.toHexString(random);
         // 11 is the version for the new API Token system
         return 11 + secretValue;
@@ -1239,7 +1245,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at " + getURL());
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -1256,7 +1262,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * from an browser, while developing a test case.
      */
     public void pause() throws IOException {
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -1644,6 +1650,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void assertHelpExists(final Class<? extends Describable> type, final String properties) throws Exception {
         executeOnServer(new Callable<Object>() {
+            @Override
             public Object call() throws Exception {
                 Descriptor d = jenkins.getDescriptor(type);
                 WebClient wc = createWebClient();
@@ -2003,6 +2010,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 final JenkinsRecipe.Runner runner = r.value().newInstance();
                 recipes.add(runner);
                 tearDowns.add(new LenientRunnable() {
+                    @Override
                     public void run() throws Exception {
                         runner.tearDown(JenkinsRule.this,a);
                     }
@@ -2240,6 +2248,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = -76034615893907856L;
+                @Override
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
                 }
@@ -2280,11 +2289,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             if (javaScriptEngine instanceof JavaScriptEngine) {
                 ((JavaScriptEngine) javaScriptEngine).getContextFactory()
                         .addListener(new ContextFactory.Listener() {
+                            @Override
                             public void contextCreated(Context cx) {
                                 if (cx.getDebugger() == null)
                                     cx.setDebugger(jsDebugger, null);
                             }
 
+                            @Override
                             public void contextReleased(Context cx) {
                             }
                         });
@@ -2326,6 +2337,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see WebClientOptions#isJavaScriptEnabled()
          * @since 2.0
          */
+        @Override
         public boolean isJavaScriptEnabled() {
             return getOptions().isJavaScriptEnabled();
         }
@@ -2492,6 +2504,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
             cea.add(id,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         StaplerResponse rsp = Stapler.getCurrentResponse();
@@ -2695,7 +2708,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since 2.32
          */
         public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
-            String authCode = new String(Base64.getEncoder().encode((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8)));
+            String authCode = Base64.getEncoder().encodeToString((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8));
 
             addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
             return this;
@@ -2877,6 +2890,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         // prototype.js calls this method all the time, so ignore this warning.
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
+            @Override
             public boolean isLoggable(LogRecord record) {
                 return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
@@ -2900,6 +2914,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
     public static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.

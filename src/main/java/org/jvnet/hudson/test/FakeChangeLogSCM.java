@@ -119,6 +119,7 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
             return entries.isEmpty();
         }
 
+        @Override
         public Iterator<EntryImpl> iterator() {
             return entries.iterator();
         }

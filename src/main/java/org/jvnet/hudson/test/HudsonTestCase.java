@@ -126,6 +126,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -481,14 +482,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     @SuppressWarnings("serial")
     public static class BreakException extends Exception {}
 
+    @Override
     public String getIconFileName() {
         return null;
     }
 
+    @Override
     public String getDisplayName() {
         return null;
     }
 
+    @Override
     public String getUrlName() {
         return "self";
     }
@@ -737,7 +741,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at http://localhost:"+localPort+"/");
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -754,7 +758,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * from an browser, while developing a test case.
      */
     protected void pause() throws IOException {
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -1000,6 +1004,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void assertHelpExists(final Class<? extends Describable> type, final String properties) throws Exception {
         executeOnServer(new Callable<Object>() {
+            @Override
             public Object call() throws Exception {
                 Descriptor d = jenkins.getDescriptor(type);
                 WebClient wc = createWebClient();
@@ -1288,6 +1293,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 final Runner runner = r.value().newInstance();
                 recipes.add(runner);
                 tearDowns.add(new LenientRunnable() {
+                    @Override
                     public void run() throws Exception {
                         runner.tearDown(HudsonTestCase.this,a);
                     }
@@ -1406,6 +1412,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = 6730107519583349963L;
+                @Override
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
                 }
@@ -1446,17 +1453,20 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             if (javaScriptEngine instanceof JavaScriptEngine) {
                 ((JavaScriptEngine) javaScriptEngine).getContextFactory()
                                                      .addListener(new ContextFactory.Listener() {
+                                                         @Override
                                                          public void contextCreated(Context cx) {
                                                              if (cx.getDebugger() == null)
                                                                  cx.setDebugger(jsDebugger, null);
                                                          }
 
+                                                         @Override
                                                          public void contextReleased(Context cx) {
                                                          }
                                                      });
             }
 
             setAlertHandler(new AlertHandler() {
+                @Override
                 public void handleAlert(Page page, String message) {
                     throw new AssertionError("Alert dialog popped up: "+message);
                 }
@@ -1520,6 +1530,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
             cea.add(id,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         StaplerResponse rsp = Stapler.getCurrentResponse();
@@ -1761,6 +1772,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         // prototype.js calls this method all the time, so ignore this warning.
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
+            @Override
             public boolean isLoggable(LogRecord record) {
                 return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }

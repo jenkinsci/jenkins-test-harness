@@ -33,8 +33,12 @@ import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -139,13 +143,32 @@ public class CLICommandInvoker {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-        final int returnCode = command.main(
-                args, locale, stdin, new PrintStream(out), new PrintStream(err)
-        );
+        final Charset outCharset;
+        final Charset errCharset;
+        try {
+            outCharset = errCharset = command.getClientCharset();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        final int returnCode;
+        try {
+            returnCode =
+                    command.main(
+                            args,
+                            locale,
+                            stdin,
+                            new PrintStream(out, false, outCharset.name()),
+                            new PrintStream(err, false, errCharset.name()));
+        } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+        }
 
         restoreAuth();
 
-        return new Result(returnCode, out, err);
+        return new Result(returnCode, out, outCharset, err, errCharset);
     }
 
     private static class GrantPermissions extends AuthorizationStrategy {
@@ -232,17 +255,23 @@ public class CLICommandInvoker {
 
         private final int result;
         private final ByteArrayOutputStream out;
+        private final Charset outCharset;
         private final ByteArrayOutputStream err;
+        private final Charset errCharset;
 
         private Result(
                 final int result,
                 final ByteArrayOutputStream out,
-                final ByteArrayOutputStream err
+                final Charset outCharset,
+                final ByteArrayOutputStream err,
+                final Charset errCharset
         ) {
 
             this.result = result;
             this.out = out;
+            this.outCharset = outCharset;
             this.err = err;
+            this.errCharset = errCharset;
         }
 
         public int returnCode() {
@@ -252,7 +281,11 @@ public class CLICommandInvoker {
 
         public String stdout() {
 
-            return out.toString();
+            try {
+                return out.toString(outCharset.name());
+            } catch (UnsupportedEncodingException e) {
+                throw new AssertionError(e);
+            }
         }
 
         public byte[] stdoutBinary() {
@@ -261,7 +294,11 @@ public class CLICommandInvoker {
 
         public String stderr() {
 
-            return err.toString();
+            try {
+                return err.toString(errCharset.name());
+            } catch (UnsupportedEncodingException e) {
+                throw new AssertionError(e);
+            }
         }
 
         public byte[] stderrBinary() {
@@ -298,6 +335,7 @@ public class CLICommandInvoker {
             description.appendText(result.toString());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText(this.description);
         }

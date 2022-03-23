@@ -24,6 +24,7 @@ public class MockBuilder extends Builder {
         this.result = result;
     }
 
+    @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         listener.getLogger().println("Simulating a specific result code "+result);
         build.setResult(result);
@@ -37,6 +38,7 @@ public class MockBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
+        @Override
         public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }

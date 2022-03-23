@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.71</version>
+    <version>1.72</version>
     <relativePath />
   </parent>
 
@@ -56,6 +56,7 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
+    <jenkins.version>2.339</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jetty.version>9.4.45.v20220203</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
@@ -65,8 +66,7 @@ THE SOFTWARE.
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
 
-    <!--TODO fix SpotBugs-->
-    <spotbugs.failOnError>false</spotbugs.failOnError>
+    <spotbugs.excludeFilterFile>${project.basedir}/src/spotbugs/excludesFilter.xml</spotbugs.excludeFilterFile>
   </properties>
 
   <dependencyManagement>
@@ -88,7 +88,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-war</artifactId>
-      <version>2.339</version>
+      <version>${jenkins.version}</version>
       <type>executable-war</type>
       <!--
         To ensure consistent set of core artifacts are used, force the users to declare
@@ -105,7 +105,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>75.v279ef177dc2c</version>
+      <version>80.vb_46fe6f076c9</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -268,8 +268,7 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <!-- SUREFIRE-1588 workaround; too late for systemProperties: -->
-          <argLine>-Dfile.encoding=UTF-8 -Xmx256m -Djava.awt.headless=true -Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+          <argLine>-Xmx256m -Djava.awt.headless=true</argLine>
           <systemPropertyVariables>
             <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
             <buildDirectory>${project.build.directory}</buildDirectory>
