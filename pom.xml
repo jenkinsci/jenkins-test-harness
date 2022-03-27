@@ -38,7 +38,7 @@ THE SOFTWARE.
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
-  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}</url>
 
   <licenses>
     <license>
@@ -48,10 +48,10 @@ THE SOFTWARE.
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <tag>${scmTag}</tag>
-    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+    <url>https://github.com/${gitHubRepo}</url>
   </scm>
 
   <properties>
@@ -62,6 +62,7 @@ THE SOFTWARE.
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.34</jmh.version>
     <java.level>8</java.level>
+    <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
