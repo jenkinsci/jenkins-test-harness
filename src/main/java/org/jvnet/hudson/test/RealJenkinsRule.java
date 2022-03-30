@@ -280,7 +280,7 @@ public final class RealJenkinsRule implements TestRule {
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
 
-                    if (skipAllPlugins) {
+                    if (!skipAllPlugins) {
                         // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
                         Set<String> snapshotPlugins = new TreeSet<>();
                         Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
