@@ -361,6 +361,31 @@ THE SOFTWARE.
         <surefire.rerunFailingTestsCount>4</surefire.rerunFailingTestsCount>
       </properties>
     </profile>
+    <profile>
+      <id>resource-constrained</id>
+      <activation>
+        <jdk>[9,)</jdk>
+        <os>
+          <family>Windows</family>
+        </os>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- TODO hangs on CI on Windows for inscrutable reasons -->
+              <excludes>
+                <exclude>org.jvnet.hudson.test.MemoryAssertTest</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
 </project>
