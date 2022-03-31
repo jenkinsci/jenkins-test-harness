@@ -178,7 +178,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE126</version>
+      <version>RELEASE130</version>
     </dependency>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
@@ -269,7 +269,7 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <argLine>-Xmx256m -Djava.awt.headless=true</argLine>
+          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook}</argLine>
           <systemPropertyVariables>
             <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
             <buildDirectory>${project.build.directory}</buildDirectory>
@@ -321,6 +321,24 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
+      <id>jdk-9-and-above</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <properties>
+        <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
+      </properties>
+    </profile>
+    <profile>
+      <id>jdk-8-and-below</id>
+      <activation>
+        <jdk>(,1.8]</jdk>
+      </activation>
+      <properties>
+        <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
+      </properties>
+    </profile>
+    <profile>
       <id>skip-tests-on-release</id>
       <activation>
         <property>
@@ -342,6 +360,31 @@ THE SOFTWARE.
       <properties>
         <surefire.rerunFailingTestsCount>4</surefire.rerunFailingTestsCount>
       </properties>
+    </profile>
+    <profile>
+      <id>resource-constrained</id>
+      <activation>
+        <jdk>[9,)</jdk>
+        <os>
+          <family>Windows</family>
+        </os>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- TODO hangs on CI on Windows for inscrutable reasons -->
+              <excludes>
+                <exclude>org.jvnet.hudson.test.MemoryAssertTest</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 

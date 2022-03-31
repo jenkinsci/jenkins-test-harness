@@ -25,23 +25,17 @@
 package org.jvnet.hudson.test;
 
 import java.lang.ref.WeakReference;
-import static org.junit.Assume.assumeTrue;
 import static org.jvnet.hudson.test.MemoryAssert.*;
 import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import hudson.util.VersionNumber;
 import org.junit.Test;
 
 public class MemoryAssertTest {
 
     @Test public void heapUsage() throws Exception {
-        assumeTrue(
-                "TODO JENKINS-68019 does not work on Java 17+",
-                new VersionNumber(System.getProperty("java.specification.version"))
-                        .isOlderThan(new VersionNumber("17")));
         Object[] biggie = new Object[1000];
         assertHeapUsage(biggie, 4016);
         assertHeapUsage(new WeakReference<Object>(biggie), 56);
@@ -58,7 +52,6 @@ public class MemoryAssertTest {
 
     @Test
     public void gc() {
-        assumeTrue("TODO JENKINS-67974 does not work on Java 9+", new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));
