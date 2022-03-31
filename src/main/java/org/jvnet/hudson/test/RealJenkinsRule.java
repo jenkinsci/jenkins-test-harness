@@ -430,12 +430,7 @@ public final class RealJenkinsRule implements TestRule {
         return home;
     }
 
-    private File findJenkinsWar() throws Exception {
-        // First take the war from rule
-        if (war != null) {
-            return war;
-        }
-
+    private static File findJenkinsWar() throws Exception {
         // Adapted from WarExploder.explode
 
         // Are we in Jenkins core? If so, pick up "war/target/jenkins.war".
@@ -471,8 +466,11 @@ public final class RealJenkinsRule implements TestRule {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
         argv.addAll(javaOptions);
+
+        String warAbsolutePath = war == null ? findJenkinsWar().getAbsolutePath() : war.getAbsolutePath();
+
         argv.addAll(Arrays.asList(
-                "-jar", findJenkinsWar().getAbsolutePath(),
+                "-jar", warAbsolutePath,
                 "--enable-future-java",
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
