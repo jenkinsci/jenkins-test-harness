@@ -144,15 +144,9 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
-    /**
-     * The war file to be used instead of the one in the path or war/target/jenkins.war if it is core build.
-     */
     private File war;
 
-    /**
-     * If true, all plugins from pom will be skipped. Extra plugins are not ignored.
-     */
-    private boolean skipAllPlugins = false;
+    private boolean includeTestClasspathPlugins = true;
 
     private final String token = UUID.randomUUID().toString();
 
@@ -259,8 +253,15 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
-    public RealJenkinsRule skipAllPlugins(boolean skipAllPlugins) {
-        this.skipAllPlugins = skipAllPlugins;
+    /**
+     * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
+     * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
+     * plugin's src/test/java
+     * Default value: true
+     * @param includeTestClasspathPlugins false if plugins from pom should not be used
+     */
+    public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
+        this.includeTestClasspathPlugins = includeTestClasspathPlugins;
         return this;
     }
 
@@ -280,7 +281,7 @@ public final class RealJenkinsRule implements TestRule {
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
 
-                    if (skipAllPlugins) {
+                    if (includeTestClasspathPlugins) {
                         // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
                         Set<String> snapshotPlugins = new TreeSet<>();
                         Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
