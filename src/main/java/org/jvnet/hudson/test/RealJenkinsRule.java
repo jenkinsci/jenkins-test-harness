@@ -246,10 +246,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param war The war file to be used.
      */
     public RealJenkinsRule withWar(File war) {
-        if (war != null && war.isFile()) {
-            this.war = war;
-        }
-
+        this.war = war;
         return this;
     }
 
