@@ -155,8 +155,12 @@ public class MemoryAssert {
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
      */
-    @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE_OF_NULL", "DM_GC"})
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
+        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        assumeTrue(
+                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
+                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<>();
@@ -168,11 +172,6 @@ public class MemoryAssert {
                 size *= 1.3;
             } catch (OutOfMemoryError ignore) {
                 if (softErr != null) {
-                    VersionNumber javaVersion =
-                            new VersionNumber(System.getProperty("java.specification.version"));
-                    assumeTrue(
-                            "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
-                            javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
                     fail(softErr);
                 } else {
                     break;
