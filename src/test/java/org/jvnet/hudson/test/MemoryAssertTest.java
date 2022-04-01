@@ -25,12 +25,14 @@
 package org.jvnet.hudson.test;
 
 import java.lang.ref.WeakReference;
+import static org.junit.Assume.assumeTrue;
 import static org.jvnet.hudson.test.MemoryAssert.*;
 import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import hudson.util.VersionNumber;
 import org.junit.Test;
 
 public class MemoryAssertTest {
@@ -52,6 +54,10 @@ public class MemoryAssertTest {
 
     @Test
     public void gc() {
+        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        assumeTrue(
+                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
+                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));
