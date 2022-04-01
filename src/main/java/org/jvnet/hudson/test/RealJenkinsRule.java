@@ -242,8 +242,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Sets a custom war file to be used by the rule instead of the one in the path or war/target/jenkins.war in case of core.
-     * @param war The war file to be used.
+     * Sets a custom WAR file to be used by the rule instead of the one in the path or {@code war/target/jenkins.war} in case of core.
      */
     public RealJenkinsRule withWar(File war) {
         this.war = war;
@@ -254,8 +253,7 @@ public final class RealJenkinsRule implements TestRule {
      * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
      * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
      * plugin's src/test/java
-     * Default value: true
-     * @param includeTestClasspathPlugins false if plugins from pom should not be used
+     * @param includeTestClasspathPlugins false if plugins from pom should not be used (default true)
      */
     public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
         this.includeTestClasspathPlugins = includeTestClasspathPlugins;
