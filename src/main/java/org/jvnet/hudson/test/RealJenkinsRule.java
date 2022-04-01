@@ -144,6 +144,10 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
+    private File war;
+
+    private boolean includeTestClasspathPlugins = true;
+
     private final String token = UUID.randomUUID().toString();
 
     private final Set<String> extraPlugins = new TreeSet<>();
@@ -237,6 +241,25 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Sets a custom WAR file to be used by the rule instead of the one in the path or {@code war/target/jenkins.war} in case of core.
+     */
+    public RealJenkinsRule withWar(File war) {
+        this.war = war;
+        return this;
+    }
+
+    /**
+     * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
+     * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
+     * plugin's src/test/java
+     * @param includeTestClasspathPlugins false if plugins from pom should not be used (default true)
+     */
+    public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
+        this.includeTestClasspathPlugins = includeTestClasspathPlugins;
+        return this;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -252,67 +275,70 @@ public final class RealJenkinsRule implements TestRule {
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
-                    // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
-                    Set<String> snapshotPlugins = new TreeSet<>();
-                    Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
-                    while (indexJellies.hasMoreElements()) {
-                        String indexJelly = indexJellies.nextElement().toString();
-                        Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
-                        if (m.matches()) {
-                            Path snapshotManifest;
-                            snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
-                            if (!Files.exists(snapshotManifest)) {
-                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
-                            }
-                            if (Files.exists(snapshotManifest)) {
-                                String shortName;
-                                try (InputStream is = Files.newInputStream(snapshotManifest)) {
-                                    shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
+
+                    if (includeTestClasspathPlugins) {
+                        // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
+                        Set<String> snapshotPlugins = new TreeSet<>();
+                        Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+                        while (indexJellies.hasMoreElements()) {
+                            String indexJelly = indexJellies.nextElement().toString();
+                            Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
+                            if (m.matches()) {
+                                Path snapshotManifest;
+                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
+                                if (!Files.exists(snapshotManifest)) {
+                                    snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
                                 }
-                                if (shortName == null) {
-                                    throw new IOException("malformed " + snapshotManifest);
-                                }
-                                if (skippedPlugins.contains(shortName)) {
-                                    continue;
-                                }
-                                // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
-                                Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
-                                snapshotPlugins.add(shortName);
-                            } else {
-                                System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
-                            }
-                        } else {
-                            // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
-                        }
-                    }
-                    URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
-                    if (index != null) {
-                        try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
-                            String line;
-                            while ((line = r.readLine()) != null) {
-                                if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
-                                    continue;
-                                }
-                                final URL url = new URL(index, line + ".jpi");
-                                File f;
-                                try {
-                                    f = new File(url.toURI());
-                                } catch (IllegalArgumentException x) {
-                                    if (x.getMessage().equals("URI is not hierarchical")) {
-                                        throw new IOException(
-                                                "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                " you are running this in your IDE and see this message, it is likely" +
-                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                "from the command line (once only), which will copy the required plugins " +
-                                                "into target/test-classes/test-dependencies - then retry your test", x);
-                                    } else {
-                                        throw new IOException(index + " contains bogus line " + line, x);
+                                if (Files.exists(snapshotManifest)) {
+                                    String shortName;
+                                    try (InputStream is = Files.newInputStream(snapshotManifest)) {
+                                        shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
                                     }
-                                }
-                                if (f.exists()) {
-                                    FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    if (shortName == null) {
+                                        throw new IOException("malformed " + snapshotManifest);
+                                    }
+                                    if (skippedPlugins.contains(shortName)) {
+                                        continue;
+                                    }
+                                    // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                                    Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
+                                    snapshotPlugins.add(shortName);
                                 } else {
-                                    FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                                }
+                            } else {
+                                // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
+                            }
+                        }
+                        URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
+                        if (index != null) {
+                            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                                String line;
+                                while ((line = r.readLine()) != null) {
+                                    if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
+                                        continue;
+                                    }
+                                    final URL url = new URL(index, line + ".jpi");
+                                    File f;
+                                    try {
+                                        f = new File(url.toURI());
+                                    } catch (IllegalArgumentException x) {
+                                        if (x.getMessage().equals("URI is not hierarchical")) {
+                                            throw new IOException(
+                                                    "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                                            " you are running this in your IDE and see this message, it is likely" +
+                                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                                            "from the command line (once only), which will copy the required plugins " +
+                                                            "into target/test-classes/test-dependencies - then retry your test", x);
+                                        } else {
+                                            throw new IOException(index + " contains bogus line " + line, x);
+                                        }
+                                    }
+                                    if (f.exists()) {
+                                        FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    } else {
+                                        FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    }
                                 }
                             }
                         }
@@ -435,8 +461,11 @@ public final class RealJenkinsRule implements TestRule {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
         argv.addAll(javaOptions);
+
+        String warAbsolutePath = war == null ? findJenkinsWar().getAbsolutePath() : war.getAbsolutePath();
+
         argv.addAll(Arrays.asList(
-                "-jar", findJenkinsWar().getAbsolutePath(),
+                "-jar", warAbsolutePath,
                 "--enable-future-java",
                 "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
