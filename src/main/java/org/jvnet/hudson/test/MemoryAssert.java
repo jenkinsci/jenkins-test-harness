@@ -155,7 +155,7 @@ public class MemoryAssert {
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
      */
-    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
+    @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE_OF_NULL", "DM_GC"})
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
