@@ -61,7 +61,6 @@ THE SOFTWARE.
     <jetty.version>9.4.46.v20220331</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.35</jmh.version>
-    <java.level>8</java.level>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
