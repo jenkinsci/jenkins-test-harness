@@ -58,7 +58,7 @@ THE SOFTWARE.
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.204</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.45.v20220203</jetty.version>
+    <jetty.version>9.4.46.v20220331</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.35</jmh.version>
     <java.level>8</java.level>
