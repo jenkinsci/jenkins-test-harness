@@ -544,7 +544,18 @@ public final class RealJenkinsRule implements TestRule {
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
-        Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        Throwable error;
+        try {
+            error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        } catch (IOException e) {
+            try {
+                String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+                e.addSuppressed(new IOException("Response body: " + errorMessage));
+            } catch (IOException e2) {
+                e.addSuppressed(e2);
+            }
+            error = e;
+        }
         if (error != null) {
             throw error;
         }
