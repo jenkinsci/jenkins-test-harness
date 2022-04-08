@@ -553,11 +553,13 @@ public final class RealJenkinsRule implements TestRule {
         try {
             error = (Throwable) Init2.readSer(conn.getInputStream(), null);
         } catch (IOException e) {
-            try {
-                String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
-                e.addSuppressed(new IOException("Response body: " + errorMessage));
-            } catch (IOException e2) {
-                e.addSuppressed(e2);
+            if (conn.getErrorStream() != null) {
+                try {
+                    String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+                    e.addSuppressed(new IOException("Response body: " + errorMessage));
+                } catch (IOException e2) {
+                    e.addSuppressed(e2);
+                }
             }
             error = e;
         }
