@@ -29,6 +29,8 @@ import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
+import hudson.util.DaemonThreadFactory;
+import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
 import java.io.File;
@@ -62,6 +64,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
@@ -657,16 +662,30 @@ public final class RealJenkinsRule implements TestRule {
             System.err.println("Checking status");
             checkToken(token);
         }
+        /**
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler.getCurrentRequest}
+         * does not inadvertently interact with the request for {@link #doStep} itself.
+         */
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
+                new NamingThreadFactory(new DaemonThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken((String) tokenAndStep.get(0));
             Step s = (Step) tokenAndStep.get(1);
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                s.run(rule);
-            } catch (Throwable t) {
-                err = t;
+            try {
+                STEP_RUNNER.submit(() -> {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                        s.run(rule);
+                    } catch (Throwable t) {
+                        throw new RuntimeException(t);
+                    }
+                }).get();
+            } catch (ExecutionException e) {
+                err = e.getCause().getCause();
+            } catch (InterruptedException e) {
+                err = e;
             }
             // TODO use raw err if it seems safe enough
             Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
