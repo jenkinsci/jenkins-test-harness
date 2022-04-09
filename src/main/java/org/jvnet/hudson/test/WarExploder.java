@@ -79,6 +79,7 @@ public final class WarExploder {
             } else {
                 // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+                // This code handles filesystem structure like ".../jenkins-core/x.y.z/jenkins-core-x.y.z.jar"
                 String version = core.getParentFile().getName();
                 if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
                     war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
@@ -87,7 +88,37 @@ public final class WarExploder {
                     }
                     LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
                 } else {
-                    throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                    // This code handles filesystem structure like ".../jenkins-core/x.y.z/longhexhash/jenkins-core-x.y.z.jar" where "longhexhash" is e.g. sha1sum of the one stored file
+                    version = core.getParentFile().getParentFile().getName();
+                    if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getParentFile().getName().equals("jenkins-core")) {
+                        // This code handles filesystem structure like ".../jenkins-war/x.y.z/anotherlonghexhash/jenkins-war-x.y.z.war" with initially unknown "anotherlonghexhash" value
+                        File warVerDir = new File(new File(core.getParentFile().getParentFile().getParentFile().getParentFile(), "jenkins-war"), version);
+                        if (warVerDir == null || !warVerDir.isDirectory() || !warVerDir.canRead()) {
+                            throw new AssertionError(warVerDir + " directory does not yet exist or is not readable. Prime your development environment by running `mvn validate`.");
+                        }
+                        // First try the directory itself, just in case it holds the file directly
+                        war = new File(warVerDir, "jenkins-war-" + version + ".war");
+                        if (!war.isFile()) {
+                            // Walk immediate subdirectories (one or more "longhexhash" entries for files related to the release)
+                            LOGGER.log(Level.FINE, "Searching directory {0} ... ", warVerDir.getAbsoluteFile());
+                            File[] files = warVerDir.listFiles();
+                            if (files != null) {
+                                for (File warVerHexDir : files) {
+                                    if (warVerHexDir == null || !warVerHexDir.isDirectory() || !warVerHexDir.canRead())
+                                        continue;
+                                    war = new File(warVerHexDir, "jenkins-war-" + version + ".war");
+                                    if (war.isFile())
+                                        break;
+                                }
+                            }
+                        }
+                        if (!war.isFile()) {
+                            throw new AssertionError("jenkins-war-" + version + ".war does not yet exist under " + warVerDir + ". Prime your development environment by running `mvn validate`.");
+                        }
+                        LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
+                    } else {
+                        throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                    }
                 }
             }
         }
