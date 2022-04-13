@@ -2277,9 +2277,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
                 private boolean ignore(final CSSParseException exception) {
                     String uri = exception.getURI();
+                    if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.343"))) {
+                        return uri.contains("/yui/");
+                    }
                     return uri.contains("/yui/")
-                        // TODO JENKINS-14749: these are a mess today, and we know that
-                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
+                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
                 }
             });
 
