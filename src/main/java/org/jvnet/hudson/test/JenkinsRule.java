@@ -2277,7 +2277,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
                 private boolean ignore(final CSSParseException exception) {
                     String uri = exception.getURI();
-                    if (Jenkins.getVersion().isNewerThan(new VersionNumber("2.343"))) {
+                    VersionNumber coreVersion = Jenkins.getVersion();
+                    if (coreVersion != null && coreVersion.isNewerThan(new VersionNumber("2.343"))) {
                         return uri.contains("/yui/");
                     }
                     return uri.contains("/yui/")
