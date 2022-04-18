@@ -29,6 +29,7 @@ import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
+import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
 import java.io.File;
@@ -62,6 +63,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
@@ -89,6 +94,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
@@ -544,7 +550,20 @@ public final class RealJenkinsRule implements TestRule {
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
-        Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        Throwable error;
+        try {
+            error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        } catch (IOException e) {
+            if (conn.getErrorStream() != null) {
+                try {
+                    String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+                    e.addSuppressed(new IOException("Response body: " + errorMessage));
+                } catch (IOException e2) {
+                    e.addSuppressed(e2);
+                }
+            }
+            throw e;
+        }
         if (error != null) {
             throw error;
         }
@@ -646,16 +665,31 @@ public final class RealJenkinsRule implements TestRule {
             System.err.println("Checking status");
             checkToken(token);
         }
+        /**
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
+         * does not inadvertently interact with the request for {@link #doStep} itself.
+         */
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
+                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken((String) tokenAndStep.get(0));
             Step s = (Step) tokenAndStep.get(1);
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                s.run(rule);
-            } catch (Throwable t) {
-                err = t;
+            try {
+                STEP_RUNNER.submit(() -> {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                        s.run(rule);
+                    } catch (Throwable t) {
+                        throw new RuntimeException(t);
+                    }
+                }).get();
+            } catch (ExecutionException e) {
+                // Unwrap once for ExecutionException and once for RuntimeException:
+                err = e.getCause().getCause();
+            } catch (CancellationException | InterruptedException e) {
+                err = e;
             }
             // TODO use raw err if it seems safe enough
             Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
