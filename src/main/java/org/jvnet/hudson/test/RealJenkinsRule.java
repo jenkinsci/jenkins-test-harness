@@ -29,7 +29,6 @@ import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
-import hudson.util.DaemonThreadFactory;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
@@ -64,6 +63,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -94,6 +94,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
@@ -561,7 +562,7 @@ public final class RealJenkinsRule implements TestRule {
                     e.addSuppressed(e2);
                 }
             }
-            error = e;
+            throw e;
         }
         if (error != null) {
             throw error;
@@ -665,11 +666,11 @@ public final class RealJenkinsRule implements TestRule {
             checkToken(token);
         }
         /**
-         * Used to run test methods on a separate thread so that code that uses {@link Stapler.getCurrentRequest}
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
          * does not inadvertently interact with the request for {@link #doStep} itself.
          */
         private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
-                new NamingThreadFactory(new DaemonThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
+                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
@@ -685,8 +686,9 @@ public final class RealJenkinsRule implements TestRule {
                     }
                 }).get();
             } catch (ExecutionException e) {
+                // Unwrap once for ExecutionException and once for RuntimeException:
                 err = e.getCause().getCause();
-            } catch (InterruptedException e) {
+            } catch (CancellationException | InterruptedException e) {
                 err = e;
             }
             // TODO use raw err if it seems safe enough
