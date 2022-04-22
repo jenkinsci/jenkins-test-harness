@@ -1431,7 +1431,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Performs a configuration round-trip testing for a cloud.
      * The given cloud is added to the cloud list of Jenkins.
-     *
+     * <p>
      * If a cloud with the same name already exists, then this old one will be replaced by the given one.
      */
     public <C extends Cloud> C configRoundtrip(C cloud) throws Exception {
