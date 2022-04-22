@@ -105,6 +105,7 @@ import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.csrf.CrumbIssuer;
+import hudson.slaves.Cloud;
 import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.DumbSlave;
@@ -1424,6 +1425,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public <V extends View> V configRoundtrip(V view) throws Exception {
         submit(createWebClient().getPage(view, "configure").getFormByName("viewConfig"));
         return view;
+    }
+
+    public <C extends Cloud> C configRoundtrip (C cloud) throws Exception {
+        jenkins.clouds.add(cloud);
+        jenkins.save();
+        submit(createWebClient().goTo("configureClouds/").getFormByName("config"));
+        return (C)jenkins.getCloud(cloud.name);
     }
 
 
