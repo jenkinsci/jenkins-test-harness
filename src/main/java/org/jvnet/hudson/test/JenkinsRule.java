@@ -1427,7 +1427,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return view;
     }
 
-    public <C extends Cloud> C configRoundtrip (C cloud) throws Exception {
+    public <C extends Cloud> C configRoundtrip(C cloud) throws Exception {
         jenkins.clouds.add(cloud);
         jenkins.save();
         submit(createWebClient().goTo("configureClouds/").getFormByName("config"));
