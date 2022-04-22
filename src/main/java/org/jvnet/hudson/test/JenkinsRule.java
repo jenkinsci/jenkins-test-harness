@@ -181,6 +181,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
@@ -1427,7 +1428,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return view;
     }
 
+    /**
+     * Performs a configuration round-trip testing for a cloud.
+     * The given cloud is added to the cloud list of Jenkins.
+     *
+     * If a cloud with the same name already exists, then this old one will be replaced by the given one.
+     */
     public <C extends Cloud> C configRoundtrip(C cloud) throws Exception {
+        Cloud cloudConfig = jenkins.getCloud(cloud.name);
+        if (cloudConfig != null) {
+            jenkins.clouds.remove(cloudConfig);
+        }
         jenkins.clouds.add(cloud);
         jenkins.save();
         submit(createWebClient().goTo("configureClouds/").getFormByName("config"));
