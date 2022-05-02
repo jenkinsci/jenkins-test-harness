@@ -181,7 +181,6 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
@@ -939,6 +938,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * Creates and attaches a new outbound agent.
+     * @see InboundAgentRule
+     */
     @NonNull
     public DumbSlave createSlave() throws Exception {
         return createSlave("",null);
@@ -1043,8 +1046,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     @NonNull
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(nodeName, "dummy",
-    				createTmpDir().getPath(), "1", Node.Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env), RetentionStrategy.NOOP, Collections.EMPTY_LIST);                        
+            DumbSlave slave = new DumbSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), createComputerLauncher(env));
+            slave.setNumExecutors(1); // TODO pending 2.234+
+            if (labels != null) {
+                slave.setLabelString(labels);
+            }
+            slave.setRetentionStrategy(RetentionStrategy.NOOP);
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -1053,7 +1060,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave = new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
+            String nodeName = "slave" + sz;
+            PretendSlave slave = new PretendSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), "", createComputerLauncher(null), faker);
     		jenkins.addNode(slave);
     		return slave;
         }
@@ -1061,9 +1069,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Creates a launcher for starting a local agent.
-     *
+     * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
      *      Environment variables to add to the slave process. Can be {@code null}.
+     * @see InboundAgentRule
      */
     @NonNull
     public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
