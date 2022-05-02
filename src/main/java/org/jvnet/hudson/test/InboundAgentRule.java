@@ -35,7 +35,10 @@ import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
 import hudson.util.StreamCopyThread;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -74,7 +77,18 @@ public final class InboundAgentRule extends ExternalResource {
     @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
     public void start(@NonNull JenkinsRule r, String name) throws Exception {
         stop(name);
-        ProcessBuilder pb = new ProcessBuilder(JavaEnvUtils.getJreExecutable("java"), "-Djava.awt.headless=true", "-jar", Which.jarFile(Launcher.class).getAbsolutePath(), "-jnlpUrl", r.getURL() + "computer/" + name + "/slave-agent.jnlp");
+        List<String> cmd = new ArrayList<>(Arrays.asList(JavaEnvUtils.getJreExecutable("java"),
+            "-Xmx512m",
+            "-XX:+PrintCommandLineFlags",
+            "-Djava.awt.headless=true"));
+        if (JenkinsRule.SLAVE_DEBUG_PORT > 0) {
+            cmd.add("-Xdebug");
+            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + r.jenkins.getNodes().size() - 1));
+        }
+        cmd.addAll(Arrays.asList(
+            "-jar", Which.jarFile(Launcher.class).getAbsolutePath(),
+            "-jnlpUrl", r.getURL() + "computer/" + name + "/slave-agent.jnlp"));
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         System.err.println("Running: " + pb.command());
         Process proc = pb.start();
