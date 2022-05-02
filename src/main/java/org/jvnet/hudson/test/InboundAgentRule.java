@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Slave;
 import hudson.remoting.Launcher;
 import hudson.remoting.Which;
@@ -53,6 +54,7 @@ public final class InboundAgentRule extends ExternalResource {
      * Creates, attaches, and starts a new inbound agent.
      * @param name an optional {@link Slave#getNodeName}
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
     public Slave createAgent(@NonNull JenkinsRule r, @CheckForNull String name) throws Exception {
         if (name == null) {
             name = "agent" + r.jenkins.getNodes().size();
@@ -69,6 +71,7 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * (Re-)starts an existing inbound agent.
      */
+    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
     public void start(@NonNull JenkinsRule r, String name) throws Exception {
         stop(name);
         ProcessBuilder pb = new ProcessBuilder(JavaEnvUtils.getJreExecutable("java"), "-Djava.awt.headless=true", "-jar", Which.jarFile(Launcher.class).getAbsolutePath(), "-jnlpUrl", r.getURL() + "computer/" + name + "/slave-agent.jnlp");
