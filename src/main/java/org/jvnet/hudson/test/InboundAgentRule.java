@@ -64,7 +64,7 @@ public final class InboundAgentRule extends ExternalResource {
         }
         // TODO 2.216+ support WebSocket option
         DumbSlave s = new DumbSlave(name, new File(r.jenkins.getRootDir(), "agent-work-dirs/" + name).getAbsolutePath(), new JNLPLauncher(true));
-        s.setNumExecutors(1); // TODO pending 2.234+
+        s.setNumExecutors(1); // TODO 2.234+ delete (default switched from 2 to 1)
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
         start(r, name);
