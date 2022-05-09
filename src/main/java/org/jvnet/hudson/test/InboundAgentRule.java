@@ -28,8 +28,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Slave;
-import hudson.remoting.Launcher;
-import hudson.remoting.Which;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
@@ -40,6 +38,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
 
@@ -85,8 +84,12 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("-Xdebug");
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + r.jenkins.getNodes().size() - 1));
         }
+        File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
+        if (!agentJar.isFile()) {
+            FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
+        }
         cmd.addAll(Arrays.asList(
-            "-jar", Which.jarFile(Launcher.class).getAbsolutePath(),
+            "-jar", agentJar.getAbsolutePath(),
             "-jnlpUrl", r.getURL() + "computer/" + name + "/slave-agent.jnlp"));
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
