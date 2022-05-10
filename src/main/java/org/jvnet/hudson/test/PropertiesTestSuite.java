@@ -79,7 +79,7 @@ public class PropertiesTestSuite extends TestSuite {
                 }
             };
 
-            byte[] contents = IOUtils.toByteArray(resource.openStream());
+            byte[] contents = IOUtils.toByteArray(resource);
             if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
                 boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
                 boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
