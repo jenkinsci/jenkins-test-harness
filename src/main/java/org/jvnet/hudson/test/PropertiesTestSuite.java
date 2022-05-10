@@ -84,7 +84,7 @@ public class PropertiesTestSuite extends TestSuite {
                 boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
                 boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
                 if (isUtf8 && isIso88591) {
-                    throw new AssertionError(resource + " is encoded with both valid utf-8 and ISO-8859-1 characters, the utf-8 characters need to be encoded with something like `native2ascii`");
+                    throw new AssertionError(resource + " is valid UTF-8 and valid ISO-8859-1. To avoid problems when auto-detecting the encoding, use the lowest common denominator of ASCII encoding and express non-ASCII characters with escape sequences using a tool like `native2ascii`.");
                 }
             }
 
