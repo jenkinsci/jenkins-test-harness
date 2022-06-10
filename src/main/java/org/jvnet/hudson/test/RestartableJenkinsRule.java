@@ -1,5 +1,6 @@
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Closure;
 import hudson.PluginManager;
 import java.io.File;
@@ -49,6 +50,7 @@ import org.junit.runners.model.Statement;
  * @see JenkinsRule
  * @since 1.567
  */
+@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE", justification = "TODO needs triage")
 public class RestartableJenkinsRule implements MethodRule {
     public JenkinsRule j;
     private Description description;
