@@ -60,6 +60,7 @@ import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -264,7 +265,13 @@ import org.xml.sax.SAXException;
  * @since 1.436
  * @see RestartableJenkinsRule
  */
-@SuppressWarnings({"deprecation","rawtypes"})
+@SuppressFBWarnings(
+        value = {
+            "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+            "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"
+        },
+        justification = "TODO needs triage")
+@SuppressWarnings({"deprecation", "rawtypes"})
 public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     protected TestEnvironment env;

@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
@@ -131,6 +132,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>Possibly {@link ExtensionList#add(Object)} can be used as an alternative to {@link TestExtension}.
  * </ul>
  */
+@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE", justification = "TODO needs triage")
 public final class RealJenkinsRule implements TestRule {
 
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());

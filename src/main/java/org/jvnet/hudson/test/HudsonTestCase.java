@@ -51,6 +51,7 @@ import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
 import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -200,6 +201,7 @@ import org.xml.sax.SAXException;
  * @deprecated New code should use {@link JenkinsRule}.
  */
 @Deprecated
+@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
 @SuppressWarnings("rawtypes")
 public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
