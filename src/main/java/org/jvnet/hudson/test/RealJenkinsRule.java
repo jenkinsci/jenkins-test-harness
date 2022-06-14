@@ -443,7 +443,7 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(Arrays.asList(
                 "-jar", findJenkinsWar().getAbsolutePath(),
                 "--enable-future-java",
-                "--httpPort=" + port,
+                "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
         ProcessBuilder pb = new ProcessBuilder(argv);
