@@ -383,7 +383,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Like {@link JenkinsRule#getURL} but can be called even does not require Jenkins to have been started yet.
+     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
      */
     public URL getUrl() throws MalformedURLException {
         return new URL("http://" + host + ":" + port + "/jenkins/");
