@@ -30,6 +30,7 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.StreamCopyThread;
+import hudson.util.VersionNumber;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,6 +64,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
@@ -129,6 +131,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
 
+    private static final VersionNumber v2339 = new VersionNumber("2.339");
+
     private Description description;
 
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
@@ -162,6 +166,8 @@ public final class RealJenkinsRule implements TestRule {
     private String host = "localhost";
 
     private Process proc;
+
+    private File portFile;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -250,6 +256,9 @@ public final class RealJenkinsRule implements TestRule {
                     LocalData localData = description.getAnnotation(LocalData.class);
                     if (localData != null) {
                         new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
+                    }
+                    if (!supportsPortFileName(findJenkinsWar().getAbsolutePath())) {
+                        port = IOUtil.randomTcpPort();
                     }
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
@@ -425,23 +434,26 @@ public final class RealJenkinsRule implements TestRule {
         }
         String cp = System.getProperty("java.class.path");
         FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
-        File portFile = new File(home, "jenkins-port.txt");
         List<String> argv = new ArrayList<>(Arrays.asList(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
-                "-Dwinstone.portFileName=" + portFile,
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
-                "-DRealJenkinsRule.host=" + host,
-                "-DRealJenkinsRule.path=/jenkins/",
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
+        String war = findJenkinsWar().getAbsolutePath();
+        portFile = new File(home, "jenkins-port.txt");
+        portFile.deleteOnExit();
+
+        if (supportsPortFileName(war)) {
+            argv.add("-Dwinstone.portFileName=" + portFile);
+        }
         if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
         argv.addAll(javaOptions);
         argv.addAll(Arrays.asList(
-                "-jar", findJenkinsWar().getAbsolutePath(),
+                "-jar", war,
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=127.0.0.1",
@@ -463,10 +475,10 @@ public final class RealJenkinsRule implements TestRule {
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         int tries = 0;
         while (true) {
-            if (port != 0 || portFile.exists()) {
-                if (port == 0) {
-                    port = readPort(portFile);
-                }
+            if (port == 0 && portFile.exists()) {
+                port = readPort(portFile);
+            }
+            if (port != 0) {
                 try {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
@@ -507,6 +519,13 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    private static boolean supportsPortFileName(String war) throws IOException {
+        JarFile warFile = new JarFile(war);
+        String jenkinsVersion = warFile.getManifest().getMainAttributes().getValue("Jenkins-Version");
+        VersionNumber version = new VersionNumber(jenkinsVersion);
+        return version.compareTo(v2339) >= 0;
+    }
+
     private static int readPort(File portFile) throws IOException {
         String s = FileUtils.readFileToString(portFile, StandardCharsets.UTF_8);
         try {
@@ -534,7 +553,7 @@ public final class RealJenkinsRule implements TestRule {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
-        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
+        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s, getUrl()));
         Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
         if (error != null) {
             throw error;
@@ -639,11 +658,12 @@ public final class RealJenkinsRule implements TestRule {
         }
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
-            checkToken((String) tokenAndStep.get(0));
-            Step s = (Step) tokenAndStep.get(1);
+            List<?> parameters = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+            checkToken((String) parameters.get(0));
+            Step s = (Step) parameters.get(1);
+            URL url = (URL) parameters.get(2);
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+            try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 s.run(rule);
             } catch (Throwable t) {
                 err = t;
@@ -660,19 +680,20 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
+        private final URL url;
 
-        public CustomJenkinsRule() throws Exception {
+        public CustomJenkinsRule(URL url) throws Exception {
             this.jenkins = Jenkins.get();
+            this.url = url;
             jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
-            JenkinsLocationConfiguration.get().setUrl(getURL().toString());
+            JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
         }
 
         @Override public URL getURL() throws IOException {
-            int port = readPort(new File(System.getProperty("winstone.portFileName")));
-            return new URL("http://" + System.getProperty("RealJenkinsRule.host") + ":" + port + System.getProperty("RealJenkinsRule.path"));
+            return url;
         }
 
         @Override public void close() throws Exception {
