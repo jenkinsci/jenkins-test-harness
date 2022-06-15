@@ -183,6 +183,7 @@ public final class RealJenkinsRule implements TestRule {
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+    private transient boolean supportsPortFileName;
 
     /**
      * Add some plugins to the test classpath.
@@ -288,7 +289,11 @@ public final class RealJenkinsRule implements TestRule {
                     if (localData != null) {
                         new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
                     }
-                    if (!supportsPortFileName(getWarAbsolutePath())) {
+                    if (war == null) {
+                        war = findJenkinsWar();
+                    }
+                    supportsPortFileName = supportsPortFileName(war.getAbsolutePath());
+                    if (!supportsPortFileName) {
                         port = IOUtil.randomTcpPort();
                     }
                     File plugins = new File(home, "plugins");
@@ -476,11 +481,10 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
 
-        portFile = new File(home, "jenkins-port.txt");
-        portFile.deleteOnExit();
 
-        String warAbsolutePath = getWarAbsolutePath();
-        if (supportsPortFileName(warAbsolutePath)) {
+        if (supportsPortFileName) {
+            portFile = new File(home, "jenkins-port.txt");
+            portFile.deleteOnExit();
             argv.add("-Dwinstone.portFileName=" + portFile);
         }
         if (new DisableOnDebug(null).isDebugging()) {
@@ -490,7 +494,7 @@ public final class RealJenkinsRule implements TestRule {
 
 
         argv.addAll(Arrays.asList(
-                "-jar", warAbsolutePath,
+                "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=127.0.0.1",
@@ -512,7 +516,7 @@ public final class RealJenkinsRule implements TestRule {
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         int tries = 0;
         while (true) {
-            if (port == 0 && portFile.exists()) {
+            if (port == 0 && portFile != null && portFile.exists()) {
                 port = readPort(portFile);
             }
             if (port != 0) {
@@ -554,10 +558,6 @@ public final class RealJenkinsRule implements TestRule {
                 }
             }, timeout, TimeUnit.SECONDS);
         }
-    }
-
-    private String getWarAbsolutePath() throws Exception {
-        return war == null ? findJenkinsWar().getAbsolutePath() : war.getAbsolutePath();
     }
 
     private static boolean supportsPortFileName(String war) throws IOException {
