@@ -484,7 +484,6 @@ public final class RealJenkinsRule implements TestRule {
 
         if (supportsPortFileName) {
             portFile = new File(home, "jenkins-port.txt");
-            portFile.deleteOnExit();
             argv.add("-Dwinstone.portFileName=" + portFile);
         }
         if (new DisableOnDebug(null).isDebugging()) {
