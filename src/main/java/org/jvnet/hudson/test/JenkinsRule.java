@@ -60,6 +60,7 @@ import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -105,6 +106,7 @@ import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.csrf.CrumbIssuer;
+import hudson.slaves.Cloud;
 import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.DumbSlave;
@@ -263,7 +265,13 @@ import org.xml.sax.SAXException;
  * @since 1.436
  * @see RestartableJenkinsRule
  */
-@SuppressWarnings({"deprecation","rawtypes"})
+@SuppressFBWarnings(
+        value = {
+            "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+            "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"
+        },
+        justification = "TODO needs triage")
+@SuppressWarnings({"deprecation", "rawtypes"})
 public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     protected TestEnvironment env;
@@ -937,6 +945,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * Creates and attaches a new outbound agent.
+     * @see InboundAgentRule
+     */
     @NonNull
     public DumbSlave createSlave() throws Exception {
         return createSlave("",null);
@@ -1041,8 +1053,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     @NonNull
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(nodeName, "dummy",
-    				createTmpDir().getPath(), "1", Node.Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env), RetentionStrategy.NOOP, Collections.EMPTY_LIST);                        
+            DumbSlave slave = new DumbSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), createComputerLauncher(env));
+            slave.setNumExecutors(1); // TODO pending 2.234+
+            if (labels != null) {
+                slave.setLabelString(labels);
+            }
+            slave.setRetentionStrategy(RetentionStrategy.NOOP);
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -1051,7 +1067,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave = new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
+            String nodeName = "slave" + sz;
+            PretendSlave slave = new PretendSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), "", createComputerLauncher(null), faker);
     		jenkins.addNode(slave);
     		return slave;
         }
@@ -1059,15 +1076,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Creates a launcher for starting a local agent.
-     *
+     * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
      *      Environment variables to add to the slave process. Can be {@code null}.
+     * @see InboundAgentRule
      */
     @NonNull
     public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -Xmx512M -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
                         "-Djava.awt.headless=true",
@@ -1424,6 +1442,23 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public <V extends View> V configRoundtrip(V view) throws Exception {
         submit(createWebClient().getPage(view, "configure").getFormByName("viewConfig"));
         return view;
+    }
+
+    /**
+     * Performs a configuration round-trip testing for a cloud.
+     * The given cloud is added to the cloud list of Jenkins.
+     * <p>
+     * If a cloud with the same name already exists, then this old one will be replaced by the given one.
+     */
+    public <C extends Cloud> C configRoundtrip(C cloud) throws Exception {
+        Cloud cloudConfig = jenkins.getCloud(cloud.name);
+        if (cloudConfig != null) {
+            jenkins.clouds.remove(cloudConfig);
+        }
+        jenkins.clouds.add(cloud);
+        jenkins.save();
+        submit(createWebClient().goTo("configureClouds/").getFormByName("config"));
+        return (C)jenkins.getCloud(cloud.name);
     }
 
 
@@ -2277,9 +2312,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
                 private boolean ignore(final CSSParseException exception) {
                     String uri = exception.getURI();
+                    VersionNumber coreVersion = Jenkins.getVersion();
+                    if (coreVersion != null && coreVersion.isNewerThan(new VersionNumber("2.343"))) {
+                        return uri.contains("/yui/");
+                    }
                     return uri.contains("/yui/")
-                        // TODO JENKINS-14749: these are a mess today, and we know that
-                        || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
+                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
                 }
             });
 

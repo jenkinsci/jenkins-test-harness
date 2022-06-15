@@ -24,11 +24,13 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
+import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import hudson.util.VersionNumber;
 import java.io.BufferedReader;
@@ -63,6 +65,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
@@ -91,6 +97,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
@@ -127,6 +134,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>Possibly {@link ExtensionList#add(Object)} can be used as an alternative to {@link TestExtension}.
  * </ul>
  */
+@SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE", justification = "TODO needs triage")
 public final class RealJenkinsRule implements TestRule {
 
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
@@ -150,6 +158,10 @@ public final class RealJenkinsRule implements TestRule {
      * Like the home directory, this will be consistent across restarts.
      */
     private int port;
+
+    private File war;
+
+    private boolean includeTestClasspathPlugins = true;
 
     private final String token = UUID.randomUUID().toString();
 
@@ -246,6 +258,25 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Sets a custom WAR file to be used by the rule instead of the one in the path or {@code war/target/jenkins.war} in case of core.
+     */
+    public RealJenkinsRule withWar(File war) {
+        this.war = war;
+        return this;
+    }
+
+    /**
+     * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
+     * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
+     * plugin's src/test/java
+     * @param includeTestClasspathPlugins false if plugins from pom should not be used (default true)
+     */
+    public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
+        this.includeTestClasspathPlugins = includeTestClasspathPlugins;
+        return this;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -257,73 +288,76 @@ public final class RealJenkinsRule implements TestRule {
                     if (localData != null) {
                         new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
                     }
-                    if (!supportsPortFileName(findJenkinsWar().getAbsolutePath())) {
+                    if (!supportsPortFileName(getWarAbsolutePath())) {
                         port = IOUtil.randomTcpPort();
                     }
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
-                    // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
-                    Set<String> snapshotPlugins = new TreeSet<>();
-                    Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
-                    while (indexJellies.hasMoreElements()) {
-                        String indexJelly = indexJellies.nextElement().toString();
-                        Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
-                        if (m.matches()) {
-                            Path snapshotManifest;
-                            snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
-                            if (!Files.exists(snapshotManifest)) {
-                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
-                            }
-                            if (Files.exists(snapshotManifest)) {
-                                String shortName;
-                                try (InputStream is = Files.newInputStream(snapshotManifest)) {
-                                    shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
+
+                    if (includeTestClasspathPlugins) {
+                        // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
+                        Set<String> snapshotPlugins = new TreeSet<>();
+                        Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+                        while (indexJellies.hasMoreElements()) {
+                            String indexJelly = indexJellies.nextElement().toString();
+                            Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
+                            if (m.matches()) {
+                                Path snapshotManifest;
+                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
+                                if (!Files.exists(snapshotManifest)) {
+                                    snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
                                 }
-                                if (shortName == null) {
-                                    throw new IOException("malformed " + snapshotManifest);
-                                }
-                                if (skippedPlugins.contains(shortName)) {
-                                    continue;
-                                }
-                                // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
-                                Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
-                                snapshotPlugins.add(shortName);
-                            } else {
-                                System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
-                            }
-                        } else {
-                            // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
-                        }
-                    }
-                    URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
-                    if (index != null) {
-                        try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
-                            String line;
-                            while ((line = r.readLine()) != null) {
-                                if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
-                                    continue;
-                                }
-                                final URL url = new URL(index, line + ".jpi");
-                                File f;
-                                try {
-                                    f = new File(url.toURI());
-                                } catch (IllegalArgumentException x) {
-                                    if (x.getMessage().equals("URI is not hierarchical")) {
-                                        throw new IOException(
-                                                "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                " you are running this in your IDE and see this message, it is likely" +
-                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                "from the command line (once only), which will copy the required plugins " +
-                                                "into target/test-classes/test-dependencies - then retry your test", x);
-                                    } else {
-                                        throw new IOException(index + " contains bogus line " + line, x);
+                                if (Files.exists(snapshotManifest)) {
+                                    String shortName;
+                                    try (InputStream is = Files.newInputStream(snapshotManifest)) {
+                                        shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
                                     }
-                                }
-                                if (f.exists()) {
-                                    FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    if (shortName == null) {
+                                        throw new IOException("malformed " + snapshotManifest);
+                                    }
+                                    if (skippedPlugins.contains(shortName)) {
+                                        continue;
+                                    }
+                                    // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                                    Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
+                                    snapshotPlugins.add(shortName);
                                 } else {
-                                    FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                                }
+                            } else {
+                                // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
+                            }
+                        }
+                        URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
+                        if (index != null) {
+                            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                                String line;
+                                while ((line = r.readLine()) != null) {
+                                    if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
+                                        continue;
+                                    }
+                                    final URL url = new URL(index, line + ".jpi");
+                                    File f;
+                                    try {
+                                        f = new File(url.toURI());
+                                    } catch (IllegalArgumentException x) {
+                                        if (x.getMessage().equals("URI is not hierarchical")) {
+                                            throw new IOException(
+                                                    "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                                            " you are running this in your IDE and see this message, it is likely" +
+                                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                                            "from the command line (once only), which will copy the required plugins " +
+                                                            "into target/test-classes/test-dependencies - then retry your test", x);
+                                        } else {
+                                            throw new IOException(index + " contains bogus line " + line, x);
+                                        }
+                                    }
+                                    if (f.exists()) {
+                                        FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    } else {
+                                        FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    }
                                 }
                             }
                         }
@@ -441,19 +475,22 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
-        String war = findJenkinsWar().getAbsolutePath();
+
         portFile = new File(home, "jenkins-port.txt");
         portFile.deleteOnExit();
 
-        if (supportsPortFileName(war)) {
+        String warAbsolutePath = getWarAbsolutePath();
+        if (supportsPortFileName(warAbsolutePath)) {
             argv.add("-Dwinstone.portFileName=" + portFile);
         }
         if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
         argv.addAll(javaOptions);
+
+
         argv.addAll(Arrays.asList(
-                "-jar", war,
+                "-jar", warAbsolutePath,
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=127.0.0.1",
@@ -519,6 +556,10 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    private String getWarAbsolutePath() throws Exception {
+        return war == null ? findJenkinsWar().getAbsolutePath() : war.getAbsolutePath();
+    }
+
     private static boolean supportsPortFileName(String war) throws IOException {
         JarFile warFile = new JarFile(war);
         String jenkinsVersion = warFile.getManifest().getMainAttributes().getValue("Jenkins-Version");
@@ -554,7 +595,20 @@ public final class RealJenkinsRule implements TestRule {
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s, getUrl()));
-        Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        Throwable error;
+        try {
+            error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+        } catch (IOException e) {
+            if (conn.getErrorStream() != null) {
+                try {
+                    String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+                    e.addSuppressed(new IOException("Response body: " + errorMessage));
+                } catch (IOException e2) {
+                    e.addSuppressed(e2);
+                }
+            }
+            throw e;
+        }
         if (error != null) {
             throw error;
         }
@@ -656,17 +710,33 @@ public final class RealJenkinsRule implements TestRule {
             System.err.println("Checking status");
             checkToken(token);
         }
+        /**
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
+         * does not inadvertently interact with the request for {@link #doStep} itself.
+         */
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
+                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            List<?> parameters = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
-            checkToken((String) parameters.get(0));
-            Step s = (Step) parameters.get(1);
-            URL url = (URL) parameters.get(2);
+            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+            checkToken((String) tokenAndStep.get(0));
+            Step s = (Step) tokenAndStep.get(1);
+            URL url = (URL) tokenAndStep.get(2);
+
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                s.run(rule);
-            } catch (Throwable t) {
-                err = t;
+            try {
+                STEP_RUNNER.submit(() -> {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                        s.run(rule);
+                    } catch (Throwable t) {
+                        throw new RuntimeException(t);
+                    }
+                }).get();
+            } catch (ExecutionException e) {
+                // Unwrap once for ExecutionException and once for RuntimeException:
+                err = e.getCause().getCause();
+            } catch (CancellationException | InterruptedException e) {
+                err = e;
             }
             // TODO use raw err if it seems safe enough
             Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);

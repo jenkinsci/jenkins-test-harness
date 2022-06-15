@@ -47,10 +47,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
@@ -160,6 +162,13 @@ public class RealJenkinsRuleTest {
     private static void _restart2(JenkinsRule r) throws Throwable {
         assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
         assertEquals(r.jenkins.getRootUrl(), FileUtils.readFileToString(new File(r.jenkins.getRootDir(), "url.txt"), StandardCharsets.UTF_8));
+    }
+
+    @Test public void stepsDoNotRunOnHttpWorkerThread() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_stepsDoNotRunOnHttpWorkerThread);
+    }
+    private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
+        assertNull(Stapler.getCurrentRequest());
     }
 
     // TODO interesting scenarios to test:

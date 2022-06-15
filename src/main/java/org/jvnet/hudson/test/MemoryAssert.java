@@ -150,7 +150,6 @@ public class MemoryAssert {
     }
 
     /**
-     * <strong>Assumes Java runtime is &le; Java 8. I.e. tests will be skipped if Java 9+</strong>
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
      * @param reference object used to verify garbage collection.
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
@@ -158,11 +157,10 @@ public class MemoryAssert {
      */
     @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
-        // Disabled on Java 9+, because below will call Netbeans Insane Engine, which in turns tries to call setAccessible
-        /* TODO version-number 1.6+:
-        assumeTrue(JavaSpecificationVersion.forCurrentJVM().isOlderThanOrEqualTo(JavaSpecificationVersion.JAVA_8));
-        */
-        assumeTrue(new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
+        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        assumeTrue(
+                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
+                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<>();

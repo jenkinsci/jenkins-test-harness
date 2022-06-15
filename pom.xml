@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.72</version>
+    <version>1.76</version>
     <relativePath />
   </parent>
 
@@ -38,7 +38,7 @@ THE SOFTWARE.
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
-  <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}</url>
 
   <licenses>
     <license>
@@ -48,20 +48,20 @@ THE SOFTWARE.
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}.git</developerConnection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <tag>${scmTag}</tag>
-    <url>https://github.com/jenkinsci/jenkins-test-harness</url>
+    <url>https://github.com/${gitHubRepo}</url>
   </scm>
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.204</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.45.v20220203</jetty.version>
+    <jetty.version>9.4.46.v20220331</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.34</jmh.version>
-    <java.level>8</java.level>
+    <jmh.version>1.35</jmh.version>
+    <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
@@ -105,7 +105,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>80.vb_46fe6f076c9</version>
+      <version>92.va_7003b_8e2eb_a_</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -177,7 +177,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
-      <version>RELEASE126</version>
+      <version>RELEASE140</version>
     </dependency>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
@@ -268,7 +268,7 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <argLine>-Xmx256m -Djava.awt.headless=true</argLine>
+          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook}</argLine>
           <systemPropertyVariables>
             <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
             <buildDirectory>${project.build.directory}</buildDirectory>
@@ -320,6 +320,24 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
+      <id>jdk-9-and-above</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <properties>
+        <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
+      </properties>
+    </profile>
+    <profile>
+      <id>jdk-8-and-below</id>
+      <activation>
+        <jdk>(,1.8]</jdk>
+      </activation>
+      <properties>
+        <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
+      </properties>
+    </profile>
+    <profile>
       <id>skip-tests-on-release</id>
       <activation>
         <property>
@@ -341,6 +359,31 @@ THE SOFTWARE.
       <properties>
         <surefire.rerunFailingTestsCount>4</surefire.rerunFailingTestsCount>
       </properties>
+    </profile>
+    <profile>
+      <id>resource-constrained</id>
+      <activation>
+        <jdk>[9,)</jdk>
+        <os>
+          <family>Windows</family>
+        </os>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- TODO hangs on CI on Windows for inscrutable reasons -->
+              <excludes>
+                <exclude>org.jvnet.hudson.test.MemoryAssertTest</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 

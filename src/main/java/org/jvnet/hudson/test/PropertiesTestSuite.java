@@ -28,10 +28,22 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.PropertyResourceBundle;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.apache.commons.io.IOUtils;
+
 import static org.jvnet.hudson.test.JellyTestSuiteBuilder.scan;
 
 /**
@@ -66,11 +78,43 @@ public class PropertiesTestSuite extends TestSuite {
                     return null;
                 }
             };
+
+            byte[] contents = IOUtils.toByteArray(resource);
+            if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
+                boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
+                boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
+                if (isUtf8 && isIso88591) {
+                    throw new AssertionError(resource + " is valid UTF-8 and valid ISO-8859-1. To avoid problems when auto-detecting the encoding, use the lowest common denominator of ASCII encoding and express non-ASCII characters with escape sequences using a tool like `native2ascii`.");
+                }
+            }
+
             try (InputStream is = resource.openStream()) {
-                props.load(is);
+                PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(is);
+                Enumeration<String> keys = propertyResourceBundle.getKeys();
+                // TODO Java 9+ can use 'asIterator' and get rid of below collections conversion
+                List<String> keysAsSaneType = Collections.list(keys);
+
+                for (String localKey : keysAsSaneType) {
+                    String value = propertyResourceBundle.getString(localKey);
+                    props.setProperty(localKey, value);
+                }
             }
         }
 
+    }
+
+    private static boolean isEncoded(byte[] bytes, Charset charset) {
+        CharsetDecoder decoder = charset.newDecoder();
+        decoder.onMalformedInput(CodingErrorAction.REPORT);
+        decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+        try {
+            decoder.decode(buffer);
+            return true;
+        } catch (CharacterCodingException e) {
+            return false;
+        }
     }
 
 }

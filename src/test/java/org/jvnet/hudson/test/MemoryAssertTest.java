@@ -38,10 +38,6 @@ import org.junit.Test;
 public class MemoryAssertTest {
 
     @Test public void heapUsage() throws Exception {
-        assumeTrue(
-                "TODO JENKINS-68019 does not work on Java 17+",
-                new VersionNumber(System.getProperty("java.specification.version"))
-                        .isOlderThan(new VersionNumber("17")));
         Object[] biggie = new Object[1000];
         assertHeapUsage(biggie, 4016);
         assertHeapUsage(new WeakReference<Object>(biggie), 56);
@@ -58,7 +54,10 @@ public class MemoryAssertTest {
 
     @Test
     public void gc() {
-        assumeTrue("TODO JENKINS-67974 does not work on Java 9+", new VersionNumber(System.getProperty("java.specification.version")).isOlderThan(new VersionNumber("9")));
+        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        assumeTrue(
+                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
+                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));
