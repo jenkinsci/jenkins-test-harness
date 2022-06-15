@@ -561,10 +561,11 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private static boolean supportsPortFileName(String war) throws IOException {
-        JarFile warFile = new JarFile(war);
-        String jenkinsVersion = warFile.getManifest().getMainAttributes().getValue("Jenkins-Version");
-        VersionNumber version = new VersionNumber(jenkinsVersion);
-        return version.compareTo(v2339) >= 0;
+        try (JarFile warFile = new JarFile(war)) {
+            String jenkinsVersion = warFile.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            VersionNumber version = new VersionNumber(jenkinsVersion);
+            return version.compareTo(v2339) >= 0;
+        }
     }
 
     private static int readPort(File portFile) throws IOException {
