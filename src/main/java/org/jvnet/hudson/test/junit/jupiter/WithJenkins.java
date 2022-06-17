@@ -19,7 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * <blockquote>
  *
  * <pre>
- * &#64;EnableJenkins
+ * &#64;WithJenkins
  * class ExampleJUnit5Test {
  *
  *     &#64;Test
@@ -43,7 +43,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * <pre>
  * class ExampleJUnit5Test {
  *
- *     &#64;EnableJenkins
+ *     &#64;WithJenkins
  *     &#64;Test
  *     public void example(JenkinsRule r) {
  *         // use 'r' ...
@@ -60,4 +60,4 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @ExtendWith(JenkinsExtension.class)
-public @interface EnableJenkins {}
+public @interface WithJenkins {}

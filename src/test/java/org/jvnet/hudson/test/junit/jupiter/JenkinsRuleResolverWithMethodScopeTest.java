@@ -10,8 +10,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 class JenkinsRuleResolverWithMethodScopeTest {
 
-    @EnableJenkins
     @Test
+    @WithJenkins
     void jenkinsRuleIsAccessible(JenkinsRule rule) throws IOException {
         assertThat(rule.jenkins.getJobNames(), empty());
         rule.createFreeStyleProject("job-0");

@@ -8,7 +8,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-@EnableJenkins
+@WithJenkins
 class JenkinsRuleResolverTest {
 
     @Test

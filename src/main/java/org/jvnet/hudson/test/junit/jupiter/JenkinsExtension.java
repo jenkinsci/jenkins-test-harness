@@ -10,7 +10,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 /**
  * JUnit 5 extension providing {@link JenkinsRule} integration.
  *
- * @see EnableJenkins
+ * @see WithJenkins
  */
 class JenkinsExtension implements ParameterResolver, AfterEachCallback {
 
