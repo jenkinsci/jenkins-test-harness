@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  *
  * <p>Test methods using the rule extension need to accept it by {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} parameter;
  * each test case gets a new rule object.
+ * An annotated method without a {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} parameter behaves as if it were not annotated.
  *
  * <p>Annotating a <em>class</em> provides access for all of its tests.
  * Unrelated test cases can omit the parameter.
