@@ -432,6 +432,48 @@ THE SOFTWARE.
         </plugins>
       </build>
     </profile>
+    <!--
+      Our Jenkinsfile has a Java 17 branch that tests a recent weekly release for two reasons:
+
+        1. We want to test on all versions of Java, but only recent weeklies support Java 17.
+
+        2. Testing against a recent weekly release ensures that the test harness can be compiled
+           against the latest core APIs.
+
+      When we are testing against a recent weekly that requires Java 11, the bytecode version
+      check naturally fails. To work around this, we relax the bytecode version check
+      when we are executing the Java 17 branch in the CI environment.
+
+      TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted.
+    -->
+    <profile>
+      <id>test-recent-cores-on-ci</id>
+      <activation>
+        <jdk>17</jdk>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>display-info</id>
+                <configuration>
+                  <rules>
+                    <enforceBytecodeVersion>
+                      <maxJdkVersion>11</maxJdkVersion>
+                    </enforceBytecodeVersion>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
 </project>
