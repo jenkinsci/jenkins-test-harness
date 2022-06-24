@@ -217,6 +217,7 @@ THE SOFTWARE.
   </pluginRepositories>
   <build>
     <plugins>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
@@ -345,6 +346,7 @@ THE SOFTWARE.
       <properties>
         <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
       </properties>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
       <build>
         <plugins>
           <plugin>
@@ -369,6 +371,7 @@ THE SOFTWARE.
       <properties>
         <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
       </properties>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
       <build>
         <plugins>
           <plugin>
