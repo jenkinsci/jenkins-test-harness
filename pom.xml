@@ -356,6 +356,12 @@ THE SOFTWARE.
               <testRelease>8</testRelease>
             </configuration>
           </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <release>8</release>
+            </configuration>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -379,6 +385,13 @@ THE SOFTWARE.
               <testTarget>1.8</testTarget>
               <release combine.self="override" />
               <testRelease combine.self="override" />
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <source>1.8</source>
+              <release combine.self="override" />
             </configuration>
           </plugin>
         </plugins>
