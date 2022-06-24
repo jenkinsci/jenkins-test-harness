@@ -340,6 +340,7 @@ THE SOFTWARE.
   <profiles>
     <profile>
       <id>jdk-9-and-above</id>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be lifted out of the profile. -->
       <activation>
         <jdk>[9,)</jdk>
       </activation>
@@ -365,6 +366,7 @@ THE SOFTWARE.
         </plugins>
       </build>
     </profile>
+    <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
     <profile>
       <id>jdk-8-and-below</id>
       <activation>
@@ -373,7 +375,6 @@ THE SOFTWARE.
       <properties>
         <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
       </properties>
-      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
       <build>
         <plugins>
           <plugin>
