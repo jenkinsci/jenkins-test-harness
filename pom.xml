@@ -352,12 +352,8 @@ THE SOFTWARE.
           <plugin>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration>
-              <source>1.8</source>
-              <target>1.8</target>
-              <testSource>1.8</testSource>
-              <testTarget>1.8</testTarget>
-              <release combine.self="override" />
-              <testRelease combine.self="override" />
+              <release>8</release>
+              <testRelease>8</testRelease>
             </configuration>
           </plugin>
         </plugins>
@@ -377,8 +373,12 @@ THE SOFTWARE.
           <plugin>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration>
-              <release>8</release>
-              <testRelease>8</testRelease>
+              <source>1.8</source>
+              <target>1.8</target>
+              <testSource>1.8</testSource>
+              <testTarget>1.8</testTarget>
+              <release combine.self="override" />
+              <testRelease combine.self="override" />
             </configuration>
           </plugin>
         </plugins>
