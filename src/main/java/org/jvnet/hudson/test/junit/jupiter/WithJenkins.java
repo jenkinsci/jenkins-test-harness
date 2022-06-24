@@ -6,13 +6,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.jvnet.hudson.test.JenkinsRule;
 
 /**
- * JUnit 5 meta annotation providing {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} integration.
+ * JUnit 5 meta annotation providing {@link JenkinsRule JenkinsRule} integration.
  *
- * <p>Test methods using the rule extension need to accept it by {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} parameter;
+ * <p>Test methods using the rule extension need to accept it by {@link JenkinsRule JenkinsRule} parameter;
  * each test case gets a new rule object.
- * An annotated method without a {@link org.jvnet.hudson.test.JenkinsRule JenkinsRule} parameter behaves as if it were not annotated.
+ * An annotated method without a {@link JenkinsRule JenkinsRule} parameter behaves as if it were not annotated.
  *
  * <p>Annotating a <em>class</em> provides access for all of its tests.
  * Unrelated test cases can omit the parameter.
