@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.76</version>
+    <version>1.77</version>
     <relativePath />
   </parent>
 
@@ -58,7 +58,7 @@ THE SOFTWARE.
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.204</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.46.v20220331</jetty.version>
+    <jetty.version>9.4.48.v20220622</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.35</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
@@ -238,6 +238,25 @@ THE SOFTWARE.
   </pluginRepositories>
   <build>
     <plugins>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>display-info</id>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[1.8.0,]</version>
+                </requireJavaVersion>
+                <enforceBytecodeVersion>
+                  <maxJdkVersion>1.8</maxJdkVersion>
+                </enforceBytecodeVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -342,13 +361,33 @@ THE SOFTWARE.
   <profiles>
     <profile>
       <id>jdk-9-and-above</id>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be lifted out of the profile. -->
       <activation>
         <jdk>[9,)</jdk>
       </activation>
       <properties>
         <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
       </properties>
+      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <release>8</release>
+              <testRelease>8</testRelease>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <release>8</release>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
+    <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
     <profile>
       <id>jdk-8-and-below</id>
       <activation>
@@ -357,6 +396,28 @@ THE SOFTWARE.
       <properties>
         <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <source>1.8</source>
+              <target>1.8</target>
+              <testSource>1.8</testSource>
+              <testTarget>1.8</testTarget>
+              <release combine.self="override" />
+              <testRelease combine.self="override" />
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <source>1.8</source>
+              <release combine.self="override" />
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>skip-tests-on-release</id>
@@ -402,6 +463,48 @@ THE SOFTWARE.
                 <exclude>org.jvnet.hudson.test.MemoryAssertTest</exclude>
               </excludes>
             </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!--
+      Our Jenkinsfile has a Java 17 branch that tests a recent weekly release for two reasons:
+
+        1. We want to test on all versions of Java, but only recent weeklies support Java 17.
+
+        2. Testing against a recent weekly release ensures that the test harness can be compiled
+           against the latest core APIs.
+
+      When we are testing against a recent weekly that requires Java 11, the bytecode version
+      check naturally fails. To work around this, we relax the bytecode version check
+      when we are executing the Java 17 branch in the CI environment.
+
+      TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted.
+    -->
+    <profile>
+      <id>test-recent-cores-on-ci</id>
+      <activation>
+        <jdk>17</jdk>
+        <property>
+          <name>env.CI</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>display-info</id>
+                <configuration>
+                  <rules>
+                    <enforceBytecodeVersion>
+                      <maxJdkVersion>11</maxJdkVersion>
+                    </enforceBytecodeVersion>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
