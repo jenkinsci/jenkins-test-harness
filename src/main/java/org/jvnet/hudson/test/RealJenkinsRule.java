@@ -602,8 +602,8 @@ public final class RealJenkinsRule implements TestRule {
         proc = null;
     }
 
-    public Serializable runRemotely(Step s) throws Throwable {
-        return runRemotely(new StepToStep2(s));
+    public void runRemotely(Step s) throws Throwable {
+        runRemotely(new StepToStep2(s));
     }
 
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
