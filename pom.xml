@@ -105,7 +105,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>101.v47b_052d78b_ca_</version>
+      <version>103.v9dcdb_6a_db_7fd</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
