@@ -418,13 +418,28 @@ public final class RealJenkinsRule implements TestRule {
         void run(JenkinsRule r) throws Throwable;
     }
 
+    @FunctionalInterface
+    public interface Step2<T extends Serializable> extends Serializable {
+        T run(JenkinsRule r) throws Throwable;
+    }
+
     /**
      * Run one Jenkins session, send a test thunk, and shut down.
      */
     public void then(Step s) throws Throwable {
+        then((Step2<Serializable>) r -> {
+            s.run(r);
+            return null;
+        });
+    }
+
+    /**
+     * Run one Jenkins session, send a test thunk, and shut down.
+     */
+    public <T extends Serializable> T then(Step2<T> s) throws Throwable {
         startJenkins();
         try {
-            runRemotely(s);
+            return runRemotely(s);
         } finally {
             stopJenkins();
         }
@@ -590,14 +605,24 @@ public final class RealJenkinsRule implements TestRule {
         proc = null;
     }
 
-    public void runRemotely(Step s) throws Throwable {
+    public Serializable runRemotely(Step s) throws Throwable {
+        return runRemotely((Step2<Serializable>) r -> {
+            s.run(r);
+            return null;
+        });
+    }
+
+    public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
         Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s, getUrl()));
         Throwable error;
+        T object;
         try {
-            error = (Throwable) Init2.readSer(conn.getInputStream(), null);
+            List<Object> result = (List) Init2.readSer(conn.getInputStream(), null);
+            object = (T) result.get(0);
+            error = (Throwable) result.get(1);
         } catch (IOException e) {
             if (conn.getErrorStream() != null) {
                 try {
@@ -612,6 +637,7 @@ public final class RealJenkinsRule implements TestRule {
         if (error != null) {
             throw error;
         }
+        return object;
     }
 
     // Should not refer to any types outside the JRE.
@@ -720,14 +746,15 @@ public final class RealJenkinsRule implements TestRule {
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken((String) tokenAndStep.get(0));
-            Step s = (Step) tokenAndStep.get(1);
+            Step2<?> s = (Step2) tokenAndStep.get(1);
             URL url = (URL) tokenAndStep.get(2);
 
             Throwable err = null;
+            Object object = null;
             try {
-                STEP_RUNNER.submit(() -> {
+                object = STEP_RUNNER.submit(() -> {
                     try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                        s.run(rule);
+                        return s.run(rule);
                     } catch (Throwable t) {
                         throw new RuntimeException(t);
                     }
@@ -739,7 +766,7 @@ public final class RealJenkinsRule implements TestRule {
                 err = e;
             }
             // TODO use raw err if it seems safe enough
-            Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
+            Init2.writeSer(rsp.getOutputStream(), Arrays.asList(object, err != null ? new ProxyException(err) : null));
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
