@@ -427,10 +427,7 @@ public final class RealJenkinsRule implements TestRule {
      * Run one Jenkins session, send a test thunk, and shut down.
      */
     public void then(Step s) throws Throwable {
-        then((Step2<Serializable>) r -> {
-            s.run(r);
-            return null;
-        });
+        then(new StepToStep2(s));
     }
 
     /**
@@ -606,10 +603,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public Serializable runRemotely(Step s) throws Throwable {
-        return runRemotely((Step2<Serializable>) r -> {
-            s.run(r);
-            return null;
-        });
+        return runRemotely(new StepToStep2(s));
     }
 
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
@@ -816,4 +810,17 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    private static class StepToStep2 implements Step2<Serializable> {
+        private final Step s;
+
+        public StepToStep2(Step s) {
+            this.s = s;
+        }
+
+        @Override
+        public Serializable run(JenkinsRule r) throws Throwable {
+            s.run(r);
+            return null;
+        }
+    }
 }
