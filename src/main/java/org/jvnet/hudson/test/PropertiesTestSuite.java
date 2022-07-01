@@ -81,7 +81,8 @@ public class PropertiesTestSuite extends TestSuite {
                 }
             };
 
-            if (Jenkins.getVersion().isOlderThan(new VersionNumber("2.357"))) {
+            VersionNumber jv = Jenkins.getVersion();
+            if (jv != null && jv.isOlderThan(new VersionNumber("2.357"))) {
                 byte[] contents = IOUtils.toByteArray(resource);
                 if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
                     boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
