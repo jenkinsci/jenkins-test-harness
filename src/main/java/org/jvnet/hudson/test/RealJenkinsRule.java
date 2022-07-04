@@ -525,6 +525,8 @@ public final class RealJenkinsRule implements TestRule {
         // TODO prefix streams with per-test timestamps & port
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
+
+        addTimeout();
         int tries = 0;
         while (true) {
             if (port == 0 && portFile != null && portFile.exists()) {
@@ -560,6 +562,9 @@ public final class RealJenkinsRule implements TestRule {
             }
             Thread.sleep(100);
         }
+    }
+
+    private void addTimeout() {
         if (timeout > 0) {
             Timer.get().schedule(() -> {
                 if (proc != null) {
