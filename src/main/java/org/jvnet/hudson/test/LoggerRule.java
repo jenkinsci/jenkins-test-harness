@@ -81,6 +81,14 @@ public class LoggerRule extends ExternalResource {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return getRecords()
+                .stream()
+                .map(logRecord -> logRecord.getLevel().toString() + "->" + logRecord.getMessage())
+                .collect(Collectors.joining(","));
+    }
+
     /**
      * Initializes log record capture, in addition to merely printing it.
      * This allows you to call {@link #getRecords} and/or {@link #getMessages} later.
