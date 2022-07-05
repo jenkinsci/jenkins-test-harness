@@ -73,7 +73,11 @@ public class RealJenkinsRuleTest {
         rr.startJenkins();
         rr.runRemotely(RealJenkinsRuleTest::_testFilter);
         rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+    }
 
+    @Test public void testReturnObject() throws Throwable {
+        rr.startJenkins();
+        assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
@@ -141,6 +145,10 @@ public class RealJenkinsRuleTest {
         FreeStyleProject p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
         r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
         assertEquals("hello", p.getDescription());
+    }
+
+    private static String _getJenkinsUrlFromRemote(JenkinsRule r) {
+        return r.jenkins.getRootUrl();
     }
 
     @LocalData
