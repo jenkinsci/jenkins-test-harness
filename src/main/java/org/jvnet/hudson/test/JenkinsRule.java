@@ -219,13 +219,13 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.internal.AssumptionViolatedException;
@@ -1766,7 +1766,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * <p>
      * This method takes two objects that have properties (getXyz, isXyz, or just the public xyz field),
-     * and makes sure that the property values for each given property are equals (by using {@link org.junit.Assert#assertThat(Object, org.hamcrest.Matcher)})
+     * and makes sure that the property values for each given property are equals (by using {@link org.hamcrest.MatcherAssert.assertThat(Object, org.hamcrest.Matcher)})
      *
      * <p>
      * Property values can be null on both objects, and that is OK, but passing in a property that doesn't
