@@ -1766,7 +1766,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * <p>
      * This method takes two objects that have properties (getXyz, isXyz, or just the public xyz field),
-     * and makes sure that the property values for each given property are equals (by using {@link org.hamcrest.MatcherAssert.assertThat(Object, org.hamcrest.Matcher)})
+     * and makes sure that the property values for each given property are equals (by using {@link org.hamcrest.MatcherAssert#assertThat(Object, org.hamcrest.Matcher)})
      *
      * <p>
      * Property values can be null on both objects, and that is OK, but passing in a property that doesn't
