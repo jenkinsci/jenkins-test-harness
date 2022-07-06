@@ -24,6 +24,10 @@
  */
 package org.jvnet.hudson.test;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
+
 import com.gargoylesoftware.css.parser.CSSErrorHandler;
 import com.gargoylesoftware.css.parser.CSSException;
 import com.gargoylesoftware.css.parser.CSSParseException;
@@ -896,16 +900,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Asserts that the console output of the build contains the given substring.
      */
     public void assertLogContains(String substring, Run run) throws Exception {
-        String log = getLog(run);
-        assertTrue("Console output of "+run+" didn't contain "+substring+":\n"+log,log.contains(substring));
+        assertThat(getLog(run), containsString(substring));
     }
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
      */
     public void assertLogNotContains(String substring, Run run) throws Exception {
-        String log = getLog(run);
-        assertFalse("Console output of "+run+" contains "+substring+":\n"+log,log.contains(substring));
+        assertThat(getLog(run), not(containsString(substring)));
     }
 
     /**
@@ -950,7 +952,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         org.w3c.dom.Node n = (org.w3c.dom.Node) node;
         String textString = n.getTextContent();
-        assertTrue("needle found in haystack", textString.contains(needle)); 
+        assertThat(textString, containsString(needle));
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
@@ -989,11 +991,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
 
     public void assertStringContains(String message, String haystack, String needle) {
-        assertTrue(message + " (seeking '" + needle + "')",haystack.contains(needle));
+        assertThat(message, haystack, containsString(needle));
     }
 
     public void assertStringContains(String haystack, String needle) {
-        assertTrue("Could not find '" + needle + "'.",haystack.contains(needle));
+        assertThat(haystack, containsString(needle));
     }
 
     /**
