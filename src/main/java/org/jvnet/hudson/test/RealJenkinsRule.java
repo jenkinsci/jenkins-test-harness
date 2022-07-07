@@ -61,6 +61,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -526,7 +527,6 @@ public final class RealJenkinsRule implements TestRule {
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
 
-        addTimeout();
         int tries = 0;
         while (true) {
             if (port == 0 && portFile != null && portFile.exists()) {
@@ -536,21 +536,15 @@ public final class RealJenkinsRule implements TestRule {
                 try {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
-                    int code = conn.getResponseCode();
-                    if (code == 200) {
-                        conn.getInputStream().close();
+
+                    Optional<String> checkResult = checkResult(conn, proc);
+                    if(!checkResult.isPresent()){
                         break;
-                    } else {
-                        String err = "?";
-                        try (InputStream is = conn.getErrorStream()) {
-                            if (is != null) {
-                                err = IOUtils.toString(is, StandardCharsets.UTF_8);
-                            }
-                        } catch (Exception x) {
-                            x.printStackTrace();
-                        }
-                        throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
+                    }else {
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult.get() +
+                                                      " " + conn.getHeaderFields());
                     }
+
                 } catch (Exception x) {
                     tries++;
                     if (tries == /* 3m */ 1800) {
@@ -561,6 +555,34 @@ public final class RealJenkinsRule implements TestRule {
                 }
             }
             Thread.sleep(100);
+        }
+        addTimeout();
+    }
+
+    public static Optional<String> checkResult(HttpURLConnection conn, Process proc) throws IOException {
+
+        int code = conn.getResponseCode();
+        System.out.println("Response Code "+ code);
+        if (code == 200) {
+            conn.getInputStream().close();
+            return Optional.empty();
+        } else {
+            String err = "?";
+            try (InputStream is = conn.getErrorStream()) {
+                if (is != null) {
+                    err = IOUtils.toString(is, StandardCharsets.UTF_8);
+                }
+            } catch (Exception x) {
+                x.printStackTrace();
+            }
+            if (code == 500) { // Jenkins has completed startup but failed
+                // do not make any further attempts and kill the process
+                System.err.println("Jenkins failed to start");
+                proc.destroyForcibly();
+                proc = null;
+                throw new JenkinsStartupException("Jenkins failed to start");
+            }
+            return Optional.of(err);
         }
     }
 
@@ -826,6 +848,13 @@ public final class RealJenkinsRule implements TestRule {
         public Serializable run(JenkinsRule r) throws Throwable {
             s.run(r);
             return null;
+        }
+    }
+
+    public static class JenkinsStartupException extends IOException {
+
+        public JenkinsStartupException(String message) {
+            super(message);
         }
     }
 }

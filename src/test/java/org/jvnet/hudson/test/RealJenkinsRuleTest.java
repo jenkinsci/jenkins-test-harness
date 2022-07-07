@@ -33,7 +33,9 @@ import hudson.model.Item;
 import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -45,10 +47,18 @@ import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -177,6 +187,46 @@ public class RealJenkinsRuleTest {
     }
     private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
         assertNull(Stapler.getCurrentRequest());
+    }
+
+
+    @Test
+    public void test500Errors() throws IOException {
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(500);
+        Process proc = mock(Process.class);
+        try {
+            RealJenkinsRule.checkResult(conn, proc);
+            fail("expected exception JenkinsStartupException");
+        }catch (RealJenkinsRule.JenkinsStartupException ae){
+
+        }
+        verify(proc, times(1)).destroyForcibly();
+    }
+    @Test
+    public void test503Errors() throws IOException {
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(503);
+        when(conn.getErrorStream()).thenReturn(IOUtils.toInputStream("Jenkins Custom Error", "UTF-8"));
+        Process proc = mock(Process.class);
+
+        Optional<String> s = RealJenkinsRule.checkResult(conn, proc);
+
+        assertThat(s, is(Optional.of("Jenkins Custom Error")));
+    }
+
+    @Test
+    public void test200Ok() throws IOException {
+
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(200);
+        when(conn.getInputStream()).thenReturn(IOUtils.toInputStream("blah blah blah", "UTF-8"));
+        Process proc = mock(Process.class);
+
+        Optional<String> s = RealJenkinsRule.checkResult(conn, proc);
+
+        verify(conn, times(1)).getInputStream();
+        assertThat(s, is(Optional.empty()));
     }
 
     // TODO interesting scenarios to test:
