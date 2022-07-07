@@ -537,7 +537,7 @@ public final class RealJenkinsRule implements TestRule {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
 
-                    Optional<String> checkResult = checkResult(conn, proc);
+                    Optional<String> checkResult = checkResult(conn);
                     if(!checkResult.isPresent()){
                         break;
                     }else {
@@ -545,6 +545,13 @@ public final class RealJenkinsRule implements TestRule {
                                                       " " + conn.getHeaderFields());
                     }
 
+                } catch (JenkinsStartupException jse) {
+                    // Jenkins has completed startup but failed
+                    // do not make any further attempts and kill the process
+                    System.err.println("Jenkins failed to start");
+                    proc.destroyForcibly();
+                    proc = null;
+                    throw jse;
                 } catch (Exception x) {
                     tries++;
                     if (tries == /* 3m */ 1800) {
@@ -559,7 +566,7 @@ public final class RealJenkinsRule implements TestRule {
         addTimeout();
     }
 
-    public static Optional<String> checkResult(HttpURLConnection conn, Process proc) throws IOException {
+    public static Optional<String> checkResult(HttpURLConnection conn) throws IOException {
 
         int code = conn.getResponseCode();
         System.out.println("Response Code "+ code);
@@ -575,11 +582,7 @@ public final class RealJenkinsRule implements TestRule {
             } catch (Exception x) {
                 x.printStackTrace();
             }
-            if (code == 500) { // Jenkins has completed startup but failed
-                // do not make any further attempts and kill the process
-                System.err.println("Jenkins failed to start");
-                proc.destroyForcibly();
-                proc = null;
+            if (code == 500) {
                 throw new JenkinsStartupException("Jenkins failed to start");
             }
             return Optional.of(err);
@@ -617,7 +620,7 @@ public final class RealJenkinsRule implements TestRule {
 
     public void stopJenkins() throws Throwable {
         endpoint("exit").openStream().close();
-        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
+        if (!proc.waitFor(60, TimeUnit.SECONDS)) {
             System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
             proc.destroyForcibly();
             throw new AssertionError("Jenkins failed to terminate within 60 seconds");

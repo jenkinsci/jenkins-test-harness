@@ -194,23 +194,20 @@ public class RealJenkinsRuleTest {
     public void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        Process proc = mock(Process.class);
         try {
-            RealJenkinsRule.checkResult(conn, proc);
+            RealJenkinsRule.checkResult(conn);
             fail("expected exception JenkinsStartupException");
         }catch (RealJenkinsRule.JenkinsStartupException ae){
 
         }
-        verify(proc, times(1)).destroyForcibly();
     }
     @Test
     public void test503Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(503);
         when(conn.getErrorStream()).thenReturn(IOUtils.toInputStream("Jenkins Custom Error", "UTF-8"));
-        Process proc = mock(Process.class);
 
-        Optional<String> s = RealJenkinsRule.checkResult(conn, proc);
+        Optional<String> s = RealJenkinsRule.checkResult(conn);
 
         assertThat(s, is(Optional.of("Jenkins Custom Error")));
     }
@@ -221,9 +218,8 @@ public class RealJenkinsRuleTest {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(200);
         when(conn.getInputStream()).thenReturn(IOUtils.toInputStream("blah blah blah", "UTF-8"));
-        Process proc = mock(Process.class);
 
-        Optional<String> s = RealJenkinsRule.checkResult(conn, proc);
+        Optional<String> s = RealJenkinsRule.checkResult(conn);
 
         verify(conn, times(1)).getInputStream();
         assertThat(s, is(Optional.empty()));
