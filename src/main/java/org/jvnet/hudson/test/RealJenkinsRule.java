@@ -548,7 +548,6 @@ public final class RealJenkinsRule implements TestRule {
                 } catch (JenkinsStartupException jse) {
                     // Jenkins has completed startup but failed
                     // do not make any further attempts and kill the process
-                    System.err.println("Failed starting Jenkins "+ jse.err);
                     proc.destroyForcibly();
                     proc = null;
                     throw jse;
@@ -619,7 +618,7 @@ public final class RealJenkinsRule implements TestRule {
 
     public void stopJenkins() throws Throwable {
         endpoint("exit").openStream().close();
-        if (!proc.waitFor(60, TimeUnit.SECONDS)) {
+        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
             System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
             proc.destroyForcibly();
             throw new AssertionError("Jenkins failed to terminate within 60 seconds");
