@@ -548,7 +548,7 @@ public final class RealJenkinsRule implements TestRule {
                 } catch (JenkinsStartupException jse) {
                     // Jenkins has completed startup but failed
                     // do not make any further attempts and kill the process
-                    System.err.println("Jenkins failed to start");
+                    System.err.println("Failed starting Jenkins "+ jse.err);
                     proc.destroyForcibly();
                     proc = null;
                     throw jse;
@@ -569,7 +569,6 @@ public final class RealJenkinsRule implements TestRule {
     public static Optional<String> checkResult(HttpURLConnection conn) throws IOException {
 
         int code = conn.getResponseCode();
-        System.out.println("Response Code "+ code);
         if (code == 200) {
             conn.getInputStream().close();
             return Optional.empty();
@@ -583,7 +582,7 @@ public final class RealJenkinsRule implements TestRule {
                 x.printStackTrace();
             }
             if (code == 500) {
-                throw new JenkinsStartupException("Jenkins failed to start");
+                throw new JenkinsStartupException("Jenkins failed to start", err);
             }
             return Optional.of(err);
         }
@@ -855,9 +854,14 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static class JenkinsStartupException extends IOException {
-
-        public JenkinsStartupException(String message) {
+        private final String err;
+        public JenkinsStartupException(String message, String err) {
             super(message);
+            this.err = err;
+        }
+
+        public String getErr() {
+            return err;
         }
     }
 }

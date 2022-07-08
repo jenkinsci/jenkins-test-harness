@@ -62,12 +62,14 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.jvnet.hudson.test.recipes.WithPlugin;
 import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
     // TODO addPlugins does not currently take effect when used inside test method
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
+    @Rule public RealJenkinsRule rr2 = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
 
     @Test public void smokes() throws Throwable {
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).then(RealJenkinsRuleTest::_smokes);
@@ -223,6 +225,21 @@ public class RealJenkinsRuleTest {
 
         verify(conn, times(1)).getInputStream();
         assertThat(s, is(Optional.empty()));
+    }
+
+    /**
+     * plugins/failure.hpi
+     *  Plugin that has this:
+     *
+     *  @Initializer(after=JOB_LOADED)
+     *     public static void init() throws IOException {
+     *         throw new IOException("oops");
+     *     }
+     *
+     */
+    @Test(expected = RealJenkinsRule.JenkinsStartupException.class)
+    public void whenUsingFailurePlugin() throws Throwable {
+            rr2.startJenkins();
     }
 
     // TODO interesting scenarios to test:
