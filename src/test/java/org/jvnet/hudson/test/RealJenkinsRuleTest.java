@@ -48,9 +48,11 @@ import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -59,6 +61,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.commons.io.IOUtils;
+import org.hamcrest.core.IsNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -195,12 +198,9 @@ public class RealJenkinsRuleTest {
     public void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        try {
-            RealJenkinsRule.checkResult(conn);
-            fail("expected exception JenkinsStartupException");
-        }catch (RealJenkinsRule.JenkinsStartupException ae){
-
-        }
+        RealJenkinsRule.JenkinsStartupException jse = assertThrows(RealJenkinsRule.JenkinsStartupException.class,
+                                                                    () -> RealJenkinsRule.checkResult(conn));
+        assertThat(jse, isA(RealJenkinsRule.JenkinsStartupException.class));
     }
     @Test
     public void test503Errors() throws IOException {
@@ -208,9 +208,9 @@ public class RealJenkinsRuleTest {
         when(conn.getResponseCode()).thenReturn(503);
         when(conn.getErrorStream()).thenReturn(IOUtils.toInputStream("Jenkins Custom Error", "UTF-8"));
 
-        Optional<String> s = RealJenkinsRule.checkResult(conn);
+        String s = RealJenkinsRule.checkResult(conn);
 
-        assertThat(s, is(Optional.of("Jenkins Custom Error")));
+        assertThat(s, is("Jenkins Custom Error"));
     }
 
     @Test
@@ -220,10 +220,10 @@ public class RealJenkinsRuleTest {
         when(conn.getResponseCode()).thenReturn(200);
         when(conn.getInputStream()).thenReturn(IOUtils.toInputStream("blah blah blah", "UTF-8"));
 
-        Optional<String> s = RealJenkinsRule.checkResult(conn);
+        String s = RealJenkinsRule.checkResult(conn);
 
         verify(conn, times(1)).getInputStream();
-        assertThat(s, is(Optional.empty()));
+        assertThat(s, IsNull.nullValue());
     }
 
     /**

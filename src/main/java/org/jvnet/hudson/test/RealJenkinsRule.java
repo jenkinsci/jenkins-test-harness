@@ -80,6 +80,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -537,11 +538,11 @@ public final class RealJenkinsRule implements TestRule {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
 
-                    Optional<String> checkResult = checkResult(conn);
-                    if(!checkResult.isPresent()){
+                    String checkResult = checkResult(conn);
+                    if(checkResult == null){
                         break;
                     }else {
-                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult.get() +
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
                                                       " " + conn.getHeaderFields());
                     }
 
@@ -565,12 +566,13 @@ public final class RealJenkinsRule implements TestRule {
         addTimeout();
     }
 
-    public static Optional<String> checkResult(HttpURLConnection conn) throws IOException {
+    @CheckForNull
+    public static String checkResult(HttpURLConnection conn) throws IOException {
 
         int code = conn.getResponseCode();
         if (code == 200) {
             conn.getInputStream().close();
-            return Optional.empty();
+            return null;
         } else {
             String err = "?";
             try (InputStream is = conn.getErrorStream()) {
@@ -581,9 +583,9 @@ public final class RealJenkinsRule implements TestRule {
                 x.printStackTrace();
             }
             if (code == 500) {
-                throw new JenkinsStartupException("Jenkins failed to start", err);
+                throw new JenkinsStartupException(err);
             }
-            return Optional.of(err);
+            return err;
         }
     }
 
@@ -853,14 +855,8 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static class JenkinsStartupException extends IOException {
-        private final String err;
-        public JenkinsStartupException(String message, String err) {
+        public JenkinsStartupException(String message) {
             super(message);
-            this.err = err;
-        }
-
-        public String getErr() {
-            return err;
         }
     }
 }
