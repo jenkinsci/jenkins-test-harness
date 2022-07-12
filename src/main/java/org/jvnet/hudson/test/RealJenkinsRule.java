@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -534,21 +535,21 @@ public final class RealJenkinsRule implements TestRule {
                 try {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
-                    int code = conn.getResponseCode();
-                    if (code == 200) {
-                        conn.getInputStream().close();
+
+                    String checkResult = checkResult(conn);
+                    if (checkResult == null) {
                         break;
-                    } else {
-                        String err = "?";
-                        try (InputStream is = conn.getErrorStream()) {
-                            if (is != null) {
-                                err = IOUtils.toString(is, StandardCharsets.UTF_8);
-                            }
-                        } catch (Exception x) {
-                            x.printStackTrace();
-                        }
-                        throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
+                    }else {
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
+                                                      " " + conn.getHeaderFields());
                     }
+
+                } catch (JenkinsStartupException jse) {
+                    // Jenkins has completed startup but failed
+                    // do not make any further attempts and kill the process
+                    proc.destroyForcibly();
+                    proc = null;
+                    throw jse;
                 } catch (Exception x) {
                     tries++;
                     if (tries == /* 3m */ 1800) {
@@ -560,6 +561,32 @@ public final class RealJenkinsRule implements TestRule {
             }
             Thread.sleep(100);
         }
+        addTimeout();
+    }
+
+    @CheckForNull
+    public static String checkResult(HttpURLConnection conn) throws IOException {
+        int code = conn.getResponseCode();
+        if (code == 200) {
+            conn.getInputStream().close();
+            return null;
+        } else {
+            String err = "?";
+            try (InputStream is = conn.getErrorStream()) {
+                if (is != null) {
+                    err = IOUtils.toString(is, StandardCharsets.UTF_8);
+                }
+            } catch (Exception x) {
+                x.printStackTrace();
+            }
+            if (code == 500) {
+                throw new JenkinsStartupException(err);
+            }
+            return err;
+        }
+    }
+
+    private void addTimeout() {
         if (timeout > 0) {
             Timer.get().schedule(() -> {
                 if (proc != null) {
@@ -821,6 +848,12 @@ public final class RealJenkinsRule implements TestRule {
         public Serializable run(JenkinsRule r) throws Throwable {
             s.run(r);
             return null;
+        }
+    }
+
+    public static class JenkinsStartupException extends IOException {
+        public JenkinsStartupException(String message) {
+            super(message);
         }
     }
 }

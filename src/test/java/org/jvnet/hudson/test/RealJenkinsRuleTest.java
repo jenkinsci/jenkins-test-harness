@@ -33,7 +33,9 @@ import hudson.model.Item;
 import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -45,10 +47,22 @@ import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.core.IsNull;
+import org.hamcrest.core.StringContains;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -58,6 +72,7 @@ public class RealJenkinsRuleTest {
 
     // TODO addPlugins does not currently take effect when used inside test method
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
+    @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
 
     @Test public void smokes() throws Throwable {
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).then(RealJenkinsRuleTest::_smokes);
@@ -177,6 +192,55 @@ public class RealJenkinsRuleTest {
     }
     private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
         assertNull(Stapler.getCurrentRequest());
+    }
+
+
+    @Test
+    public void test500Errors() throws IOException {
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(500);
+        assertThrows(RealJenkinsRule.JenkinsStartupException.class,
+                     () -> RealJenkinsRule.checkResult(conn));
+    }
+    @Test
+    public void test503Errors() throws IOException {
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(503);
+        when(conn.getErrorStream()).thenReturn(IOUtils.toInputStream("Jenkins Custom Error", "UTF-8"));
+
+        String s = RealJenkinsRule.checkResult(conn);
+
+        assertThat(s, is("Jenkins Custom Error"));
+    }
+
+    @Test
+    public void test200Ok() throws IOException {
+
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        when(conn.getResponseCode()).thenReturn(200);
+        when(conn.getInputStream()).thenReturn(IOUtils.toInputStream("blah blah blah", "UTF-8"));
+
+        String s = RealJenkinsRule.checkResult(conn);
+
+        verify(conn, times(1)).getInputStream();
+        assertThat(s, IsNull.nullValue());
+    }
+
+    /**
+     * plugins/failure.hpi
+     *  Plugin that has this:
+     *
+     *  @Initializer(after=JOB_LOADED)
+     *     public static void init() throws IOException {
+     *         throw new IOException("oops");
+     *     }
+     *
+     */
+    @Test
+    public void whenUsingFailurePlugin() throws Throwable {
+        RealJenkinsRule.JenkinsStartupException jse = assertThrows(
+                RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
+        assertThat(jse.getMessage(), StringContains.containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
     // TODO interesting scenarios to test:

@@ -219,14 +219,13 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
-import static org.hamcrest.CoreMatchers.containsString;
-import org.hamcrest.Matchers;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.internal.AssumptionViolatedException;
@@ -1476,7 +1475,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public <R extends Run> R assertBuildStatus(Result status, Future<? extends R> r) throws Exception {
-        assertThat("build was actually scheduled", r, Matchers.notNullValue());
+        assertThat("build was actually scheduled", r, notNullValue());
         return assertBuildStatus(status, r.get());
     }
 
@@ -1629,7 +1628,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         org.w3c.dom.Node n = (org.w3c.dom.Node) node;
         String textString = n.getTextContent();
-        assertTrue("needle found in haystack", textString.contains(needle));
+        assertThat(textString, containsString(needle));
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
@@ -1668,11 +1667,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
 
     public void assertStringContains(String message, String haystack, String needle) {
-        assertThat(message, haystack, Matchers.containsString(needle));
+        assertThat(message, haystack, containsString(needle));
     }
 
     public void assertStringContains(String haystack, String needle) {
-        assertThat(haystack, Matchers.containsString(needle));
+        assertThat(haystack, containsString(needle));
     }
 
     /**
@@ -1692,7 +1691,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 for (String property : listProperties(properties)) {
                     String url = d.getHelpFile(property);
                     assertThat("Help file for the property " + property + " is missing on " + type, url,
-                            Matchers.notNullValue());
+                            notNullValue());
                     wc.goTo(url); // make sure it successfully loads
                 }
                 return null;
@@ -1767,7 +1766,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * <p>
      * This method takes two objects that have properties (getXyz, isXyz, or just the public xyz field),
-     * and makes sure that the property values for each given property are equals (by using {@link org.junit.Assert#assertThat(Object, org.hamcrest.Matcher)})
+     * and makes sure that the property values for each given property are equals (by using {@link org.hamcrest.MatcherAssert#assertThat(Object, org.hamcrest.Matcher)})
      *
      * <p>
      * Property values can be null on both objects, and that is OK, but passing in a property that doesn't

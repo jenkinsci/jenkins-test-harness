@@ -29,9 +29,10 @@ import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JenkinsRuleTest {
@@ -147,12 +148,12 @@ public class JenkinsRuleTest {
 
         // Testing a simple GET that should answer 200 OK and a json
         JenkinsRule.JSONWebResponse response = j.getJSON("testing-cli/getMyJsonObject");
-        assertTrue(response.getContentAsString().contains("I am JenkinsRule"));
+        assertThat(response.getContentAsString(), containsString("I am JenkinsRule"));
         assertEquals(response.getStatusCode(), 200);
 
         // Testing a simple GET with parameter that should answer 200 OK and a json
         response = j.getJSON("testing-cli/getWithParameters?paramValue=whatelse");
-        assertTrue(response.getContentAsString().contains("I am JenkinsRule whatelse"));
+        assertThat(response.getContentAsString(), containsString("I am JenkinsRule whatelse"));
         assertEquals(response.getStatusCode(), 200);
 
         //Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
@@ -197,13 +198,13 @@ public class JenkinsRuleTest {
         response = webClient
                         .withBasicApiToken(admin)
                         .postJSON( "testing-cli/create", JSONObject.fromObject(objectToSend));
-        assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - CREATED"));
+        assertThat(response.getContentAsString(), containsString("Creating a new Object with Json. - CREATED"));
         assertEquals(response.getStatusCode(), 200);
 
         // Testing an authenticated POST that return error 500
         webClient.setThrowExceptionOnFailingStatusCode(false);
         response = webClient.postJSON( "testing-cli/createFailure", JSONObject.fromObject(objectToSend));
-        assertTrue(response.getContentAsString().contains("Creating a new Object with Json. - NOT CREATED"));
+        assertThat(response.getContentAsString(), containsString("Creating a new Object with Json. - NOT CREATED"));
         assertEquals(response.getStatusCode(), 500);
 
     }
@@ -217,13 +218,13 @@ public class JenkinsRuleTest {
         // Testing a simple PUT that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
         response = webClient.putJSON( "testing-cli/update", JSONObject.fromObject(objectToSend));
-        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
+        assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - UPDATED"));
 
         //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
         webClient.setThrowExceptionOnFailingStatusCode(false);
         response = webClient.putJSON( "testing-cli/updateFailure", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 500);
-        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - NOT UPDATED"));
+        assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - NOT UPDATED"));
 
         //Testing a PUT that requires the user to be authenticated
         User admin = User.getById("admin", true);
@@ -241,7 +242,7 @@ public class JenkinsRuleTest {
         response = webClient.withBasicApiToken(admin)
                             .putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 200);
-        assertTrue(response.getContentAsString().contains("Jenkins is the way ! - UPDATED"));
+        assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - UPDATED"));
 
     }
 
