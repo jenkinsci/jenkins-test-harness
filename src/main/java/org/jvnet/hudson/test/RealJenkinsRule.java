@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -61,7 +62,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -80,7 +80,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.CheckForNull;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -527,7 +526,6 @@ public final class RealJenkinsRule implements TestRule {
         // TODO prefix streams with per-test timestamps & port
         new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
-
         int tries = 0;
         while (true) {
             if (port == 0 && portFile != null && portFile.exists()) {
@@ -539,7 +537,7 @@ public final class RealJenkinsRule implements TestRule {
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
 
                     String checkResult = checkResult(conn);
-                    if(checkResult == null){
+                    if (checkResult == null) {
                         break;
                     }else {
                         throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
@@ -568,7 +566,6 @@ public final class RealJenkinsRule implements TestRule {
 
     @CheckForNull
     public static String checkResult(HttpURLConnection conn) throws IOException {
-
         int code = conn.getResponseCode();
         if (code == 200) {
             conn.getInputStream().close();

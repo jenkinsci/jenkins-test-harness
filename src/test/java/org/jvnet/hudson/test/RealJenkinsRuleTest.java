@@ -62,6 +62,7 @@ import static org.mockito.Mockito.when;
 
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.IsNull;
+import org.hamcrest.core.StringContains;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -198,9 +199,8 @@ public class RealJenkinsRuleTest {
     public void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        RealJenkinsRule.JenkinsStartupException jse = assertThrows(RealJenkinsRule.JenkinsStartupException.class,
-                                                                    () -> RealJenkinsRule.checkResult(conn));
-        assertThat(jse, isA(RealJenkinsRule.JenkinsStartupException.class));
+        assertThrows(RealJenkinsRule.JenkinsStartupException.class,
+                     () -> RealJenkinsRule.checkResult(conn));
     }
     @Test
     public void test503Errors() throws IOException {
@@ -236,9 +236,11 @@ public class RealJenkinsRuleTest {
      *     }
      *
      */
-    @Test(expected = RealJenkinsRule.JenkinsStartupException.class)
+    @Test
     public void whenUsingFailurePlugin() throws Throwable {
-        rrWithFailure.startJenkins();
+        RealJenkinsRule.JenkinsStartupException jse = assertThrows(
+                RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
+        assertThat(jse.getMessage(), StringContains.containsString("java.io.IOException: oops"));
     }
 
     // TODO interesting scenarios to test:
