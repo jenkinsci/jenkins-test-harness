@@ -240,7 +240,7 @@ public class RealJenkinsRuleTest {
     public void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsRule.JenkinsStartupException jse = assertThrows(
                 RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
-        assertThat(jse.getMessage(), StringContains.containsString("java.io.IOException: oops"));
+        assertThat(jse.getMessage(), StringContains.containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
     // TODO interesting scenarios to test:
