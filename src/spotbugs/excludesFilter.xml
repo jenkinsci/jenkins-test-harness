@@ -240,6 +240,8 @@
           <Class name="org.jvnet.hudson.test.JenkinsRecipe$Runner"/>
           <Class name="org.jvnet.hudson.test.JenkinsSessionRule$CustomJenkinsRule"/>
           <Class name="org.jvnet.hudson.test.junit.GroupedTest"/>
+          <Class name="org.jvnet.hudson.test.junit.jupiter.JenkinsExtension"/>
+          <Class name="org.jvnet.hudson.test.junit.jupiter.JUnit5JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.LenientRunnable"/>
           <Class name="org.jvnet.hudson.test.MemoryAssert"/>
           <Class name="org.jvnet.hudson.test.NoListenerConfiguration"/>
