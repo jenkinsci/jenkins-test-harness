@@ -73,9 +73,20 @@ public final class WarExploder {
             }
         } else {
             // locate jenkins.war
-            URL winstone = WarExploder.class.getResource("/winstone.jar");
+            URL winstone = WarExploder.class.getResource("/executable/winstone.jar");
+            String className = "executable.Main";
+
+            // TODO: Delete the next statement once we drop support for versions older than 2.358.
+            if (winstone == null) {
+                // Prior to 2.358
+                winstone = WarExploder.class.getResource("/winstone.jar");
+                if (winstone != null) {
+                    className = "executable.Executable";
+                }
+            }
+
             if (winstone != null) {
-                war = Which.jarFile(Class.forName("executable.Executable"));
+                war = Which.jarFile(Class.forName(className));
             } else {
                 // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
