@@ -532,6 +532,18 @@ public final class RealJenkinsRule implements TestRule {
                 port = readPort(portFile);
             }
             if (port != 0) {
+
+                // Currently this file is created when a runRemotely is executed (CustomJenkinsRule constructor)
+                // This file is needed before for ConnectedMasters connection to OCs.
+                File jcl = new File(getHome(),  "jenkins.model.JenkinsLocationConfiguration.xml");
+                if(! jcl.exists()){
+                    String value = "<?xml version='1.1' encoding='UTF-8'?>\n"
+                                       + "<jenkins.model.JenkinsLocationConfiguration>\n"
+                                       + "  <jenkinsUrl>"+getUrl()+"</jenkinsUrl>\n"
+                                       + "</jenkins.model.JenkinsLocationConfiguration>%";
+                    FileUtils.write(jcl, value, Charset.defaultCharset());
+                }
+
                 try {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
