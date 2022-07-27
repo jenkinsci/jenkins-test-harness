@@ -27,6 +27,7 @@ import hudson.FilePath;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -72,9 +73,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile((withoutSpace ? "jkh" : "j h"), "", base);
-            f.delete();
-            f.mkdirs();
+            File f = Files.createTempDirectory(base.toPath(), (withoutSpace ? "jkh" : "j h")).toFile();
             tmpDirectories.add(f);
             return f;
         } catch (IOException e) {
