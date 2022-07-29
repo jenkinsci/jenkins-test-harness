@@ -186,6 +186,7 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
     private transient boolean supportsPortFileName;
 
+    private boolean createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule;
     /**
      * Add some plugins to the test classpath.
      *
@@ -233,6 +234,10 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    public RealJenkinsRule createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule(){
+        this.createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule = true;
+        return this;
+    }
     /**
      * Adjusts the test timeout.
      * The timer starts when {@link #startJenkins} completes and {@link #runRemotely} is ready.
@@ -536,11 +541,11 @@ public final class RealJenkinsRule implements TestRule {
                 // Currently this file is created when a runRemotely is executed (CustomJenkinsRule constructor)
                 // But this file is needed before finishes startJenkins in order to be accessible by external systems
                 File jcl = new File(getHome(),  "jenkins.model.JenkinsLocationConfiguration.xml");
-                if(! jcl.exists()){
+                if(!jcl.exists() && createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule){
                     String value = "<?xml version='1.1' encoding='UTF-8'?>\n"
                                        + "<jenkins.model.JenkinsLocationConfiguration>\n"
                                        + "  <jenkinsUrl>"+getUrl()+"</jenkinsUrl>\n"
-                                       + "</jenkins.model.JenkinsLocationConfiguration>%";
+                                       + "</jenkins.model.JenkinsLocationConfiguration>";
                     FileUtils.write(jcl, value, Charset.defaultCharset());
                 }
 

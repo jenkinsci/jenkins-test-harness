@@ -34,6 +34,7 @@ import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
@@ -45,7 +46,7 @@ import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.collection.IsArrayWithSize;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.hamcrest.core.StringContains;
 import org.junit.Rule;
@@ -55,7 +56,9 @@ import org.kohsuke.stapler.Stapler;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.io.FileMatchers.anExistingFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -93,11 +96,44 @@ public class RealJenkinsRuleTest {
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
-    @Test public void testJenkinsLocationConfiguration() throws Throwable {
+    @Test public void testJenkinsLocationConfigurationIsNotCreated() throws Throwable {
         rr.startJenkins();
         String[] jenkinsLocations = rr.getHome().list(
                 (dir, name) -> name.equalsIgnoreCase("jenkins.model.JenkinsLocationConfiguration.xml"));
-        assertThat(jenkinsLocations, IsArrayWithSize.arrayWithSize(1));
+        assertThat(jenkinsLocations, arrayWithSize(0));
+    }
+
+    @Test public void testJenkinsLocationConfigurationIsCreated() throws Throwable {
+        rr
+            .createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule()
+            .startJenkins();
+
+        String[] jenkinsLocations = rr.getHome().list(
+                (dir, name) -> name.equalsIgnoreCase("jenkins.model.JenkinsLocationConfiguration.xml"));
+        assertThat(jenkinsLocations, arrayWithSize(1));
+
+        File file = new File(rr.getHome(), jenkinsLocations[0]);
+        assertThat(file, anExistingFile());
+        String expected = "<?xml version='1.1' encoding='UTF-8'?>\n"
+                                                 + "<jenkins.model.JenkinsLocationConfiguration>\n"
+                                                 + "  <jenkinsUrl>"+rr.getUrl()+"</jenkinsUrl>\n"
+                                                 + "</jenkins.model.JenkinsLocationConfiguration>";;
+        assertThat(FileUtils.readFileToString(file, Charset.defaultCharset()), is(expected));
+    }
+    @Test public void testJenkinsLocationConfigurationIsCreatedWithThen() throws Throwable {
+        rr.then(jr -> {
+            String[] jenkinsLocations = jr.jenkins.getRootDir().list(
+                    (dir, name) -> name.equalsIgnoreCase("jenkins.model.JenkinsLocationConfiguration.xml"));
+            assertThat(jenkinsLocations, arrayWithSize(1));
+
+            File file = new File(jr.jenkins.getRootDir(), jenkinsLocations[0]);
+            assertThat(file, anExistingFile());
+            String expected = "<?xml version='1.1' encoding='UTF-8'?>\n"
+                                      + "<jenkins.model.JenkinsLocationConfiguration>\n"
+                                      + "  <jenkinsUrl>"+jr.jenkins.getRootUrl()+"</jenkinsUrl>\n"
+                                      + "</jenkins.model.JenkinsLocationConfiguration>";;
+            assertThat(FileUtils.readFileToString(file, Charset.defaultCharset()), is(expected));
+        });
     }
 
     private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
