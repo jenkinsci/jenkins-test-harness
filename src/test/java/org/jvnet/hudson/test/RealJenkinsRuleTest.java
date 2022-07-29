@@ -100,7 +100,7 @@ public class RealJenkinsRuleTest {
         rr.startJenkins();
         String[] jenkinsLocations = rr.getHome().list(
                 (dir, name) -> name.equalsIgnoreCase("jenkins.model.JenkinsLocationConfiguration.xml"));
-        assertThat(jenkinsLocations, arrayWithSize(0));
+        assertThat(jenkinsLocations, arrayWithSize(1));
     }
 
     @Test public void testJenkinsLocationConfigurationIsCreated() throws Throwable {

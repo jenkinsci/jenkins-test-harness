@@ -540,14 +540,14 @@ public final class RealJenkinsRule implements TestRule {
 
                 // Currently this file is created when a runRemotely is executed (CustomJenkinsRule constructor)
                 // But this file is needed before startJenkins finishes in order to be accessible by external systems
-                File jcl = new File(getHome(),  "jenkins.model.JenkinsLocationConfiguration.xml");
-                if(!jcl.exists() && createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule){
-                    String value = "<?xml version='1.1' encoding='UTF-8'?>\n"
-                                       + "<jenkins.model.JenkinsLocationConfiguration>\n"
-                                       + "  <jenkinsUrl>"+getUrl()+"</jenkinsUrl>\n"
-                                       + "</jenkins.model.JenkinsLocationConfiguration>";
-                    FileUtils.write(jcl, value, Charset.defaultCharset());
-                }
+//                File jcl = new File(getHome(),  "jenkins.model.JenkinsLocationConfiguration.xml");
+//                if(!jcl.exists() && createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule){
+//                    String value = "<?xml version='1.1' encoding='UTF-8'?>\n"
+//                                       + "<jenkins.model.JenkinsLocationConfiguration>\n"
+//                                       + "  <jenkinsUrl>"+getUrl()+"</jenkinsUrl>\n"
+//                                       + "</jenkins.model.JenkinsLocationConfiguration>";
+//                    FileUtils.write(jcl, value, Charset.defaultCharset());
+//                }
 
                 try {
                     URL status = endpoint("status");
@@ -555,6 +555,9 @@ public final class RealJenkinsRule implements TestRule {
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
+                        runRemotely(jr -> {
+                            jr.jenkins.getRootUrl();
+                        });
                         break;
                     }else {
                         throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
