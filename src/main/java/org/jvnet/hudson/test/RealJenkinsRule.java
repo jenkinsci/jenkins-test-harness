@@ -539,7 +539,7 @@ public final class RealJenkinsRule implements TestRule {
             if (port != 0) {
 
                 // Currently this file is created when a runRemotely is executed (CustomJenkinsRule constructor)
-                // But this file is needed before finishes startJenkins in order to be accessible by external systems
+                // But this file is needed before startJenkins finishes in order to be accessible by external systems
                 File jcl = new File(getHome(),  "jenkins.model.JenkinsLocationConfiguration.xml");
                 if(!jcl.exists() && createJenkinsLocationConfigurationFileWhenStartingRealJenkinsRule){
                     String value = "<?xml version='1.1' encoding='UTF-8'?>\n"
