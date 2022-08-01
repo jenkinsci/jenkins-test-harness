@@ -444,9 +444,13 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet when running on older versions of Jenkins.
+     * @throws IllegalStateException if running on a newer version of Jenkins and it has not yet been started so we do not yet know the port
      */
-    public URL getUrl() throws MalformedURLException {
+    public URL getUrl() throws MalformedURLException, IllegalStateException {
+        if (port == 0) {
+            throw new IllegalStateException("Port not yet defined");
+        }
         return new URL("http://" + host + ":" + port + "/jenkins/");
     }
 
