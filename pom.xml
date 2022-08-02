@@ -56,9 +56,10 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.362-rc32715.7e7a_5ef84107</jenkins.version>
+    <!-- TODO https://github.com/jenkinsci/jenkins/pull/6085 -->
+    <jenkins.version>2.363-rc32712.ec112fd61004</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>10.0.11</jetty.version>
+    <jetty.version>11.0.11</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.35</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
@@ -153,7 +154,7 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <!-- or websocket-javax-server -->
+      <!-- or websocket-jakarta-server -->
       <artifactId>websocket-jetty-server</artifactId>
       <!-- until Jetty release including https://github.com/eclipse/jetty.project/pull/8199 -->
       <exclusions>

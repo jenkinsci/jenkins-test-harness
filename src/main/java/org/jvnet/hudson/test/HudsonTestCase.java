@@ -151,8 +151,8 @@ import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -354,9 +354,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         
         jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
-        jenkins.servletContext.setAttribute("app", jenkins);
-        jenkins.servletContext.setAttribute("version","?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+        jenkins.getServletContext().setAttribute("app", jenkins);
+        jenkins.getServletContext().setAttribute("version","?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.getServletContext()));
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
 
         // set a default JDK to be the one that the harness is using.

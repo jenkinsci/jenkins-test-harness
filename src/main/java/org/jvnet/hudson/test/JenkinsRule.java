@@ -182,9 +182,9 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -298,7 +298,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Where in the {@link Server} is Jenkins deployed?
      * <p>
-     * Just like {@link javax.servlet.ServletContext#getContextPath()}, starts with '/' but doesn't end with '/'.
+     * Just like {@link jakarta.servlet.ServletContext#getContextPath()}, starts with '/' but doesn't end with '/'.
      * Unlike {@link WebClient#getContextPath} this is not a complete URL.
      */
     public String contextPath = "/jenkins";
@@ -450,9 +450,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
-        jenkins.servletContext.setAttribute("app", jenkins);
-        jenkins.servletContext.setAttribute("version", "?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+        jenkins.getServletContext().setAttribute("app", jenkins);
+        jenkins.getServletContext().setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.getServletContext()));
 
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
@@ -742,7 +742,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
@@ -750,7 +750,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
      * that we need for testing.
      * 
      * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
