@@ -56,9 +56,9 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.249</jenkins.version>
+    <jenkins.version>2.362-rc32715.7e7a_5ef84107</jenkins.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jetty.version>9.4.48.v20220622</jetty.version>
+    <jetty.version>10.0.11</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.35</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
@@ -67,10 +67,19 @@ THE SOFTWARE.
     <concurrency>1</concurrency>
 
     <spotbugs.excludeFilterFile>${project.basedir}/src/spotbugs/excludesFilter.xml</spotbugs.excludeFilterFile>
+
+    <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-bom</artifactId>
+        <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>annotation-indexer</artifactId>
@@ -137,23 +146,22 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
-      <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-webapp</artifactId>
-      <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-api</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
-    <dependency>
-      <!-- or javax-websocket-server-impl -->
-      <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-server</artifactId>
-      <version>${jetty.version}</version>
+      <!-- or websocket-javax-server -->
+      <artifactId>websocket-jetty-server</artifactId>
+      <!-- until Jetty release including https://github.com/eclipse/jetty.project/pull/8199 -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>jetty-annotations</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -244,25 +252,6 @@ THE SOFTWARE.
   </pluginRepositories>
   <build>
     <plugins>
-      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
-      <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>display-info</id>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>[1.8.0,]</version>
-                </requireJavaVersion>
-                <enforceBytecodeVersion>
-                  <maxJdkVersion>1.8</maxJdkVersion>
-                </enforceBytecodeVersion>
-              </rules>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -289,25 +278,6 @@ THE SOFTWARE.
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <configuration>
-          <rules>
-            <requireUpperBoundDeps>
-              <excludes combine.children="append">
-                <!--
-                  Stapler requests Guava 14.0 and Jenkins core requests Guice 4.0 which requests
-                  Guava 16.0.1. Core actually provides 11.0.1. Work around this mess by just
-                  excluding Guava from the RequireUpperBoundDeps check. The long-term fix is
-                  tracked in JENKINS-36779.
-                -->
-                <exclude>com.google.guava:guava</exclude>
-              </excludes>
-            </requireUpperBoundDeps>
-          </rules>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -366,66 +336,6 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
-      <id>jdk-9-and-above</id>
-      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be lifted out of the profile. -->
-      <activation>
-        <jdk>[9,)</jdk>
-      </activation>
-      <properties>
-        <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
-      </properties>
-      <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <configuration>
-              <release>8</release>
-              <testRelease>8</testRelease>
-            </configuration>
-          </plugin>
-          <plugin>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-              <release>8</release>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <!-- TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted. -->
-    <profile>
-      <id>jdk-8-and-below</id>
-      <activation>
-        <jdk>(,1.8]</jdk>
-      </activation>
-      <properties>
-        <jenkins.insaneHook>-Xbootclasspath/p:${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar</jenkins.insaneHook>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <configuration>
-              <source>1.8</source>
-              <target>1.8</target>
-              <testSource>1.8</testSource>
-              <testTarget>1.8</testTarget>
-              <release combine.self="override" />
-              <testRelease combine.self="override" />
-            </configuration>
-          </plugin>
-          <plugin>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-              <source>1.8</source>
-              <release combine.self="override" />
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>skip-tests-on-release</id>
       <activation>
         <property>
@@ -469,48 +379,6 @@ THE SOFTWARE.
                 <exclude>org.jvnet.hudson.test.MemoryAssertTest</exclude>
               </excludes>
             </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <!--
-      Our Jenkinsfile has a Java 17 branch that tests a recent weekly release for two reasons:
-
-        1. We want to test on all versions of Java, but only recent weeklies support Java 17.
-
-        2. Testing against a recent weekly release ensures that the test harness can be compiled
-           against the latest core APIs.
-
-      When we are testing against a recent weekly that requires Java 11, the bytecode version
-      check naturally fails. To work around this, we relax the bytecode version check
-      when we are executing the Java 17 branch in the CI environment.
-
-      TODO When the minimum Jenkins baseline is bumped past 2.357, this can be deleted.
-    -->
-    <profile>
-      <id>test-recent-cores-on-ci</id>
-      <activation>
-        <jdk>17</jdk>
-        <property>
-          <name>env.CI</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>display-info</id>
-                <configuration>
-                  <rules>
-                    <enforceBytecodeVersion>
-                      <maxJdkVersion>11</maxJdkVersion>
-                    </enforceBytecodeVersion>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
           </plugin>
         </plugins>
       </build>

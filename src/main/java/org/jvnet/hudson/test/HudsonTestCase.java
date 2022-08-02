@@ -166,7 +166,9 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
@@ -179,6 +181,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
@@ -543,6 +546,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
+        JettyWebSocketServletContainerInitializer.configure(context, null);
         context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
@@ -551,6 +555,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
         connector.setHost("localhost");
 
         server.addConnector(connector);
