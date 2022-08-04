@@ -609,6 +609,10 @@ public final class RealJenkinsRule implements TestRule {
 
     private static int readPort(File portFile) throws IOException {
         String s = FileUtils.readFileToString(portFile, StandardCharsets.UTF_8);
+        if (s.isEmpty()) {
+            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile.getAbsolutePath()));
+            return 0;
+        }
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException e) {
