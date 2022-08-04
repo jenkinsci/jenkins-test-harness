@@ -385,10 +385,11 @@ public final class RealJenkinsRule implements TestRule {
                     }
                     System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
+                } catch (Throwable t) {
+                    LOGGER.log(Level.WARNING, "Something went wrong", t);
+                    throw t;
                 } finally {
-                    if (proc != null) {
-                        stopJenkins();
-                    }
+                    stopJenkins();
                     try {
                         tmp.dispose();
                     } catch (Exception x) {
@@ -615,18 +616,27 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    /**
+     * Stops Jenkins and releases any system resources associated
+     * with it. If Jenkins is already stopped then invoking this
+     * method has no effect.
+     */
     public void stopJenkins() throws Throwable {
-        endpoint("exit").openStream().close();
-        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
-            System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
-            proc.destroyForcibly();
-            throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+        if (proc != null) {
+            Process _proc = proc;
+            proc = null;
+            endpoint("exit").openStream().close();
+
+            if (!_proc.waitFor(60, TimeUnit.SECONDS) ) {
+                System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
+                _proc.destroyForcibly();
+                throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+            }
+            int exitValue = _proc.exitValue();
+            if (exitValue != 0) {
+                throw new AssertionError("nonzero exit code: " + exitValue);
+            }
         }
-        int exitValue = proc.exitValue();
-        if (exitValue != 0) {
-            throw new AssertionError("nonzero exit code: " + exitValue);
-        }
-        proc = null;
     }
 
     public void runRemotely(Step s) throws Throwable {
