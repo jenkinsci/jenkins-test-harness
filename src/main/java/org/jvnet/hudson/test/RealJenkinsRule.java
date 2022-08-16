@@ -445,9 +445,12 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins()}.
      */
     public URL getUrl() throws MalformedURLException {
+        if (port == 0) {
+            throw new IllegalStateException("This method must be called after calling #startJenkins.");
+        }
         return new URL("http://" + host + ":" + port + "/jenkins/");
     }
 
