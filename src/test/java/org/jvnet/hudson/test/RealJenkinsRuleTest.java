@@ -33,9 +33,9 @@ import hudson.model.Item;
 import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -48,23 +48,24 @@ import org.apache.commons.io.FileUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.commons.io.IOUtils;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.IsNull;
 import org.hamcrest.core.StringContains;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.Stapler;
 
@@ -73,6 +74,9 @@ public class RealJenkinsRuleTest {
     // TODO addPlugins does not currently take effect when used inside test method
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
     @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
+
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test public void smokes() throws Throwable {
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).then(RealJenkinsRuleTest::_smokes);
@@ -93,6 +97,29 @@ public class RealJenkinsRuleTest {
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+    }
+
+    @Test public void testThrowsException() throws Throwable {
+        exceptionRule.expect(Exception.class);
+        exceptionRule.expect(new TypeSafeMatcher<Exception>() {
+            @Override
+            protected boolean matchesSafely(Exception item) {
+                Throwable[] suppressed = item.getSuppressed();
+                if (suppressed.length != 1) {
+                    return false;
+                }
+                Throwable throwable = suppressed[0];
+                return throwable.getMessage() != null && throwable.getMessage().contains("Caller stacktrace follows");
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Exception with info about caller");
+            }
+        });
+        rr.then((RealJenkinsRule.Step2<Serializable>) r -> {
+            throw new Exception("test");
+        });
     }
 
     private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
