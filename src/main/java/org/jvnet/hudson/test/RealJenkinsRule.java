@@ -663,8 +663,7 @@ public final class RealJenkinsRule implements TestRule {
         try {
             OutputPayload result = (OutputPayload) Init2.readSer(conn.getInputStream(), null);
             if (result.error != null) {
-                result.error.addSuppressed(new Info());
-                throw result.error;
+                throw new StepException(result.error);
             }
             return (T) result.result;
         } catch (IOException e) {
@@ -876,9 +875,9 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private static class Info extends Exception {
-        Info() {
-            super("Caller stacktrace follows");
+    public static class StepException extends Exception {
+        public StepException(Throwable cause) {
+            super("Remote step threw an exception", cause);
         }
     }
 
