@@ -63,7 +63,6 @@ import org.hamcrest.core.IsNull;
 import org.hamcrest.core.StringContains;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.Stapler;
 
@@ -72,9 +71,6 @@ public class RealJenkinsRuleTest {
     // TODO addPlugins does not currently take effect when used inside test method
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
     @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
-
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test public void smokes() throws Throwable {
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).then(RealJenkinsRuleTest::_smokes);
