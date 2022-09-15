@@ -659,13 +659,14 @@ public final class RealJenkinsRule implements TestRule {
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
 
-        Init2.writeSer(conn.getOutputStream(), new InputPayload<T>(token, new Info(), s, getUrl()));
+        Init2.writeSer(conn.getOutputStream(), new InputPayload(token, s, getUrl()));
         try {
-            OutputPayload<T> result = (OutputPayload<T>) Init2.readSer(conn.getInputStream(), null);
+            OutputPayload result = (OutputPayload) Init2.readSer(conn.getInputStream(), null);
             if (result.error != null) {
+                result.error.addSuppressed(new Info());
                 throw result.error;
             }
-            return result.result;
+            return (T) result.result;
         } catch (IOException e) {
             if (conn.getErrorStream() != null) {
                 try {
@@ -782,14 +783,14 @@ public final class RealJenkinsRule implements TestRule {
         private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
                 new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
-        public <T extends Serializable> void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            InputPayload<T> input = (InputPayload<T>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+        public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
+            InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken(input.token);
-            Step2<T> s = input.step;
+            Step2<?> s = input.step;
             URL url = input.url;
 
             Throwable err = null;
-            T object = null;
+            Object object = null;
             try {
                 object = STEP_RUNNER.submit(() -> {
                     try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
@@ -801,13 +802,11 @@ public final class RealJenkinsRule implements TestRule {
             } catch (ExecutionException e) {
                 // Unwrap once for ExecutionException and once for RuntimeException:
                 err = e.getCause().getCause();
-                err.addSuppressed(input.info);
             } catch (CancellationException | InterruptedException e) {
                 err = e;
-                err.addSuppressed(input.info);
             }
             // TODO use raw err if it seems safe enough
-            Init2.writeSer(rsp.getOutputStream(), new OutputPayload<T>(object, err != null ? new ProxyException(err) : null));
+            Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err != null ? new ProxyException(err) : null));
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
@@ -877,31 +876,29 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private static class Info extends Exception implements Serializable {
+    private static class Info extends Exception {
         Info() {
             super("Caller stacktrace follows");
         }
     }
 
-    private static class InputPayload<T extends Serializable> implements Serializable {
+    private static class InputPayload implements Serializable {
         private final String token;
-        private final Info info;
-        private final Step2<T> step;
+        private final Step2<?> step;
         private final URL url;
 
-        InputPayload(String token, Info info, Step2<T> step, URL url) {
+        InputPayload(String token, Step2<?> step, URL url) {
             this.token = token;
-            this.info = info;
             this.step = step;
             this.url = url;
         }
     }
 
-    private static class OutputPayload<T extends Serializable> implements Serializable {
-        private final T result;
+    private static class OutputPayload implements Serializable {
+        private final Object result;
         private final Throwable error;
 
-        OutputPayload(T result, Throwable error) {
+        OutputPayload(Object result, Throwable error) {
             this.result = result;
             this.error = error;
         }
