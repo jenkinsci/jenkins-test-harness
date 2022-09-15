@@ -24,6 +24,21 @@
 
 package org.jvnet.hudson.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
 import hudson.model.AbstractBuild;
@@ -33,9 +48,9 @@ import hudson.model.Item;
 import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -45,21 +60,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.IsNull;
 import org.hamcrest.core.StringContains;
@@ -95,6 +95,12 @@ public class RealJenkinsRuleTest {
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
+    @Test public void testThrowsException() {
+        assertThrows(RealJenkinsRule.StepException.class, () -> rr.then((RealJenkinsRule.Step2<Serializable>) r -> {
+            throw new Exception("test");
+        }));
+    }
+
     private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
         PluginServletFilter.addFilter(new Filter() {
 
@@ -119,7 +125,7 @@ public class RealJenkinsRuleTest {
         } catch (Throwable t) {
             erred = true;
             t.printStackTrace();
-            assertEquals("java.lang.AssertionError: oops", t.toString());
+            assertThat(Functions.printThrowable(t), containsString("java.lang.AssertionError: oops"));
         }
         assertTrue(erred);
     }
