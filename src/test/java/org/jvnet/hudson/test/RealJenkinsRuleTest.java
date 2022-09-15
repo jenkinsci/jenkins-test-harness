@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
 import hudson.model.AbstractBuild;
@@ -123,7 +125,7 @@ public class RealJenkinsRuleTest {
         } catch (Throwable t) {
             erred = true;
             t.printStackTrace();
-            assertEquals("java.lang.AssertionError: oops", t.toString());
+            assertThat(Functions.printThrowable(t), containsString("java.lang.AssertionError: oops"));
         }
         assertTrue(erred);
     }
