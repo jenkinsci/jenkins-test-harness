@@ -532,6 +532,11 @@ public final class RealJenkinsRule implements TestRule {
         new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
         int tries = 0;
         while (true) {
+            if (!proc.isAlive()) {
+                int exitValue = proc.exitValue();
+                proc = null;
+                throw new IOException("Jenkins process terminated prematurely with exit code " + exitValue);
+            }
             if (port == 0 && portFile != null && portFile.exists()) {
                 port = readPort(portFile);
             }
