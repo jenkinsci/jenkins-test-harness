@@ -132,6 +132,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -504,15 +505,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     tl.onTearDown();
             }
 
-            // cancel pending asynchronous operations, although this doesn't really seem to be working
+            // cancel asynchronous operations as best as we can
             for (WebClient client : clients) {
-                // unload the page to cancel asynchronous operations
+                // wait until current asynchronous operations have finished executing
+                WebClientUtil.waitForJSExec(client);
+                // unload the page to prevent new asynchronous operations from being scheduled
                 try {
                     client.getPage("about:blank");
                 } catch (IOException e) {
-                    // ignore
+                    // should never happen when loading "about:blank"
+                    throw new UncheckedIOException(e);
+                } finally {
+                    client.close();
                 }
-                client.close();
             }
             clients.clear();
 
