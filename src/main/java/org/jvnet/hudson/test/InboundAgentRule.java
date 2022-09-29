@@ -31,13 +31,15 @@ import hudson.model.Slave;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
+import hudson.slaves.SlaveComputer;
 import hudson.util.StreamCopyThread;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -50,32 +52,184 @@ import org.junit.rules.ExternalResource;
  */
 public final class InboundAgentRule extends ExternalResource {
 
-    private final Map<String, Process> procs = new HashMap<>();
+    private final ConcurrentMap<String, Process> procs = new ConcurrentHashMap<>();
+
+    /**
+     * The options used to (re)start an inbound agent.
+     */
+    public static class Options {
+        // TODO Java 14+ use records
+
+        @CheckForNull private String name;
+        private boolean secret;
+        private boolean webSocket;
+        private boolean start = true;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(@CheckForNull String name) {
+            this.name = name;
+        }
+
+        public boolean isSecret() {
+            return secret;
+        }
+
+        public void setSecret(boolean secret) {
+            this.secret = secret;
+        }
+
+        public boolean isWebSocket() {
+            return webSocket;
+        }
+
+        public void setWebSocket(boolean webSocket) {
+            this.webSocket = webSocket;
+        }
+
+        public boolean isStart() {
+            return start;
+        }
+
+        public void setStart(boolean start) {
+            this.start = start;
+        }
+
+        /**
+         * A builder of {@link Options}.
+         *
+         * <p>Instances of {@link Builder} are created by calling {@link
+         * InboundAgentRule.Options#newBuilder}.
+         */
+        public interface Builder {
+
+            /**
+             * Set the name of the agent.
+             *
+             * @param name the name
+             * @return this builder
+             */
+            Builder name(String name);
+
+            /**
+             * Use secret when connecting.
+             *
+             * @return this builder
+             */
+            Builder secret();
+
+            /**
+             * Use WebSocket when connecting.
+             *
+             * @return this builder
+             */
+            Builder webSocket();
+
+            /**
+             * Skip starting the agent.
+             *
+             * @return this builder
+             */
+            Builder skipStart();
+
+            /**
+             * Build and return an {@link Options}.
+             *
+             * @return a new {@link Options}
+             */
+            Options build();
+        }
+
+        private static class BuilderImpl implements Builder {
+
+            private final Options options = new Options();
+
+            @Override
+            public Builder name(String name) {
+                options.setName(name);
+                return this;
+            }
+
+            @Override
+            public Builder secret() {
+                options.setSecret(true);
+                return this;
+            }
+
+            @Override
+            public Builder webSocket() {
+                options.setWebSocket(true);
+                return this;
+            }
+
+            @Override
+            public Builder skipStart() {
+                options.setStart(false);
+                return this;
+            }
+
+            @Override
+            public Options build() {
+                return options;
+            }
+        }
+
+        public static Builder newBuilder() {
+            return new BuilderImpl();
+        }
+    }
 
     /**
      * Creates, attaches, and starts a new inbound agent.
+     *
      * @param name an optional {@link Slave#getNodeName}
      */
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
     public Slave createAgent(@NonNull JenkinsRule r, @CheckForNull String name) throws Exception {
-        if (name == null) {
-            name = "agent" + r.jenkins.getNodes().size();
+        return createAgent(r, Options.newBuilder().name(name).build());
+    }
+
+    /**
+     * Creates, attaches, and optionally starts a new inbound agent.
+     *
+     * @param options the options
+     */
+    @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+    public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
+        if (options.getName() == null) {
+            options.setName("agent" + r.jenkins.getNodes().size());
         }
-        // TODO 2.216+ support WebSocket option
-        DumbSlave s = new DumbSlave(name, new File(r.jenkins.getRootDir(), "agent-work-dirs/" + name).getAbsolutePath(), new JNLPLauncher(true));
-        s.setNumExecutors(1); // TODO 2.234+ delete (default switched from 2 to 1)
+        JNLPLauncher launcher = new JNLPLauncher(true);
+        launcher.setWebSocket(options.isWebSocket());
+        DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
-        start(r, name);
+        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+        while (s.toComputer().getOfflineCause() == null) {
+            Thread.sleep(100);
+        }
+        if (options.isStart()) {
+            start(r, options);
+            r.waitOnline(s);
+        }
         return s;
     }
 
     /**
      * (Re-)starts an existing inbound agent.
      */
-    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
-    public void start(@NonNull JenkinsRule r, String name) throws Exception {
-        stop(name);
+    public void start(@NonNull JenkinsRule r, @NonNull String name) throws Exception {
+        start(r, Options.newBuilder().name(name).build());
+    }
+
+    /**
+     * (Re-)starts an existing inbound agent.
+     */
+    @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+    public void start(@NonNull JenkinsRule r, Options options) throws Exception {
+        Objects.requireNonNull(options.getName());
+        stop(options.getName());
         List<String> cmd = new ArrayList<>(Arrays.asList(JavaEnvUtils.getJreExecutable("java"),
             "-Xmx512m",
             "-XX:+PrintCommandLineFlags",
@@ -90,12 +244,22 @@ public final class InboundAgentRule extends ExternalResource {
         }
         cmd.addAll(Arrays.asList(
             "-jar", agentJar.getAbsolutePath(),
-            "-jnlpUrl", r.getURL() + "computer/" + name + "/slave-agent.jnlp"));
+            "-jnlpUrl", r.getURL() + "computer/" + options.getName() + "/slave-agent.jnlp"));
+        SlaveComputer c = (SlaveComputer) r.jenkins.getNode(options.getName()).toComputer();
+        if (options.isSecret()) {
+            String secret = c.getJnlpMac();
+            // To watch it fail: secret = secret.replace('1', '2');
+            cmd.addAll(Arrays.asList("-secret", secret));
+        }
+        JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
+        if (!launcher.getWorkDirSettings().isDisabled()) {
+            cmd.addAll(launcher.getWorkDirSettings().toCommandLineArgs(c));
+        }
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         System.err.println("Running: " + pb.command());
         Process proc = pb.start();
-        procs.put(name, proc);
+        procs.put(options.getName(), proc);
         new StreamCopyThread("jnlp", proc.getInputStream(), System.err).start();
     }
 
