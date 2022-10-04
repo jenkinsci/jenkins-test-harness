@@ -385,9 +385,6 @@ public final class RealJenkinsRule implements TestRule {
                     }
                     System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
-                } catch (Throwable t) {
-                    LOGGER.log(Level.WARNING, "Something went wrong", t);
-                    throw t;
                 } finally {
                     stopJenkins();
                     try {
