@@ -211,7 +211,6 @@ public final class InboundAgentRule extends ExternalResource {
         }
         if (options.isStart()) {
             start(r, options);
-            r.waitOnline(s);
         }
         return s;
     }
