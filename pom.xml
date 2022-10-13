@@ -289,25 +289,6 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <configuration>
-          <rules>
-            <requireUpperBoundDeps>
-              <excludes combine.children="append">
-                <!--
-                  Stapler requests Guava 14.0 and Jenkins core requests Guice 4.0 which requests
-                  Guava 16.0.1. Core actually provides 11.0.1. Work around this mess by just
-                  excluding Guava from the RequireUpperBoundDeps check. The long-term fix is
-                  tracked in JENKINS-36779.
-                -->
-                <exclude>com.google.guava:guava</exclude>
-              </excludes>
-            </requireUpperBoundDeps>
-          </rules>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
