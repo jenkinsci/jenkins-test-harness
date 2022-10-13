@@ -80,6 +80,12 @@ THE SOFTWARE.
         <artifactId>access-modifier-annotation</artifactId>
         <version>1.27</version>
       </dependency>
+      <dependency>
+        <!-- Avoid downloading multiple jenkins core versions and tons of stapler versions due to version range usage in older libs -->
+        <groupId>org.jenkins-ci.main</groupId>
+        <artifactId>jenkins-core</artifactId>
+        <version>${jenkins.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
