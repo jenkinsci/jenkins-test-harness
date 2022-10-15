@@ -27,6 +27,7 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Computer;
 import hudson.model.Slave;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
@@ -47,6 +48,19 @@ import org.junit.rules.ExternalResource;
 /**
  * Manages inbound agents.
  * While these run on the local host, they are launched outside of Jenkins.
+ *
+ * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
+ *
+ * <pre>
+ * Slave agent = inboundAgents.createAgent(r, […]);
+ * r.waitOnline(agent);
+ * try {
+ *     […]
+ * } finally {
+ *     inboundAgents.stop(r, agent.getNodeName());
+ * }
+ * </pre>
+ *
  * @see JenkinsRule#createComputerLauncher
  * @see JenkinsRule#createSlave()
  */
@@ -263,13 +277,27 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     /**
+     * Stop an existing inbound agent and wait for it to go offline.
+     */
+    public void stop(@NonNull JenkinsRule r, @NonNull String name) throws InterruptedException {
+        stop(name);
+        Computer c = r.jenkins.getComputer(name);
+        if (c != null) {
+            while (c.isOnline()) {
+                Thread.sleep(100);
+            }
+        }
+    }
+
+    /**
      * Stops an existing inbound agent.
      * You need only call this to simulate an agent crash, followed by {@link #start}.
      */
-    public void stop(String name) {
+    public void stop(@NonNull String name) throws InterruptedException {
         Process proc = procs.remove(name);
         if (proc != null) {
             proc.destroyForcibly();
+            proc.waitFor();
         }
     }
 
@@ -284,7 +312,12 @@ public final class InboundAgentRule extends ExternalResource {
 
     @Override protected void after() {
         for (String name : procs.keySet()) {
-            stop(name);
+            try {
+                stop(name);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
