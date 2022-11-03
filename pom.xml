@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.90</version>
+    <version>1.91</version>
     <relativePath />
   </parent>
 
@@ -64,8 +64,6 @@ THE SOFTWARE.
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
     <concurrency>1</concurrency>
-
-    <spotbugs.excludeFilterFile>${project.basedir}/src/spotbugs/excludesFilter.xml</spotbugs.excludeFilterFile>
   </properties>
 
   <dependencyManagement>
@@ -101,6 +99,10 @@ THE SOFTWARE.
       -->
       <optional>true</optional>
       <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
         <exclusion>
           <groupId>org.jenkins-ci.modules</groupId>
           <artifactId>sshd</artifactId>

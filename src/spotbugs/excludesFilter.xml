@@ -83,41 +83,6 @@
         <Class name="org.jvnet.hudson.test.JenkinsMatchers$HasNonNullEquals"/>
       </And>
       <And>
-        <Bug pattern="EI_EXPOSE_REP"/>
-        <Or>
-          <Class name="com.gargoylesoftware.htmlunit.WebClientUtil$ExceptionListener"/>
-          <Class name="com.gargoylesoftware.htmlunit.WebResponseListener$StatusListener"/>
-          <Class name="hudson.slaves.DummyCloudImpl"/>
-          <Class name="jenkins.benchmark.jmh.JmhBenchmarkState"/>
-          <Class name="org.jvnet.hudson.test.CaptureEnvironmentBuilder"/>
-          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
-          <Class name="org.jvnet.hudson.test.TestEnvironment"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="EI_EXPOSE_REP2"/>
-        <Or>
-          <Class name="com.gargoylesoftware.htmlunit.WebClientUtil$ExceptionListener"/>
-          <Class name="hudson.cli.CLICommandInvoker"/>
-          <Class name="hudson.slaves.DummyCloudImpl"/>
-          <Class name="org.jvnet.hudson.test.FakeChangeLogSCM$ChangelogAction"/>
-          <Class name="org.jvnet.hudson.test.FakeChangeLogSCM$FakeChangeLogSet"/>
-          <Class name="org.jvnet.hudson.test.HudsonHomeLoader$Local"/>
-          <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient"/>
-          <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient"/>
-          <Class name="org.jvnet.hudson.test.JenkinsSessionRule"/>
-          <Class name="org.jvnet.hudson.test.junit.FailedTest"/>
-          <Class name="org.jvnet.hudson.test.MockQueueItemAuthenticator"/>
-          <Class name="org.jvnet.hudson.test.NoListenerConfiguration"/>
-          <Class name="org.jvnet.hudson.test.PluginAutomaticTestBuilder$OtherTests"/>
-          <Class name="org.jvnet.hudson.test.RealJenkinsRule"/>
-          <class name="org.jvnet.hudson.test.rhino.CallStackFrame"/>
-          <Class name="org.jvnet.hudson.test.rhino.CallStackFrame"/>
-          <Class name="org.jvnet.hudson.test.SingleFileSCM"/>
-          <Class name="org.jvnet.hudson.test.TestEnvironment"/>
-        </Or>
-      </And>
-      <And>
         <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
         <Class name="org.jvnet.hudson.test.MockAuthorizationStrategy$ACLImpl"/>
       </And>
