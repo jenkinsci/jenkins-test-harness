@@ -142,7 +142,7 @@ import org.kohsuke.stapler.verb.POST;
 @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_THROWABLE", justification = "TODO needs triage")
 public final class RealJenkinsRule implements TestRule {
 
-    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RealJenkinsRule.class.getName());
 
     private static final VersionNumber v2339 = new VersionNumber("2.339");
     private static final String REAL_JENKINS_RULE_LOGGING = "RealJenkinsRule.logging.";
