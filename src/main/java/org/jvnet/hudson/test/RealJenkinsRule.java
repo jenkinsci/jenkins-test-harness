@@ -60,6 +60,8 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,6 +76,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -125,7 +129,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available.
- * <li>{@link LoggerRule} is not available.
+ * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
  * <li>{@link BuildWatcher} is not available.
  * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
@@ -141,6 +145,7 @@ public final class RealJenkinsRule implements TestRule {
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
 
     private static final VersionNumber v2339 = new VersionNumber("2.339");
+    private static final String REAL_JENKINS_RULE_LOGGING = "RealJenkinsRule.logging.";
 
     private Description description;
 
@@ -181,6 +186,8 @@ public final class RealJenkinsRule implements TestRule {
     private Process proc;
 
     private File portFile;
+
+    private Map<String, Level> loggers = new HashMap<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -265,6 +272,15 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule withWar(File war) {
         this.war = war;
+        return this;
+    }
+
+    public RealJenkinsRule withLogger(Class clazz, Level level) {
+        return withLogger(clazz.getName(), level);
+    }
+
+    public RealJenkinsRule withLogger(String logger, Level level) {
+        this.loggers.put(logger, level);
         return this;
     }
 
@@ -495,7 +511,9 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
 
-
+        for (Map.Entry<String, Level> e : loggers.entrySet()) {
+            argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
+        }
         if (supportsPortFileName) {
             portFile = new File(home, "jenkins-port.txt");
             argv.add("-Dwinstone.portFileName=" + portFile);
@@ -742,6 +760,7 @@ public final class RealJenkinsRule implements TestRule {
         @SuppressWarnings("deprecation")
         public static void register() throws Exception {
             Jenkins j = Jenkins.get();
+            configureLogging();
             j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
                 @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -758,6 +777,33 @@ public final class RealJenkinsRule implements TestRule {
                 Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
             }
         }
+
+        private static Set<Logger> loggers = new HashSet<>();
+
+        private static void configureLogging() {
+            Level minLevel = Level.INFO;
+            for (String propertyName : System.getProperties().stringPropertyNames()) {
+                if (propertyName.startsWith(REAL_JENKINS_RULE_LOGGING)) {
+                    String loggerName = propertyName.substring(REAL_JENKINS_RULE_LOGGING.length());
+                    Logger logger = Logger.getLogger(loggerName);
+                    Level level = Level.parse(System.getProperty(propertyName));
+                    if (level.intValue() < minLevel.intValue()) {
+                        minLevel = level;
+                    }
+                    logger.setLevel(level);
+                    loggers.add(logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
+                }
+            }
+            // Increase ConsoleHandler level to the finest level we want to log.
+            if (!loggers.isEmpty()) {
+                for (Handler h : Logger.getLogger("").getHandlers()) {
+                    if (h instanceof ConsoleHandler) {
+                        h.setLevel(minLevel);
+                    }
+                }
+            }
+        }
+
         @Override public String getUrlName() {
             return "RealJenkinsRule";
         }
