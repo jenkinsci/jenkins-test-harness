@@ -530,14 +530,23 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=127.0.0.1",
                 "--prefix=/jenkins"));
-        ProcessBuilder pb = new ProcessBuilder(argv);
-        System.out.println("Launching: " + pb.command());
-        pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
+        Map<String, String> env = new TreeMap<>();
+        env.put("JENKINS_HOME", home.getAbsolutePath());
+        String forkNumber = System.getProperty("surefire.forkNumber");
+        if (forkNumber != null) {
+            // https://maven.apache.org/surefire/maven-surefire-plugin/examples/fork-options-and-parallel-execution.html#forked-test-execution
+            // Otherwise accessible only to the Surefire JVM, not to the Jenkins controller JVM.
+            env.put("SUREFIRE_FORK_NUMBER", forkNumber);
+        }
         for (Map.Entry<String, String> entry : extraEnv.entrySet()) {
             if (entry.getValue() != null) {
-                pb.environment().put(entry.getKey(), entry.getValue());
+                env.put(entry.getKey(), entry.getValue());
             }
         }
+        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
+        System.out.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + argv.stream().collect(Collectors.joining(" ")));
+        ProcessBuilder pb = new ProcessBuilder(argv);
+        pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
