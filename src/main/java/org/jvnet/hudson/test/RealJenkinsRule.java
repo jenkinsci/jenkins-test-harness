@@ -519,7 +519,7 @@ public final class RealJenkinsRule implements TestRule {
             argv.add("-Dwinstone.portFileName=" + portFile);
         }
         if (new DisableOnDebug(null).isDebugging()) {
-            argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
+            argv.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n");
         }
         argv.addAll(javaOptions);
 
