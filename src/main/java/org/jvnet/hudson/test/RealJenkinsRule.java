@@ -439,10 +439,10 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Run one Jenkins session, send a test thunk, and shut down.
+     * Run one Jenkins session, send one or more test thunks, and shut down.
      */
-    public void then(Step s) throws Throwable {
-        then(new StepToStep2(s));
+    public void then(Step... steps) throws Throwable {
+        then(new StepsToStep2(steps));
     }
 
     /**
@@ -670,8 +670,13 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    public void runRemotely(Step s) throws Throwable {
-        runRemotely(new StepToStep2(s));
+    /**
+     * Runs one or more steps on the remote system.
+     * (Compared to multiple calls, passing a series of steps is slightly more efficient
+     * as only one network call is made.)
+     */
+    public void runRemotely(Step... steps) throws Throwable {
+        runRemotely(new StepsToStep2(steps));
     }
 
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
@@ -903,16 +908,18 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private static class StepToStep2 implements Step2<Serializable> {
-        private final Step s;
+    private static class StepsToStep2 implements Step2<Serializable> {
+        private final Step[] steps;
 
-        public StepToStep2(Step s) {
-            this.s = s;
+        StepsToStep2(Step... steps) {
+            this.steps = steps;
         }
 
         @Override
         public Serializable run(JenkinsRule r) throws Throwable {
-            s.run(r);
+            for (Step step : steps) {
+                step.run(r);
+            }
             return null;
         }
     }
