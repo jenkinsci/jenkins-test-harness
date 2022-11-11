@@ -27,6 +27,7 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
+import hudson.console.LineTransformationOutputStream;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -193,6 +194,9 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
     private transient boolean supportsPortFileName;
 
+    private String name;
+    private Color color;
+
     /**
      * Add some plugins to the test classpath.
      *
@@ -281,6 +285,36 @@ public final class RealJenkinsRule implements TestRule {
 
     public RealJenkinsRule withLogger(String logger, Level level) {
         this.loggers.put(logger, level);
+        return this;
+    }
+
+    /**
+     * Sets a name for this instance, which will be prefixed to log messages to simplify debugging.
+     */
+    public RealJenkinsRule withName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public enum Color {
+        RED("31"), GREEN("32"), YELLOW("33"), BLUE("34"), MAGENTA("35"), CYAN("36");
+        final String code;
+        Color(String code) {
+            this.code = code;
+        }
+    }
+    /**
+     * Applies ANSI coloration to log lines produced by this instance, complementing {@link #withName}.
+     * Ignored when on CI.
+     */
+    public RealJenkinsRule withColor(Color color) {
+        if (!"true".equals(System.getenv("CI"))) {
+            this.color = color;
+        }
         return this;
     }
 
@@ -541,10 +575,41 @@ public final class RealJenkinsRule implements TestRule {
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
+        pb.redirectErrorStream(true);
         proc = pb.start();
-        // TODO prefix streams with per-test timestamps & port
-        new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
-        new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
+        OutputStream out = System.out;
+        if (name != null) {
+            out = new LineTransformationOutputStream.Delegating(out) {
+                @Override protected void eol(byte[] b, int len) throws IOException {
+                    out.write('[');
+                    out.write(name.getBytes(StandardCharsets.US_ASCII));
+                    out.write(']');
+                    out.write(' ');
+                    if (color != null) {
+                        out.write(27); // ESC
+                        out.write('[');
+                        out.write(color.code.getBytes(StandardCharsets.US_ASCII));
+                        out.write('m');
+                        int preNlLen = len;
+                        while (preNlLen > 0 && (b[preNlLen - 1] == '\n' || b[preNlLen - 1] == '\r')) {
+                            preNlLen--;
+                        }
+                        assert 0 <= preNlLen;
+                        assert preNlLen <= len;
+                        assert len <= b.length;
+                        out.write(b, 0, preNlLen);
+                        out.write(27);
+                        out.write('[');
+                        out.write('0');
+                        out.write('m');
+                        out.write(b, preNlLen, len - preNlLen);
+                    } else {
+                        out.write(b, 0, len);
+                    }
+                }
+            };
+        }
+        new StreamCopyThread(description.toString(), proc.getInputStream(), out).start();
         int tries = 0;
         while (true) {
             if (!proc.isAlive()) {
@@ -562,6 +627,7 @@ public final class RealJenkinsRule implements TestRule {
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
+                        System.out.println((name != null ? name : "Jenkins") + " is running at " + getUrl());
                         break;
                     }else {
                         throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
