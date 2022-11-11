@@ -870,7 +870,9 @@ public final class RealJenkinsRule implements TestRule {
             this.jenkins = Jenkins.get();
             this.url = url;
             jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
-            JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
+            if (JenkinsLocationConfiguration.get().getUrl() == null) {
+                JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
+            }
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
