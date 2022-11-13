@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 
+import hudson.EnvVars;
 import hudson.model.RootAction;
 import hudson.model.User;
 import jenkins.model.Jenkins;
@@ -384,5 +385,11 @@ public class JenkinsRuleTest {
         public String getSetterParam() {
             return setterParam;
         }
+    }
+
+    @Test
+    public void serialization() throws Exception {
+        j.createSlave("agent", "agent", new EnvVars());
+        j.jenkins.save();
     }
 }
