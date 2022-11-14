@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Computer;
+import hudson.model.Node;
 import hudson.model.Slave;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
@@ -35,6 +36,8 @@ import hudson.slaves.RetentionStrategy;
 import hudson.slaves.SlaveComputer;
 import hudson.util.StreamCopyThread;
 import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -239,8 +242,25 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * (Re-)starts an existing inbound agent.
      */
-    @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
     public void start(@NonNull JenkinsRule r, Options options) throws Exception {
+        String name = options.getName();
+        Objects.requireNonNull(name);
+        stop(name);
+        start(GetAgentArguments.get(r, name), options);
+    }
+
+    /**
+     * (Re-)starts an existing inbound agent.
+     */
+    public void start(@NonNull RealJenkinsRule r, Options options) throws Throwable {
+        String name = options.getName();
+        Objects.requireNonNull(name);
+        stop(name);
+        start(r.runRemotely(new GetAgentArguments(name)), options);
+    }
+
+    @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+    public void start(AgentArguments agentArguments, Options options) throws Exception {
         Objects.requireNonNull(options.getName());
         stop(options.getName());
         List<String> cmd = new ArrayList<>(Arrays.asList(JavaEnvUtils.getJreExecutable("java"),
@@ -249,31 +269,24 @@ public final class InboundAgentRule extends ExternalResource {
             "-Djava.awt.headless=true"));
         if (JenkinsRule.SLAVE_DEBUG_PORT > 0) {
             cmd.add("-Xdebug");
-            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + r.jenkins.getNodes().size() - 1));
-        }
-        File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
-        if (!agentJar.isFile()) {
-            FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
+            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
         cmd.addAll(Arrays.asList(
-            "-jar", agentJar.getAbsolutePath(),
-            "-jnlpUrl", r.getURL() + "computer/" + options.getName() + "/slave-agent.jnlp"));
-        SlaveComputer c = (SlaveComputer) r.jenkins.getNode(options.getName()).toComputer();
+                "-jar", agentArguments.agentJar.getAbsolutePath(),
+                "-jnlpUrl", agentArguments.agentJnlpUrl));
         if (options.isSecret()) {
-            String secret = c.getJnlpMac();
             // To watch it fail: secret = secret.replace('1', '2');
-            cmd.addAll(Arrays.asList("-secret", secret));
+            cmd.addAll(Arrays.asList("-secret", agentArguments.secret));
         }
-        JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
-        if (!launcher.getWorkDirSettings().isDisabled()) {
-            cmd.addAll(launcher.getWorkDirSettings().toCommandLineArgs(c));
+        if (agentArguments.commandLineArgs != null) {
+            cmd.addAll(agentArguments.commandLineArgs);
         }
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         System.err.println("Running: " + pb.command());
         Process proc = pb.start();
         procs.put(options.getName(), proc);
-        new StreamCopyThread("jnlp", proc.getInputStream(), System.err).start();
+        new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), System.err).start();
     }
 
     /**
@@ -281,12 +294,15 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull JenkinsRule r, @NonNull String name) throws InterruptedException {
         stop(name);
-        Computer c = r.jenkins.getComputer(name);
-        if (c != null) {
-            while (c.isOnline()) {
-                Thread.sleep(100);
-            }
-        }
+        StopAgent.stop(r, name);
+    }
+
+    /**
+     * Stop an existing inbound agent and wait for it to go offline.
+     */
+    public void stop(@NonNull RealJenkinsRule rjr, @NonNull String name) throws Throwable {
+        stop(name);
+        rjr.runRemotely(new StopAgent(name));
     }
 
     /**
@@ -321,4 +337,90 @@ public final class InboundAgentRule extends ExternalResource {
         }
     }
 
+    public static class AgentArguments implements Serializable {
+        /**
+         * URL to the agent JNLP file.
+         */
+        private final String agentJnlpUrl;
+        /**
+         * A reference to the agent jar
+         */
+        private final File agentJar;
+        /**
+         * The secret the agent should use to connect.
+         */
+        private final String secret;
+        /**
+         * The number of nodes in the Jenkins instance where the agent is running.
+         */
+        private final int numberOfNodes;
+        /**
+         * Additional command line arguments to pass to the agent.
+         */
+        private final List<String> commandLineArgs;
+
+        public AgentArguments(String agentJnlpUrl, File agentJar, String secret, int numberOfNodes, List<String> commandLineArgs) {
+            this.agentJnlpUrl = agentJnlpUrl;
+            this.agentJar = agentJar;
+            this.secret = secret;
+            this.numberOfNodes = numberOfNodes;
+            this.commandLineArgs = commandLineArgs;
+        }
+    }
+
+    private static class GetAgentArguments implements RealJenkinsRule.Step2<AgentArguments> {
+
+        private final String name;
+
+        GetAgentArguments(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public AgentArguments run(@NonNull JenkinsRule r) throws Throwable {
+            return get(r, name);
+        }
+        private static AgentArguments get(JenkinsRule r, String name) throws IOException {
+            Node node = r.jenkins.getNode(name);
+            if (node == null) {
+                throw new AssertionError("no such agent: " + name);
+            }
+            SlaveComputer c = (SlaveComputer) node.toComputer();
+            if (c == null) {
+                throw new AssertionError("agent " + node + " has no executor");
+            }
+            JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
+            List<String> commandLineArgs = null;
+            if (!launcher.getWorkDirSettings().isDisabled()) {
+                commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
+            }
+            File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
+            if (!agentJar.isFile()) {
+                FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
+            }
+            return new AgentArguments(r.getURL() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+        }
+
+    }
+
+    private static class StopAgent implements RealJenkinsRule.Step {
+        private final String name;
+        StopAgent(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
+            stop(r, name);
+        }
+
+        private static void stop(JenkinsRule r, String name) throws InterruptedException {
+            Computer c = r.jenkins.getComputer(name);
+            if (c != null) {
+                while (c.isOnline()) {
+                    Thread.sleep(100);
+                }
+            }
+        }
+    }
 }
