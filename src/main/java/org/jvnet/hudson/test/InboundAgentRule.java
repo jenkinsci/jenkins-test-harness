@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -278,9 +279,7 @@ public final class InboundAgentRule extends ExternalResource {
             // To watch it fail: secret = secret.replace('1', '2');
             cmd.addAll(Arrays.asList("-secret", agentArguments.secret));
         }
-        if (agentArguments.commandLineArgs != null) {
-            cmd.addAll(agentArguments.commandLineArgs);
-        }
+        cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         System.err.println("Running: " + pb.command());
@@ -341,14 +340,17 @@ public final class InboundAgentRule extends ExternalResource {
         /**
          * URL to the agent JNLP file.
          */
+        @NonNull
         private final String agentJnlpUrl;
         /**
          * A reference to the agent jar
          */
+        @NonNull
         private final File agentJar;
         /**
          * The secret the agent should use to connect.
          */
+        @NonNull
         private final String secret;
         /**
          * The number of nodes in the Jenkins instance where the agent is running.
@@ -357,9 +359,10 @@ public final class InboundAgentRule extends ExternalResource {
         /**
          * Additional command line arguments to pass to the agent.
          */
+        @NonNull
         private final List<String> commandLineArgs;
 
-        public AgentArguments(String agentJnlpUrl, File agentJar, String secret, int numberOfNodes, List<String> commandLineArgs) {
+        public AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
             this.agentJnlpUrl = agentJnlpUrl;
             this.agentJar = agentJar;
             this.secret = secret;
@@ -390,7 +393,7 @@ public final class InboundAgentRule extends ExternalResource {
                 throw new AssertionError("agent " + node + " has no executor");
             }
             JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
-            List<String> commandLineArgs = null;
+            List<String> commandLineArgs = Collections.emptyList();
             if (!launcher.getWorkDirSettings().isDisabled()) {
                 commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
             }
