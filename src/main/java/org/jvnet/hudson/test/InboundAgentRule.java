@@ -428,13 +428,6 @@ public final class InboundAgentRule extends ExternalResource {
         }
     }
 
-    private static class GetNumberOfNodes implements RealJenkinsRule.Step2<Integer> {
-        @Override
-        public Integer run(JenkinsRule r) throws Throwable {
-            return r.jenkins.getNodes().size();
-        }
-    }
-
     private static class CreateAgent implements RealJenkinsRule.Step2<String> {
         private final Options options;
 
