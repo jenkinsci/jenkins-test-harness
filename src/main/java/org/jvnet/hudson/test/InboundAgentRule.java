@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Computer;
+import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.model.Slave;
 import hudson.slaves.DumbSlave;
@@ -75,7 +76,7 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * The options used to (re)start an inbound agent.
      */
-    public static class Options {
+    public static class Options implements Serializable {
         // TODO Java 14+ use records
 
         @CheckForNull private String name;
@@ -213,24 +214,24 @@ public final class InboundAgentRule extends ExternalResource {
      *
      * @param options the options
      */
-    @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
-        if (options.getName() == null) {
-            options.setName("agent" + r.jenkins.getNodes().size());
-        }
-        JNLPLauncher launcher = new JNLPLauncher(true);
-        launcher.setWebSocket(options.isWebSocket());
-        DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
-        s.setRetentionStrategy(RetentionStrategy.NOOP);
-        r.jenkins.addNode(s);
-        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
-        while (s.toComputer().getOfflineCause() == null) {
-            Thread.sleep(100);
-        }
+        Slave s = CreateAgent.createAgent(r, options);
         if (options.isStart()) {
             start(r, options);
         }
         return s;
+    }
+
+    public void createAgent(@NonNull RealJenkinsRule rr, @CheckForNull String name) throws Throwable {
+        createAgent(rr, Options.newBuilder().name(name).build());
+    }
+
+    public void createAgent(@NonNull RealJenkinsRule rr, Options options) throws Throwable {
+        String name = rr.runRemotely(new CreateAgent(options));
+        options.setName(name);
+        if (options.isStart()) {
+            start(rr, options);
+        }
     }
 
     /**
@@ -424,6 +425,46 @@ public final class InboundAgentRule extends ExternalResource {
                     Thread.sleep(100);
                 }
             }
+        }
+    }
+
+    private static class GetNumberOfNodes implements RealJenkinsRule.Step2<Integer> {
+        @Override
+        public Integer run(JenkinsRule r) throws Throwable {
+            return r.jenkins.getNodes().size();
+        }
+    }
+
+    private static class CreateAgent implements RealJenkinsRule.Step2<String> {
+        private final Options options;
+
+        public CreateAgent(Options options) {
+            this.options = options;
+        }
+
+        @Override
+        public String run(JenkinsRule r) throws Throwable {
+            createAgent(r, options);
+            return options.getName();
+        }
+
+        @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+        private static Slave createAgent(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
+            if (options.getName() == null) {
+                Integer numberOfNodes = r.jenkins.getNodes().size();
+                options.setName("agent" + numberOfNodes);
+            }
+            JNLPLauncher launcher = new JNLPLauncher(true);
+            launcher.setWebSocket(options.isWebSocket());
+            DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
+            s.setRetentionStrategy(RetentionStrategy.NOOP);
+            r.jenkins.addNode(s);
+            // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+            Computer computer = s.toComputer();
+            while (computer == null || computer.getOfflineCause() == null) {
+                Thread.sleep(100);
+            }
+            return s;
         }
     }
 }
