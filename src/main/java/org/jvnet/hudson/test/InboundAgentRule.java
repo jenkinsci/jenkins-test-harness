@@ -294,7 +294,7 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull JenkinsRule r, @NonNull String name) throws InterruptedException {
         stop(name);
-        StopAgent.stop(r, name);
+        WaitForAgentOffline.stop(r, name);
     }
 
     /**
@@ -302,7 +302,7 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull RealJenkinsRule rjr, @NonNull String name) throws Throwable {
         stop(name);
-        rjr.runRemotely(new StopAgent(name));
+        rjr.runRemotely(new WaitForAgentOffline(name));
     }
 
     /**
@@ -407,9 +407,9 @@ public final class InboundAgentRule extends ExternalResource {
 
     }
 
-    private static class StopAgent implements RealJenkinsRule.Step {
+    private static class WaitForAgentOffline implements RealJenkinsRule.Step {
         private final String name;
-        StopAgent(String name) {
+        WaitForAgentOffline(String name) {
             this.name = name;
         }
 
@@ -444,8 +444,7 @@ public final class InboundAgentRule extends ExternalResource {
         @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
         private static Slave createAgent(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
             if (options.getName() == null) {
-                Integer numberOfNodes = r.jenkins.getNodes().size();
-                options.setName("agent" + numberOfNodes);
+                options.setName("agent" + r.jenkins.getNodes().size());
             }
             JNLPLauncher launcher = new JNLPLauncher(true);
             launcher.setWebSocket(options.isWebSocket());
