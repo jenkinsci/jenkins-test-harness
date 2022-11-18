@@ -26,59 +26,42 @@ package org.jvnet.hudson.test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 
 public class PrefixedOutputStreamTest {
 
-    @Test public void name() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream ps = new PrintStream(PrefixedOutputStream.builder().withName("xxx").build(baos))) {
-            ps.println("regular line");
-            ps.println(); // blank line
-            ps.println("split across\ntwo lines");
-            ps.print("missing trailing newline");
-        }
-        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
-            is("[xxx] regular line\n[xxx] \n[xxx] split across\n[xxx] two lines\n[xxx] missing trailing newline"));
+    @Test public void name() throws Exception {
+        assertOutput(PrefixedOutputStream.builder().withName("xxx"),
+            "[xxx] regular line\n[xxx] \n[xxx] split across\n[xxx] two lines\n[xxx] missing trailing newline");
     }
 
-    @Test public void color() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream ps = new PrintStream(PrefixedOutputStream.builder().withColor(PrefixedOutputStream.Color.RED).build(baos))) {
-            ps.println("regular line");
-            ps.println(); // blank line
-            ps.println("split across\ntwo lines");
-            ps.print("missing trailing newline");
-        }
-        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
-            is("\u001b[31mregular line\u001b[0m\n\u001b[31m\u001b[0m\n\u001b[31msplit across\u001b[0m\n\u001b[31mtwo lines\u001b[0m\n\u001b[31mmissing trailing newline\u001b[0m"));
+    @Test public void color() throws Exception {
+        assertOutput(PrefixedOutputStream.builder().withColor(PrefixedOutputStream.Color.RED),
+            "\u001b[31mregular line\u001b[0m\n\u001b[31m\u001b[0m\n\u001b[31msplit across\u001b[0m\n\u001b[31mtwo lines\u001b[0m\n\u001b[31mmissing trailing newline\u001b[0m");
     }
 
-    @Test public void nameAndColor() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream ps = new PrintStream(PrefixedOutputStream.builder().withName("xxx").withColor(PrefixedOutputStream.Color.RED).build(baos))) {
-            ps.println("regular line");
-            ps.println(); // blank line
-            ps.println("split across\ntwo lines");
-            ps.print("missing trailing newline");
-        }
-        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
-            is("[xxx] \u001b[31mregular line\u001b[0m\n[xxx] \u001b[31m\u001b[0m\n[xxx] \u001b[31msplit across\u001b[0m\n[xxx] \u001b[31mtwo lines\u001b[0m\n[xxx] \u001b[31mmissing trailing newline\u001b[0m"));
+    @Test public void nameAndColor() throws Exception {
+        assertOutput(PrefixedOutputStream.builder().withName("xxx").withColor(PrefixedOutputStream.Color.RED),
+            "[xxx] \u001b[31mregular line\u001b[0m\n[xxx] \u001b[31m\u001b[0m\n[xxx] \u001b[31msplit across\u001b[0m\n[xxx] \u001b[31mtwo lines\u001b[0m\n[xxx] \u001b[31mmissing trailing newline\u001b[0m");
     }
 
-    @Test public void neither() {
+    @Test public void neither() throws Exception {
+        assertOutput(PrefixedOutputStream.builder(),
+            "regular line\n\nsplit across\ntwo lines\nmissing trailing newline");
+    }
+
+    private static void assertOutput(PrefixedOutputStream.Builder prefixedOutputStreamBuilder, String expected) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream ps = new PrintStream(PrefixedOutputStream.builder().build(baos))) {
+        try (PrintStream ps = new PrintStream(prefixedOutputStreamBuilder.build(baos))) {
             ps.println("regular line");
             ps.println(); // blank line
             ps.println("split across\ntwo lines");
             ps.print("missing trailing newline");
         }
-        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
-            is("regular line\n\nsplit across\ntwo lines\nmissing trailing newline"));
+        assertThat(baos.toString("UTF-8").replace("\r\n", "\n"),
+            is(expected));
     }
 
 }
