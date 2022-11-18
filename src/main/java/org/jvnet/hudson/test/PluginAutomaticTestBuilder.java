@@ -95,7 +95,7 @@ public class PluginAutomaticTestBuilder {
             if (plugin != null) {
                 // did any plugin fail to start?
                 for (FailedPlugin fp : Jenkins.get().getPluginManager().getFailedPlugins()) {
-                    throw new Error("Plugin "+fp.name+" failed to start", fp.cause);
+                    throw new AssertionError("While testing " + plugin + ", " + fp.name + " failed to start", fp.cause);
                 }
 
                 PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(plugin);
