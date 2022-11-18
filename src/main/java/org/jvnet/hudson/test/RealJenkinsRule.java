@@ -275,8 +275,13 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
-    public RealJenkinsRule withLogger(Class clazz, Level level) {
+    public RealJenkinsRule withLogger(Class<?> clazz, Level level) {
         return withLogger(clazz.getName(), level);
+    }
+
+    public RealJenkinsRule withPackageLogger(Class<?> clazz, Level level) {
+        // TODO Java 11 Class.getPackageName
+        return withLogger(clazz.getPackage().getName(), level);
     }
 
     public RealJenkinsRule withLogger(String logger, Level level) {
