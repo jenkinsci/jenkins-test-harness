@@ -28,9 +28,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class PrefixedOutputStreamTest {
+
+    @Rule public FlagRule<Boolean> skipCheckForCI = new FlagRule<>(() -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI, x -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI = x, true);
 
     @Test public void name() throws Exception {
         assertOutput(PrefixedOutputStream.builder().withName("xxx"),

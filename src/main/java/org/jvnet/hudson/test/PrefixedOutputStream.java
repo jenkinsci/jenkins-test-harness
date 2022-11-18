@@ -97,6 +97,8 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
 
     public static final class Builder implements Serializable {
 
+        static boolean SKIP_CHECK_FOR_CI;
+
         @CheckForNull private String name;
         @CheckForNull private Color color;
 
@@ -112,7 +114,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         }
 
         public Builder withColor(@CheckForNull Color color) {
-            if (!"true".equals(System.getenv("CI"))) {
+            if (SKIP_CHECK_FOR_CI || !"true".equals(System.getenv("CI"))) {
                 this.color = color;
             }
             return this;
