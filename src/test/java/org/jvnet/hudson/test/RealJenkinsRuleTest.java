@@ -60,6 +60,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.IsNull;
@@ -201,6 +202,17 @@ public class RealJenkinsRuleTest {
         assertNull(Stapler.getCurrentRequest());
     }
 
+    @Test public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1);
+        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2);
+    }
+    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1(JenkinsRule r) throws Throwable {
+        assertNotNull(JenkinsLocationConfiguration.get().getUrl());
+        JenkinsLocationConfiguration.get().setUrl("https://example.com/");
+    }
+    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2(JenkinsRule r) throws Throwable {
+        assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+    }
 
     @Test
     public void test500Errors() throws IOException {
