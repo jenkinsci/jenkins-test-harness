@@ -135,7 +135,7 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void agentBuild() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_agentBuild);
+        rr.watchBuilds().then(RealJenkinsRuleTest::_agentBuild);
     }
     private static void _agentBuild(JenkinsRule r) throws Throwable {
         FreeStyleProject p = r.createFreeStyleProject();

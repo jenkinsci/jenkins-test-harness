@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
+import hudson.model.listeners.RunListener;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
@@ -130,7 +131,7 @@ import org.kohsuke.stapler.verb.POST;
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available.
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
- * <li>{@link BuildWatcher} is not available.
+ * <li>{@link BuildWatcher} is available by calling {@link #watchBuilds()}.
  * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
  * <p>Systems not yet tested:
@@ -186,6 +187,8 @@ public final class RealJenkinsRule implements TestRule {
     private Process proc;
 
     private File portFile;
+
+    private boolean watchBuilds;
 
     private Map<String, Level> loggers = new HashMap<>();
 
@@ -281,6 +284,11 @@ public final class RealJenkinsRule implements TestRule {
 
     public RealJenkinsRule withLogger(String logger, Level level) {
         this.loggers.put(logger, level);
+        return this;
+    }
+
+    public RealJenkinsRule watchBuilds() {
+        this.watchBuilds = true;
         return this;
     }
 
@@ -513,6 +521,9 @@ public final class RealJenkinsRule implements TestRule {
 
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
+        }
+        if (watchBuilds) {
+            argv.add("-DRealJenkinsRule.watchBuilds=true");
         }
         if (supportsPortFileName) {
             portFile = new File(home, "jenkins-port.txt");
@@ -757,8 +768,10 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static final class Endpoint implements UnprotectedRootAction {
+        private static BuildWatcher buildWatcher;
+
         @SuppressWarnings("deprecation")
-        public static void register() throws Exception {
+        public static void register() throws Throwable {
             Jenkins j = Jenkins.get();
             configureLogging();
             j.getActions().add(new Endpoint());
@@ -771,6 +784,11 @@ public final class RealJenkinsRule implements TestRule {
                     return false;
                 }
             });
+            if (Boolean.getBoolean("RealJenkinsRule.watchBuilds")) {
+                buildWatcher = new BuildWatcher();
+                buildWatcher.before();
+                ExtensionList.lookup(RunListener.class).add(new BuildWatcher.Listener());
+            }
             JenkinsRule._configureUpdateCenter(j);
             System.err.println("RealJenkinsRule ready");
             if (!new DisableOnDebug(null).isDebugging()) {
@@ -857,6 +875,9 @@ public final class RealJenkinsRule implements TestRule {
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
+            if (buildWatcher != null) {
+                buildWatcher.after();
+            }
             try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
                 return Jenkins.get().doSafeExit(null);
             }
