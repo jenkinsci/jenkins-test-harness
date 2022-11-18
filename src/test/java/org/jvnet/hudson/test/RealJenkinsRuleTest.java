@@ -85,12 +85,6 @@ public class RealJenkinsRuleTest {
         assertEquals("value", System.getenv("SOME_ENV_VAR"));
     }
 
-    @Test public void testFilter() throws Throwable{
-        rr.startJenkins();
-        rr.runRemotely(RealJenkinsRuleTest::_testFilter);
-        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
-    }
-
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
@@ -102,7 +96,14 @@ public class RealJenkinsRuleTest {
         }));
     }
 
-    private static void _testFilter(JenkinsRule jenkinsRule) throws Throwable{
+    @Test public void testFilter() throws Throwable{
+        rr.startJenkins();
+        rr.runRemotely(RealJenkinsRuleTest::_testFilter1);
+        // Now run another step, body irrelevant just making sure it is not broken
+        // (do *not* combine into one runRemotely call):
+        rr.runRemotely(RealJenkinsRuleTest::_testFilter2);
+    }
+    private static void _testFilter1(JenkinsRule jenkinsRule) throws Throwable {
         PluginServletFilter.addFilter(new Filter() {
 
             @Override
@@ -117,6 +118,18 @@ public class RealJenkinsRuleTest {
             @Override
             public void init(FilterConfig filterConfig) throws ServletException {}
         });
+    }
+    private static void _testFilter2(JenkinsRule jenkinsRule) throws Throwable {}
+
+    @Test public void chainedSteps() throws Throwable {
+        rr.startJenkins();
+        rr.runRemotely(RealJenkinsRuleTest::chainedSteps1, RealJenkinsRuleTest::chainedSteps2);
+    }
+    private static void chainedSteps1(JenkinsRule jenkinsRule) throws Throwable {
+        System.setProperty("key", "xxx");
+    }
+    private static void chainedSteps2(JenkinsRule jenkinsRule) throws Throwable {
+        assertEquals("xxx", System.getProperty("key"));
     }
 
     @Test public void error() {
