@@ -76,6 +76,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
             out.write('[');
             out.write(color.code.getBytes(StandardCharsets.US_ASCII));
             out.write('m');
+            // Preserving original line ending, so not using trimEOL:
             int preNlLen = len;
             while (preNlLen > 0 && (b[preNlLen - 1] == '\n' || b[preNlLen - 1] == '\r')) {
                 preNlLen--;
