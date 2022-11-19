@@ -263,7 +263,7 @@ public final class InboundAgentRule extends ExternalResource {
     public void start(@NonNull JenkinsRule r, Options options) throws Exception {
         String name = options.getName();
         Objects.requireNonNull(name);
-        stop(name);
+        stop(r, name);
         start(GetAgentArguments.get(r, name), options);
     }
 
@@ -273,7 +273,7 @@ public final class InboundAgentRule extends ExternalResource {
     public void start(@NonNull RealJenkinsRule r, Options options) throws Throwable {
         String name = options.getName();
         Objects.requireNonNull(name);
-        stop(name);
+        stop(r, name);
         start(r.runRemotely(new GetAgentArguments(name)), options);
     }
 
