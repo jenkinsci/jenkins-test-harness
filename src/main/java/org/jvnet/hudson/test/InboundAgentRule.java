@@ -83,6 +83,7 @@ public final class InboundAgentRule extends ExternalResource {
         private boolean secret;
         private boolean webSocket;
         private boolean start = true;
+        private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
         public String getName() {
             return name;
@@ -90,6 +91,7 @@ public final class InboundAgentRule extends ExternalResource {
 
         public void setName(@CheckForNull String name) {
             this.name = name;
+            prefixedOutputStreamBuilder.withName(name);
         }
 
         public boolean isSecret() {
@@ -133,6 +135,14 @@ public final class InboundAgentRule extends ExternalResource {
             Builder name(String name);
 
             /**
+             * Set a color for agent logs.
+             *
+             * @param color the color
+             * @return this builder
+             */
+            Builder color(PrefixedOutputStream.Color color);
+
+            /**
              * Use secret when connecting.
              *
              * @return this builder
@@ -168,6 +178,12 @@ public final class InboundAgentRule extends ExternalResource {
             @Override
             public Builder name(String name) {
                 options.setName(name);
+                return this;
+            }
+
+            @Override
+            public Builder color(PrefixedOutputStream.Color color) {
+                options.prefixedOutputStreamBuilder.withColor(color);
                 return this;
             }
 
@@ -286,7 +302,7 @@ public final class InboundAgentRule extends ExternalResource {
         System.err.println("Running: " + pb.command());
         Process proc = pb.start();
         procs.put(options.getName(), proc);
-        new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), System.err).start();
+        new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
     }
 
     /**

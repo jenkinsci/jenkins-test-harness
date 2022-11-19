@@ -193,6 +193,8 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
     private transient boolean supportsPortFileName;
 
+    private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+
     /**
      * Add some plugins to the test classpath.
      *
@@ -286,6 +288,27 @@ public final class RealJenkinsRule implements TestRule {
 
     public RealJenkinsRule withLogger(String logger, Level level) {
         this.loggers.put(logger, level);
+        return this;
+    }
+
+    /**
+     * Sets a name for this instance, which will be prefixed to log messages to simplify debugging.
+     */
+    public RealJenkinsRule withName(String name) {
+        prefixedOutputStreamBuilder.withName(name);
+        return this;
+    }
+
+    public String getName() {
+        return prefixedOutputStreamBuilder.getName();
+    }
+
+    /**
+     * Applies ANSI coloration to log lines produced by this instance, complementing {@link #withName}.
+     * Ignored when on CI.
+     */
+    public RealJenkinsRule withColor(PrefixedOutputStream.Color color) {
+        prefixedOutputStreamBuilder.withColor(color);
         return this;
     }
 
@@ -545,11 +568,9 @@ public final class RealJenkinsRule implements TestRule {
         }
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
-        // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
+        pb.redirectErrorStream(true);
         proc = pb.start();
-        // TODO prefix streams with per-test timestamps & port
-        new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
-        new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
+        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.out)).start();
         int tries = 0;
         while (true) {
             if (!proc.isAlive()) {
@@ -567,6 +588,7 @@ public final class RealJenkinsRule implements TestRule {
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
+                        System.out.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
                         break;
                     }else {
                         throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
