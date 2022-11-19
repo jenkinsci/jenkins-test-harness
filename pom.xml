@@ -59,7 +59,7 @@ THE SOFTWARE.
     <jenkins.version>2.249</jenkins.version>
     <jetty.version>9.4.49.v20220914</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <jmh.version>1.35</jmh.version>
+    <jmh.version>1.36</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
