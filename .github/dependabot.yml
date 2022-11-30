@@ -6,7 +6,6 @@ updates:
     interval: weekly
   open-pull-requests-limit: 10
   reviewers:
-  - oleg-nenashev
   - jglick
   ignore:
   - dependency-name: io.jenkins.plugins*

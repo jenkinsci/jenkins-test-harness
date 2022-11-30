@@ -60,7 +60,6 @@ import com.gargoylesoftware.htmlunit.xml.XmlPage;
 import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -120,7 +119,6 @@ import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
-import hudson.util.VersionNumber;
 import hudson.util.jna.GNUCLibrary;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
@@ -132,6 +130,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
@@ -184,7 +183,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -248,7 +246,6 @@ import org.kohsuke.stapler.ClassDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Dispatcher;
-import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
@@ -267,12 +264,6 @@ import org.xml.sax.SAXException;
  * @since 1.436
  * @see RestartableJenkinsRule
  */
-@SuppressFBWarnings(
-        value = {
-            "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
-            "THROWS_METHOD_THROWS_CLAUSE_THROWABLE"
-        },
-        justification = "TODO needs triage")
 @SuppressWarnings({"deprecation", "rawtypes"})
 public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
@@ -507,15 +498,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     tl.onTearDown();
             }
 
-            // cancel pending asynchronous operations, although this doesn't really seem to be working
+            // cancel asynchronous operations as best as we can
             for (WebClient client : clients) {
-                // unload the page to cancel asynchronous operations
+                // wait until current asynchronous operations have finished executing
+                WebClientUtil.waitForJSExec(client);
+                // unload the page to prevent new asynchronous operations from being scheduled
                 try {
                     client.getPage("about:blank");
                 } catch (IOException e) {
-                    // ignore
+                    // should never happen when loading "about:blank"
+                    throw new UncheckedIOException(e);
+                } finally {
+                    client.close();
                 }
-                client.close();
             }
             clients.clear();
 
@@ -1059,7 +1054,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), createComputerLauncher(env));
-            slave.setNumExecutors(1); // TODO pending 2.234+
             if (labels != null) {
                 slave.setLabelString(labels);
             }
@@ -1133,51 +1127,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Use the new API token system introduced in 2.129 to generate a token for the given user.
      */
     public @NonNull String createApiToken(@NonNull User user) {
+        ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
         try {
-            // TODO could be simplified when core dependency will be higher
-            if (Jenkins.getVersion().isOlderThan(new VersionNumber("2.260"))) {
-                ApiTokenProperty.DescriptorImpl descriptor = this.jenkins.getDescriptorByType(ApiTokenProperty.DescriptorImpl.class);
-                HttpResponse httpResponse = descriptor.doGenerateNewToken(user, null);
-
-                // hacky way to prevent call to WebClient
-                ResponseCapturingOutput mockResponse = new ResponseCapturingOutput();
-                httpResponse.generateResponse(null, mockResponse, null);
-                String content = mockResponse.getOutputContent();
-                JSONObject json = JSONObject.fromObject(content);
-                return json.getJSONObject("data").getString("tokenValue");
-            } else {
-                // we can use the new methods from
-                // https://github.com/jenkinsci/jenkins/commit/eb0876cdb981a83c9f4c6f07d1eede585614612a
-                Method addFixedNewTokenMethod = ApiTokenProperty.class.getDeclaredMethod("addFixedNewToken", String.class, String.class);
-
-                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                if (apiTokenProperty == null) {
-                    apiTokenProperty = new ApiTokenProperty();
-                    user.addProperty(apiTokenProperty);
-                }
-
-                String tokenRandomName = "TestToken_" + (int) Math.floor(Math.random() * 1_000_000);
-                String tokenValue = generateNewApiTokenValue();
-                // could also use generateNewToken but only after 2.265
-                // https://github.com/jenkinsci/jenkins/commit/9c256ad8305db82e7186b7687e3300a8115a2d10
-                addFixedNewTokenMethod.invoke(apiTokenProperty, tokenRandomName, tokenValue);
-                return tokenValue;
+            if (apiTokenProperty == null) {
+                apiTokenProperty = new ApiTokenProperty();
+                user.addProperty(apiTokenProperty);
             }
-        }
-        catch (IOException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ServletException e) {
-            throw new AssertionError(e);
+            String tokenRandomName = "TestToken_" + (int) Math.floor(Math.random() * 1_000_000);
+            return apiTokenProperty.generateNewToken(tokenRandomName).plainValue;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
     
-    // copy from ApiTokenStore#generateNewToken, version 2.138.4
-    private String generateNewApiTokenValue() {
-        byte[] random = new byte[16];
-        RANDOM.nextBytes(random);
-        String secretValue = Util.toHexString(random);
-        // 11 is the version for the new API Token system
-        return 11 + secretValue;
-    }
-
     /**
      * Waits for a newly created slave to come online.
      * @see #createSlave()
@@ -2316,13 +2278,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
 
                 private boolean ignore(final CSSParseException exception) {
-                    String uri = exception.getURI();
-                    VersionNumber coreVersion = Jenkins.getVersion();
-                    if (coreVersion != null && coreVersion.isNewerThan(new VersionNumber("2.343"))) {
-                        return uri.contains("/yui/");
-                    }
-                    return uri.contains("/yui/")
-                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css") || uri.contains("/base-styles-v2.css");
+                    return exception.getURI().contains("/yui/");
                 }
             });
 
