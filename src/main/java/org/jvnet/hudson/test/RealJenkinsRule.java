@@ -32,7 +32,6 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
-import hudson.util.VersionNumber;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,7 +71,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
@@ -144,7 +142,6 @@ public final class RealJenkinsRule implements TestRule {
 
     private static final Logger LOGGER = Logger.getLogger(RealJenkinsRule.class.getName());
 
-    private static final VersionNumber v2339 = new VersionNumber("2.339");
     private static final String REAL_JENKINS_RULE_LOGGING = "RealJenkinsRule.logging.";
 
     private Description description;
@@ -191,7 +188,6 @@ public final class RealJenkinsRule implements TestRule {
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
-    private transient boolean supportsPortFileName;
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
@@ -336,10 +332,6 @@ public final class RealJenkinsRule implements TestRule {
                     }
                     if (war == null) {
                         war = findJenkinsWar();
-                    }
-                    supportsPortFileName = supportsPortFileName(war.getAbsolutePath());
-                    if (!supportsPortFileName) {
-                        port = IOUtil.randomTcpPort();
                     }
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
@@ -542,10 +534,8 @@ public final class RealJenkinsRule implements TestRule {
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
         }
-        if (supportsPortFileName) {
-            portFile = new File(home, "jenkins-port.txt");
-            argv.add("-Dwinstone.portFileName=" + portFile);
-        }
+        portFile = new File(home, "jenkins-port.txt");
+        argv.add("-Dwinstone.portFileName=" + portFile);
         if (new DisableOnDebug(null).isDebugging()) {
             argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
         }
@@ -655,14 +645,6 @@ public final class RealJenkinsRule implements TestRule {
                     proc = null;
                 }
             }, timeout, TimeUnit.SECONDS);
-        }
-    }
-
-    private static boolean supportsPortFileName(String war) throws IOException {
-        try (JarFile warFile = new JarFile(war)) {
-            String jenkinsVersion = warFile.getManifest().getMainAttributes().getValue("Jenkins-Version");
-            VersionNumber version = new VersionNumber(jenkinsVersion);
-            return version.compareTo(v2339) >= 0;
         }
     }
 

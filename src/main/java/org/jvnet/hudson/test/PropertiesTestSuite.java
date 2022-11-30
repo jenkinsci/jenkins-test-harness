@@ -24,7 +24,6 @@
 
 package org.jvnet.hudson.test;
 
-import hudson.util.VersionNumber;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,13 +34,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.PropertyResourceBundle;
-import jenkins.model.Jenkins;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.commons.io.IOUtils;
@@ -81,28 +76,21 @@ public class PropertiesTestSuite extends TestSuite {
                 }
             };
 
-            VersionNumber jv = Jenkins.getVersion();
-            if (jv != null && jv.isOlderThan(new VersionNumber("2.357"))) {
-                byte[] contents = IOUtils.toByteArray(resource);
-                if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
-                    boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
-                    boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
-                    if (isUtf8 && isIso88591) {
-                        throw new AssertionError(resource + " is valid UTF-8 and valid ISO-8859-1. To avoid problems when auto-detecting the encoding, use the lowest common denominator of ASCII encoding and express non-ASCII characters with escape sequences using a tool like `native2ascii`.");
-                    }
+            byte[] contents = IOUtils.toByteArray(resource);
+            if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
+                boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
+                boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
+                if (!isUtf8 && !isIso88591) {
+                    throw new AssertionError(resource + " must be either valid UTF-8 or valid ISO-8859-1.");
                 }
             }
 
             try (InputStream is = resource.openStream()) {
                 PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(is);
-                Enumeration<String> keys = propertyResourceBundle.getKeys();
-                // TODO Java 9+ can use 'asIterator' and get rid of below collections conversion
-                List<String> keysAsSaneType = Collections.list(keys);
-
-                for (String localKey : keysAsSaneType) {
-                    String value = propertyResourceBundle.getString(localKey);
-                    props.setProperty(localKey, value);
-                }
+                propertyResourceBundle
+                        .getKeys()
+                        .asIterator()
+                        .forEachRemaining(key -> props.setProperty(key, propertyResourceBundle.getString(key)));
             }
         }
 
