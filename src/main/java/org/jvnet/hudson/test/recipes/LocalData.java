@@ -28,7 +28,7 @@ import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.HudsonHomeLoader.Local;
 import org.jvnet.hudson.test.JenkinsRecipe;
-
+import org.jvnet.hudson.test.TailLog;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Target;
@@ -77,6 +77,7 @@ import static java.lang.annotation.ElementType.METHOD;
  * The choice of zip and directory depends on the nature of the test data, as well as the size of it.
  *
  * @author Kohsuke Kawaguchi
+ * @see TailLog
  */
 @Documented
 @Recipe(LocalData.RunnerImpl.class)
