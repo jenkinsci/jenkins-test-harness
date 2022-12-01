@@ -33,7 +33,6 @@ import hudson.scm.SCMRevisionState;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -53,7 +52,7 @@ public class SingleFileSCM extends NullSCM {
         this.contents = contents;
     }
 
-    public SingleFileSCM(String path, String contents) throws UnsupportedEncodingException {
+    public SingleFileSCM(String path, String contents) {
         this.path = path;
         this.contents = contents.getBytes(StandardCharsets.UTF_8);
     }

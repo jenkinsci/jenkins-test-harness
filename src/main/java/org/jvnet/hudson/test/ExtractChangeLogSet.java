@@ -27,7 +27,6 @@ import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
 
 import java.util.List;
-import java.util.Collections;
 import java.util.Iterator;
 
 
@@ -42,7 +41,7 @@ public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.Ext
         for (ExtractChangeLogParser.ExtractChangeLogEntry entry : changeLogs) {
             entry.setParent(this);
         }
-        this.changeLogs = Collections.unmodifiableList(changeLogs);
+        this.changeLogs = List.copyOf(changeLogs);
     }
 
     @Override

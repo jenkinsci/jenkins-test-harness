@@ -1,6 +1,5 @@
 package org.jvnet.hudson.test;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import groovy.lang.Closure;
 import hudson.PluginManager;
 import java.io.File;
@@ -16,9 +15,9 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -216,7 +215,7 @@ public class RestartableJenkinsRule implements MethodRule {
          File newHome = tmp.allocate();
 
          // Copy efficiently
-         Files.walkFileTree(homeDir.toPath(), Collections.emptySet(), 99, new CopyFileVisitor(newHome.toPath()));
+         Files.walkFileTree(homeDir.toPath(), Set.of(), 99, new CopyFileVisitor(newHome.toPath()));
          LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
          home = newHome;
     }

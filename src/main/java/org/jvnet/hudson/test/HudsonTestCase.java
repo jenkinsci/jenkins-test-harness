@@ -132,7 +132,6 @@ import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -669,7 +668,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env),
-			        RetentionStrategy.NOOP, Collections.emptyList());
+			        RetentionStrategy.NOOP, List.of());
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -1005,7 +1004,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *      ','-separated list of properties whose help files should exist.
      */
     public void assertHelpExists(final Class<? extends Describable> type, final String properties) throws Exception {
-        executeOnServer(new Callable<Object>() {
+        executeOnServer(new Callable<>() {
             @Override
             public Object call() throws Exception {
                 Descriptor d = jenkins.getDescriptor(type);
@@ -1265,7 +1264,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                     }
                 }
                 throw new AssertionError(String.format("Jenkins is still doing something after %dms: queue=%s building=%s",
-                        timeout, Arrays.asList(jenkins.getQueue().getItems()), building));
+                        timeout, List.of(jenkins.getQueue().getItems()), building));
             }
         }
     }
@@ -1294,12 +1293,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 if(r==null)     continue;
                 final Runner runner = r.value().newInstance();
                 recipes.add(runner);
-                tearDowns.add(new LenientRunnable() {
-                    @Override
-                    public void run() throws Exception {
-                        runner.tearDown(HudsonTestCase.this,a);
-                    }
-                });
+                tearDowns.add(() -> runner.tearDown(HudsonTestCase.this, a));
                 runner.setup(this,a);
             }
         } catch (NoSuchMethodException e) {
@@ -1690,7 +1684,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             com.gargoylesoftware.htmlunit.util.NameValuePair crumb = new com.gargoylesoftware.htmlunit.util.NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                     jenkins.getCrumbIssuer().getCrumb( null ));
-            req.setRequestParameters(Collections.singletonList(crumb));
+            req.setRequestParameters(List.of(crumb));
             return req;
         }
         
@@ -1786,7 +1780,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
-    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
+    protected static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.

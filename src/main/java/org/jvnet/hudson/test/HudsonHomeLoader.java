@@ -26,7 +26,6 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;

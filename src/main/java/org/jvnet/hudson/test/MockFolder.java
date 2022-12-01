@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ import org.kohsuke.stapler.WebMethod;
 public class MockFolder extends AbstractItem implements DirectlyModifiableTopLevelItemGroup, TopLevelItem, ModifiableViewGroup, StaplerFallback {
 
     private transient Map<String,TopLevelItem> items = new TreeMap<>();
-    private final List<View> views = new ArrayList<>(Collections.singleton(new AllView("All", this)));
+    private final List<View> views = new ArrayList<>(Set.of(new AllView("All", this)));
     private String primaryView;
     private ViewsTabBar viewsTabBar;
 
@@ -251,7 +250,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     @Override public List<Action> getViewActions() {
         // TODO what should the default be? View.getOwnerViewActions uses Jenkins.actions; Jenkins.viewActions would make more sense as a default;
         // or should it be empty by default since non-top-level folders probably do not need the same actions as root?
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override public Object getStaplerFallback() {

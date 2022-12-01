@@ -49,14 +49,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -207,7 +205,7 @@ public final class RealJenkinsRule implements TestRule {
      *     is not available in a repository for use as a test dependency.
      */
     public RealJenkinsRule addPlugins(String... plugins) {
-        extraPlugins.addAll(Arrays.asList(plugins));
+        extraPlugins.addAll(List.of(plugins));
         return this;
     }
 
@@ -216,7 +214,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param plugins one or more code names, like {@code token-macro}
      */
     public RealJenkinsRule omitPlugins(String... plugins) {
-        skippedPlugins.addAll(Arrays.asList(plugins));
+        skippedPlugins.addAll(List.of(plugins));
         return this;
     }
 
@@ -225,7 +223,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param options one or more options, like {@code -Dorg.jenkinsci.Something.FLAG=true}
      */
     public RealJenkinsRule javaOptions(String... options) {
-        javaOptions.addAll(Arrays.asList(options));
+        javaOptions.addAll(List.of(options));
         return this;
     }
 
@@ -522,8 +520,11 @@ public final class RealJenkinsRule implements TestRule {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         String cp = System.getProperty("java.class.path");
-        FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
-        List<String> argv = new ArrayList<>(Arrays.asList(
+        Files.writeString(
+                home.toPath().resolve("RealJenkinsRule-cp.txt"),
+                Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
+                StandardCharsets.UTF_8);
+        List<String> argv = new ArrayList<>(List.of(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
@@ -542,7 +543,7 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(javaOptions);
 
 
-        argv.addAll(Arrays.asList(
+        argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
@@ -562,7 +563,7 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
-        System.out.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + argv.stream().collect(Collectors.joining(" ")));
+        System.out.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
         ProcessBuilder pb = new ProcessBuilder(argv);
         pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
@@ -649,7 +650,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private static int readPort(File portFile) throws IOException {
-        String s = FileUtils.readFileToString(portFile, StandardCharsets.UTF_8);
+        String s = Files.readString(portFile.toPath(), StandardCharsets.UTF_8);
 
         // Work around to non-atomic write of port value in Winstone releases prior to 6.1.
         // TODO When Winstone 6.2 has been widely adopted, this can be deleted.
@@ -728,7 +729,7 @@ public final class RealJenkinsRule implements TestRule {
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.lines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), Charset.defaultCharset()).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 

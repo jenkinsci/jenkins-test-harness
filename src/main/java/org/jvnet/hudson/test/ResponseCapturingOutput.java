@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -77,11 +76,7 @@ class ResponseCapturingOutput implements StaplerResponse {
         private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         public String getOutputContent() {
-            try {
-                return baos.toString(StandardCharsets.UTF_8.name());
-            } catch (UnsupportedEncodingException e) {
-                throw new AssertionError("UTF8 not available");
-            }
+            return baos.toString(StandardCharsets.UTF_8);
         }
         
         @Override

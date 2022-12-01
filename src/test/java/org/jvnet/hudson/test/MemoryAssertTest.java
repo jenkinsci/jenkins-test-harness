@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import hudson.util.VersionNumber;
 import org.junit.Test;
 
 public class MemoryAssertTest {
@@ -58,10 +57,10 @@ public class MemoryAssertTest {
 
     @Test
     public void gc() {
-        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        Runtime.Version runtimeVersion = Runtime.version();
         assumeTrue(
-                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
-                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
+                "TODO JENKINS-67974 works on Java 17 but not 11",
+                runtimeVersion.feature() >= 17);
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));
