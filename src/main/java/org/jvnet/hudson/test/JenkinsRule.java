@@ -152,7 +152,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -500,13 +499,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 // wait until current asynchronous operations have finished executing
                 WebClientUtil.waitForJSExec(client);
                 // unload the page to prevent new asynchronous operations from being scheduled
-                try {
+                try (client) {
                     client.getPage("about:blank");
                 } catch (IOException e) {
                     // should never happen when loading "about:blank"
                     throw new UncheckedIOException(e);
-                } finally {
-                    client.close();
                 }
             }
             clients.clear();
@@ -1010,7 +1007,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /** Associate some groups with a username. */
         public void addGroups(String username, String... groups) {
             Set<String> gs = groupsByUser.computeIfAbsent(username, k -> new TreeSet<>());
-            gs.addAll(Arrays.asList(groups));
+            gs.addAll(List.of(groups));
         }
 
     }
@@ -1522,7 +1519,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         } catch (FileNotFoundException x) {
             return ""; // log file not yet created, OK
         }
-        return baos.toString(run.getCharset().name());
+        return baos.toString(run.getCharset());
     }
 
     /**
@@ -1645,7 +1642,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      ','-separated list of properties whose help files should exist.
      */
     public void assertHelpExists(final Class<? extends Describable> type, final String properties) throws Exception {
-        executeOnServer(new Callable<Object>() {
+        executeOnServer(new Callable<>() {
             @Override
             public Object call() throws Exception {
                 Descriptor d = jenkins.getDescriptor(type);
@@ -1978,7 +1975,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
                 dumpThreads();
                 throw new AssertionError(String.format("Jenkins is still doing something after %dms: queue=%s building=%s",
-                        timeout, Arrays.asList(jenkins.getQueue().getItems()), building));
+                        timeout, List.of(jenkins.getQueue().getItems()), building));
             }
         }
     }
@@ -2005,12 +2002,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 if(r==null)     continue;
                 final JenkinsRecipe.Runner runner = r.value().newInstance();
                 recipes.add(runner);
-                tearDowns.add(new LenientRunnable() {
-                    @Override
-                    public void run() throws Exception {
-                        runner.tearDown(JenkinsRule.this,a);
-                    }
-                });
+                tearDowns.add(() -> runner.tearDown(JenkinsRule.this, a));
                 runner.setup(this,a);
             }
         } catch (NoSuchMethodException e) {
@@ -2906,7 +2898,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
-    public static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
+    public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     private static final SecureRandom RANDOM = new SecureRandom();
 

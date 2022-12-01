@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.RingBufferLogHandler;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +182,7 @@ public class LoggerRule extends ExternalResource {
      */
     public List<String> getMessages() {
         synchronized (messages) {
-            return Collections.unmodifiableList(new ArrayList<>(messages));
+            return List.copyOf(messages);
         }
     }
 

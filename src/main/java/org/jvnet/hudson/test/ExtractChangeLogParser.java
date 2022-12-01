@@ -39,7 +39,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -68,7 +67,7 @@ public class ExtractChangeLogParser extends ChangeLogParser {
             while ((fileName = br.readLine()) != null) {
                 entry.addFile(new FileInZip(fileName));
             }
-            return new ExtractChangeLogSet(build, Collections.singletonList(entry));
+            return new ExtractChangeLogSet(build, List.of(entry));
         }
     }
 

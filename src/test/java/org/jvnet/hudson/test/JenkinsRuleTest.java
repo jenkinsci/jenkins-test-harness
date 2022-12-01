@@ -25,7 +25,6 @@ import org.kohsuke.stapler.verb.PUT;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -47,7 +46,7 @@ public class JenkinsRuleTest {
 
     @Test(expected = AssertionError.class)
     public void givenOneNullListAndOneNonnullListAssertShouldFail() throws Exception {
-        j.assertEqualDataBoundBeans(new SomeClass(Collections.emptyList()), new SomeClass(null));
+        j.assertEqualDataBoundBeans(new SomeClass(List.of()), new SomeClass(null));
     }
 
     public static class SomeClass {

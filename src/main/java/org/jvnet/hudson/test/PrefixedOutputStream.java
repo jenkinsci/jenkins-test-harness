@@ -49,7 +49,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
 
         private final String code;
 
-        private Color(String code) {
+        Color(String code) {
             this.code = code;
         }
 
