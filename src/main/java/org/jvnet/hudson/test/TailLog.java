@@ -100,7 +100,7 @@ public final class TailLog implements AutoCloseable {
             public void handle(String line) {
                 if (ps == null) {
                     try { // TODO Java 11 use Charset overload
-                        ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.err)), true, "UTF-8");
+                        ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.out)), true, "UTF-8");
                     } catch (UnsupportedEncodingException x) {
                         throw new AssertionError(x);
                     }
