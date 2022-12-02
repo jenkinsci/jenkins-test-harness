@@ -30,7 +30,7 @@ import hudson.model.Job;
 import hudson.model.Run;
 import java.io.File;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Semaphore;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
@@ -99,11 +99,7 @@ public final class TailLog implements AutoCloseable {
             @Override
             public void handle(String line) {
                 if (ps == null) {
-                    try { // TODO Java 11 use Charset overload
-                        ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.out)), true, "UTF-8");
-                    } catch (UnsupportedEncodingException x) {
-                        throw new AssertionError(x);
-                    }
+                    ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.out)), true, StandardCharsets.UTF_8);
                 }
                 ps.append(DeltaSupportLogFormatter.elapsedTime());
                 ps.print(' ');
