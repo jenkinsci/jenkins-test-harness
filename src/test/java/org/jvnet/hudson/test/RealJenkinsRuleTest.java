@@ -46,11 +46,11 @@ import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.util.PluginServletFilter;
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.servlet.Filter;
@@ -61,7 +61,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.IsNull;
 import org.hamcrest.core.StringContains;
@@ -149,10 +148,13 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void agentBuild() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_agentBuild);
+        try (TailLog tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
+            rr.then(RealJenkinsRuleTest::_agentBuild);
+            tailLog.waitForCompletion();
+        }
     }
     private static void _agentBuild(JenkinsRule r) throws Throwable {
-        FreeStyleProject p = r.createFreeStyleProject();
+        FreeStyleProject p = r.createFreeStyleProject("p");
         AtomicReference<Boolean> ran = new AtomicReference<>(false);
         p.getBuildersList().add(new TestBuilder() {
             @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
@@ -201,11 +203,11 @@ public class RealJenkinsRuleTest {
     }
     private static void _restart1(JenkinsRule r) throws Throwable {
         assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        FileUtils.write(new File(r.jenkins.getRootDir(), "url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+        Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
     }
     private static void _restart2(JenkinsRule r) throws Throwable {
         assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        assertEquals(r.jenkins.getRootUrl(), FileUtils.readFileToString(new File(r.jenkins.getRootDir(), "url.txt"), StandardCharsets.UTF_8));
+        assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
     }
 
     @Test public void stepsDoNotRunOnHttpWorkerThread() throws Throwable {

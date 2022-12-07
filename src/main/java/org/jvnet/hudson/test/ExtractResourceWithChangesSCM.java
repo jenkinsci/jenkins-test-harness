@@ -114,7 +114,7 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     }
 
     public void saveToChangeLog(File changeLogFile, Charset charset, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
-        try (PrintStream ps = new PrintStream(changeLogFile, charset.name())) {
+        try (PrintStream ps = new PrintStream(changeLogFile, charset)) {
             ps.println(changeLog.getZipFile());
             for (String fileName : changeLog.getAffectedPaths()) {
                 ps.println(fileName);
@@ -128,6 +128,6 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     protected Object writeReplace() { return new Object(); }
 
     @Override public SCMDescriptor<?> getDescriptor() {
-        return new SCMDescriptor<ExtractResourceWithChangesSCM>(ExtractResourceWithChangesSCM.class, null) {};
+        return new SCMDescriptor<>(ExtractResourceWithChangesSCM.class, null) {};
     }
 }

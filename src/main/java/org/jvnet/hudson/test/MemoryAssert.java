@@ -25,7 +25,6 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.util.VersionNumber;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
@@ -78,7 +77,7 @@ public class MemoryAssert {
     public static void assertHeapUsage(Object o, int max) throws Exception {
         // TODO could use ScannerUtils.recursiveSizeOf here
         CountingVisitor v = new CountingVisitor();
-        ScannerUtils.scan(ScannerUtils.skipNonStrongReferencesFilter(), v, Collections.singleton(o), false);
+        ScannerUtils.scan(ScannerUtils.skipNonStrongReferencesFilter(), v, Set.of(o), false);
         int memoryUsage = v.getTotalSize();
         assertTrue(o + " consumes " + memoryUsage + " bytes of heap, " + (memoryUsage - max) + " over the limit of " + max, memoryUsage <= max);
     }
@@ -128,11 +127,11 @@ public class MemoryAssert {
             f = ScannerUtils.compoundFilter(fs);
         }
         CountingVisitor v1 = new CountingVisitor();
-        ScannerUtils.scan(f, v1, Collections.singleton(Jenkins.get()), false);
+        ScannerUtils.scan(f, v1, Set.of(Jenkins.get()), false);
         Set<Class<?>> old = v1.getClasses();
         callable.call();
         CountingVisitor v2 = new CountingVisitor();
-        ScannerUtils.scan(f, v2, Collections.singleton(Jenkins.get()), false);
+        ScannerUtils.scan(f, v2, Set.of(Jenkins.get()), false);
         List<HistogramElement> elements = new ArrayList<>();
         for (Class<?> c : v2.getClasses()) {
             int delta = v2.getCountForClass(c) - (old.contains(c) ? v1.getCountForClass(c) : 0);
@@ -157,10 +156,10 @@ public class MemoryAssert {
      */
     @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
-        VersionNumber javaVersion = new VersionNumber(System.getProperty("java.specification.version"));
+        Runtime.Version runtimeVersion = Runtime.version();
         assumeTrue(
-                "TODO JENKINS-67974 works on Java 8 and 17 but not 11",
-                javaVersion.isOlderThan(new VersionNumber("9")) || javaVersion.isNewerThanOrEqualTo(new VersionNumber("17")));
+                "TODO JENKINS-67974 works on Java 17 but not 11",
+                runtimeVersion.feature() >= 17);
         assertTrue(true); reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<>();
@@ -182,7 +181,7 @@ public class MemoryAssert {
             if (!allowSoft) {
                 Object obj = reference.get();
                 if (obj != null) {
-                    softErr = "Apparent soft references to " + obj + ": " + fromRoots(Collections.singleton(obj), null, null, new Filter() {
+                    softErr = "Apparent soft references to " + obj + ": " + fromRoots(Set.of(obj), null, null, new Filter() {
                         final Field referent;
                         {
                             try {
@@ -194,7 +193,7 @@ public class MemoryAssert {
                         @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
                             return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                         }
-                    }) + "; apparent weak references: " + fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
+                    }) + "; apparent weak references: " + fromRoots(Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
                     System.err.println(softErr);
                 }
             }
@@ -206,12 +205,12 @@ public class MemoryAssert {
             System.err.println("Successfully collected.");
         } else {
             System.err.println("Failed to collect " + obj + ", looking for strong references…");
-            Map<Object,Path> rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
+            Map<Object,Path> rootRefs = fromRoots(Set.of(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
             if (!rootRefs.isEmpty()) {
                 fail(rootRefs.toString());
             } else {
                 System.err.println("Did not find any strong references to " + obj + ", looking for soft references…");
-                rootRefs = fromRoots(Collections.singleton(obj), null, null, new Filter() {
+                rootRefs = fromRoots(Set.of(obj), null, null, new Filter() {
                     final Field referent;
                     {
                         try {
@@ -228,7 +227,7 @@ public class MemoryAssert {
                     fail(rootRefs.toString());
                 } else {
                     System.err.println("Did not find any soft references to " + obj + ", looking for weak references…");
-                    rootRefs = fromRoots(Collections.singleton(obj), null, null, ScannerUtils.skipObjectsFilter(Collections.singleton(reference), true));
+                    rootRefs = fromRoots(Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
                     if (!rootRefs.isEmpty()) {
                         fail(rootRefs.toString());
                     } else {

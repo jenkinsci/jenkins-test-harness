@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import org.junit.Rule;
@@ -63,7 +64,7 @@ public class PrefixedOutputStreamTest {
             ps.println("split across\ntwo lines");
             ps.print("missing trailing newline");
         }
-        assertThat(baos.toString("UTF-8").replace("\r\n", "\n"),
+        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
             is(expected));
     }
 

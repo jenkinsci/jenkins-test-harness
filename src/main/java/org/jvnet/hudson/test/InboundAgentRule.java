@@ -40,8 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -281,7 +279,7 @@ public final class InboundAgentRule extends ExternalResource {
     public void start(AgentArguments agentArguments, Options options) throws Exception {
         Objects.requireNonNull(options.getName());
         stop(options.getName());
-        List<String> cmd = new ArrayList<>(Arrays.asList(JavaEnvUtils.getJreExecutable("java"),
+        List<String> cmd = new ArrayList<>(List.of(JavaEnvUtils.getJreExecutable("java"),
             "-Xmx512m",
             "-XX:+PrintCommandLineFlags",
             "-Djava.awt.headless=true"));
@@ -289,12 +287,12 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("-Xdebug");
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
-        cmd.addAll(Arrays.asList(
+        cmd.addAll(List.of(
                 "-jar", agentArguments.agentJar.getAbsolutePath(),
                 "-jnlpUrl", agentArguments.agentJnlpUrl));
         if (options.isSecret()) {
             // To watch it fail: secret = secret.replace('1', '2');
-            cmd.addAll(Arrays.asList("-secret", agentArguments.secret));
+            cmd.addAll(List.of("-secret", agentArguments.secret));
         }
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -410,7 +408,7 @@ public final class InboundAgentRule extends ExternalResource {
                 throw new AssertionError("agent " + node + " has no executor");
             }
             JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
-            List<String> commandLineArgs = Collections.emptyList();
+            List<String> commandLineArgs = List.of();
             if (!launcher.getWorkDirSettings().isDisabled()) {
                 commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
             }
