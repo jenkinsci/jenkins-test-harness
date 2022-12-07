@@ -203,7 +203,9 @@ import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
@@ -216,6 +218,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -796,6 +799,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
+        JettyWebSocketServletContainerInitializer.configure(context, null);
         context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
@@ -804,6 +808,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
         connector.setHost("localhost");
         if (System.getProperty("port") != null) {
             connector.setPort(Integer.parseInt(System.getProperty("port")));

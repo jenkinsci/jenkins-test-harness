@@ -57,7 +57,6 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.361</jenkins.version>
-    <jetty.version>9.4.49.v20220914</jetty.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.36</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
@@ -71,6 +70,13 @@ THE SOFTWARE.
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-bom</artifactId>
+        <version>10.0.12</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>annotation-indexer</artifactId>
@@ -140,23 +146,22 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
-      <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-webapp</artifactId>
-      <version>${jetty.version}</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-api</artifactId>
-      <version>${jetty.version}</version>
-    </dependency>
-    <dependency>
-      <!-- or javax-websocket-server-impl -->
-      <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-server</artifactId>
-      <version>${jetty.version}</version>
+      <!-- or websocket-javax-server -->
+      <artifactId>websocket-jetty-server</artifactId>
+      <!-- until Jetty release including https://github.com/eclipse/jetty.project/pull/8199 -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>jetty-annotations</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
