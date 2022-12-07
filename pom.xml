@@ -56,7 +56,7 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.363</jenkins.version>
+    <jenkins.version>2.361</jenkins.version>
     <hamcrest.version>2.2</hamcrest.version>
     <jmh.version>1.36</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
