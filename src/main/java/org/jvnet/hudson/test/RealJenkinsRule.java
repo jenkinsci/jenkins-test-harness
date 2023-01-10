@@ -160,6 +160,15 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
+    /**
+     * HTTP interface the server listens to.
+     * <p>
+     * Defaults to 127.0.0.1.
+     * <p>
+     * Should be overridden only in specific testing use cases, like testing inside a docker container.
+     */
+    private String httpListenAddress = "127.0.0.1";
+
     private File war;
 
     private boolean includeTestClasspathPlugins = true;
@@ -312,6 +321,15 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule withPort(int port) {
         this.port = port;
+        return this;
+    }
+
+    /**
+     * Provides a custom interface to listen to. This should be restricted for specific testing use cases (like running inside a docker container)
+     * @param httpListenAddress network interface such as <pre>0.0.0.0</pre>. Defaults to <pre>127.0.0.1</pre>.
+     */
+    public RealJenkinsRule withHttpListenAddress(String httpListenAddress) {
+        this.httpListenAddress = httpListenAddress;
         return this;
     }
 
@@ -556,7 +574,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
-                "--httpListenAddress=127.0.0.1",
+                "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", home.getAbsolutePath());
