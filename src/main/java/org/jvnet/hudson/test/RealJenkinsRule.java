@@ -160,13 +160,6 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
-    /**
-     * HTTP interface the server listens to.
-     * <p>
-     * Defaults to 127.0.0.1.
-     * <p>
-     * Should be overridden only in specific testing use cases, like testing inside a docker container.
-     */
     private String httpListenAddress = "127.0.0.1";
 
     private File war;
@@ -325,7 +318,11 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Provides a custom interface to listen to. This should be restricted for specific testing use cases (like running inside a docker container)
+     * Provides a custom interface to listen to.
+     * <p><em>Important:</em> for security reasons this should be overridden only in special scenarios,
+     * such as testing inside a Docker container.
+     * Otherwise a developer running tests could inadvertently expose a Jenkins service without password protection,
+     * allowing remote code execution.
      * @param httpListenAddress network interface such as <pre>0.0.0.0</pre>. Defaults to <pre>127.0.0.1</pre>.
      */
     public RealJenkinsRule withHttpListenAddress(String httpListenAddress) {
