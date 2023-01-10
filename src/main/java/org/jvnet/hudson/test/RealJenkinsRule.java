@@ -307,6 +307,15 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
+     * Provides a custom fixed port instead of a random one.
+     * @param port a custom port to use instead of a random one.
+     */
+    public RealJenkinsRule withPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    /**
      * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
      * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
      * plugin's src/test/java
