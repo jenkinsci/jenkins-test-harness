@@ -160,6 +160,8 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
+    private String httpListenAddress = "127.0.0.1";
+
     private File war;
 
     private boolean includeTestClasspathPlugins = true;
@@ -303,6 +305,28 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule withColor(PrefixedOutputStream.Color color) {
         prefixedOutputStreamBuilder.withColor(color);
+        return this;
+    }
+
+    /**
+     * Provides a custom fixed port instead of a random one.
+     * @param port a custom port to use instead of a random one.
+     */
+    public RealJenkinsRule withPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    /**
+     * Provides a custom interface to listen to.
+     * <p><em>Important:</em> for security reasons this should be overridden only in special scenarios,
+     * such as testing inside a Docker container.
+     * Otherwise a developer running tests could inadvertently expose a Jenkins service without password protection,
+     * allowing remote code execution.
+     * @param httpListenAddress network interface such as <pre>0.0.0.0</pre>. Defaults to <pre>127.0.0.1</pre>.
+     */
+    public RealJenkinsRule withHttpListenAddress(String httpListenAddress) {
+        this.httpListenAddress = httpListenAddress;
         return this;
     }
 
@@ -547,7 +571,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
-                "--httpListenAddress=127.0.0.1",
+                "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", home.getAbsolutePath());
