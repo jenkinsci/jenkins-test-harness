@@ -186,6 +186,11 @@ public final class RealJenkinsRule implements TestRule {
 
     private Map<String, Level> loggers = new HashMap<>();
 
+    private int debugPort = 0;
+    private boolean debugServer = true;
+
+    private boolean debugSuspend;
+
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
@@ -327,6 +332,53 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule withHttpListenAddress(String httpListenAddress) {
         this.httpListenAddress = httpListenAddress;
+        return this;
+    }
+
+    /**
+     * Allows usage of a static debug port instead of a random one.
+     *
+     * This allows to use predefined debug configurations in the IDE.
+     *
+     * Typical usage is in a base test class where multiple named controller instances are defined with fixed ports
+     *
+     * <pre>
+     * public RealJenkinsRule cc1 = new RealJenkinsRule().withName("cc1").withDebugPort(4001).withDebugServer(false);
+     *
+     * public RealJenkinsRule cc2 = new RealJenkinsRule().withName("cc2").withDebugPort(4002).withDebugServer(false);
+     * </pre>
+     *
+     * Then have debug configurations in the IDE set for ports
+     * - 5005 (test VM) - debugger mode "attach to remote vm"
+     * - 4001 (cc1) - debugger mode "listen to remote vm"
+     * - 4002 (cc2) - debugger mode "listen to remote vm"
+     *
+     * This allows for debugger to reconnect in scenarios where restarts of controllers are involved.
+     *
+     * @param debugPort
+     */
+    public RealJenkinsRule withDebugPort(int debugPort) {
+        this.debugPort = debugPort;
+        return this;
+    }
+    /**
+     * Allows to use debug in server mode or client mode. Client mode is friendlier to controller restarts.
+     *
+     * @see #withDebugPort(int).
+     *
+     * @param debugServer true to use server=y, false to use server=n
+     */
+    public RealJenkinsRule withDebugServer(boolean debugServer) {
+        this.debugServer = debugServer;
+        return this;
+    }
+
+    /**
+     * Whether to suspend the controller VM on startup until debugger is connected. Defaults to false.
+     * @param debugSuspend true to suspend the controller VM on startup until debugger is connected.
+     */
+    public RealJenkinsRule withDebugSuspend(boolean debugSuspend) {
+        this.debugSuspend = debugSuspend;
         return this;
     }
 
@@ -562,7 +614,10 @@ public final class RealJenkinsRule implements TestRule {
         portFile = new File(home, "jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
         if (new DisableOnDebug(null).isDebugging()) {
-            argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
+            argv.add("-agentlib:jdwp=transport=dt_socket"
+                    + ",server=" + (debugServer ? "y" : "n")
+                    + ",suspend=" + (debugSuspend ? "y" : "n")
+                    + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         argv.addAll(javaOptions);
 
