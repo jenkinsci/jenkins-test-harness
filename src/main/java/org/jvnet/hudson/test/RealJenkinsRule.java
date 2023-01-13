@@ -367,7 +367,7 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Allows to use debug in server mode or client mode. Client mode is friendlier to controller restarts.
      *
-     * @see #withDebugPort(int).
+     * @see #withDebugPort(int)
      *
      * @param debugServer true to use server=y, false to use server=n
      */
