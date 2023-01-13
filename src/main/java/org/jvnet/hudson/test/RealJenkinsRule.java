@@ -188,7 +188,6 @@ public final class RealJenkinsRule implements TestRule {
 
     private int debugPort = 0;
     private boolean debugServer = true;
-
     private boolean debugSuspend;
 
     // TODO may need to be relaxed for Gradle-based plugins
@@ -337,9 +336,9 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Allows usage of a static debug port instead of a random one.
-     *
+     * <p>
      * This allows to use predefined debug configurations in the IDE.
-     *
+     * <p>
      * Typical usage is in a base test class where multiple named controller instances are defined with fixed ports
      *
      * <pre>
@@ -349,15 +348,19 @@ public final class RealJenkinsRule implements TestRule {
      * </pre>
      *
      * Then have debug configurations in the IDE set for ports
-     * - 5005 (test VM) - debugger mode "attach to remote vm"
-     * - 4001 (cc1) - debugger mode "listen to remote vm"
-     * - 4002 (cc2) - debugger mode "listen to remote vm"
-     *
+     * <ul>
+     * <li>5005 (test VM) - debugger mode "attach to remote vm"</li>
+     * <li>4001 (cc1) - debugger mode "listen to remote vm"</li>
+     * <li>4002 (cc2) - debugger mode "listen to remote vm"</li>
+     * </ul>
+     * <p>
      * This allows for debugger to reconnect in scenarios where restarts of controllers are involved.
      *
-     * @param debugPort
+     * @param debugPort the TCP port to use for debugging this Jenkins instance. Between 0 (random) and 65536 (excluded).
      */
     public RealJenkinsRule withDebugPort(int debugPort) {
+        if (debugPort < 0) throw new IllegalArgumentException("debugPort must be positive");
+        if (!(debugPort < 65536)) throw new IllegalArgumentException("debugPort must be a valid TCP port (< 65536)");
         this.debugPort = debugPort;
         return this;
     }

@@ -72,7 +72,7 @@ import org.kohsuke.stapler.Stapler;
 public class RealJenkinsRuleTest {
 
     // TODO addPlugins does not currently take effect when used inside test method
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi");
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi").withDebugPort(4001).withDebugServer(false);
     @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
 
     @Test public void smokes() throws Throwable {
