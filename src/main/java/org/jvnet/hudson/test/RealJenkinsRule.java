@@ -95,7 +95,6 @@ import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
@@ -757,16 +756,13 @@ public final class RealJenkinsRule implements TestRule {
         if (proc != null) {
             Process _proc = proc;
             proc = null;
-            endpoint("exit").openStream().close();
+            // Do not use Process.destroy as it closes streams, losing any final output:
+            _proc.toHandle().destroy();
 
             if (!_proc.waitFor(60, TimeUnit.SECONDS) ) {
                 System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
                 _proc.destroyForcibly();
                 throw new AssertionError("Jenkins failed to terminate within 60 seconds");
-            }
-            int exitValue = _proc.exitValue();
-            if (exitValue != 0) {
-                throw new AssertionError("nonzero exit code: " + exitValue);
             }
         }
     }
@@ -960,12 +956,6 @@ public final class RealJenkinsRule implements TestRule {
             }
             // TODO use raw err if it seems safe enough
             Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err != null ? new ProxyException(err) : null));
-        }
-        public HttpResponse doExit(@QueryParameter String token) throws IOException {
-            checkToken(token);
-            try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                return Jenkins.get().doSafeExit(null);
-            }
         }
     }
 
