@@ -1025,7 +1025,7 @@ public final class RealJenkinsRule implements TestRule {
 
     public static class StepException extends Exception {
         public StepException(Throwable cause) {
-            super("Remote step threw an exception", cause);
+            super("Remote step threw an exception: " + cause, cause);
         }
     }
 
