@@ -91,9 +91,11 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void testThrowsException() {
-        assertThrows(RealJenkinsRule.StepException.class, () -> rr.then((RealJenkinsRule.Step2<Serializable>) r -> {
-            throw new Exception("test");
-        }));
+        assertThat(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException)).getMessage(),
+            containsString("IllegalStateException: something is wrong"));
+    }
+    private static void throwsException(JenkinsRule r) throws Throwable {
+        throw new IllegalStateException("something is wrong");
     }
 
     @Test public void testFilter() throws Throwable{
