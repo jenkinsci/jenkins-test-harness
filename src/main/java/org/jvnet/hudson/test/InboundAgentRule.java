@@ -455,7 +455,7 @@ public final class InboundAgentRule extends ExternalResource {
             return options.getName();
         }
 
-        @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
         private static Slave createAgent(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
             if (options.getName() == null) {
                 options.setName("agent" + r.jenkins.getNodes().size());
@@ -469,6 +469,7 @@ public final class InboundAgentRule extends ExternalResource {
             Computer computer = s.toComputer();
             while (computer == null || computer.getOfflineCause() == null) {
                 Thread.sleep(100);
+                computer = s.toComputer();
             }
             return s;
         }
