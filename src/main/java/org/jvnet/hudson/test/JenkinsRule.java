@@ -1297,16 +1297,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
 
             WebResponseData webResponseData;
-            InputStream responseStream = conn.getInputStream();
-            try {
-                if (responseStream != null) {
-                    byte[] bytes = IOUtils.toByteArray(responseStream);
-                    webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
-                } else {
-                    webResponseData = new WebResponseData(new byte[0], conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
-                }
-            } finally {
-                IOUtils.closeQuietly(responseStream);
+            try (InputStream responseStream = conn.getInputStream()) {
+                byte[] bytes = IOUtils.toByteArray(responseStream);
+                webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
             }
 
             WebResponse webResponse = new WebResponse(webResponseData, postUrl, HttpMethod.POST, (System.currentTimeMillis() - startTime));
