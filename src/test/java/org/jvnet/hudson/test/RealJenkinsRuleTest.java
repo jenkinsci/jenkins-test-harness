@@ -45,9 +45,12 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -206,10 +209,23 @@ public class RealJenkinsRuleTest {
     private static void _restart1(JenkinsRule r) throws Throwable {
         assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
         Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+        r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
     }
     private static void _restart2(JenkinsRule r) throws Throwable {
         assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
         assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
+        assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
+    }
+    private static class ShutdownListener extends ItemListener {
+        private final String fileName = "RealJenkinsRule-ran-cleanUp";
+        @Override
+        public void onBeforeShutdown() {
+            try {
+                new File(Jenkins.get().getRootDir(), fileName).createNewFile();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
     }
 
     @Test public void stepsDoNotRunOnHttpWorkerThread() throws Throwable {
