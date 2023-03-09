@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
 /**
@@ -79,11 +80,33 @@ public final class WarExploder {
             } else {
                 // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
-                String version = core.getParentFile().getName();
-                if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
-                    war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
+                String version;
+                File coreArtifactDir;
+                if (Pattern.matches("^[a-f0-9]{40}$", core.getParentFile().getName())) {
+                    // Gradle
+                    version = core.getParentFile().getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
+                } else {
+                    // Maven
+                    version = core.getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile();
+                }
+                if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
+                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
+                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
                     if (!war.isFile()) {
-                        throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        File[] hashes = new File(warArtifactDir, version).listFiles();
+                        if (hashes != null) {
+                            for (File hash : hashes) {
+                                war = new File(hash, "jenkins-war-" + version + ".war");
+                                if (war.isFile()) {
+                                    break;
+                                }
+                            }
+                        }
+                        if (!war.isFile()) {
+                            throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        }
                     }
                     LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
                 } else {
