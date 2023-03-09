@@ -201,7 +201,7 @@ import org.xml.sax.SAXException;
 /**
  * Base class for all Jenkins test cases.
  *
- * @see <a href="http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test">Wiki article about unit testing in Hudson</a>
+ * @see <a href="https://www.jenkins.io/doc/developer/testing/">Wiki article about unit testing in Jenkins</a>
  * @author Kohsuke Kawaguchi
  * @deprecated New code should use {@link JenkinsRule}.
  */
@@ -788,7 +788,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test#UnitTest-Configurationroundtriptesting
+     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
      */
     protected <P extends Job> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job,"configure").getFormByName("config"));

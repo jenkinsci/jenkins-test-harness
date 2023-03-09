@@ -43,14 +43,14 @@
 
 * Updated HTMLUnit.
 * New convenience methods in `WebClient`.
-* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
+* [JENKINS-53823](https://issues.jenkins.io/browse/JENKINS-53823) -
 JDK 11 compatibility.
 
 ### 2.41.1 (2018 Nov 13)
 
 This is a custom release without HTMLUnit upgrade
 
-* [JENKINS-53823](https://issues.jenkins-ci.org/browse/JENKINS-53823) -
+* [JENKINS-53823](https://issues.jenkins.io/browse/JENKINS-53823) -
 JDK 11 compatibility.
 
 ### 2.41 (2018 Sep 21)
@@ -59,7 +59,7 @@ JDK 11 compatibility.
 
 ### 2.40 (2018 Jul 20)
 
-* [JENKINS-49046](https://issues.jenkins-ci.org/browse/JENKINS-49046): Fix `@WithTimeout` handling for `JenkinsRule`.
+* [JENKINS-49046](https://issues.jenkins.io/browse/JENKINS-49046): Fix `@WithTimeout` handling for `JenkinsRule`.
 
 ### 2.39 (2018 Jun 05)
 
@@ -69,8 +69,8 @@ JDK 11 compatibility.
 
 ### 2.38 (2018 Apr 09)
 
-* [JENKINS-50598](https://issues.jenkins-ci.org/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
-* [JENKINS-50590](https://issues.jenkins-ci.org/browse/JENKINS-50590): fix combination of crumbs with existing request parameters.
+* [JENKINS-50598](https://issues.jenkins.io/browse/JENKINS-50598): ability to run `JenkinsRule`-based tests with a custom WAR file.
+* [JENKINS-50590](https://issues.jenkins.io/browse/JENKINS-50590): fix combination of crumbs with existing request parameters.
 
 ### 2.37 (2018 Apr 06)
 
