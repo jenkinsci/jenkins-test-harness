@@ -85,7 +85,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.kohsuke</groupId>
         <artifactId>access-modifier-annotation</artifactId>
-        <version>1.30</version>
+        <version>1.31</version>
       </dependency>
       <dependency>
         <!-- Avoid downloading multiple jenkins core versions and tons of stapler versions due to version range usage in older libs -->
