@@ -1396,7 +1396,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
      */
     public WebClient createWebClient() {
-        return new WebClient();
+        WebClient webClient = new WebClient();
+        webClient.getOptions().setFetchPolyfillEnabled(true);
+        return webClient;
     }
     
     /**
