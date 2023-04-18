@@ -52,7 +52,10 @@ public final class WarExploder {
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
-    private static final Pattern SHA1_HASH = Pattern.compile("^[a-f0-9]{40}$");
+    /**
+     * A pattern that matches either SHA-1 or SHA-256 hashes.
+     */
+    private static final Pattern SHA_HASH = Pattern.compile("^[a-f0-9]{40}$|^[a-f0-9]{64}$");
 
     public static synchronized File getExplodedDir() throws Exception {
         if (EXPLODE_DIR == null) {
@@ -84,7 +87,7 @@ public final class WarExploder {
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
                 String version;
                 File coreArtifactDir;
-                if (SHA1_HASH.matcher(core.getParentFile().getName()).matches()) {
+                if (SHA_HASH.matcher(core.getParentFile().getName()).matches()) {
                     // Gradle
                     version = core.getParentFile().getParentFile().getName();
                     coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
@@ -100,7 +103,7 @@ public final class WarExploder {
                         File[] hashes = new File(warArtifactDir, version).listFiles();
                         if (hashes != null) {
                             for (File hash : hashes) {
-                                if (SHA1_HASH.matcher(hash.getName()).matches()) {
+                                if (SHA_HASH.matcher(hash.getName()).matches()) {
                                     war = new File(hash, "jenkins-war-" + version + ".war");
                                     if (war.isFile()) {
                                         break;
