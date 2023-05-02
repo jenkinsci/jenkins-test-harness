@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -53,9 +54,9 @@ public final class WarExploder {
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
     /**
-     * A pattern that matches either SHA-1 or SHA-256 hashes.
+     * A pattern that matches hex encoded strings.
      */
-    private static final Pattern SHA_HASH = Pattern.compile("^[a-f0-9]{40}$|^[a-f0-9]{64}$");
+    private static final Pattern HEX_DIGITS = Pattern.compile("^[a-f0-9]+$");
 
     public static synchronized File getExplodedDir() throws Exception {
         if (EXPLODE_DIR == null) {
@@ -87,7 +88,7 @@ public final class WarExploder {
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
                 String version;
                 File coreArtifactDir;
-                if (SHA_HASH.matcher(core.getParentFile().getName()).matches()) {
+                if (HEX_DIGITS.matcher(core.getParentFile().getName()).matches()) {
                     // Gradle
                     version = core.getParentFile().getParentFile().getName();
                     coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
@@ -97,13 +98,13 @@ public final class WarExploder {
                     coreArtifactDir = core.getParentFile().getParentFile();
                 }
                 if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
-                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
-                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
+                    File versionedWarArtifactDir = Path.of(coreArtifactDir.getParentFile().getPath(), "jenkins-war", version).toFile();
+                    war = Path.of(versionedWarArtifactDir.getPath(), "jenkins-war-" + version + ".war").toFile();
                     if (!war.isFile()) {
-                        File[] hashes = new File(warArtifactDir, version).listFiles();
+                        File[] hashes = versionedWarArtifactDir.listFiles();
                         if (hashes != null) {
                             for (File hash : hashes) {
-                                if (SHA_HASH.matcher(hash.getName()).matches()) {
+                                if (HEX_DIGITS.matcher(hash.getName()).matches()) {
                                     war = new File(hash, "jenkins-war-" + version + ".war");
                                     if (war.isFile()) {
                                         break;
