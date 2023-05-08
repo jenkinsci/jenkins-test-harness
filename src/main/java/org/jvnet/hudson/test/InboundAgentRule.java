@@ -273,6 +273,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(r.runRemotely(new GetAgentArguments(name)), options);
+        r.runRemotely(new WaitForAgentOnline(name));
     }
 
     @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
@@ -419,6 +420,26 @@ public final class InboundAgentRule extends ExternalResource {
             return new AgentArguments(r.getURL() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
         }
 
+    }
+
+    private static class WaitForAgentOnline implements RealJenkinsRule.Step {
+        private final String name;
+
+        public WaitForAgentOnline(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
+            Node node = r.jenkins.getNode(name);
+            if (node == null) {
+                throw new AssertionError("no such agent: " + name);
+            }
+            if (!(node instanceof Slave)) {
+                throw new AssertionError("agent is not a Slave: " + name);
+            }
+            r.waitOnline((Slave) node);
+        }
     }
 
     private static class WaitForAgentOffline implements RealJenkinsRule.Step {
