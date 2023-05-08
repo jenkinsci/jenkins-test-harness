@@ -616,7 +616,8 @@ public final class RealJenkinsRule implements TestRule {
         }
         portFile = new File(home, "jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
-        if (new DisableOnDebug(null).isDebugging()) {
+        boolean debugging = new DisableOnDebug(null).isDebugging();
+        if (debugging) {
             argv.add("-agentlib:jdwp=transport=dt_socket"
                     + ",server=" + (debugServer ? "y" : "n")
                     + ",suspend=" + (debugSuspend ? "y" : "n")
@@ -685,7 +686,7 @@ public final class RealJenkinsRule implements TestRule {
                     throw jse;
                 } catch (Exception x) {
                     tries++;
-                    if (tries == /* 3m */ 1800) {
+                    if (!debugging && tries == /* 3m */ 1800) {
                         throw new AssertionError("Jenkins did not start after 3m");
                     } else if (tries % /* 1m */ 600 == 0) {
                         x.printStackTrace();
