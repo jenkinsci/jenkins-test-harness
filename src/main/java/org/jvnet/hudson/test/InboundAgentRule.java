@@ -321,6 +321,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(GetAgentArguments.get(r, name), options);
+        WaitForAgentOnline.wait(r, name);
     }
 
     /**
@@ -483,12 +484,16 @@ public final class InboundAgentRule extends ExternalResource {
     private static class WaitForAgentOnline implements RealJenkinsRule.Step {
         private final String name;
 
-        public WaitForAgentOnline(String name) {
+        WaitForAgentOnline(String name) {
             this.name = name;
         }
 
         @Override
         public void run(JenkinsRule r) throws Throwable {
+            wait(r, name);
+        }
+
+        static void wait(JenkinsRule r, String name) throws Exception {
             Node node = r.jenkins.getNode(name);
             if (node == null) {
                 throw new AssertionError("no such agent: " + name);
