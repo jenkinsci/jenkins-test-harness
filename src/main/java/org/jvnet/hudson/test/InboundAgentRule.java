@@ -504,9 +504,7 @@ public final class InboundAgentRule extends ExternalResource {
             if (!(node instanceof Slave)) {
                 throw new AssertionError("agent is not a Slave: " + name);
             }
-            LOGGER.info(() -> "Waiting for " + name + " to come online…");
             r.waitOnline((Slave) node);
-            LOGGER.info(() -> name + " is now online.");
         }
     }
 
