@@ -80,7 +80,10 @@ public final class InboundAgentRule extends ExternalResource {
         @CheckForNull private String name;
         private boolean secret;
         private boolean webSocket;
+        @CheckForNull private String tunnel;
         private boolean start = true;
+
+        private String label;
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
         public String getName() {
@@ -108,12 +111,28 @@ public final class InboundAgentRule extends ExternalResource {
             this.webSocket = webSocket;
         }
 
+        public String getTunnel() {
+            return tunnel;
+        }
+
+        public void setTunnel(String tunnel) {
+            this.tunnel = tunnel;
+        }
+
         public boolean isStart() {
             return start;
         }
 
         public void setStart(boolean start) {
             this.start = start;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
         }
 
         /**
@@ -138,7 +157,7 @@ public final class InboundAgentRule extends ExternalResource {
              * @param color the color
              * @return this builder
              */
-            Builder color(PrefixedOutputStream.Color color);
+            Builder color(PrefixedOutputStream.AnsiColor color);
 
             /**
              * Use secret when connecting.
@@ -155,11 +174,33 @@ public final class InboundAgentRule extends ExternalResource {
             Builder webSocket();
 
             /**
+             * Configure usage of WebSocket when connecting.
+             * @param websocket use websocket if true, otherwise use inbound TCP
+             *
+             * @return this builder
+             */
+            Builder webSocket(boolean websocket);
+
+            /**
+             * Set a tunnel for the agent
+             *
+             * @return this builder
+             */
+            Builder tunnel(String tunnel);
+
+            /**
              * Skip starting the agent.
              *
              * @return this builder
              */
             Builder skipStart();
+
+            /**
+             * Set a label for the agent.
+             *
+             * @return this builder.
+             */
+            Builder label(String label);
 
             /**
              * Build and return an {@link Options}.
@@ -180,7 +221,7 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             @Override
-            public Builder color(PrefixedOutputStream.Color color) {
+            public Builder color(PrefixedOutputStream.AnsiColor color) {
                 options.prefixedOutputStreamBuilder.withColor(color);
                 return this;
             }
@@ -193,13 +234,30 @@ public final class InboundAgentRule extends ExternalResource {
 
             @Override
             public Builder webSocket() {
-                options.setWebSocket(true);
+                return webSocket(true);
+            }
+
+            @Override
+            public Builder webSocket(boolean websocket) {
+                options.setWebSocket(websocket);
+                return this;
+            }
+
+            @Override
+            public Builder tunnel(String tunnel) {
+                options.setTunnel(tunnel);
                 return this;
             }
 
             @Override
             public Builder skipStart() {
                 options.setStart(false);
+                return this;
+            }
+
+            @Override
+            public Builder label(String label) {
+                options.setLabel(label);
                 return this;
             }
 
@@ -417,7 +475,7 @@ public final class InboundAgentRule extends ExternalResource {
             if (!agentJar.isFile()) {
                 FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
             }
-            return new AgentArguments(r.getURL() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+            return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
         }
 
     }
@@ -481,9 +539,10 @@ public final class InboundAgentRule extends ExternalResource {
             if (options.getName() == null) {
                 options.setName("agent" + r.jenkins.getNodes().size());
             }
-            JNLPLauncher launcher = new JNLPLauncher(true);
+            JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
             launcher.setWebSocket(options.isWebSocket());
             DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
+            s.setLabelString(options.getLabel());
             s.setRetentionStrategy(RetentionStrategy.NOOP);
             r.jenkins.addNode(s);
             // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.

@@ -83,7 +83,7 @@ public final class TailLog implements AutoCloseable {
      * Ignored when on CI.
      * Does not work when the build has already started by the time this method is called.
      */
-    public TailLog withColor(PrefixedOutputStream.Color color) {
+    public TailLog withColor(PrefixedOutputStream.AnsiColor color) {
         prefixedOutputStreamBuilder.withColor(color);
         return this;
     }
