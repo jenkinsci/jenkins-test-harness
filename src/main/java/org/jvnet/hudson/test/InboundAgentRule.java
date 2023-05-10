@@ -474,7 +474,7 @@ public final class InboundAgentRule extends ExternalResource {
             if (!agentJar.isFile()) {
                 FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
             }
-            return new AgentArguments(r.getURL() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+            return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
         }
 
     }
