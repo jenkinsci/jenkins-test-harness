@@ -157,7 +157,7 @@ public final class InboundAgentRule extends ExternalResource {
              * @param color the color
              * @return this builder
              */
-            Builder color(PrefixedOutputStream.Color color);
+            Builder color(PrefixedOutputStream.AnsiColor color);
 
             /**
              * Use secret when connecting.
@@ -221,7 +221,7 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             @Override
-            public Builder color(PrefixedOutputStream.Color color) {
+            public Builder color(PrefixedOutputStream.AnsiColor color) {
                 options.prefixedOutputStreamBuilder.withColor(color);
                 return this;
             }

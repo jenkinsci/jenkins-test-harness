@@ -43,7 +43,22 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         return new Builder();
     }
 
-    public enum Color {
+    private static class Color16 implements AnsiColor, Serializable  {
+        private final Color color;
+        private final boolean bold;
+
+        Color16(Color color, boolean bold) {
+            this.color = color;
+            this.bold = bold;
+        }
+
+        @Override
+        public String getCode() {
+            return color.code + (bold ? ";1" : "");
+        }
+    }
+
+    public enum Color implements AnsiColor {
 
         RED("31"), GREEN("32"), YELLOW("33"), BLUE("34"), MAGENTA("35"), CYAN("36");
 
@@ -53,12 +68,23 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
             this.code = code;
         }
 
+        public String getCode() {
+            return code;
+        }
+
+        public AnsiColor bold() {
+            return new Color16(this, true);
+        }
+    }
+
+    public interface AnsiColor {
+        String getCode();
     }
 
     @CheckForNull private final String name;
-    @CheckForNull private final Color color;
+    @CheckForNull private final AnsiColor color;
 
-    private PrefixedOutputStream(OutputStream out, String name, Color color) {
+    private PrefixedOutputStream(OutputStream out, String name, AnsiColor color) {
         super(out);
         this.name = name;
         this.color = color;
@@ -74,7 +100,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         if (color != null) {
             out.write(27); // ESC
             out.write('[');
-            out.write(color.code.getBytes(StandardCharsets.US_ASCII));
+            out.write(color.getCode().getBytes(StandardCharsets.US_ASCII));
             out.write('m');
             // Preserving original line ending, so not using trimEOL:
             int preNlLen = len;
@@ -100,7 +126,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         static boolean SKIP_CHECK_FOR_CI;
 
         @CheckForNull private String name;
-        @CheckForNull private Color color;
+        @CheckForNull private AnsiColor color;
 
         private Builder() {}
 
@@ -113,14 +139,14 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
             return name;
         }
 
-        public Builder withColor(@CheckForNull Color color) {
+        public Builder withColor(@CheckForNull AnsiColor color) {
             if (SKIP_CHECK_FOR_CI || !"true".equals(System.getenv("CI"))) {
                 this.color = color;
             }
             return this;
         }
 
-        public @CheckForNull Color getColor() {
+        public @CheckForNull AnsiColor getColor() {
             return color;
         }
 

@@ -307,7 +307,7 @@ public final class RealJenkinsRule implements TestRule {
      * Applies ANSI coloration to log lines produced by this instance, complementing {@link #withName}.
      * Ignored when on CI.
      */
-    public RealJenkinsRule withColor(PrefixedOutputStream.Color color) {
+    public RealJenkinsRule withColor(PrefixedOutputStream.AnsiColor color) {
         prefixedOutputStreamBuilder.withColor(color);
         return this;
     }
