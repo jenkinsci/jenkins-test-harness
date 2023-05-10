@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -68,6 +69,8 @@ import org.junit.rules.ExternalResource;
  * @see JenkinsRule#createSlave()
  */
 public final class InboundAgentRule extends ExternalResource {
+
+    private static final Logger LOGGER = Logger.getLogger(InboundAgentRule.class.getName());
 
     private final ConcurrentMap<String, Process> procs = new ConcurrentHashMap<>();
 
@@ -357,7 +360,7 @@ public final class InboundAgentRule extends ExternalResource {
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
-        System.err.println("Running: " + pb.command());
+        LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
         procs.put(options.getName(), proc);
         new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
@@ -501,7 +504,9 @@ public final class InboundAgentRule extends ExternalResource {
             if (!(node instanceof Slave)) {
                 throw new AssertionError("agent is not a Slave: " + name);
             }
+            LOGGER.info(() -> "Waiting for " + name + " to come online…");
             r.waitOnline((Slave) node);
+            LOGGER.info(() -> name + " is now online.");
         }
     }
 
