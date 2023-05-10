@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -68,6 +69,8 @@ import org.junit.rules.ExternalResource;
  * @see JenkinsRule#createSlave()
  */
 public final class InboundAgentRule extends ExternalResource {
+
+    private static final Logger LOGGER = Logger.getLogger(InboundAgentRule.class.getName());
 
     private final ConcurrentMap<String, Process> procs = new ConcurrentHashMap<>();
 
@@ -321,6 +324,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(GetAgentArguments.get(r, name), options);
+        WaitForAgentOnline.wait(r, name);
     }
 
     /**
@@ -331,6 +335,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(r.runRemotely(new GetAgentArguments(name)), options);
+        r.runRemotely(new WaitForAgentOnline(name));
     }
 
     @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
@@ -355,7 +360,7 @@ public final class InboundAgentRule extends ExternalResource {
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
-        System.err.println("Running: " + pb.command());
+        LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
         procs.put(options.getName(), proc);
         new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
@@ -477,6 +482,30 @@ public final class InboundAgentRule extends ExternalResource {
             return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
         }
 
+    }
+
+    private static class WaitForAgentOnline implements RealJenkinsRule.Step {
+        private final String name;
+
+        WaitForAgentOnline(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
+            wait(r, name);
+        }
+
+        static void wait(JenkinsRule r, String name) throws Exception {
+            Node node = r.jenkins.getNode(name);
+            if (node == null) {
+                throw new AssertionError("no such agent: " + name);
+            }
+            if (!(node instanceof Slave)) {
+                throw new AssertionError("agent is not a Slave: " + name);
+            }
+            r.waitOnline((Slave) node);
+        }
     }
 
     private static class WaitForAgentOffline implements RealJenkinsRule.Step {
