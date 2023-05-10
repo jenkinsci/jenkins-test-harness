@@ -41,8 +41,8 @@ public final class InboundAgentRuleTest {
         assertTrue(inboundAgents.createAgent(r, InboundAgentRule.Options.newBuilder().
             color(PrefixedOutputStream.Color.MAGENTA.bold()).
             name("remote").
-            build())
-        .toComputer().isOnline());
+            build()).
+        toComputer().isOnline());
     }
 
 }
