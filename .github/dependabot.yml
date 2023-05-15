@@ -40,6 +40,8 @@ updates:
       # migration is complete
       - dependency-name: "org.eclipse.jetty:jetty-bom"
         versions: [">=11.0.0"]
+      # FIPS mismatches
+      - dependency-name: org.jenkins-ci.modules:instance-identity
   - package-ecosystem: github-actions
     directory: /
     schedule:
