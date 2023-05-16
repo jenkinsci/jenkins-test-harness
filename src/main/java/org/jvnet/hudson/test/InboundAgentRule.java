@@ -77,7 +77,7 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * The options used to (re)start an inbound agent.
      */
-    public static class Options implements Serializable {
+    public static final class Options implements Serializable {
         // TODO Java 14+ use records
 
         @CheckForNull private String name;
@@ -93,49 +93,24 @@ public final class InboundAgentRule extends ExternalResource {
             return name;
         }
 
-        public void setName(@CheckForNull String name) {
-            this.name = name;
-            prefixedOutputStreamBuilder.withName(name);
-        }
-
         public boolean isSecret() {
             return secret;
-        }
-
-        public void setSecret(boolean secret) {
-            this.secret = secret;
         }
 
         public boolean isWebSocket() {
             return webSocket;
         }
 
-        public void setWebSocket(boolean webSocket) {
-            this.webSocket = webSocket;
-        }
-
         public String getTunnel() {
             return tunnel;
-        }
-
-        public void setTunnel(String tunnel) {
-            this.tunnel = tunnel;
         }
 
         public boolean isStart() {
             return start;
         }
 
-        public void setStart(boolean start) {
-            this.start = start;
-        }
-
         public String getLabel() {
             return label;
-        }
-
-        public void setLabel(String label) {
-            this.label = label;
         }
 
         /**
@@ -144,7 +119,11 @@ public final class InboundAgentRule extends ExternalResource {
          * <p>Instances of {@link Builder} are created by calling {@link
          * InboundAgentRule.Options#newBuilder}.
          */
-        public interface Builder {
+        public static final class Builder {
+
+            private final Options options = new Options();
+
+            private Builder() {}
 
             /**
              * Set the name of the agent.
@@ -152,7 +131,10 @@ public final class InboundAgentRule extends ExternalResource {
              * @param name the name
              * @return this builder
              */
-            Builder name(String name);
+            public Builder name(String name) {
+                options.name = name;
+                return this;
+            }
 
             /**
              * Set a color for agent logs.
@@ -160,21 +142,29 @@ public final class InboundAgentRule extends ExternalResource {
              * @param color the color
              * @return this builder
              */
-            Builder color(PrefixedOutputStream.AnsiColor color);
+            public Builder color(PrefixedOutputStream.AnsiColor color) {
+                options.prefixedOutputStreamBuilder.withColor(color);
+                return this;
+            }
 
             /**
              * Use secret when connecting.
              *
              * @return this builder
              */
-            Builder secret();
+            public Builder secret() {
+                options.secret = true;
+                return this;
+            }
 
             /**
              * Use WebSocket when connecting.
              *
              * @return this builder
              */
-            Builder webSocket();
+            public Builder webSocket() {
+                return webSocket(true);
+            }
 
             /**
              * Configure usage of WebSocket when connecting.
@@ -182,96 +172,53 @@ public final class InboundAgentRule extends ExternalResource {
              *
              * @return this builder
              */
-            Builder webSocket(boolean websocket);
+            public Builder webSocket(boolean websocket) {
+                options.webSocket = websocket;
+                return this;
+            }
 
             /**
              * Set a tunnel for the agent
              *
              * @return this builder
              */
-            Builder tunnel(String tunnel);
+            public Builder tunnel(String tunnel) {
+                options.tunnel = tunnel;
+                return this;
+            }
 
             /**
              * Skip starting the agent.
              *
              * @return this builder
              */
-            Builder skipStart();
+            public Builder skipStart() {
+                options.start = false;
+                return this;
+            }
 
             /**
              * Set a label for the agent.
              *
              * @return this builder.
              */
-            Builder label(String label);
+            public Builder label(String label) {
+                options.label = label;
+                return this;
+            }
 
             /**
              * Build and return an {@link Options}.
              *
              * @return a new {@link Options}
              */
-            Options build();
-        }
-
-        private static class BuilderImpl implements Builder {
-
-            private final Options options = new Options();
-
-            @Override
-            public Builder name(String name) {
-                options.setName(name);
-                return this;
-            }
-
-            @Override
-            public Builder color(PrefixedOutputStream.AnsiColor color) {
-                options.prefixedOutputStreamBuilder.withColor(color);
-                return this;
-            }
-
-            @Override
-            public Builder secret() {
-                options.setSecret(true);
-                return this;
-            }
-
-            @Override
-            public Builder webSocket() {
-                return webSocket(true);
-            }
-
-            @Override
-            public Builder webSocket(boolean websocket) {
-                options.setWebSocket(websocket);
-                return this;
-            }
-
-            @Override
-            public Builder tunnel(String tunnel) {
-                options.setTunnel(tunnel);
-                return this;
-            }
-
-            @Override
-            public Builder skipStart() {
-                options.setStart(false);
-                return this;
-            }
-
-            @Override
-            public Builder label(String label) {
-                options.setLabel(label);
-                return this;
-            }
-
-            @Override
             public Options build() {
                 return options;
             }
         }
 
         public static Builder newBuilder() {
-            return new BuilderImpl();
+            return new Builder();
         }
     }
 
@@ -303,7 +250,7 @@ public final class InboundAgentRule extends ExternalResource {
 
     public void createAgent(@NonNull RealJenkinsRule rr, Options options) throws Throwable {
         String name = rr.runRemotely(new CreateAgent(options));
-        options.setName(name);
+        options.name = name;
         if (options.isStart()) {
             start(rr, options);
         }
@@ -532,7 +479,7 @@ public final class InboundAgentRule extends ExternalResource {
     private static class CreateAgent implements RealJenkinsRule.Step2<String> {
         private final Options options;
 
-        public CreateAgent(Options options) {
+        CreateAgent(Options options) {
             this.options = options;
         }
 
@@ -545,7 +492,7 @@ public final class InboundAgentRule extends ExternalResource {
         @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
         private static Slave createAgent(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
             if (options.getName() == null) {
-                options.setName("agent" + r.jenkins.getNodes().size());
+                options.name = "agent" + r.jenkins.getNodes().size();
             }
             JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
             launcher.setWebSocket(options.isWebSocket());
