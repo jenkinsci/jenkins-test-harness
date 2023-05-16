@@ -72,6 +72,7 @@ public class GroupedTest extends TestSuite implements Filterable {
     protected void tearDown() throws Exception {
     }
 
+    @Override
     public void filter(Filter filter) throws NoTestsRemainException {} // SUREFIRE-974
 
 }

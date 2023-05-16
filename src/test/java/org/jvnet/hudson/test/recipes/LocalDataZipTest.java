@@ -38,7 +38,7 @@ public class LocalDataZipTest {
 
     @LocalData
     @Test
-    public void works() throws Exception {
+    public void works() {
         assertNotNull(r.jenkins.getItem("somejob"));
     }
 

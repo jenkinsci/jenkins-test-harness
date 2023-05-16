@@ -5,7 +5,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * The the signup page for {@link hudson.security.HudsonPrivateSecurityRealm}
@@ -36,7 +37,6 @@ public class SignupPage {
     /**
      * Enters the password in password1 and password2.
      * You can then call {@link #enterPassword2(String)} if you want them to be different.
-     * @param password
      */
     public void enterPassword(String password) {
         signupForm.getInputByName("password1").setValueAttribute(password);

@@ -25,18 +25,17 @@
 package org.jvnet.hudson.test;
 
 import hudson.Extension;
-import hudson.ExtensionList;
+import hudson.model.Action;
 import hudson.model.InvisibleAction;
-import hudson.model.Job;
 import hudson.model.Run;
-import hudson.model.TaskListener;
-import hudson.model.listeners.RunListener;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.RunAction2;
+import jenkins.model.TransientActionFactory;
 import jenkins.model.lazy.LazyBuildMixIn;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -48,21 +47,16 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @SuppressWarnings({"unchecked", "rawtypes"}) // API design mistakes
 public final class RunLoadCounter {
 
-    private static final ThreadLocal<String> currProject = new ThreadLocal<String>();
-    private static final ThreadLocal<AtomicInteger> currCount = new ThreadLocal<AtomicInteger>();
+    private static final Logger LOGGER = Logger.getLogger(RunLoadCounter.class.getName());
+
+    private static LazyBuildMixIn.LazyLoadingJob<?, ?> currProject;
+    private static int currCount, maxCount;
 
     /**
-     * Prepares a new project to be measured.
-     * Usually called before starting builds, but may also be called retroactively.
-     * @param project a project of any kind
-     * @throws IOException if preparations fail
+     * @deprecated No longer needed.
      */
+    @Deprecated
     public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {
-        ExtensionList.lookup(RunListener.class).get(MarkerAdder.class).register((Job) project);
-        for (Run<?, ?> build : project.getLazyBuildMixIn()._getRuns()) {
-            Marker.add(build);
-            build.save();
-        }
     }
 
     /**
@@ -73,10 +67,17 @@ public final class RunLoadCounter {
      */
     public static int countLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, Runnable thunk) {
         project.getLazyBuildMixIn()._getRuns().purgeCache();
-        currProject.set(((Job) project).getFullName());
-        currCount.set(new AtomicInteger());
-        thunk.run();
-        return currCount.get().get();
+        currProject = project;
+        currCount = 0;
+        maxCount = Integer.MAX_VALUE;
+        try {
+            LOGGER.info("Starting load count");
+            thunk.run();
+            return currCount;
+        } finally {
+            LOGGER.info("Ending load count");
+            currProject = null;
+        }
     }
 
     /**
@@ -91,9 +92,16 @@ public final class RunLoadCounter {
      */
     public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk) throws Exception {
         project.getLazyBuildMixIn()._getRuns().purgeCache();
-        currProject.set(((Job) project).getFullName());
-        currCount.set(new AtomicInteger(-(max + 1)));
-        return thunk.call();
+        currProject = project;
+        currCount = 0;
+        maxCount = max;
+        try {
+            LOGGER.info("Starting load count");
+            return thunk.call();
+        } finally {
+            LOGGER.info("Ending load count");
+            currProject = null;
+        }
     }
 
     private RunLoadCounter() {}
@@ -104,22 +112,13 @@ public final class RunLoadCounter {
     @Restricted(NoExternalUse.class)
     public static final class Marker extends InvisibleAction implements RunAction2 {
 
-        static void add(Run<?, ?> build) {
-            build.addAction(new Marker(build.getParent().getFullName(), build.getNumber()));
-        }
-
-        private final String project;
-        private final int build;
-
-        Marker(String project, int build) {
-            this.project = project;
-            this.build = build;
-        }
-
         @Override public void onLoad(Run<?, ?> run) {
-            if (project.equals(currProject.get())) {
-                System.err.println("loaded " + project + " #" + build);
-                assert currCount.get().incrementAndGet() != 0 : "too many build records loaded from " + project;
+            if (run.getParent().equals(currProject)) {
+                if (++currCount > maxCount) {
+                    throw new AssertionError("More than " + maxCount + " build records loaded: " + run);
+                } else {
+                    LOGGER.log(Level.WARNING, "Loaded " + run + " (" + currCount + " ≤ " + maxCount + ")", new Throwable());
+                }
             }
         }
 
@@ -131,18 +130,14 @@ public final class RunLoadCounter {
      * Used internally.
      */
     @Restricted(NoExternalUse.class)
-    @Extension public static final class MarkerAdder extends RunListener<Run<?, ?>> {
+    @Extension public static final class MarkerAdder extends TransientActionFactory<Run<?, ?>> {
 
-        private final Set<String> jobs = new HashSet<>();
-
-        @Override public void onStarted(Run r, TaskListener tl) {
-            if (jobs.contains(r.getParent().getFullName())) {
-                Marker.add(r);
-            }
+        @Override public Class<Run<?, ?>> type() {
+            return (Class) Run.class;
         }
 
-        void register(Job<?, ?> job) {
-            jobs.add(job.getFullName());
+        @Override public Collection<? extends Action> createFor(Run<?, ?> target) {
+            return Set.of(new Marker());
         }
 
     }

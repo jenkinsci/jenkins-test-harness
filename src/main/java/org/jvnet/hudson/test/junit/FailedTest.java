@@ -42,7 +42,7 @@ public class FailedTest extends TestCase {
         this.problem = problem;
     }
 
-    public FailedTest(Class name, Throwable problem) {
+    public FailedTest(Class<?> name, Throwable problem) {
         this(name.getName(),problem);
     }
 

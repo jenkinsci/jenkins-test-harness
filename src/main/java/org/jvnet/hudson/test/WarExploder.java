@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
 import hudson.remoting.Which;
 import java.io.File;
@@ -31,12 +32,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
-import javax.annotation.CheckForNull;
-
 /**
- * Ensures that <tt>jenkins.war</tt> is exploded.
+ * Ensures that {@code jenkins.war} is exploded.
  *
  * <p>
  * Depending on where the test is run (for example, inside Maven vs IDE), this code attempts to
@@ -52,23 +52,76 @@ public final class WarExploder {
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
-    public static File getExplodedDir() throws Exception {
-        // rethrow an exception every time someone tries to do this, so that when explode()
-        // fails, you can see the cause no matter which test case you look at.
-        // see http://www.nabble.com/Failing-tests-in-test-harness-module-on-hudson.ramfelt.se-td19258722.html
-        if(FAILURE !=null)   throw new Exception("Failed to initialize exploded war", FAILURE);
+    /**
+     * A pattern that matches either SHA-1 or SHA-256 hashes.
+     */
+    private static final Pattern SHA_HASH = Pattern.compile("^[a-f0-9]{40}$|^[a-f0-9]{64}$");
+
+    public static synchronized File getExplodedDir() throws Exception {
+        if (EXPLODE_DIR == null) {
+            EXPLODE_DIR = explode();
+        }
         return EXPLODE_DIR;
     }
 
     private static File EXPLODE_DIR;
-    private static Exception FAILURE;
 
-    static {
-        try {
-            EXPLODE_DIR = explode();
-        } catch (Exception e) {
-            FAILURE = e;
+    static File findJenkinsWar() throws Exception {
+        File war;
+        if (JENKINS_WAR_PATH != null) {
+            war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
+            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
+                    new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
+            if (!war.exists()) {
+                throw new IOException("A Predefined WAR file path does not exist: " + war);
+            } else if (!war.isFile()) {
+                throw new IOException("A Predefined WAR file path does not point to a file: " + war);
+            }
+        } else {
+            // locate jenkins.war
+            URL winstone = WarExploder.class.getResource("/executable/winstone.jar");
+            if (winstone != null) {
+                war = Which.jarFile(Class.forName("executable.Main"));
+            } else {
+                // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
+                File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+                String version;
+                File coreArtifactDir;
+                if (SHA_HASH.matcher(core.getParentFile().getName()).matches()) {
+                    // Gradle
+                    version = core.getParentFile().getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
+                } else {
+                    // Maven
+                    version = core.getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile();
+                }
+                if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
+                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
+                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
+                    if (!war.isFile()) {
+                        File[] hashes = new File(warArtifactDir, version).listFiles();
+                        if (hashes != null) {
+                            for (File hash : hashes) {
+                                if (SHA_HASH.matcher(hash.getName()).matches()) {
+                                    war = new File(hash, "jenkins-war-" + version + ".war");
+                                    if (war.isFile()) {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!war.isFile()) {
+                            throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        }
+                    }
+                    LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
+                } else {
+                    throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                }
+            }
         }
+        return war;
     }
 
     /**
@@ -90,36 +143,7 @@ public final class WarExploder {
             }
         }
 
-        final File war;
-        if (JENKINS_WAR_PATH != null) {
-            war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
-            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
-                    new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
-            if (!war.exists()) {
-                throw new IOException("A Predefined WAR file path does not exist: " + war);
-            } else if (!war.isFile()) {
-                throw new IOException("A Predefined WAR file path does not point to a file: " + war);
-            }
-        } else {
-            // locate jenkins.war
-            URL winstone = WarExploder.class.getResource("/winstone.jar");
-            if (winstone != null) {
-                war = Which.jarFile(Class.forName("executable.Executable"));
-            } else {
-                // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
-                File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
-                String version = core.getParentFile().getName();
-                if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
-                    war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
-                    if (!war.isFile()) {
-                        throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
-                    }
-                    LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
-                } else {
-                    throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
-                }
-            }
-        }
+        final File war = findJenkinsWar();
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case
         File buildDirectory = new File(System.getProperty("buildDirectory", "target"));

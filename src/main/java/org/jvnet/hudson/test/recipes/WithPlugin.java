@@ -49,12 +49,19 @@ import java.net.URL;
 @Retention(RUNTIME)
 public @interface WithPlugin {
     /**
-     * Name of the plugins.
-     *
-     * For now, this has to be one or more of the plugins statically available in resources
-     * "/plugins/NAME". TODO: support retrieval through Maven repository.
-     * TODO: load the HPI file from $M2_REPO or $USER_HOME/.m2 by naming e.g. org.jvnet.hudson.plugins:monitoring:hpi:1.34.0
-     * (used in conjunction with the dependency in POM to ensure it's available)
+     * Filenames of the plugins to install.
+     * These are expected to be of the form {@code workflow-job.jpi}
+     * where {@code /plugins/workflow-job.jpi} is a test classpath resource.
+     * (The basename should be a plugin short name and the extension should be {@code jpi}.)
+     * <p>Committing that file to SCM (say, {@code src/test/resources/plugins/sample.jpi})
+     * is reasonable for small fake plugins built for this purpose and exercising some bit of code.
+     * If you wish to test with larger archives of real plugins,
+     * this is possible for example by binding {@code dependency:copy} to the {@code process-test-resources} phase.
+     * <p>In most cases you do not need this annotation.
+     * Simply add whatever plugins you are interested in testing against to your POM in {@code test} scope.
+     * These, and their transitive dependencies, will be loaded in all {@link JenkinsRule} tests in this plugin.
+     * This annotation is useful if only a particular test may load the tested plugin,
+     * or if the tested plugin is not available in a repository for use as a test dependency.
      */
     String[] value();
 

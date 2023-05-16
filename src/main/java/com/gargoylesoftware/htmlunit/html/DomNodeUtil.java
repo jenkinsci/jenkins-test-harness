@@ -47,12 +47,12 @@ public class DomNodeUtil {
      */
     public static <E> List<E> selectNodes(final DomNode domNode, final String xpathExpr) {
         WebClientUtil.waitForJSExec(domNode.getPage().getWebClient());
-        return (List) XPathHelper.getByXPath(domNode, xpathExpr, null);
+        return XPathHelper.getByXPath(domNode, xpathExpr, null);
     }
 
     /**
      * Evaluates the specified XPath expression from this node, returning the first matching element,
-     * or <tt>null</tt> if no node matches the specified XPath expression.
+     * or {@code null} if no node matches the specified XPath expression.
      * <p>
      * Calls {@link WebClientUtil#waitForJSExec(com.gargoylesoftware.htmlunit.WebClient)} before
      * executing the query.

@@ -1,16 +1,7 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
-
 import hudson.PluginManager;
-
-import org.junit.Assert;
-import org.junit.rules.MethodRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.recipes.WithPluginManager;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,11 +16,16 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashMap;
-import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.Assert;
+import org.junit.rules.MethodRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.Statement;
 
 /**
  * Provides a pattern for executing a sequence of steps.
@@ -43,7 +39,7 @@ import java.util.logging.Logger;
  * <p>
  * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
  * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
- * {@link then} is called.
+ * {@link #then} is called.
  * <p>
  * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
  * will need to be changed to {@link UnitTestSupportingPluginManager}.
@@ -139,7 +135,7 @@ public class RestartableJenkinsRule implements MethodRule {
      * @deprecated Use {@link #then} instead.
      */
     @Deprecated
-    public void step(final Closure c) {
+    public void step(final Closure<?> c) {
         addStep(new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -183,7 +179,7 @@ public class RestartableJenkinsRule implements MethodRule {
                 }
             } catch (NoSuchFileException nsfe) {
                 // File removed in between scan beginning and when we try to copy it, ignore it
-                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+file.toString());
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+ file);
             }
 
             return FileVisitResult.CONTINUE;
@@ -192,7 +188,10 @@ public class RestartableJenkinsRule implements MethodRule {
         @Override
         public FileVisitResult visitFileFailed(Path file, IOException exc) {
             if (exc instanceof FileNotFoundException) {
-                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: "+file.toString());
+                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: " + file.toString());
+                return FileVisitResult.CONTINUE;
+            } else if (exc instanceof NoSuchFileException) {
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: " + file.toString());
                 return FileVisitResult.CONTINUE;
             } else {
                 LOGGER.log(Level.WARNING, "Error copying file", exc);
@@ -209,8 +208,6 @@ public class RestartableJenkinsRule implements MethodRule {
      * that for the next restart. Thus we only have the data actually persisted to disk at that time to work with.
      *
      * Should be run as the last part of a {@link org.jvnet.hudson.test.RestartableJenkinsRule.Step}.
-     *
-     * @throws IOException
      */
      void simulateAbruptShutdown() throws IOException {
          LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
@@ -218,7 +215,7 @@ public class RestartableJenkinsRule implements MethodRule {
          File newHome = tmp.allocate();
 
          // Copy efficiently
-         Files.walkFileTree(homeDir.toPath(), Collections.EMPTY_SET, 99, new CopyFileVisitor(newHome.toPath()));
+         Files.walkFileTree(homeDir.toPath(), Set.of(), 99, new CopyFileVisitor(newHome.toPath()));
          LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
          home = newHome;
     }

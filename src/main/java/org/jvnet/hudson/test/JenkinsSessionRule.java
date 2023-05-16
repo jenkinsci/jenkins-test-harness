@@ -55,6 +55,16 @@ public class JenkinsSessionRule implements TestRule {
      */
     private int port;
 
+    /**
+     * Get the Jenkins home directory, which is consistent across restarts.
+     */
+    public File getHome() {
+        if (home == null) {
+            throw new IllegalStateException("JENKINS_HOME has not been allocated yet");
+        }
+        return home;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {

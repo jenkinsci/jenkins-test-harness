@@ -70,7 +70,7 @@ public class DummyCloudImpl extends Cloud {
     }
 
     List<NodeProperty<?>> nodeProperties =
-            new ArrayList<NodeProperty<?>>();
+            new ArrayList<>();
 
     public DummyCloudImpl(JenkinsRule rule, int delay) {
         super("test");
@@ -85,8 +85,9 @@ public class DummyCloudImpl extends Cloud {
         this.nodeProperties = nodeProperties;
     }
 
+    @Override
     public Collection<PlannedNode> provision(Label label, int excessWorkload) {
-        List<PlannedNode> r = new ArrayList<PlannedNode>();
+        List<PlannedNode> r = new ArrayList<>();
         if(label!=this.label)   return r;   // provisioning impossible
 
         while(excessWorkload>0) {
@@ -99,6 +100,7 @@ public class DummyCloudImpl extends Cloud {
         return r;
     }
 
+    @Override
     public boolean canProvision(Label label) {
         return label==this.label;
     }
@@ -114,6 +116,7 @@ public class DummyCloudImpl extends Cloud {
             this.time = time;
         }
 
+        @Override
         public Node call() throws Exception {
             // simulate the delay in provisioning a new slave,
             // since it's normally some async operation.
@@ -139,6 +142,7 @@ public class DummyCloudImpl extends Cloud {
         return prop;
     }
 
+    @Override
     public Descriptor<Cloud> getDescriptor() {
         throw new UnsupportedOperationException();
     }

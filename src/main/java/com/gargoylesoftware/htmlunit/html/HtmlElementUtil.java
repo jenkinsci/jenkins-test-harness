@@ -28,8 +28,6 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebClientUtil;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -70,7 +68,7 @@ public class HtmlElementUtil {
      */
     public static boolean hasClassName(HtmlElement element, String className) {
         String classAttribute = element.getAttribute("class");
-        Set<String> classes = new HashSet<String>(Arrays.asList(classAttribute.split(" ")));
+        Set<String> classes = Set.of(classAttribute.split(" "));
         return classes.contains(className);
     }
 }

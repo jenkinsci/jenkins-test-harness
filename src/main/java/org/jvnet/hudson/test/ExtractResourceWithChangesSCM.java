@@ -23,21 +23,20 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.NullSCM;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
-
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -76,7 +75,7 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     }
     
     @Override
-    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changeLogFile) throws IOException, InterruptedException {
+    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, @NonNull File changeLogFile) throws IOException, InterruptedException {
         if (workspace.exists()) {
             listener.getLogger().println("Deleting existing workspace " + workspace.getRemote());
             workspace.deleteRecursive();
@@ -96,7 +95,7 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
                     changeLog.addFile(new ExtractChangeLogParser.FileInZip(e.getName()));
             }
         }
-        saveToChangeLog(changeLogFile, changeLog);
+        saveToChangeLog(changeLogFile, build.getCharset(), changeLog);
 
         return true;
     }
@@ -106,30 +105,21 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         return new ExtractChangeLogParser();
     }
 
-    private static String escapeForXml(String string) {
-        return Util.xmlEscape(Util.fixNull(string));
+    /**
+     * @deprecated use {@link #saveToChangeLog(File, Charset, ExtractChangeLogParser.ExtractChangeLogEntry)}
+     */
+    @Deprecated
+    public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
+        saveToChangeLog(changeLogFile, Charset.defaultCharset(), changeLog);
     }
 
-    public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
-        FileOutputStream outputStream = new FileOutputStream(changeLogFile);
-
-        PrintStream stream = new PrintStream(outputStream, false, "UTF-8");
-
-        stream.println("<?xml version='1.0' encoding='UTF-8'?>");
-        stream.println("<extractChanges>");
-        stream.println("<entry>");
-        stream.println("<zipFile>" + escapeForXml(changeLog.getZipFile()) + "</zipFile>");
-
-        for (String fileName : changeLog.getAffectedPaths()) {
-            stream.println("<file>");
-            stream.println("<fileName>" + escapeForXml(fileName) + "</fileName>");
-            stream.println("</file>");
+    public void saveToChangeLog(File changeLogFile, Charset charset, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
+        try (PrintStream ps = new PrintStream(changeLogFile, charset)) {
+            ps.println(changeLog.getZipFile());
+            for (String fileName : changeLog.getAffectedPaths()) {
+                ps.println(fileName);
+            }
         }
-
-        stream.println("</entry>");
-        stream.println("</extractChanges>");
-
-        stream.close();
     }
 
     /**
@@ -138,6 +128,6 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     protected Object writeReplace() { return new Object(); }
 
     @Override public SCMDescriptor<?> getDescriptor() {
-        return new SCMDescriptor<ExtractResourceWithChangesSCM>(ExtractResourceWithChangesSCM.class, null) {};
+        return new SCMDescriptor<>(ExtractResourceWithChangesSCM.class, null) {};
     }
 }

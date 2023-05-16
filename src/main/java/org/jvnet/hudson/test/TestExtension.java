@@ -51,8 +51,8 @@ public @interface TestExtension {
     /**
      * To make this extension only active for one test case, specify the test method name.
      * Otherwise, leave it unspecified and it'll apply to all the test methods defined in the same class.
+     * For example:
      *
-     * <h2>Example</h2>
      * <pre>
      * class FooTest extends HudsonTestCase {
      *     public void test1() { ... }

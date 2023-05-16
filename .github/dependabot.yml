@@ -1,0 +1,48 @@
+---
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    reviewers:
+      - jglick
+    ignore:
+      - dependency-name: io.jenkins.plugins*
+      - dependency-name: org.jenkins-ci.main:jenkins-core
+      - dependency-name: org.jenkins-ci.main:jenkins-war
+      - dependency-name: org.jenkins-ci.plugins*
+      # INFRA-2914
+      - dependency-name: org.netbeans.modules:org-netbeans-insane
+        versions:
+          - RELEASE65
+          - RELEASE67
+          - RELEASE68
+          - RELEASE69
+          - RELEASE691
+          - RELEASE70
+          - RELEASE701
+          - RELEASE71
+          - RELEASE711
+          - RELEASE712
+          - RELEASE72
+          - RELEASE721
+          - RELEASE73
+          - RELEASE731
+          - RELEASE74
+          - RELEASE80
+          - RELEASE801
+          - RELEASE802
+          - RELEASE81
+          - RELEASE82
+      # [JENKINS-68698] Must remain within Jetty 10.x until the Jakarta EE 9
+      # migration is complete
+      - dependency-name: "org.eclipse.jetty:jetty-bom"
+        versions: [">=11.0.0"]
+      # FIPS mismatches
+      - dependency-name: org.jenkins-ci.modules:instance-identity
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily

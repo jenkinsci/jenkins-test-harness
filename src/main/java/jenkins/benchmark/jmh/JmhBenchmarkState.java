@@ -1,11 +1,19 @@
 package jenkins.benchmark.jmh;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -14,15 +22,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-
-import javax.annotation.CheckForNull;
-import javax.servlet.ServletContext;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Standard benchmark {@link State} for JMH when a Jenkins instance is required.
@@ -42,7 +41,7 @@ public abstract class JmhBenchmarkState implements RootAction {
     private static final String contextPath = "/jenkins";
 
     private final TemporaryDirectoryAllocator temporaryDirectoryAllocator = new TemporaryDirectoryAllocator();
-    private final MutableInt localPort = new MutableInt();
+    private final AtomicInteger localPort = new AtomicInteger();
 
     private Jenkins jenkins = null;
     private Server server = null;
@@ -87,8 +86,8 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::setValue,
-                getClass().getClassLoader(), localPort.getValue(), JenkinsRule::_configureUserRealm);
+        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::set,
+                getClass().getClassLoader(), localPort.get(), JenkinsRule::_configureUserRealm);
 
         server = results.left;
         ServletContext webServer = results.right;
@@ -104,7 +103,7 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private URL getJenkinsURL() throws MalformedURLException {
-        return new URL("http://localhost:" + localPort.getValue() + contextPath + "/");
+        return new URL("http://localhost:" + localPort.get() + contextPath + "/");
     }
 
     /**

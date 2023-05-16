@@ -47,7 +47,7 @@ public class TemporaryDirectoryAllocator {
     /**
      * Remember allocated directories to delete them later.
      */
-    private final Set<File> tmpDirectories = new HashSet<File>();
+    private final Set<File> tmpDirectories = new HashSet<>();
 
     /**
      * Directory in which we allocate temporary directories.
@@ -58,7 +58,8 @@ public class TemporaryDirectoryAllocator {
      * Whether there should be a space character in the allocated temporary directories names.
      * It forces slaves created from a {@link JenkinsRule} to work inside a hazardous path,
      * which can help catching shell quoting bugs.<br>
-     * This option is controlled by the <code>jenkins.test.noSpaceInTmpDirs</code> system property.
+     * If a particular test cannot be readily fixed to tolerate spaces, as a workaround try:
+     * {@code @ClassRule public static TestRule noSpaceInTmpDirs = FlagRule.systemProperty("jenkins.test.noSpaceInTmpDirs", "true");}
      */
     private final boolean withoutSpace = Boolean.getBoolean("jenkins.test.noSpaceInTmpDirs");
 
@@ -80,9 +81,7 @@ public class TemporaryDirectoryAllocator {
      */
     public synchronized File allocate() throws IOException {
         try {
-            File f = File.createTempFile((withoutSpace ? "jkh" : "j h"), "", base);
-            f.delete();
-            f.mkdirs();
+            File f = Files.createTempDirectory(base.toPath(), (withoutSpace ? "jkh" : "j h")).toFile();
             tmpDirectories.add(f);
             return f;
         } catch (IOException e) {
@@ -105,10 +104,11 @@ public class TemporaryDirectoryAllocator {
      * Deletes all allocated temporary directories asynchronously.
      */
     public synchronized void disposeAsync() {
-        final Set<File> tbr = new HashSet<File>(tmpDirectories);
+        final Set<File> tbr = new HashSet<>(tmpDirectories);
         tmpDirectories.clear();
 
         new Thread("Disposing "+base) {
+            @Override
             public void run() {
                 for (File dir : tbr) {
                     LOGGER.info(() -> "deleting " + dir);

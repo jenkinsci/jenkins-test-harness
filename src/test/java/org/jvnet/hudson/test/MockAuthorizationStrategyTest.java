@@ -28,6 +28,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import jenkins.model.Jenkins;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -51,52 +52,40 @@ public class MockAuthorizationStrategyTest {
             grant(Item.CREATE).onItems(d).to("dev").
             grant(Item.CONFIGURE).onItems(p).to("dev").
             grant(Item.BUILD).onFolders(d).to("dev"));
-        ACL.impersonate(User.get("root").impersonate(), new Runnable() {
-            @Override
-            public void run() {
-                assertTrue(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
-                assertTrue(p.hasPermission(Item.DELETE));
-            }
-        });
-        ACL.impersonate(User.get("admin").impersonate(), new Runnable() {
-            @Override
-            public void run() {
-                assertFalse(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
-                assertTrue(r.jenkins.hasPermission(Jenkins.ADMINISTER));
-                assertFalse(p.hasPermission(Item.DELETE));
-                assertTrue(p.hasPermission(Item.READ));
-            }
-        });
-        ACL.impersonate(User.get("dev").impersonate(), new Runnable() {
-            @Override
-            public void run() {
-                assertFalse(r.jenkins.hasPermission(Jenkins.ADMINISTER));
-                assertTrue(r.jenkins.hasPermission(Jenkins.READ));
-                assertFalse(p.hasPermission(Item.DELETE));
-                assertTrue(p.hasPermission(Item.CONFIGURE));
-                assertTrue(p.hasPermission(Item.BUILD));
-                assertFalse(d.hasPermission(Item.CONFIGURE));
-                assertTrue(d.hasPermission(Item.CREATE));
-                assertTrue(d.hasPermission(Item.READ));
-                assertTrue(d.hasPermission(Item.EXTENDED_READ));
-                assertFalse(p.hasPermission(Item.CREATE));
-            }
-        });
-        ACL.impersonate(Jenkins.ANONYMOUS, new Runnable() {
-            @Override
-            public void run() {
-                assertFalse(r.jenkins.hasPermission(Jenkins.ADMINISTER));
-                assertTrue(r.jenkins.hasPermission(Jenkins.READ));
-                assertFalse(p.hasPermission(Item.DELETE));
-                assertTrue(p.hasPermission(Item.READ));
-                assertFalse(p.hasPermission(Item.EXTENDED_READ));
-            }
-        });
+        try (ACLContext ctx = ACL.as(User.get("root"))) {
+            assertTrue(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
+            assertTrue(p.hasPermission(Item.DELETE));
+        }
+        try (ACLContext ctx = ACL.as(User.get("admin"))) {
+            assertFalse(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
+            assertTrue(r.jenkins.hasPermission(Jenkins.ADMINISTER));
+            assertFalse(p.hasPermission(Item.DELETE));
+            assertTrue(p.hasPermission(Item.READ));
+        }
+        try (ACLContext ctx = ACL.as(User.get("dev"))) {
+            assertFalse(r.jenkins.hasPermission(Jenkins.ADMINISTER));
+            assertTrue(r.jenkins.hasPermission(Jenkins.READ));
+            assertFalse(p.hasPermission(Item.DELETE));
+            assertTrue(p.hasPermission(Item.CONFIGURE));
+            assertTrue(p.hasPermission(Item.BUILD));
+            assertFalse(d.hasPermission(Item.CONFIGURE));
+            assertTrue(d.hasPermission(Item.CREATE));
+            assertTrue(d.hasPermission(Item.READ));
+            assertTrue(d.hasPermission(Item.EXTENDED_READ));
+            assertFalse(p.hasPermission(Item.CREATE));
+        }
+        try (ACLContext ctx = ACL.as(Jenkins.ANONYMOUS)) {
+            assertFalse(r.jenkins.hasPermission(Jenkins.ADMINISTER));
+            assertTrue(r.jenkins.hasPermission(Jenkins.READ));
+            assertFalse(p.hasPermission(Item.DELETE));
+            assertTrue(p.hasPermission(Item.READ));
+            assertFalse(p.hasPermission(Item.EXTENDED_READ));
+        }
         assertTrue("SYSTEM has everything", r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS)); // handled by SidACL
     }
 
     @Test
-    public void noPermissionsByDefault() throws Exception {
+    public void noPermissionsByDefault() {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy());
         assertFalse(r.jenkins.getACL().hasPermission(User.get("alice").impersonate(), Jenkins.ADMINISTER));

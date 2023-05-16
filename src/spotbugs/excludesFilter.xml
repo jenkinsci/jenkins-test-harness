@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!--
+    Exclusions in this section have been triaged and determined to be false positives.
+  -->
+  <Match>
+    <Or>
+      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
+      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+    </Or>
+  </Match>
+  <!--
+    Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
+    on this section, pick an exclusion to triage, then:
+    - If it is a false positive, add a @SuppressFBWarnings(value = "[…]", justification = "[…]")
+      annotation indicating the reason why it is a false positive, then remove the exclusion from
+      this section.
+    - If it is not a false positive, fix the bug, then remove the exclusion from this section.
+   -->
+  <Match>
+    <Confidence value="1"/>
+    <Or>
+      <And>
+        <Bug pattern="DM_GC"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.TestPluginManager$1"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="DMI_COLLECTION_OF_URLS"/>
+        <Class name="org.jvnet.hudson.test.JellyTestSuiteBuilder"/>
+      </And>
+      <And>
+        <Bug pattern="LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE"/>
+        <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+      </And>
+      <And>
+        <Bug pattern="MS_SHOULD_BE_FINAL"/>
+        <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+      </And>
+      <And>
+        <Bug pattern="OBJECT_DESERIALIZATION"/>
+        <Class name="org.jvnet.hudson.test.RealJenkinsRule$Init2"/>
+      </And>
+      <And>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
+          <Class name="org.jvnet.hudson.test.UnitTestSupportingPluginManager"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="SE_NO_SUITABLE_CONSTRUCTOR"/>
+        <Class name="org.jvnet.hudson.test.FakeChangeLogSCM$FakeChangeLogSet"/>
+      </And>
+      <And>
+        <Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
+        <Or>
+          <Class name="hudson.slaves.NodeProvisionerRule"/>
+          <Class name="org.jvnet.hudson.test.TestEnvironment"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="UI_INHERITANCE_UNSAFE_GETRESOURCE"/>
+        <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+      </And>
+    </Or>
+  </Match>
+  <Match>
+    <Confidence value="2"/>
+    <Or>
+      <And>
+        <Bug pattern="COMMAND_INJECTION"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.SimpleCommandLauncher"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="EC_NULL_ARG"/>
+        <Class name="org.jvnet.hudson.test.JenkinsMatchers$HasNonNullEquals"/>
+      </And>
+      <And>
+        <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
+        <Class name="org.jvnet.hudson.test.MockAuthorizationStrategy$ACLImpl"/>
+      </And>
+      <And>
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Or>
+          <Class name="hudson.model.utils.ResultWriterPublisher"/>
+          <Class name="jenkins.model.WorkspaceWriter"/>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient"/>
+          <Class name="org.jvnet.hudson.test.RestartableJenkinsRule$6"/>
+          <Class name="org.jvnet.hudson.test.RestartableJenkinsRule$7"/>
+          <Class name="org.jvnet.hudson.test.RunLoadCounter"/>
+          <Class name="org.jvnet.hudson.test.TouchBuilder"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
+        <Class name="org.jvnet.hudson.test.FakeChangeLogSCM"/>
+      </And>
+      <And>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.ExtractResourceSCM"/>
+          <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule$Jpl"/>
+          <Class name="org.jvnet.hudson.test.MockFolder"/>
+          <Class name="org.jvnet.hudson.test.MockFolder$1"/>
+          <Class name="org.jvnet.hudson.test.PluginAutomaticTestBuilder"/>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule$Init2"/>
+          <Class name="org.jvnet.hudson.test.recipes.WithPlugin$RuleRunnerImpl"/>
+          <Class name="org.jvnet.hudson.test.recipes.WithPlugin$RunnerImpl"/>
+          <Class name="org.jvnet.hudson.test.TemporaryDirectoryAllocator"/>
+          <Class name="org.jvnet.hudson.test.UnitTestSupportingPluginManager"/>
+          <Class name="org.jvnet.hudson.test.WarExploder"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="PATH_TRAVERSAL_OUT"/>
+        <Class name="org.jvnet.hudson.test.WarExploder"/>
+      </And>
+      <And>
+        <Bug pattern="PREDICTABLE_RANDOM"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.IOUtil"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
+          <Class name="org.jvnet.hudson.test.TemporaryDirectoryAllocator"/>
+          <Class name="org.jvnet.hudson.test.WarExploder"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="SE_BAD_FIELD"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient$1"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient$1"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="SE_NO_SERIALVERSIONID"/>
+        <Class name="org.jvnet.hudson.test.PretendSlave"/>
+      </And>
+      <And>
+        <Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
+        <Or>
+          <Class name="hudson.slaves.NodeProvisionerRule"/>
+          <Class name="org.jvnet.hudson.test.BuildWatcher"/>
+          <Class name="org.jvnet.hudson.test.DeltaSupportLogFormatter"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="UC_USELESS_OBJECT"/>
+        <Class name="org.jvnet.hudson.test.MemoryAssert"/>
+      </And>
+      <And>
+        <Bug pattern="UI_INHERITANCE_UNSAFE_GETRESOURCE"/>
+        <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+      </And>
+      <And>
+        <Bug pattern="UNENCRYPTED_SERVER_SOCKET"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.IOUtil"/>
+          <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+        <Class name="org.jvnet.hudson.test.rhino.CallStackFrame"/>
+      </And>
+      <And>
+        <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase$TestBuildWrapper"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule$TestBuildWrapper"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="URLCONNECTION_SSRF_FD"/>
+        <Or>
+          <Class name="org.jvnet.hudson.test.ExtractResourceSCM"/>
+          <Class name="org.jvnet.hudson.test.ExtractResourceWithChangesSCM"/>
+          <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.JenkinsRule$Jpl"/>
+          <Class name="org.jvnet.hudson.test.PropertiesTestSuite$PropertiesTest"/>
+          <Class name="org.jvnet.hudson.test.RealJenkinsRule"/>
+          <Class name="org.jvnet.hudson.test.SingleFileSCM"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+        <Class name="hudson.slaves.DummyCloudImpl"/>
+      </And>
+    </Or>
+  </Match>
+</FindBugsFilter>

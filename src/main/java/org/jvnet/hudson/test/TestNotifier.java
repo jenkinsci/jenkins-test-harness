@@ -36,7 +36,7 @@ public abstract class TestNotifier extends Notifier {
 
     @Override
     public BuildStepDescriptor<Publisher> getDescriptor() {
-        return new BuildStepDescriptor<Publisher>() {
+        return new BuildStepDescriptor<>() {
             @Override
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
@@ -44,6 +44,7 @@ public abstract class TestNotifier extends Notifier {
         };
     }
 
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }

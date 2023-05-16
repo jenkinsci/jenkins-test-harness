@@ -56,6 +56,7 @@ public class CallStackFrame implements DebugFrame {
         this.fnOrScript = fnOrScript;
     }
 
+    @Override
     public void onEnter(Context cx, Scriptable activation, Scriptable thisObj, Object[] args) {
         this.activation = activation;
         this.thisObj = thisObj;
@@ -63,6 +64,7 @@ public class CallStackFrame implements DebugFrame {
         owner.addCallStackFrame(this);
     }
 
+    @Override
     public void onExit(Context cx, boolean byThrow, Object resultOrException) {
         owner.removeCallStackFrame(this);
 
@@ -72,13 +74,16 @@ public class CallStackFrame implements DebugFrame {
         line = -1;
     }
 
+    @Override
     public void onLineChange(Context cx, int lineNumber) {
         this.line = lineNumber;
     }
 
+    @Override
     public void onExceptionThrown(Context cx, Throwable ex) {
     }
 
+    @Override
     public void onDebuggerStatement(Context cx) {
     }
 
@@ -86,7 +91,7 @@ public class CallStackFrame implements DebugFrame {
      * In-scope variables.
      */
     public SortedMap<String,Object> getVariables() {
-        SortedMap<String,Object> r = new TreeMap<String,Object>();
+        SortedMap<String,Object> r = new TreeMap<>();
         for( int i=fnOrScript.getParamAndVarCount()-1; i>=0; i-- ) {
             String name =fnOrScript.getParamOrVarName(i);
             r.put(name,activation.get(name,activation));
@@ -97,6 +102,7 @@ public class CallStackFrame implements DebugFrame {
     /**
      * Formats this call stack, arguments, and its local variables as a human readable string.
      */
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
         buf.append(fnOrScript.getFunctionName());

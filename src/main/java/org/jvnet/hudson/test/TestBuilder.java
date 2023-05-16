@@ -44,11 +44,13 @@ import java.io.IOException;
  */
 public abstract class TestBuilder extends Builder {
 
+    @Override
     public abstract boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException;
 
+    @Override
     public Descriptor<Builder> getDescriptor() {
         // throw new UnsupportedOperationException();
-        return new BuildStepDescriptor<Builder>() {
+        return new BuildStepDescriptor<>() {
             @Override
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;

@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
@@ -70,7 +71,7 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         listener.getLogger().println("Copying a " + fileName + " from " + jobName + "#" + buildNumber);
         
-        Jenkins inst = Jenkins.getInstance();
+        Jenkins inst = Jenkins.get();
         AbstractProject<?,?> item = inst.getItemByFullName(jobName, AbstractProject.class);
         if (item == null) {
             throw new AbortException("Cannot find a source job: " + jobName);
@@ -104,10 +105,11 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Copy a file from the workspace of another build";

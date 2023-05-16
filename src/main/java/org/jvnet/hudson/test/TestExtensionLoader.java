@@ -82,7 +82,7 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
             return false;   // doesn't apply to this test
         String className = description.getClassName();
         if (e instanceof Class) {
-            for (Class<?> outer = (Class) e; outer != null; outer = outer.getEnclosingClass()) {
+            for (Class<?> outer = (Class<?>) e; outer != null; outer = outer.getEnclosingClass()) {
                 if (outer.getName().equals(className)) {
                     return true;      // enclosed
                 }

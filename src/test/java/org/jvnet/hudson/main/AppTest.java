@@ -23,13 +23,10 @@
  */
 package org.jvnet.hudson.main;
 
-import static org.junit.Assert.assertTrue;
-
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Shell;
 import hudson.tasks.BatchFile;
-import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -66,7 +63,6 @@ public class AppTest  {
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         System.out.println(build.getDisplayName()+" completed");
 
-        String s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s,s.contains("echo hello"));
+        j.assertLogContains("echo hello", build);
     }
 }

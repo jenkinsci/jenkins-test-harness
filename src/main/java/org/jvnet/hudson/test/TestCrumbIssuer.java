@@ -5,14 +5,15 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.ModelObject;
 import hudson.security.csrf.CrumbIssuer;
 import hudson.security.csrf.CrumbIssuerDescriptor;
+import javax.servlet.ServletRequest;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
-import javax.servlet.ServletRequest;
 
 /**
  * A crumb issuer that issues a constant crumb value. Used for unit testing.
@@ -42,7 +43,8 @@ public class TestCrumbIssuer extends CrumbIssuer {
             load();
         }
 
-        public TestCrumbIssuer newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        @Override
+        public TestCrumbIssuer newInstance(StaplerRequest req, @NonNull JSONObject formData) throws FormException {
             return new TestCrumbIssuer();
         }
     }

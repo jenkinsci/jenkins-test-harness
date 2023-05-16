@@ -1,5 +1,6 @@
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Launcher.LocalLauncher;
@@ -9,9 +10,8 @@ import hudson.model.Slave;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.RetentionStrategy;
-
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 /**
  * Slave that pretends to fork processes.
@@ -28,7 +28,7 @@ public class PretendSlave extends Slave {
     public int numLaunch;
 
     public PretendSlave(String name, String remoteFS, int numExecutors, Mode mode, String labelString, ComputerLauncher launcher, FakeLauncher faker) throws IOException, FormException {
-        super(name, "pretending a slave", remoteFS, String.valueOf(numExecutors), mode, labelString, launcher, RetentionStrategy.NOOP, Collections.emptyList());
+        super(name, "pretending a slave", remoteFS, String.valueOf(numExecutors), mode, labelString, launcher, RetentionStrategy.NOOP, List.of());
         this.faker = faker;
     }
 
@@ -37,9 +37,11 @@ public class PretendSlave extends Slave {
     }
 
 
+    @NonNull
     @Override
     public Launcher createLauncher(TaskListener listener) {
         return new LocalLauncher(listener) {
+            @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 synchronized (PretendSlave.this) {
                     numLaunch++;

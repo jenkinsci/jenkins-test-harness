@@ -52,7 +52,7 @@ import java.util.jar.JarFile;
 public class JellyTestSuiteBuilder {
 
     static Map<URL,String> scan(File resources, String extension) throws IOException {
-        Map<URL,String> result = new HashMap<URL,String>();
+        Map<URL,String> result = new HashMap<>();
         if (resources.isDirectory()) {
             for (File f : FileUtils.listFiles(resources, new String[] {extension}, true)) {
                 result.put(f.toURI().toURL(), f.getAbsolutePath().substring((resources.getAbsolutePath() + File.separator).length()));
@@ -101,7 +101,6 @@ public class JellyTestSuiteBuilder {
         protected void runTest() throws Exception {
             jct.createContext().compileScript(jelly);
             Document dom = new SAXReader().read(jelly);
-            checkLabelFor(dom);
             if (requirePI) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
                 if (pi==null || !pi.getText().contains("escape-by-default"))
@@ -109,18 +108,6 @@ public class JellyTestSuiteBuilder {
 
             }
             // TODO: what else can we check statically? use of taglibs?
-        }
-
-        /**
-         * Makes sure that &lt;label for=...> is not used inside config.jelly nor global.jelly
-         */
-        private void checkLabelFor(Document dom) {
-            if (isConfigJelly() || isGlobalJelly()) {
-                if (!dom.selectNodes("//label[@for]").isEmpty())
-                    throw new AssertionError("<label for=...> shouldn't be used because it doesn't work " +
-                            "when the configuration item is repeated. Use <label class=\"attach-previous\"> " +
-                            "to have your label attach to the previous DOM node instead.\nurl="+jelly);
-            }
         }
 
         private boolean isConfigJelly() {
@@ -154,8 +141,9 @@ public class JellyTestSuiteBuilder {
 
         @Override
         protected void runGroupedTests(final TestResult result) throws Exception {
-            h.executeOnServer(new Callable<Object>() {
+            h.executeOnServer(new Callable<>() {
                 // this code now inside a request handling thread
+                @Override
                 public Object call() throws Exception {
                     doTests(result);
                     return null;

@@ -28,7 +28,7 @@ import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.HudsonHomeLoader.Local;
 import org.jvnet.hudson.test.JenkinsRecipe;
-
+import org.jvnet.hudson.test.TailLog;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Target;
@@ -40,33 +40,33 @@ import static java.lang.annotation.ElementType.METHOD;
  * Runs a test case with a data set local to test method or the test class.
  *
  * <p>
- * This recipe allows your test case to start with the preset <tt>JENKINS_HOME</tt> data loaded
+ * This recipe allows your test case to start with the preset {@code JENKINS_HOME} data loaded
  * either from your test method or from the test class.
  *
  * <p>
- * For example, if the test method is <tt>org.acme.FooTest.testBar()</tt>, then
+ * For example, if the test method is {@code org.acme.FooTest.testBar()}, then
  * you can have your test data in one of the following places in resources folder
- * (typically <tt>src/test/resources</tt>):
+ * (typically {@code src/test/resources}):
  *
  * <ol>
  * <li>
- * Under <tt>org/acme/FooTest/testBar</tt> directory; that is, you could have files such as
- * <tt>org/acme/FooTest/testBar/config.xml</tt> or <tt>org/acme/FooTest/testBar/jobs/p/config.xml</tt>,
- * in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
+ * Under {@code org/acme/FooTest/testBar} directory; that is, you could have files such as
+ * {@code org/acme/FooTest/testBar/config.xml} or {@code org/acme/FooTest/testBar/jobs/p/config.xml},
+ * in the same layout as in the real {@code JENKINS_HOME} directory.
  * <li>
- * In <tt>org/acme/FooTest/testBar.zip</tt> as a zip file.
+ * In {@code org/acme/FooTest/testBar.zip} as a zip file.
  * <li>
- * Under <tt>org/acme/FooTest</tt> directory; that is, you could have files such as
- * <tt>org/acme/FooTest/config.xml</tt> or <tt>org/acme/FooTest/jobs/p/config.xml</tt>,
- * in the same layout as in the real <tt>JENKINS_HOME</tt> directory.
+ * Under {@code org/acme/FooTest} directory; that is, you could have files such as
+ * {@code org/acme/FooTest/config.xml} or {@code org/acme/FooTest/jobs/p/config.xml},
+ * in the same layout as in the real {@code JENKINS_HOME} directory.
  * <li>
- * In <tt>org/acme/FooTest.zip</tt> as a zip file.
+ * In {@code org/acme/FooTest.zip} as a zip file.
  * </ol>
  *
  * You can specify a value to use instead of the method name
  * with the parameter of annotation. Should be a valid java identifier.
- * E.g. <tt>@LocalData("commonData")</tt> results using
- * <tt>org/acme/FooTest/commonData(.zip)</tt>.
+ * E.g. {@code @LocalData("commonData")} results using
+ * {@code org/acme/FooTest/commonData(.zip)}.
  *
  * <p>
  * Search is performed in this specific order. The fall back mechanism allows you to write
@@ -77,6 +77,7 @@ import static java.lang.annotation.ElementType.METHOD;
  * The choice of zip and directory depends on the nature of the test data, as well as the size of it.
  *
  * @author Kohsuke Kawaguchi
+ * @see TailLog
  */
 @Documented
 @Recipe(LocalData.RunnerImpl.class)
@@ -87,11 +88,13 @@ public @interface LocalData {
     String value() default "";
 
     class RunnerImpl extends Recipe.Runner<LocalData> {
+        @Override
         public void setup(HudsonTestCase testCase, LocalData recipe) throws Exception {
             testCase.with(new Local(testCase.getClass().getMethod(testCase.getName()), recipe.value()));
         }
     }
     class RuleRunnerImpl extends JenkinsRecipe.Runner<LocalData> {
+        @Override
         public void setup(JenkinsRule jenkinsRule, LocalData recipe) throws Exception {
             Description desc = jenkinsRule.getTestDescription();
             jenkinsRule.with(new Local(desc.getTestClass().getMethod(desc.getMethodName()), recipe.value()));

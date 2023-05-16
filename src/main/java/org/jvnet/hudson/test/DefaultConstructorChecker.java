@@ -8,9 +8,9 @@ import junit.framework.TestCase;
  * @author Kohsuke Kawaguchi
  */
 public class DefaultConstructorChecker extends TestCase {
-    private final Class clazz;
+    private final Class<?> clazz;
 
-    public DefaultConstructorChecker(Class clazz) {
+    public DefaultConstructorChecker(Class<?> clazz) {
         this.clazz = clazz;
         setName(clazz.getName()+".verifyDefaultConstructor");
     }
@@ -20,8 +20,6 @@ public class DefaultConstructorChecker extends TestCase {
         try {
             clazz.getConstructor();
         } catch (NoSuchMethodException e) {
-            throw new Error(clazz+" must have the default constructor",e);
-        } catch (SecurityException e) {
             throw new Error(clazz+" must have the default constructor",e);
         }
     }

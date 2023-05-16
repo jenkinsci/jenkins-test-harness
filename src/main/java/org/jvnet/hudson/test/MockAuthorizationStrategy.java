@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -34,7 +35,6 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,7 +52,7 @@ import org.acegisecurity.acls.sid.Sid;
  */
 public class MockAuthorizationStrategy extends AuthorizationStrategy {
     
-    private final List<Grant.GrantOn.GrantOnTo> grantsOnTo = new ArrayList<Grant.GrantOn.GrantOnTo>();
+    private final List<Grant.GrantOn.GrantOnTo> grantsOnTo = new ArrayList<>();
 
     /** Creates a new strategy granting no permissions. */
     public MockAuthorizationStrategy() {}
@@ -63,7 +63,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * @param permissions which permissions to grant ({@link Permission#impliedBy} is honored)
      */
     public Grant grant(Permission... permissions) {
-        Set<Permission> effective = new HashSet<Permission>(Arrays.asList(permissions));
+        Set<Permission> effective = new HashSet<>(List.of(permissions));
         boolean added = true;
         while (added) {
             added = false;
@@ -78,7 +78,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * Like {@link #grant} but does <em>not</em> honor {@link Permission#impliedBy}.
      */
     public Grant grantWithoutImplication(Permission... permissions) {
-        return new Grant(new HashSet<Permission>(Arrays.asList(permissions)));
+        return new Grant(new HashSet<>(List.of(permissions)));
     }
 
     /**
@@ -165,7 +165,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
             /** To some users or groups. */
             public MockAuthorizationStrategy to(String... sids) {
-                return new GrantOnTo(new HashSet<String>(Arrays.asList(sids))).add();
+                return new GrantOnTo(new HashSet<>(List.of(sids))).add();
             }
 
             /** To some users. */
@@ -212,18 +212,21 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @NonNull
     @Override
     public ACL getRootACL() {
         return new ACLImpl("");
     }
 
+    @NonNull
     @Override
     public ACL getACL(AbstractItem item) {
         return new ACLImpl(item.getFullName());
     }
 
+    @NonNull
     @Override
-    public ACL getACL(Job<?, ?> project) {
+    public ACL getACL(@NonNull Job<?, ?> project) {
         return getACL((AbstractItem) project); // stupid overload
     }
 
@@ -247,6 +250,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
     }
 
+    @NonNull
     @Override
     public Collection<String> getGroups() {
         return Collections.emptySet(); // we do not differentiate usernames from groups
