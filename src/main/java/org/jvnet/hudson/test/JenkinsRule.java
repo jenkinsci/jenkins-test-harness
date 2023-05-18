@@ -1155,11 +1155,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         });
         try {
             if (s.getLauncher().isLaunchSupported()) {
+                LOGGER.info(() -> "Launching " + s.getNodeName() + "…");
                 computer.connect(false).get();
+                LOGGER.info(() -> "…finished launching " + s.getNodeName() + ".");
             } else {
+                LOGGER.info(() -> "Waiting for " + s.getNodeName() + " to come online…");
                 while (!computer.isOnline()) {
                     Thread.sleep(100);
                 }
+                LOGGER.info(() -> "…" + s.getNodeName() + " is now online.");
             }
         } finally {
             run.set(false);

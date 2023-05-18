@@ -253,6 +253,12 @@ THE SOFTWARE.
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.modules</groupId>
+      <artifactId>instance-identity</artifactId>
+      <version>3.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <repositories>
