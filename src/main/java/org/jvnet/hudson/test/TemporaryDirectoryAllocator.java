@@ -23,7 +23,6 @@
  */
 package org.jvnet.hudson.test;
 
-import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
@@ -35,6 +34,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Allocates temporary directories and cleans it up at the end.
@@ -134,8 +135,8 @@ public class TemporaryDirectoryAllocator {
         try {
             Files.deleteIfExists(p);
         } catch (DirectoryNotEmptyException x) {
-            try (DirectoryStream<Path> children = Files.newDirectoryStream(p)) {
-                throw new IOException(Iterables.toString(children), x);
+            try (Stream<Path> children = Files.list(p)) {
+                throw new IOException(children.map(Path::toString).collect(Collectors.joining(" ")), x);
             }
         }
     }
