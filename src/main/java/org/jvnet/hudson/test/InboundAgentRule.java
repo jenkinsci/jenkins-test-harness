@@ -57,7 +57,6 @@ import org.junit.rules.ExternalResource;
  *
  * <pre>
  * Slave agent = inboundAgents.createAgent(r, […]);
- * r.waitOnline(agent);
  * try {
  *     […]
  * } finally {
