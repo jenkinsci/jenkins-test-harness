@@ -214,7 +214,7 @@ public class LoggerRule extends ExternalResource {
      * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
      * @param message the matcher to match against {@link LogRecord#getMessage}
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
-     * passing {@link org.hamcrest.CoreMatchers#anything}
+     * passing {@link org.hamcrest.Matchers#anything}
      */
     public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return new RecordedMatcher(level, message, thrown);
@@ -240,7 +240,7 @@ public class LoggerRule extends ExternalResource {
      *
      * @param message the matcher to match against {@link LogRecord#getMessage}
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
-     * passing {@link org.hamcrest.CoreMatchers#anything}
+     * passing {@link org.hamcrest.Matchers#anything}
      */
     public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return recorded(null, message, thrown);

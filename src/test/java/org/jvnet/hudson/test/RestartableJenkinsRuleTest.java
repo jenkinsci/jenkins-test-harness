@@ -11,7 +11,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import jenkins.model.Jenkins;
-import static org.hamcrest.CoreMatchers.nullValue;
+
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
