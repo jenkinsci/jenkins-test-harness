@@ -28,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -65,8 +66,6 @@ import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.core.IsNull;
-import org.hamcrest.core.StringContains;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -275,7 +274,7 @@ public class RealJenkinsRuleTest {
         String s = RealJenkinsRule.checkResult(conn);
 
         verify(conn, times(1)).getInputStream();
-        assertThat(s, IsNull.nullValue());
+        assertThat(s, nullValue());
     }
 
     /**
@@ -292,7 +291,7 @@ public class RealJenkinsRuleTest {
     public void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsRule.JenkinsStartupException jse = assertThrows(
                 RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
-        assertThat(jse.getMessage(), StringContains.containsString("Error</h1><pre>java.io.IOException: oops"));
+        assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
     // TODO interesting scenarios to test:
