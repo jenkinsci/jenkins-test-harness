@@ -1,7 +1,7 @@
 package hudson.security.pages;
 
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlPage;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.containsString;
@@ -9,7 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * The the signup page for {@link hudson.security.HudsonPrivateSecurityRealm}
+ * The signup page for {@link hudson.security.HudsonPrivateSecurityRealm}
  */
 public class SignupPage {
 
@@ -31,7 +31,7 @@ public class SignupPage {
 
 
     public void enterUsername(String username) {
-        signupForm.getInputByName("username").setValueAttribute(username);
+        signupForm.getInputByName("username").setValue(username);
     }
 
     /**
@@ -39,20 +39,20 @@ public class SignupPage {
      * You can then call {@link #enterPassword2(String)} if you want them to be different.
      */
     public void enterPassword(String password) {
-        signupForm.getInputByName("password1").setValueAttribute(password);
-        signupForm.getInputByName("password2").setValueAttribute(password);
+        signupForm.getInputByName("password1").setValue(password);
+        signupForm.getInputByName("password2").setValue(password);
     }
 
     public void enterPassword2(String password2) {
-        signupForm.getInputByName("password2").setValueAttribute(password2);
+        signupForm.getInputByName("password2").setValue(password2);
     }
 
     public void enterFullName(String fullName) {
-        signupForm.getInputByName("fullname").setValueAttribute(fullName);
+        signupForm.getInputByName("fullname").setValue(fullName);
     }
 
     public void enterEmail(String email) {
-        signupForm.getInputByName("email").setValueAttribute(email);
+        signupForm.getInputByName("email").setValue(email);
     }
 
     public HtmlPage submit(JenkinsRule rule) throws Exception {

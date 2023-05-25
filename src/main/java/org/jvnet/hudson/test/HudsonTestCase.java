@@ -28,31 +28,31 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
-import com.gargoylesoftware.css.parser.CSSErrorHandler;
-import com.gargoylesoftware.css.parser.CSSException;
-import com.gargoylesoftware.css.parser.CSSParseException;
-import com.gargoylesoftware.htmlunit.AjaxController;
-import com.gargoylesoftware.htmlunit.AlertHandler;
-import com.gargoylesoftware.htmlunit.BrowserVersion;
-import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.html.DomNode;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
-import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
-import com.gargoylesoftware.htmlunit.xml.XmlPage;
+import org.htmlunit.AjaxController;
+import org.htmlunit.AlertHandler;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.HtmlUnitContextFactory;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.xml.XmlPage;
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -156,8 +156,8 @@ import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
 import junit.framework.TestCase;
 import net.sf.json.JSONObject;
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -193,8 +193,6 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.mozilla.javascript.tools.debugger.Dim;
-import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
 import org.xml.sax.SAXException;
 
@@ -1043,7 +1041,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(org.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
@@ -1402,10 +1400,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
     
     /**
-     * Extends {@link com.gargoylesoftware.htmlunit.WebClient} and provide convenience methods
+     * Extends {@link org.htmlunit.WebClient} and provide convenience methods
      * for accessing Hudson.
      */
-    public class WebClient extends com.gargoylesoftware.htmlunit.WebClient {
+    public class WebClient extends org.htmlunit.WebClient {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
@@ -1488,8 +1486,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             HtmlPage page = goTo("/login");
 
             HtmlForm form = page.getFormByName("login");
-            form.getInputByName("j_username").setValueAttribute(username);
-            form.getInputByName("j_password").setValueAttribute(password);
+            form.getInputByName("j_username").setValue(username);
+            form.getInputByName("j_password").setValue(password);
             HtmlFormUtil.submit(form, null);
             return this;
         }
@@ -1556,7 +1554,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
             HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValueAttribute(q);
+            search.getInputByName("q").setValue(q);
             return (HtmlPage)HtmlFormUtil.submit(search, null);
         }
 
@@ -1689,7 +1687,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * Adds a security crumb to the quest
          */
         public WebRequest addCrumb(WebRequest req) {
-            com.gargoylesoftware.htmlunit.util.NameValuePair crumb = new com.gargoylesoftware.htmlunit.util.NameValuePair(
+            org.htmlunit.util.NameValuePair crumb = new org.htmlunit.util.NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                     jenkins.getCrumbIssuer().getCrumb( null ));
             req.setRequestParameters(List.of(crumb));
@@ -1717,34 +1715,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             return goTo("closures/?uuid="+id);
         }
 
-        /**
-         * Starts an interactive JavaScript debugger, and break at the next JavaScript execution.
-         *
-         * <p>
-         * This is useful during debugging a test so that you can step execute and inspect state of JavaScript.
-         * This will launch a Swing GUI, and the method returns immediately.
-         *
-         * <p>
-         * Note that installing a debugger appears to make an execution of JavaScript substantially slower.
-         *
-         * <p>
-         * TODO: because each script block evaluation in HtmlUnit is done in a separate Rhino context,
-         * if you step over from one script block, the debugger fails to kick in on the beginning of the next script block.
-         * This makes it difficult to set a break point on arbitrary script block in the HTML page. We need to fix this
-         * by tweaking {@link Dim.StackFrame#onLineChange(Context, int)}.
-         */
-        public Dim interactiveJavaScriptDebugger() {
-            Global global = new Global();
-            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
-            global.init(cf);
-
-            Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + getName());
-
-            // break on exceptions. this catch most of the errors
-            dim.setBreakOnExceptions(true);
-
-            return dim;
-        }
     }
 
     // needs to keep reference, or it gets GC-ed.

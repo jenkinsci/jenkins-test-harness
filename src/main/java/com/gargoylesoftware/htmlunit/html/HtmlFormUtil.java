@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.gargoylesoftware.htmlunit.html;
+package org.htmlunit.html;
 
-import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.Page;
+import org.htmlunit.WebClient;
+import org.htmlunit.WebClientUtil;
 
 import java.io.IOException;
 import java.util.List;

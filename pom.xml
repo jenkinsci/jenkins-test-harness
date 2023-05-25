@@ -43,7 +43,7 @@ THE SOFTWARE.
   <licenses>
     <license>
       <name>MIT</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <url>https://opensource.org/licenses/MIT</url>
     </license>
   </licenses>
 
@@ -121,7 +121,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>141.v740721146265</version>
+      <version>143.v343a_453b_6cd4</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -200,17 +200,6 @@ THE SOFTWARE.
       <groupId>org.junit.vintage</groupId>
       <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jvnet.hudson</groupId>
-      <artifactId>embedded-rhino-debugger</artifactId>
-      <version>1.2</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jvnet.hudson</groupId>
-          <artifactId>htmlunit-core-js</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.netbeans.modules</groupId>
