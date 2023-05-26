@@ -400,10 +400,9 @@ public final class RealJenkinsRule implements TestRule {
     public static List<String> getJacocoAgentOptions() {
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         List<String> arguments = runtimeMxBean.getInputArguments();
-        List<String> agentOptions = arguments.stream()
+        return arguments.stream()
                 .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacoco"))
                 .collect(Collectors.toList());
-        return agentOptions;
     }
 
     @Override public Statement apply(final Statement base, Description description) {
