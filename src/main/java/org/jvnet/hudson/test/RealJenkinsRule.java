@@ -44,6 +44,8 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -395,6 +397,20 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    public static List<String> getJacocoAgentOptions() {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+        List<String> agentOptions = arguments.stream()
+                .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacoco"))
+                .collect(Collectors.toList());
+        try {
+            Class.forName("org.jacoco.agent.rt.IAgent");
+        } catch (ClassNotFoundException e) {
+            LOGGER.fine("Jacoco agent not loaded");
+        }
+        return agentOptions;
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -609,7 +625,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
-
+        argv.addAll(getJacocoAgentOptions());
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
         }
