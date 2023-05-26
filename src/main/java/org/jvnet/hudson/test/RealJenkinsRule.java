@@ -403,11 +403,6 @@ public final class RealJenkinsRule implements TestRule {
         List<String> agentOptions = arguments.stream()
                 .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacoco"))
                 .collect(Collectors.toList());
-        try {
-            Class.forName("org.jacoco.agent.rt.IAgent");
-        } catch (ClassNotFoundException e) {
-            LOGGER.fine("Jacoco agent not loaded");
-        }
         return agentOptions;
     }
 
