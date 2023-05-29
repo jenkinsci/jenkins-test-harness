@@ -133,6 +133,11 @@ public class TemporaryDirectoryAllocator {
             }
         }
         try {
+            if (isWindows()) {
+                // Windows throws an access denied exception when deleting read-only files
+                boolean ok = p.toFile().setWritable(true);
+                LOGGER.fine(() -> "allow write to " + p + ", result: " + ok);
+            }
             Files.deleteIfExists(p);
         } catch (DirectoryNotEmptyException x) {
             try (Stream<Path> children = Files.list(p)) {
@@ -141,4 +146,7 @@ public class TemporaryDirectoryAllocator {
         }
     }
 
+    private boolean isWindows() {
+        return File.pathSeparatorChar == ';';
+    }
 }
