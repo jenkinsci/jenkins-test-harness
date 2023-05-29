@@ -3,10 +3,10 @@ package org.jvnet.hudson.test;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 
 import java.lang.reflect.Constructor;
@@ -128,7 +128,7 @@ public class JenkinsMatchers {
      *         constructors).
      */
     public static Matcher<Class<?>> isUtilityClass() {
-        return CoreMatchers.allOf(isFinalClass(), isClassWithOnlyPrivateConstructors());
+        return Matchers.allOf(isFinalClass(), isClassWithOnlyPrivateConstructors());
     }
 
     /**
@@ -440,7 +440,7 @@ public class JenkinsMatchers {
      * @since 2.50
      */
     public static Matcher<Secret> hasPlainText(String expected) {
-        return new HasPlainText(CoreMatchers.equalTo(expected));
+        return new HasPlainText(Matchers.equalTo(expected));
     }
 
     private static class HasPlainText extends FeatureMatcher<Secret, String> {
