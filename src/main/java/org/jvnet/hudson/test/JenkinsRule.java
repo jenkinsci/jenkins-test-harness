@@ -99,6 +99,7 @@ import hudson.model.UpdateSite;
 import hudson.model.User;
 import hudson.model.View;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.model.queue.WorkUnit;
 import hudson.remoting.Which;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
@@ -165,6 +166,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -225,6 +227,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.internal.AssumptionViolatedException;
@@ -1531,7 +1534,20 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since 1.607
      */
     public <R extends Run<?,?>> R waitForCompletion(R r) throws InterruptedException {
-        // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
+        Executor executor = r.getExecutor();
+        if (executor != null) {
+            WorkUnit workUnit = executor.getCurrentWorkUnit();
+            if (workUnit != null) {
+                try {
+                    Queue.Executable r2 = workUnit.context.future.get();
+                    assertSame(r, r2);
+                    return r;
+                } catch (ExecutionException x) {
+                    throw new RuntimeException(x);
+                }
+            }
+        }
+        // Fallback:
         while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
