@@ -1541,13 +1541,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 try {
                     Queue.Executable r2 = workUnit.context.future.get();
                     assertSame(r, r2);
-                    return r;
                 } catch (ExecutionException x) {
                     throw new RuntimeException(x);
                 }
             }
         }
-        // Fallback:
+        // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
         while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
