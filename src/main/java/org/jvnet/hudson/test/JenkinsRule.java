@@ -57,7 +57,6 @@ import org.htmlunit.javascript.host.xml.XMLHttpRequest;
 import org.htmlunit.util.NameValuePair;
 import org.htmlunit.util.WebResponseWrapper;
 import org.htmlunit.xml.XmlPage;
-import com.google.common.net.HttpHeaders;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -2698,7 +2697,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
             String authCode = Base64.getEncoder().encodeToString((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8));
 
-            addRequestHeader(HttpHeaders.AUTHORIZATION, "Basic " + authCode);
+            addRequestHeader("Authorization", "Basic " + authCode);
             return this;
         }
 
