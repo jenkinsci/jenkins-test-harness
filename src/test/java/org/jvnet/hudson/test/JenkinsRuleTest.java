@@ -25,6 +25,8 @@ import org.kohsuke.stapler.verb.PUT;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -32,12 +34,32 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class JenkinsRuleTest {
 
     @Rule public JenkinsRule j = new JenkinsRule();
+
+    @Test
+    public void readOnlyFileInJenkinsHomeIsRemovedOnDispose() throws Exception {
+        Path jenkinsHome = j.jenkins.getRootDir().toPath();
+        String prefix = "ee";
+        Path gitObjectsDir = jenkinsHome.resolve(Path.of(".git", "objects", prefix));
+        Files.createDirectories(gitObjectsDir);
+
+        String fileName = prefix + "-this-is-read-only";
+        Path gitObjectsFile = Files.createFile(gitObjectsDir.resolve(Path.of(fileName)));
+
+        /* Windows read only files were not being deleted by temporary folder dispose */
+        boolean ok = gitObjectsFile.toFile().setReadOnly();
+        assertTrue("Failed to set file " + fileName + " as read only", ok);
+        assertFalse("Read only file " + fileName + " is writable", Files.isWritable(gitObjectsFile));
+
+        /* cleanup of JENKINS_HOME should remove the read only file */
+    }
 
     @Test
     public void assertEqualDataBoundBeansForNullLists() throws Exception {

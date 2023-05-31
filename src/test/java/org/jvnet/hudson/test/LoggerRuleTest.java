@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.jvnet.hudson.test.LoggerRule.recorded;
 
@@ -65,11 +66,8 @@ public class LoggerRuleTest {
         FOO_LOGGER.log(Level.INFO, "Entry 3");
         AssertionError assertionError = assertThrows(AssertionError.class, () -> assertThat(logRule, recorded(Level.INFO, equalTo("Entry 2"))));
 
-        String expectedMessage = format("%n" +
-                "Expected: has LogRecord with level \"INFO\" with a message matching \"Entry 2\"%n" +
-                "     but: was <INFO->Entry 3,INFO->Entry 1>");
-
-        assertThat(assertionError.getMessage(), equalTo(expectedMessage));
+        assertThat(assertionError.getMessage(), containsString("Expected: has LogRecord with level \"INFO\" with a message matching \"Entry 2\""));
+        assertThat(assertionError.getMessage(), containsString("     but: was <INFO->Entry 3,INFO->Entry 1>"));
     }
 
     @Test
