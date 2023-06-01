@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -98,10 +97,10 @@ public final class WarExploder {
                     coreArtifactDir = core.getParentFile().getParentFile();
                 }
                 if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
-                    File versionedWarArtifactDir = Path.of(coreArtifactDir.getParentFile().getPath(), "jenkins-war", version).toFile();
-                    war = Path.of(versionedWarArtifactDir.getPath(), "jenkins-war-" + version + ".war").toFile();
+                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
+                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
                     if (!war.isFile()) {
-                        File[] hashes = versionedWarArtifactDir.listFiles();
+                        File[] hashes = new File(warArtifactDir, version).listFiles();
                         if (hashes != null) {
                             for (File hash : hashes) {
                                 if (HEX_DIGITS.matcher(hash.getName()).matches()) {
