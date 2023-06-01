@@ -5,6 +5,8 @@ import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 
 import hudson.EnvVars;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 import hudson.model.RootAction;
 import hudson.model.User;
 import jenkins.model.Jenkins;
@@ -413,4 +415,13 @@ public class JenkinsRuleTest {
         j.createSlave("agent", "agent", new EnvVars());
         j.jenkins.save();
     }
+
+    @Test
+    public void waitForCompletion() throws Exception {
+        FreeStyleProject p = j.createFreeStyleProject();
+        p.getBuildersList().add(new SleepBuilder(1000));
+        FreeStyleBuild b = p.scheduleBuild2(0).getStartCondition().get();
+        j.assertBuildStatusSuccess(j.waitForCompletion(b));
+    }
+
 }
