@@ -24,39 +24,39 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.css.parser.CSSErrorHandler;
-import com.gargoylesoftware.css.parser.CSSException;
-import com.gargoylesoftware.css.parser.CSSParseException;
-import com.gargoylesoftware.htmlunit.AjaxController;
-import com.gargoylesoftware.htmlunit.BrowserVersion;
-import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
-import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.HttpMethod;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClientOptions;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.WebResponseData;
-import com.gargoylesoftware.htmlunit.WebResponseListener;
-import com.gargoylesoftware.htmlunit.html.DomNode;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlElementUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
-import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
-import com.gargoylesoftware.htmlunit.util.NameValuePair;
-import com.gargoylesoftware.htmlunit.util.WebResponseWrapper;
-import com.gargoylesoftware.htmlunit.xml.XmlPage;
+import org.htmlunit.AjaxController;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientOptions;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.WebResponse;
+import org.htmlunit.WebResponseData;
+import org.htmlunit.WebResponseListener;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlElementUtil;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.HtmlUnitContextFactory;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.util.NameValuePair;
+import org.htmlunit.util.WebResponseWrapper;
+import org.htmlunit.xml.XmlPage;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -192,8 +192,8 @@ import jenkins.security.MasterToSlaveCallable;
 
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -252,8 +252,6 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.mozilla.javascript.tools.debugger.Dim;
-import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
 import org.xml.sax.SAXException;
 
@@ -1693,7 +1691,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(org.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form);
@@ -2238,10 +2236,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Extends {@link com.gargoylesoftware.htmlunit.WebClient} and provide convenience methods
+     * Extends {@link org.htmlunit.WebClient} and provide convenience methods
      * for accessing Hudson.
      */
-    public class WebClient extends com.gargoylesoftware.htmlunit.WebClient {
+    public class WebClient extends org.htmlunit.WebClient {
         private static final long serialVersionUID = -7944895389154288881L;
 
         private List<WebResponseListener> webResponseListeners = new ArrayList<>();
@@ -2265,7 +2263,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 final CSSErrorHandler defaultHandler = new DefaultCssErrorHandler();
 
                 @Override
-                public void warning(final CSSParseException exception) throws com.gargoylesoftware.css.parser.CSSException {
+                public void warning(final CSSParseException exception) throws CSSException {
                     if (!ignore(exception))
                         defaultHandler.warning(exception);
                 }
@@ -2427,7 +2425,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Short-hand method to ease discovery of feature + improve readability
          * 
          * @param enabled {@code true} to enable automatic redirection
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public void setRedirectEnabled(boolean enabled) {
@@ -2440,7 +2438,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *
          * @param enabled {@code true} to enable automatic redirection
          * @return self for fluent method chaining
-         * @see com.gargoylesoftware.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public WebClient withRedirectEnabled(boolean enabled) {
@@ -2456,8 +2454,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 //            page = (HtmlPage) page.getFirstAnchorByText("Login").click();
 
             HtmlForm form = page.getFormByName("login");
-            form.getInputByName("j_username").setValueAttribute(username);
-            form.getInputByName("j_password").setValueAttribute(password);
+            form.getInputByName("j_username").setValue(username);
+            form.getInputByName("j_password").setValue(password);
             try {
                 form.getInputByName("remember_me").setChecked(rememberMe);
             } catch (ElementNotFoundException e) {
@@ -2530,7 +2528,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
             HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValueAttribute(q);
+            search.getInputByName("q").setValue(q);
             return (HtmlPage)HtmlFormUtil.submit(search, null);
         }
 
@@ -2760,36 +2758,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         /**
-         * Starts an interactive JavaScript debugger, and break at the next JavaScript execution.
-         *
-         * <p>
-         * This is useful during debugging a test so that you can step execute and inspect state of JavaScript.
-         * This will launch a Swing GUI, and the method returns immediately.
-         *
-         * <p>
-         * Note that installing a debugger appears to make an execution of JavaScript substantially slower.
-         *
-         * <p>
-         * TODO: because each script block evaluation in HtmlUnit is done in a separate Rhino context,
-         * if you step over from one script block, the debugger fails to kick in on the beginning of the next script
-         * block.
-         * This makes it difficult to set a break point on arbitrary script block in the HTML page. We need to fix this
-         * by tweaking {@link org.mozilla.javascript.tools.debugger.Dim.StackFrame#onLineChange(Context, int)}.
-         */
-        public Dim interactiveJavaScriptDebugger() {
-            Global global = new Global();
-            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
-            global.init(cf);
-
-            Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + testDescription.getDisplayName());
-
-            // break on exceptions. this catch most of the errors
-            dim.setBreakOnExceptions(true);
-
-            return dim;
-        }
-
-        /**
          * Get JSON from a Jenkins relative endpoint.
          * You can preconfigure the web client for example to set a token for authentication, or accept error HTTP status
          * before calling this method.
@@ -2863,8 +2831,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private static final Logger XML_HTTP_REQUEST_LOGGER = Logger.getLogger(XMLHttpRequest.class.getName());
     private static final Logger SPRING_LOGGER = Logger.getLogger("org.springframework");
     private static final Logger JETTY_LOGGER = Logger.getLogger("org.mortbay.log");
-    private static final Logger HTMLUNIT_DOCUMENT_LOGGER = Logger.getLogger("com.gargoylesoftware.htmlunit.javascript.host.Document");
-    private static final Logger HTMLUNIT_JS_LOGGER = Logger.getLogger("com.gargoylesoftware.htmlunit.javascript.StrictErrorReporter");
+    private static final Logger HTMLUNIT_DOCUMENT_LOGGER = Logger.getLogger("org.htmlunit.javascript.host.Document");
+    private static final Logger HTMLUNIT_JS_LOGGER = Logger.getLogger("org.htmlunit.javascript.StrictErrorReporter");
 
     static {
         // screen scraping relies on locale being fixed.

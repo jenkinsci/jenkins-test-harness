@@ -23,10 +23,10 @@
  */
 package org.jvnet.hudson.test.rhino;
 
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebugFrame;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebuggableScript;
-import net.sourceforge.htmlunit.corejs.javascript.debug.Debugger;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.debug.DebugFrame;
+import org.htmlunit.corejs.javascript.debug.DebuggableScript;
+import org.htmlunit.corejs.javascript.debug.Debugger;
 import org.jvnet.hudson.test.HudsonTestCase;
 
 import java.util.List;

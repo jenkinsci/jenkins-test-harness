@@ -23,7 +23,7 @@ import org.jvnet.hudson.test.recipes.WithPlugin;
 import org.jvnet.hudson.test.recipes.WithPluginManager;
 import org.xml.sax.SAXException;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlPage;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class UseRecipesWithJenkinsRuleTest {

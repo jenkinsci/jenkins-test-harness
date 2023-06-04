@@ -1,8 +1,8 @@
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebRequest;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.Page;
+import org.htmlunit.WebRequest;
 
 import hudson.EnvVars;
 import hudson.model.FreeStyleBuild;

@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.gargoylesoftware.htmlunit;
+package org.htmlunit;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.javascript.JavaScriptErrorListener;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.javascript.JavaScriptErrorListener;
 import org.junit.Assert;
 
 import java.net.MalformedURLException;

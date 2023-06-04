@@ -23,11 +23,11 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.htmlunit.DefaultPageCreator;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebResponse;
-import com.gargoylesoftware.htmlunit.WebWindow;
-import com.gargoylesoftware.htmlunit.PageCreator;
+import org.htmlunit.DefaultPageCreator;
+import org.htmlunit.Page;
+import org.htmlunit.WebResponse;
+import org.htmlunit.WebWindow;
+import org.htmlunit.PageCreator;
 
 import java.io.IOException;
 import java.util.Locale;
