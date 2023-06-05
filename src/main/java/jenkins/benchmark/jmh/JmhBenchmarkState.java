@@ -18,6 +18,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
+import org.jvnet.hudson.test.TestPluginManager;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -92,7 +93,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         server = results.left;
         ServletContext webServer = results.right;
 
-        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer);
+        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);
