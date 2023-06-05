@@ -176,7 +176,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.MimeTypes;
@@ -1301,7 +1300,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             WebResponseData webResponseData;
             try (InputStream responseStream = conn.getInputStream()) {
-                byte[] bytes = IOUtils.toByteArray(responseStream);
+                byte[] bytes = responseStream.readAllBytes();
                 webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
             }
 

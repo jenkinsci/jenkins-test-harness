@@ -89,7 +89,6 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.Assume;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
@@ -717,7 +716,7 @@ public final class RealJenkinsRule implements TestRule {
             String err = "?";
             try (InputStream is = conn.getErrorStream()) {
                 if (is != null) {
-                    err = IOUtils.toString(is, StandardCharsets.UTF_8);
+                    err = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 }
             } catch (Exception x) {
                 x.printStackTrace();
@@ -803,13 +802,13 @@ public final class RealJenkinsRule implements TestRule {
             }
             return (T) result.result;
         } catch (IOException e) {
-            if (conn.getErrorStream() != null) {
-                try {
-                    String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+            try (InputStream is = conn.getErrorStream()) {
+                if (is != null) {
+                    String errorMessage = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                     e.addSuppressed(new IOException("Response body: " + errorMessage));
-                } catch (IOException e2) {
-                    e.addSuppressed(e2);
                 }
+            } catch (IOException e2) {
+                e.addSuppressed(e2);
             }
             throw e;
         }
