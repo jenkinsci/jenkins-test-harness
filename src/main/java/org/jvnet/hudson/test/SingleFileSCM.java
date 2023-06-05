@@ -32,10 +32,10 @@ import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.io.IOUtils;
 
 /**
  * {@link SCM} useful for testing that puts just one file in the workspace.
@@ -61,15 +61,17 @@ public class SingleFileSCM extends NullSCM {
      */
     public SingleFileSCM(String path, URL resource) throws IOException {
         this.path = path;
-        this.contents = IOUtils.toByteArray(resource.openStream());
+        try (InputStream inputStream = resource.openStream()) {
+            this.contents = inputStream.readAllBytes();
+        }
     }
 
     @Override
     public void checkout(Run<?,?> build, Launcher launcher, FilePath workspace, TaskListener listener, File changelogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
         listener.getLogger().println("Staging "+path);
-        OutputStream os = workspace.child(path).write();
-        IOUtils.write(contents, os);
-        os.close();
+        try (OutputStream os = workspace.child(path).write()) {
+            os.write(contents);
+        }
     }
 
     /**

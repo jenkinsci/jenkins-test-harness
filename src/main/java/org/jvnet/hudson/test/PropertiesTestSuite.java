@@ -39,7 +39,6 @@ import java.util.Properties;
 import java.util.PropertyResourceBundle;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-import org.apache.commons.io.IOUtils;
 
 /**
  * Checks things about {@code *.properties}.
@@ -74,12 +73,14 @@ public class PropertiesTestSuite extends TestSuite {
                 }
             };
 
-            byte[] contents = IOUtils.toByteArray(resource);
-            if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
-                boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
-                boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
-                if (!isUtf8 && !isIso88591) {
-                    throw new AssertionError(resource + " must be either valid UTF-8 or valid ISO-8859-1.");
+            try (InputStream is = resource.openStream()) {
+                byte[] contents = is.readAllBytes();
+                if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
+                    boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
+                    boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
+                    if (!isUtf8 && !isIso88591) {
+                        throw new AssertionError(resource + " must be either valid UTF-8 or valid ISO-8859-1.");
+                    }
                 }
             }
 
