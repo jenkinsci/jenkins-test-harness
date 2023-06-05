@@ -21,16 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.gargoylesoftware.htmlunit.html;
-
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
+package org.htmlunit.html;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
+import org.htmlunit.Page;
+import org.htmlunit.WebClient;
+import org.htmlunit.WebClientUtil;
 
 /**
  * {@link HtmlElement} helper methods.
@@ -70,7 +67,7 @@ public class HtmlElementUtil {
      */
     public static boolean hasClassName(HtmlElement element, String className) {
         String classAttribute = element.getAttribute("class");
-        Set<String> classes = new HashSet<>(Arrays.asList(classAttribute.split(" ")));
+        Set<String> classes = Set.of(classAttribute.split(" "));
         return classes.contains(className);
     }
 }

@@ -23,13 +23,12 @@
  */
 package org.jvnet.hudson.test.rhino;
 
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.Scriptable;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebugFrame;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebuggableScript;
-
 import java.util.SortedMap;
 import java.util.TreeMap;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.Scriptable;
+import org.htmlunit.corejs.javascript.debug.DebugFrame;
+import org.htmlunit.corejs.javascript.debug.DebuggableScript;
 
 /**
  * Stack frame.
@@ -56,6 +55,7 @@ public class CallStackFrame implements DebugFrame {
         this.fnOrScript = fnOrScript;
     }
 
+    @Override
     public void onEnter(Context cx, Scriptable activation, Scriptable thisObj, Object[] args) {
         this.activation = activation;
         this.thisObj = thisObj;
@@ -63,6 +63,7 @@ public class CallStackFrame implements DebugFrame {
         owner.addCallStackFrame(this);
     }
 
+    @Override
     public void onExit(Context cx, boolean byThrow, Object resultOrException) {
         owner.removeCallStackFrame(this);
 
@@ -72,13 +73,16 @@ public class CallStackFrame implements DebugFrame {
         line = -1;
     }
 
+    @Override
     public void onLineChange(Context cx, int lineNumber) {
         this.line = lineNumber;
     }
 
+    @Override
     public void onExceptionThrown(Context cx, Throwable ex) {
     }
 
+    @Override
     public void onDebuggerStatement(Context cx) {
     }
 
@@ -97,6 +101,7 @@ public class CallStackFrame implements DebugFrame {
     /**
      * Formats this call stack, arguments, and its local variables as a human readable string.
      */
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
         buf.append(fnOrScript.getFunctionName());

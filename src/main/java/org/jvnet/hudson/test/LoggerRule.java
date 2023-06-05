@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.RingBufferLogHandler;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +78,14 @@ public class LoggerRule extends ExternalResource {
     public LoggerRule quiet() {
         this.verbose = false;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return getRecords()
+                .stream()
+                .map(logRecord -> logRecord.getLevel().toString() + "->" + logRecord.getMessage())
+                .collect(Collectors.joining(","));
     }
 
     /**
@@ -175,7 +182,7 @@ public class LoggerRule extends ExternalResource {
      */
     public List<String> getMessages() {
         synchronized (messages) {
-            return Collections.unmodifiableList(new ArrayList<>(messages));
+            return List.copyOf(messages);
         }
     }
 
@@ -207,7 +214,7 @@ public class LoggerRule extends ExternalResource {
      * @param level The {@link Level} of the {@link LoggerRule} to match. Pass {@code null} to match any {@link Level}.
      * @param message the matcher to match against {@link LogRecord#getMessage}
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
-     * passing {@link org.hamcrest.CoreMatchers#anything}
+     * passing {@link org.hamcrest.Matchers#anything}
      */
     public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return new RecordedMatcher(level, message, thrown);
@@ -233,7 +240,7 @@ public class LoggerRule extends ExternalResource {
      *
      * @param message the matcher to match against {@link LogRecord#getMessage}
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
-     * passing {@link org.hamcrest.CoreMatchers#anything}
+     * passing {@link org.hamcrest.Matchers#anything}
      */
     public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return recorded(null, message, thrown);

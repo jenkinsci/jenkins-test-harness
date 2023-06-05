@@ -25,20 +25,24 @@ public class ThreadPoolImpl extends AbstractLifeCycle implements ThreadPool {
         es.submit(job);
     }
 
+    @Override
     public void join() throws InterruptedException {
         while(!es.awaitTermination(TimeUnit.DAYS.toSeconds(999), TimeUnit.SECONDS)) {
             // noop
         }
     }
 
+    @Override
     public int getThreads() {
         return 999;
     }
 
+    @Override
     public int getIdleThreads() {
         return 999;
     }
 
+    @Override
     public boolean isLowOnThreads() {
         return false;
     }

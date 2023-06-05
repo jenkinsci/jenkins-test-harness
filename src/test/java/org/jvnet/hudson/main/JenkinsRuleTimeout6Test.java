@@ -26,7 +26,6 @@ package org.jvnet.hudson.main;
 
 import hudson.model.listeners.ItemListener;
 import org.junit.Test;
-import static org.jvnet.hudson.main.JenkinsRuleTimeoutTestBase.hangUninterruptibly;
 import org.jvnet.hudson.test.TestExtension;
 
 public class JenkinsRuleTimeout6Test extends JenkinsRuleTimeoutTestBase {
@@ -40,7 +39,7 @@ public class JenkinsRuleTimeout6Test extends JenkinsRuleTimeoutTestBase {
     public static class HangsUninterruptibly extends ItemListener {
         @Override
         public void onLoaded() {
-            hangUninterruptibly();
+            JenkinsRuleTimeoutTestBase.hangUninterruptibly();
         }
     }
 

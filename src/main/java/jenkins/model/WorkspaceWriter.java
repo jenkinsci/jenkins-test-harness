@@ -24,11 +24,9 @@
 package jenkins.model;
 
 import hudson.Launcher;
-import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
-
+import hudson.model.BuildListener;
 import java.io.IOException;
-
 import org.jvnet.hudson.test.TestBuilder;
 
 /**

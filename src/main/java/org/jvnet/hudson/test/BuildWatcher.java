@@ -45,6 +45,7 @@ import org.junit.rules.ExternalResource;
  * Should work in combination with {@link JenkinsRule} or {@link RestartableJenkinsRule}.
  * @see JenkinsRule#waitForCompletion
  * @see JenkinsRule#waitForMessage
+ * @see TailLog
  * @since 1.607
  */
 public final class BuildWatcher extends ExternalResource {
@@ -104,7 +105,8 @@ public final class BuildWatcher extends ExternalResource {
             if (build != null) {
                 build.copy();
             } else {
-                System.err.println(r + " was finalized but not started?!");
+                System.err.println(r + " was finalized but never started; assuming it was started earlier using @LocalData");
+                new RunningBuild(r).copy();
             }
         }
 

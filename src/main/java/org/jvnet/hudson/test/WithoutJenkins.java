@@ -1,22 +1,20 @@
 package org.jvnet.hudson.test;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.WithPlugin;
-
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * An annotation for test methods that do not require the {@link JenkinsRule}/{@link HudsonTestCase} to create and tear down the jenkins
  * instance.
  */
-@Retention(RUNTIME)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Target(METHOD)
+@Target(ElementType.METHOD)
 @Recipe(WithoutJenkins.RunnerImpl.class)
 public @interface WithoutJenkins {
     class RunnerImpl extends Recipe.Runner<WithPlugin> {

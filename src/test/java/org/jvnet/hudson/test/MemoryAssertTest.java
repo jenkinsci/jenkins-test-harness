@@ -24,9 +24,20 @@
 
 package org.jvnet.hudson.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
+import static org.jvnet.hudson.test.MemoryAssert.assertGC;
+import static org.jvnet.hudson.test.MemoryAssert.assertHeapUsage;
+
 import java.lang.ref.WeakReference;
-import static org.jvnet.hudson.test.MemoryAssert.*;
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class MemoryAssertTest {
@@ -43,7 +54,27 @@ public class MemoryAssertTest {
             e = _e;
         }
         assertNotNull(e);
-        assertTrue(e.toString(), e.getMessage().contains("3000"));
+        assertThat(e.getMessage(), containsString("3000"));
     }
 
+    @Test
+    public void gc() {
+        Runtime.Version runtimeVersion = Runtime.version();
+        assumeTrue(
+                "TODO JENKINS-67974 works on Java 17 but not 11",
+                runtimeVersion.feature() >= 17);
+        List<String> strings = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            strings.add(Integer.toString(i));
+        }
+        WeakReference<List<String>> ref = new WeakReference<>(strings);
+        AssertionError actual = assertThrows(AssertionError.class, () -> assertGC(ref, false));
+        assertEquals(
+                "Apparent soft references to ["
+                        + IntStream.range(0, strings.size())
+                                .mapToObj(Integer::toString)
+                                .collect(Collectors.joining(", "))
+                        + "]: {}; apparent weak references: {}",
+                actual.getMessage());
+    }
 }

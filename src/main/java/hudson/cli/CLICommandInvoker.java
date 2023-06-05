@@ -33,11 +33,12 @@ import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
+import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -70,9 +71,9 @@ public class CLICommandInvoker {
     private SecurityContext originalSecurityContext = null;
 
     private InputStream stdin;
-    private List<String> args = Collections.emptyList();
+    private List<String> args = List.of();
     @Deprecated
-    private List<Permission> permissions = Collections.emptyList();
+    private List<Permission> permissions = List.of();
     private Locale locale = Locale.ENGLISH;
 
     public CLICommandInvoker(final JenkinsRule rule, final CLICommand command) {
@@ -95,8 +96,7 @@ public class CLICommandInvoker {
      */
     @Deprecated
     public CLICommandInvoker authorizedTo(final Permission... permissions) {
-
-        this.permissions = Arrays.asList(permissions);
+        this.permissions = List.of(permissions);
         return this;
     }
 
@@ -122,8 +122,7 @@ public class CLICommandInvoker {
     }
 
     public CLICommandInvoker withArgs(final String... args) {
-
-        this.args = Arrays.asList(args);
+        this.args = List.of(args);
         return this;
     }
 
@@ -139,13 +138,27 @@ public class CLICommandInvoker {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-        final int returnCode = command.main(
-                args, locale, stdin, new PrintStream(out), new PrintStream(err)
-        );
+        final Charset outCharset;
+        final Charset errCharset;
+        try {
+            outCharset = errCharset = command.getClientCharset();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        final int returnCode =
+                command.main(
+                        args,
+                        locale,
+                        stdin,
+                        new PrintStream(out, false, outCharset),
+                        new PrintStream(err, false, errCharset));
 
         restoreAuth();
 
-        return new Result(returnCode, out, err);
+        return new Result(returnCode, out, outCharset, err, errCharset);
     }
 
     private static class GrantPermissions extends AuthorizationStrategy {
@@ -180,7 +193,7 @@ public class CLICommandInvoker {
         @NonNull
         @Override
         public Collection<String> getGroups() {
-            return Collections.emptySet();
+            return Set.of();
         }
     }
 
@@ -232,17 +245,23 @@ public class CLICommandInvoker {
 
         private final int result;
         private final ByteArrayOutputStream out;
+        private final Charset outCharset;
         private final ByteArrayOutputStream err;
+        private final Charset errCharset;
 
         private Result(
                 final int result,
                 final ByteArrayOutputStream out,
-                final ByteArrayOutputStream err
+                final Charset outCharset,
+                final ByteArrayOutputStream err,
+                final Charset errCharset
         ) {
 
             this.result = result;
             this.out = out;
+            this.outCharset = outCharset;
             this.err = err;
+            this.errCharset = errCharset;
         }
 
         public int returnCode() {
@@ -251,8 +270,7 @@ public class CLICommandInvoker {
         }
 
         public String stdout() {
-
-            return out.toString();
+            return out.toString(outCharset);
         }
 
         public byte[] stdoutBinary() {
@@ -260,8 +278,7 @@ public class CLICommandInvoker {
         }
 
         public String stderr() {
-
-            return err.toString();
+            return err.toString(errCharset);
         }
 
         public byte[] stderrBinary() {
@@ -298,6 +315,7 @@ public class CLICommandInvoker {
             description.appendText(result.toString());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText(this.description);
         }

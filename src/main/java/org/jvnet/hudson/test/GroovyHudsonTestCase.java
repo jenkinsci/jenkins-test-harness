@@ -1,14 +1,13 @@
 package org.jvnet.hudson.test;
 
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 import groovy.lang.Closure;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.Builder;
-import hudson.Launcher;
-
 import java.io.IOException;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * {@link HudsonTestCase} with more convenience methods for Groovy.
@@ -24,15 +23,16 @@ public abstract class GroovyHudsonTestCase extends HudsonTestCase {
      * <p>
      * The closure will get the request and response as parameters.
      */
-    public Object executeOnServer(final Closure c) throws Exception {
+    public Object executeOnServer(final Closure<?> c) throws Exception {
         return executeOnServer(c::call);
     }
 
     /**
      * Wraps a closure as a {@link Builder}.
      */
-    public Builder builder(final Closure c) {
+    public Builder builder(final Closure<?> c) {
         return new TestBuilder() {
+            @Override
             public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
                 Object r = c.call(build, launcher, listener);
                 if (r instanceof Boolean)   return (Boolean)r;

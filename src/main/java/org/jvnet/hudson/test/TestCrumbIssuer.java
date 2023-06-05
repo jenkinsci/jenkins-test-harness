@@ -43,6 +43,7 @@ public class TestCrumbIssuer extends CrumbIssuer {
             load();
         }
 
+        @Override
         public TestCrumbIssuer newInstance(StaplerRequest req, @NonNull JSONObject formData) throws FormException {
             return new TestCrumbIssuer();
         }

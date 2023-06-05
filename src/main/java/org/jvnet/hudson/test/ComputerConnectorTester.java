@@ -28,11 +28,10 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerConnectorDescriptor;
-import org.kohsuke.stapler.StaplerRequest;
-
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;
+import javax.servlet.ServletException;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Test bed to verify the configuration roundtripness of the {@link ComputerConnector}.
@@ -52,7 +51,7 @@ public class ComputerConnectorTester extends AbstractDescribableImpl<ComputerCon
         connector = req.bindJSON(ComputerConnector.class, req.getSubmittedForm().getJSONObject("connector"));
     }
 
-    public List getConnectorDescriptors() {
+    public List<ComputerConnectorDescriptor> getConnectorDescriptors() {
         return ComputerConnectorDescriptor.all();
     }
 

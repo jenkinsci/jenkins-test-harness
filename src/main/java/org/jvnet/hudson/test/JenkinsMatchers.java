@@ -2,17 +2,16 @@ package org.jvnet.hudson.test;
 
 import hudson.util.FormValidation;
 import hudson.util.Secret;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Description;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.regex.Pattern;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
 
 /**
  * Some handy matchers.
@@ -22,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public class JenkinsMatchers {
 
-    public static Matcher<Class> privateConstructorThrows(Class<? extends Throwable> cause) {
+    public static Matcher<Class<?>> privateConstructorThrows(Class<? extends Throwable> cause) {
         return new PrivateConstructorThrows(cause);
     }
 
@@ -34,13 +33,14 @@ public class JenkinsMatchers {
         return new FormValidationKindMatcher(kind);
     }
 
-    private static class PrivateConstructorThrows extends BaseMatcher<Class> {
+    private static class PrivateConstructorThrows extends BaseMatcher<Class<?>> {
         private final Class<? extends Throwable> cause;
 
         public PrivateConstructorThrows(Class<? extends Throwable> cause) {
             this.cause = cause;
         }
 
+        @Override
         public boolean matches(Object o) {
             Class<?> clazz = (Class<?>) o;
             try {
@@ -71,6 +71,7 @@ public class JenkinsMatchers {
             return false;
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("with a private constructor that throws ");
             description.appendValue(cause);
@@ -85,11 +86,13 @@ public class JenkinsMatchers {
             this.cause = cause;
         }
 
+        @Override
         public boolean matches(Object o) {
             FormValidation v = (FormValidation) o;
             return v.getMessage().contains(cause.getName());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("caused by ");
             description.appendValue(cause);
@@ -104,11 +107,13 @@ public class JenkinsMatchers {
             this.kind = kind;
         }
 
+        @Override
         public boolean matches(Object o) {
             FormValidation v = (FormValidation) o;
             return v.kind == kind;
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("of kind ");
             description.appendValue(kind);
@@ -122,7 +127,7 @@ public class JenkinsMatchers {
      *         constructors).
      */
     public static Matcher<Class<?>> isUtilityClass() {
-        return CoreMatchers.allOf(isFinalClass(), isClassWithOnlyPrivateConstructors());
+        return Matchers.allOf(isFinalClass(), isClassWithOnlyPrivateConstructors());
     }
 
     /**
@@ -196,6 +201,7 @@ public class JenkinsMatchers {
 
     private static class HasDefaultConstructor
             extends BaseMatcher<Class<?>> {
+        @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
             try {
@@ -206,6 +212,7 @@ public class JenkinsMatchers {
             }
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("a class with the default constructor");
         }
@@ -213,6 +220,7 @@ public class JenkinsMatchers {
 
     private static class HasImplementedEquals
             extends BaseMatcher<Object> {
+        @Override
         public boolean matches(Object item) {
             if (item == null) {
                 return false;
@@ -225,6 +233,7 @@ public class JenkinsMatchers {
             }
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has overridden the default equals(Object) method");
         }
@@ -232,6 +241,7 @@ public class JenkinsMatchers {
 
     private static class HasImplementedHashCode
             extends BaseMatcher<Object> {
+        @Override
         public boolean matches(Object item) {
             if (item == null) {
                 return false;
@@ -244,6 +254,7 @@ public class JenkinsMatchers {
             }
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has overridden the default hashCode() method");
         }
@@ -251,6 +262,7 @@ public class JenkinsMatchers {
 
     private static class IsClassWithOnlyPrivateConstructors
             extends BaseMatcher<Class<?>> {
+        @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
             for (Constructor<?> c : clazz.getConstructors()) {
@@ -261,6 +273,7 @@ public class JenkinsMatchers {
             return true;
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("a class with only private constructors");
         }
@@ -268,11 +281,13 @@ public class JenkinsMatchers {
 
     private static class IsFinalClass
             extends BaseMatcher<Class<?>> {
+        @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
             return Modifier.isFinal(clazz.getModifiers());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("a final class");
         }
@@ -286,6 +301,7 @@ public class JenkinsMatchers {
             this.cause = cause;
         }
 
+        @Override
         public boolean matches(Object item) {
             Throwable throwable = (Throwable) item;
             while (throwable != null && !cause.isInstance(throwable)) {
@@ -294,6 +310,7 @@ public class JenkinsMatchers {
             return cause.isInstance(throwable);
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("was caused by a ").appendValue(cause).appendText(" being thrown");
         }
@@ -301,10 +318,12 @@ public class JenkinsMatchers {
 
     private static class HasNonNullEquals extends BaseMatcher<Object> {
 
+        @Override
         public boolean matches(Object o) {
             return o != null && !o.equals(null);
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has an equals(Object) method that returns false for null");
         }
@@ -312,10 +331,12 @@ public class JenkinsMatchers {
 
     private static class HasReflexiveEquals extends BaseMatcher<Object> {
 
+        @Override
         public boolean matches(Object o) {
             return o != null && o.equals(o);
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has a reflexive equals(Object) method");
         }
@@ -329,10 +350,12 @@ public class JenkinsMatchers {
             this.other = other;
         }
 
+        @Override
         public boolean matches(Object o) {
             return o == null ? other == null : (o.equals(other) ? other.equals(o) : !other.equals(o));
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has a symmetric equals(Object) method with ");
             description.appendValue(other);
@@ -347,10 +370,12 @@ public class JenkinsMatchers {
             this.other = other;
         }
 
+        @Override
         public boolean matches(Object o) {
             return o == null ? other == null : (o.equals(other) ? o.equals(other) : !o.equals(other));
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has a symmetric equals(Object) method with ");
             description.appendValue(other);
@@ -367,10 +392,12 @@ public class JenkinsMatchers {
             this.b = b;
         }
 
+        @Override
         public boolean matches(Object o) {
             return o != null && (!(o.equals(a) && a.equals(b)) || o.equals(b));
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("has a transitive equals(Object) method with ");
             description.appendValue(a);
@@ -387,10 +414,12 @@ public class JenkinsMatchers {
             this.other = other;
         }
 
+        @Override
         public boolean matches(Object o) {
             return o == null ? other == null : (!o.equals(other) || o.hashCode() == other.hashCode());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("follows the hashCode contract when compared to ");
             description.appendValue(other);
@@ -410,7 +439,7 @@ public class JenkinsMatchers {
      * @since 2.50
      */
     public static Matcher<Secret> hasPlainText(String expected) {
-        return new HasPlainText(CoreMatchers.equalTo(expected));
+        return new HasPlainText(Matchers.equalTo(expected));
     }
 
     private static class HasPlainText extends FeatureMatcher<Secret, String> {

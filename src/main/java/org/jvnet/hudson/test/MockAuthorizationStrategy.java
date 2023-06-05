@@ -35,7 +35,6 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,7 +63,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * @param permissions which permissions to grant ({@link Permission#impliedBy} is honored)
      */
     public Grant grant(Permission... permissions) {
-        Set<Permission> effective = new HashSet<>(Arrays.asList(permissions));
+        Set<Permission> effective = new HashSet<>(List.of(permissions));
         boolean added = true;
         while (added) {
             added = false;
@@ -79,7 +78,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
      * Like {@link #grant} but does <em>not</em> honor {@link Permission#impliedBy}.
      */
     public Grant grantWithoutImplication(Permission... permissions) {
-        return new Grant(new HashSet<>(Arrays.asList(permissions)));
+        return new Grant(new HashSet<>(List.of(permissions)));
     }
 
     /**
@@ -166,7 +165,7 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
             /** To some users or groups. */
             public MockAuthorizationStrategy to(String... sids) {
-                return new GrantOnTo(new HashSet<>(Arrays.asList(sids))).add();
+                return new GrantOnTo(new HashSet<>(List.of(sids))).add();
             }
 
             /** To some users. */

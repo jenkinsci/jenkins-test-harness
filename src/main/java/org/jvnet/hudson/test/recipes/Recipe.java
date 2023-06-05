@@ -23,17 +23,15 @@
  */
 package org.jvnet.hudson.test.recipes;
 
-import org.jvnet.hudson.test.HudsonTestCase;
-
-import java.lang.annotation.Documented;
-import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
-import java.lang.annotation.Retention;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import java.lang.annotation.Target;
-import java.lang.annotation.Annotation;
 import java.io.File;
-
+import java.lang.annotation.Annotation;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import junit.framework.TestCase;
+import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 
 /**
@@ -44,9 +42,9 @@ import org.jvnet.hudson.test.JenkinsRecipe;
  * 
  * @author Kohsuke Kawaguchi
  */
-@Retention(RUNTIME)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Target(ANNOTATION_TYPE)
+@Target(ElementType.ANNOTATION_TYPE)
 public @interface Recipe {
     /**
      * Specifies the class that sets up the test environment.
@@ -54,7 +52,7 @@ public @interface Recipe {
      * <p>
      * When a recipe annotation is placed on a test method, 
      */
-    Class<? extends Runner> value();
+    Class<? extends Runner<?>> value();
 
     /**
      * The code that implements the recipe semantics.

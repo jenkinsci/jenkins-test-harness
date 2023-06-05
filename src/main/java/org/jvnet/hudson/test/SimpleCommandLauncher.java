@@ -37,6 +37,8 @@ import hudson.slaves.SlaveComputer;
 import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -49,7 +51,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
     private static final Logger LOGGER = Logger.getLogger(SimpleCommandLauncher.class.getName());
 
     public final String cmd;
-    private final EnvVars env;
+    private final Map<String, String> env;
 
     @DataBoundConstructor // in case anyone needs to configRoundtrip such a node
     public SimpleCommandLauncher(String cmd) {
@@ -58,7 +60,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
 
     SimpleCommandLauncher(String cmd, EnvVars env) {
         this.cmd = cmd;
-        this.env = env;
+        this.env = env != null ? new HashMap<>(env) : null;
     }
 
     @Override

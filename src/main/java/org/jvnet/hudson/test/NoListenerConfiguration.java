@@ -23,13 +23,14 @@
  */
 package org.jvnet.hudson.test;
 
+import hudson.WebAppMain;
+import java.util.EventListener;
+import javax.servlet.ServletContextListener;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-import javax.servlet.ServletContextListener;
-
 /**
- * Kills off {@link ServletContextListener}s loaded from web.xml.
+ * Kills off the {@link WebAppMain} {@link ServletContextListener}.
  *
  * <p>
  * This is so that the harness can create the {@link jenkins.model.Jenkins} object.
@@ -37,7 +38,7 @@ import javax.servlet.ServletContextListener;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class NoListenerConfiguration extends AbstractLifeCycle {
+public class NoListenerConfiguration extends AbstractLifeCycle {
     private final WebAppContext context;
 
     public NoListenerConfiguration(WebAppContext context) {
@@ -45,7 +46,11 @@ public final class NoListenerConfiguration extends AbstractLifeCycle {
     }
 
     @Override
-    protected void doStart() throws Exception {
-        context.setEventListeners(null);
+    protected void doStart() {
+        for (EventListener eventListener : context.getEventListeners()) {
+            if (eventListener instanceof WebAppMain) {
+                context.removeEventListener(eventListener);
+            }
+        }
     }
 }

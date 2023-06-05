@@ -1,10 +1,9 @@
 package jenkins.benchmark.jmh.samples;
 
+import java.util.Objects;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import org.openjdk.jmh.annotations.Benchmark;
-
-import java.util.Objects;
 
 /**
  * Sample benchmark without doing anything special to the Jenkins instance.

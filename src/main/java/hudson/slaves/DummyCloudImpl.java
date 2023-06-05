@@ -25,16 +25,14 @@ package hudson.slaves;
 
 import hudson.model.Computer;
 import hudson.model.Descriptor;
-import hudson.model.Node;
 import hudson.model.Label;
+import hudson.model.Node;
 import hudson.slaves.NodeProvisioner.PlannedNode;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-
 import org.jvnet.hudson.test.JenkinsRule;
 
 /**
@@ -85,6 +83,7 @@ public class DummyCloudImpl extends Cloud {
         this.nodeProperties = nodeProperties;
     }
 
+    @Override
     public Collection<PlannedNode> provision(Label label, int excessWorkload) {
         List<PlannedNode> r = new ArrayList<>();
         if(label!=this.label)   return r;   // provisioning impossible
@@ -99,6 +98,7 @@ public class DummyCloudImpl extends Cloud {
         return r;
     }
 
+    @Override
     public boolean canProvision(Label label) {
         return label==this.label;
     }
@@ -114,6 +114,7 @@ public class DummyCloudImpl extends Cloud {
             this.time = time;
         }
 
+        @Override
         public Node call() throws Exception {
             // simulate the delay in provisioning a new slave,
             // since it's normally some async operation.
@@ -139,6 +140,7 @@ public class DummyCloudImpl extends Cloud {
         return prop;
     }
 
+    @Override
     public Descriptor<Cloud> getDescriptor() {
         throw new UnsupportedOperationException();
     }

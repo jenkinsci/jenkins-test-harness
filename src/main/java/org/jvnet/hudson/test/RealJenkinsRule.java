@@ -24,11 +24,13 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
+import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,30 +44,37 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -81,6 +90,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.Assume;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -90,6 +100,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
@@ -115,10 +126,10 @@ import org.kohsuke.stapler.verb.POST;
  * <li>Remote thunks must be serializable. If they need data from the test JVM, you will need to create a {@code static} nested class to package that.
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
+ * <li>{@link Assume} is not available.
  * <li>{@link TestExtension} is not available.
- * <li>{@link LocalData} is not available.
- * <li>{@link LoggerRule} is not available.
- * <li>{@link BuildWatcher} is not available.
+ * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
+ * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
  * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
  * <p>Systems not yet tested:
@@ -129,7 +140,9 @@ import org.kohsuke.stapler.verb.POST;
  */
 public final class RealJenkinsRule implements TestRule {
 
-    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RealJenkinsRule.class.getName());
+
+    private static final String REAL_JENKINS_RULE_LOGGING = "RealJenkinsRule.logging.";
 
     private Description description;
 
@@ -142,9 +155,18 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * TCP/IP port that the server is listening on.
+     * <p>
+     * Before the first start, it will be 0. Once started, it is set to the actual port Jenkins is listening to.
+     * <p>
      * Like the home directory, this will be consistent across restarts.
      */
     private int port;
+
+    private String httpListenAddress = "127.0.0.1";
+
+    private File war;
+
+    private boolean includeTestClasspathPlugins = true;
 
     private final String token = UUID.randomUUID().toString();
 
@@ -162,8 +184,18 @@ public final class RealJenkinsRule implements TestRule {
 
     private Process proc;
 
+    private File portFile;
+
+    private Map<String, Level> loggers = new HashMap<>();
+
+    private int debugPort = 0;
+    private boolean debugServer = true;
+    private boolean debugSuspend;
+
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
+
+    private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
     /**
      * Add some plugins to the test classpath.
@@ -181,7 +213,7 @@ public final class RealJenkinsRule implements TestRule {
      *     is not available in a repository for use as a test dependency.
      */
     public RealJenkinsRule addPlugins(String... plugins) {
-        extraPlugins.addAll(Arrays.asList(plugins));
+        extraPlugins.addAll(List.of(plugins));
         return this;
     }
 
@@ -190,7 +222,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param plugins one or more code names, like {@code token-macro}
      */
     public RealJenkinsRule omitPlugins(String... plugins) {
-        skippedPlugins.addAll(Arrays.asList(plugins));
+        skippedPlugins.addAll(List.of(plugins));
         return this;
     }
 
@@ -199,7 +231,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param options one or more options, like {@code -Dorg.jenkinsci.Something.FLAG=true}
      */
     public RealJenkinsRule javaOptions(String... options) {
-        javaOptions.addAll(Arrays.asList(options));
+        javaOptions.addAll(List.of(options));
         return this;
     }
 
@@ -239,6 +271,140 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Sets a custom WAR file to be used by the rule instead of the one in the path or {@code war/target/jenkins.war} in case of core.
+     */
+    public RealJenkinsRule withWar(File war) {
+        this.war = war;
+        return this;
+    }
+
+    public RealJenkinsRule withLogger(Class<?> clazz, Level level) {
+        return withLogger(clazz.getName(), level);
+    }
+
+    public RealJenkinsRule withPackageLogger(Class<?> clazz, Level level) {
+        return withLogger(clazz.getPackageName(), level);
+    }
+
+    public RealJenkinsRule withLogger(String logger, Level level) {
+        this.loggers.put(logger, level);
+        return this;
+    }
+
+    /**
+     * Sets a name for this instance, which will be prefixed to log messages to simplify debugging.
+     */
+    public RealJenkinsRule withName(String name) {
+        prefixedOutputStreamBuilder.withName(name);
+        return this;
+    }
+
+    public String getName() {
+        return prefixedOutputStreamBuilder.getName();
+    }
+
+    /**
+     * Applies ANSI coloration to log lines produced by this instance, complementing {@link #withName}.
+     * Ignored when on CI.
+     */
+    public RealJenkinsRule withColor(PrefixedOutputStream.AnsiColor color) {
+        prefixedOutputStreamBuilder.withColor(color);
+        return this;
+    }
+
+    /**
+     * Provides a custom fixed port instead of a random one.
+     * @param port a custom port to use instead of a random one.
+     */
+    public RealJenkinsRule withPort(int port) {
+        this.port = port;
+        return this;
+    }
+
+    /**
+     * Provides a custom interface to listen to.
+     * <p><em>Important:</em> for security reasons this should be overridden only in special scenarios,
+     * such as testing inside a Docker container.
+     * Otherwise a developer running tests could inadvertently expose a Jenkins service without password protection,
+     * allowing remote code execution.
+     * @param httpListenAddress network interface such as <pre>0.0.0.0</pre>. Defaults to <pre>127.0.0.1</pre>.
+     */
+    public RealJenkinsRule withHttpListenAddress(String httpListenAddress) {
+        this.httpListenAddress = httpListenAddress;
+        return this;
+    }
+
+    /**
+     * Allows usage of a static debug port instead of a random one.
+     * <p>
+     * This allows to use predefined debug configurations in the IDE.
+     * <p>
+     * Typical usage is in a base test class where multiple named controller instances are defined with fixed ports
+     *
+     * <pre>
+     * public RealJenkinsRule cc1 = new RealJenkinsRule().withName("cc1").withDebugPort(4001).withDebugServer(false);
+     *
+     * public RealJenkinsRule cc2 = new RealJenkinsRule().withName("cc2").withDebugPort(4002).withDebugServer(false);
+     * </pre>
+     *
+     * Then have debug configurations in the IDE set for ports
+     * <ul>
+     * <li>5005 (test VM) - debugger mode "attach to remote vm"</li>
+     * <li>4001 (cc1) - debugger mode "listen to remote vm"</li>
+     * <li>4002 (cc2) - debugger mode "listen to remote vm"</li>
+     * </ul>
+     * <p>
+     * This allows for debugger to reconnect in scenarios where restarts of controllers are involved.
+     *
+     * @param debugPort the TCP port to use for debugging this Jenkins instance. Between 0 (random) and 65536 (excluded).
+     */
+    public RealJenkinsRule withDebugPort(int debugPort) {
+        if (debugPort < 0) throw new IllegalArgumentException("debugPort must be positive");
+        if (!(debugPort < 65536)) throw new IllegalArgumentException("debugPort must be a valid TCP port (< 65536)");
+        this.debugPort = debugPort;
+        return this;
+    }
+    /**
+     * Allows to use debug in server mode or client mode. Client mode is friendlier to controller restarts.
+     *
+     * @see #withDebugPort(int)
+     *
+     * @param debugServer true to use server=y, false to use server=n
+     */
+    public RealJenkinsRule withDebugServer(boolean debugServer) {
+        this.debugServer = debugServer;
+        return this;
+    }
+
+    /**
+     * Whether to suspend the controller VM on startup until debugger is connected. Defaults to false.
+     * @param debugSuspend true to suspend the controller VM on startup until debugger is connected.
+     */
+    public RealJenkinsRule withDebugSuspend(boolean debugSuspend) {
+        this.debugSuspend = debugSuspend;
+        return this;
+    }
+
+    /**
+     * The intended use case for this is to use the plugins bundled into the war {@link RealJenkinsRule#withWar(File)}
+     * instead of the plugins in the pom. A typical scenario for this feature is a test which does not live inside a
+     * plugin's src/test/java
+     * @param includeTestClasspathPlugins false if plugins from pom should not be used (default true)
+     */
+    public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
+        this.includeTestClasspathPlugins = includeTestClasspathPlugins;
+        return this;
+    }
+
+    public static List<String> getJacocoAgentOptions() {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+        return arguments.stream()
+                .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacoco"))
+                .collect(Collectors.toList());
+    }
+
     @Override public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
@@ -246,71 +412,80 @@ public final class RealJenkinsRule implements TestRule {
                 System.out.println("=== Starting " + description);
                 try {
                     home = tmp.allocate();
-                    port = new Random().nextInt(16384) + 49152; // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Dynamic,_private_or_ephemeral_ports
+                    LocalData localData = description.getAnnotation(LocalData.class);
+                    if (localData != null) {
+                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
+                    }
+                    if (war == null) {
+                        war = findJenkinsWar();
+                    }
                     File plugins = new File(home, "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
-                    // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
-                    Set<String> snapshotPlugins = new TreeSet<>();
-                    Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
-                    while (indexJellies.hasMoreElements()) {
-                        String indexJelly = indexJellies.nextElement().toString();
-                        Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
-                        if (m.matches()) {
-                            Path snapshotManifest;
-                            snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
-                            if (!Files.exists(snapshotManifest)) {
-                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
-                            }
-                            if (Files.exists(snapshotManifest)) {
-                                String shortName;
-                                try (InputStream is = Files.newInputStream(snapshotManifest)) {
-                                    shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
+
+                    if (includeTestClasspathPlugins) {
+                        // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
+                        Set<String> snapshotPlugins = new TreeSet<>();
+                        Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+                        while (indexJellies.hasMoreElements()) {
+                            String indexJelly = indexJellies.nextElement().toString();
+                            Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
+                            if (m.matches()) {
+                                Path snapshotManifest;
+                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
+                                if (!Files.exists(snapshotManifest)) {
+                                    snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
                                 }
-                                if (shortName == null) {
-                                    throw new IOException("malformed " + snapshotManifest);
-                                }
-                                if (skippedPlugins.contains(shortName)) {
-                                    continue;
-                                }
-                                // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
-                                Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
-                                snapshotPlugins.add(shortName);
-                            } else {
-                                System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
-                            }
-                        } else {
-                            // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
-                        }
-                    }
-                    URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
-                    if (index != null) {
-                        try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
-                            String line;
-                            while ((line = r.readLine()) != null) {
-                                if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
-                                    continue;
-                                }
-                                final URL url = new URL(index, line + ".jpi");
-                                File f;
-                                try {
-                                    f = new File(url.toURI());
-                                } catch (IllegalArgumentException x) {
-                                    if (x.getMessage().equals("URI is not hierarchical")) {
-                                        throw new IOException(
-                                                "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                " you are running this in your IDE and see this message, it is likely" +
-                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                "from the command line (once only), which will copy the required plugins " +
-                                                "into target/test-classes/test-dependencies - then retry your test", x);
-                                    } else {
-                                        throw new IOException(index + " contains bogus line " + line, x);
+                                if (Files.exists(snapshotManifest)) {
+                                    String shortName;
+                                    try (InputStream is = Files.newInputStream(snapshotManifest)) {
+                                        shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
                                     }
-                                }
-                                if (f.exists()) {
-                                    FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    if (shortName == null) {
+                                        throw new IOException("malformed " + snapshotManifest);
+                                    }
+                                    if (skippedPlugins.contains(shortName)) {
+                                        continue;
+                                    }
+                                    // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                                    Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
+                                    snapshotPlugins.add(shortName);
                                 } else {
-                                    FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                                }
+                            } else {
+                                // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
+                            }
+                        }
+                        URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
+                        if (index != null) {
+                            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                                String line;
+                                while ((line = r.readLine()) != null) {
+                                    if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
+                                        continue;
+                                    }
+                                    final URL url = new URL(index, line + ".jpi");
+                                    File f;
+                                    try {
+                                        f = new File(url.toURI());
+                                    } catch (IllegalArgumentException x) {
+                                        if (x.getMessage().equals("URI is not hierarchical")) {
+                                            throw new IOException(
+                                                    "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                                            " you are running this in your IDE and see this message, it is likely" +
+                                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                                            "from the command line (once only), which will copy the required plugins " +
+                                                            "into target/test-classes/test-dependencies - then retry your test", x);
+                                        } else {
+                                            throw new IOException(index + " contains bogus line " + line, x);
+                                        }
+                                    }
+                                    if (f.exists()) {
+                                        FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                                    } else {
+                                        FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                                    }
                                 }
                             }
                         }
@@ -333,9 +508,7 @@ public final class RealJenkinsRule implements TestRule {
                     System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
                     base.evaluate();
                 } finally {
-                    if (proc != null) {
-                        stopJenkins();
-                    }
+                    stopJenkins();
                     try {
                         tmp.dispose();
                     } catch (Exception x) {
@@ -343,6 +516,7 @@ public final class RealJenkinsRule implements TestRule {
                     }
                 }
             }
+
         };
     }
 
@@ -365,27 +539,50 @@ public final class RealJenkinsRule implements TestRule {
         void run(JenkinsRule r) throws Throwable;
     }
 
+    @FunctionalInterface
+    public interface Step2<T extends Serializable> extends Serializable {
+        T run(JenkinsRule r) throws Throwable;
+    }
+
+    /**
+     * Run one Jenkins session, send one or more test thunks, and shut down.
+     */
+    public void then(Step... steps) throws Throwable {
+        then(new StepsToStep2(steps));
+    }
+
     /**
      * Run one Jenkins session, send a test thunk, and shut down.
      */
-    public void then(Step s) throws Throwable {
+    public <T extends Serializable> T then(Step2<T> s) throws Throwable {
         startJenkins();
         try {
-            runRemotely(s);
+            return runRemotely(s);
         } finally {
             stopJenkins();
         }
     }
 
     /**
-     * Like {@link JenkinsRule#getURL} but does not require Jenkins to have been started yet.
+     * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins()}.
      */
     public URL getUrl() throws MalformedURLException {
+        if (port == 0) {
+            throw new IllegalStateException("This method must be called after calling #startJenkins.");
+        }
         return new URL("http://" + host + ":" + port + "/jenkins/");
     }
 
     private URL endpoint(String method) throws MalformedURLException {
         return new URL(getUrl(), "RealJenkinsRule/" + method + "?token=" + token);
+    }
+
+    /**
+     * Obtains the Jenkins home directory.
+     * Normally it will suffice to use {@link LocalData} to populate files.
+     */
+    public File getHome() {
+        return home;
     }
 
     private static File findJenkinsWar() throws Exception {
@@ -411,68 +608,128 @@ public final class RealJenkinsRule implements TestRule {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         String cp = System.getProperty("java.class.path");
-        FileUtils.writeLines(new File(home, "RealJenkinsRule-cp.txt"), Arrays.asList(cp.split(File.pathSeparator)));
-        List<String> argv = new ArrayList<>(Arrays.asList(
+        Files.writeString(
+                home.toPath().resolve("RealJenkinsRule-cp.txt"),
+                Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
+                StandardCharsets.UTF_8);
+        List<String> argv = new ArrayList<>(List.of(
                 new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
-                "-DRealJenkinsRule.url=" + getUrl(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
-        if (new DisableOnDebug(null).isDebugging()) {
-            argv.add("-agentlib:jdwp=transport=dt_socket,server=y");
+        argv.addAll(getJacocoAgentOptions());
+        for (Map.Entry<String, Level> e : loggers.entrySet()) {
+            argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
+        }
+        portFile = new File(home, "jenkins-port.txt");
+        argv.add("-Dwinstone.portFileName=" + portFile);
+        boolean debugging = new DisableOnDebug(null).isDebugging();
+        if (debugging) {
+            argv.add("-agentlib:jdwp=transport=dt_socket"
+                    + ",server=" + (debugServer ? "y" : "n")
+                    + ",suspend=" + (debugSuspend ? "y" : "n")
+                    + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         argv.addAll(javaOptions);
-        argv.addAll(Arrays.asList(
-                "-jar", findJenkinsWar().getAbsolutePath(),
-                "--httpPort=" + port, "--httpListenAddress=127.0.0.1",
+
+
+        argv.addAll(List.of(
+                "-jar", war.getAbsolutePath(),
+                "--enable-future-java",
+                "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
+                "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
-        ProcessBuilder pb = new ProcessBuilder(argv);
-        System.out.println("Launching: " + pb.command());
-        pb.environment().put("JENKINS_HOME", home.getAbsolutePath());
+        Map<String, String> env = new TreeMap<>();
+        env.put("JENKINS_HOME", home.getAbsolutePath());
+        String forkNumber = System.getProperty("surefire.forkNumber");
+        if (forkNumber != null) {
+            // https://maven.apache.org/surefire/maven-surefire-plugin/examples/fork-options-and-parallel-execution.html#forked-test-execution
+            // Otherwise accessible only to the Surefire JVM, not to the Jenkins controller JVM.
+            env.put("SUREFIRE_FORK_NUMBER", forkNumber);
+        }
         for (Map.Entry<String, String> entry : extraEnv.entrySet()) {
             if (entry.getValue() != null) {
-                pb.environment().put(entry.getKey(), entry.getValue());
+                env.put(entry.getKey(), entry.getValue());
             }
         }
+        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
+        System.out.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
+        ProcessBuilder pb = new ProcessBuilder(argv);
+        pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
-        // TODO if test JVM is running in a debugger, start Jenkins JVM in a debugger also
+        pb.redirectErrorStream(true);
         proc = pb.start();
-        // TODO prefix streams with per-test timestamps & port
-        new StreamCopyThread(description.toString(), proc.getInputStream(), System.out).start();
-        new StreamCopyThread(description.toString(), proc.getErrorStream(), System.err).start();
-        URL status = endpoint("status");
+        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.out)).start();
         int tries = 0;
         while (true) {
-            try {
-                HttpURLConnection conn = (HttpURLConnection) status.openConnection();
-                int code = conn.getResponseCode();
-                if (code == 200) {
-                    conn.getInputStream().close();
-                    break;
-                } else {
-                    String err = "?";
-                    try (InputStream is = conn.getErrorStream()) {
-                        if (is != null) {
-                            err = IOUtils.toString(is);
-                        }
-                    } catch (Exception x) {
+            if (!proc.isAlive()) {
+                int exitValue = proc.exitValue();
+                proc = null;
+                throw new IOException("Jenkins process terminated prematurely with exit code " + exitValue);
+            }
+            if (port == 0 && portFile != null && portFile.exists()) {
+                port = readPort(portFile);
+            }
+            if (port != 0) {
+                try {
+                    URL status = endpoint("status");
+                    HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+
+                    String checkResult = checkResult(conn);
+                    if (checkResult == null) {
+                        System.out.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
+                        break;
+                    }else {
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
+                                                      " " + conn.getHeaderFields());
+                    }
+
+                } catch (JenkinsStartupException jse) {
+                    // Jenkins has completed startup but failed
+                    // do not make any further attempts and kill the process
+                    proc.destroyForcibly();
+                    proc = null;
+                    throw jse;
+                } catch (Exception x) {
+                    tries++;
+                    if (!debugging && tries == /* 3m */ 1800) {
+                        throw new AssertionError("Jenkins did not start after 3m");
+                    } else if (tries % /* 1m */ 600 == 0) {
                         x.printStackTrace();
                     }
-                    throw new IOException("Response code " + code + " for " + status + ": " + err + " " + conn.getHeaderFields());
-                }
-            } catch (Exception x) {
-                tries++;
-                if (tries == /* 3m */ 1800) {
-                    throw new AssertionError("Jenkins did not start after 3m");
-                } else if (tries % /* 1m */ 600 == 0) {
-                    x.printStackTrace();
                 }
             }
             Thread.sleep(100);
         }
+        addTimeout();
+    }
+
+    @CheckForNull
+    public static String checkResult(HttpURLConnection conn) throws IOException {
+        int code = conn.getResponseCode();
+        if (code == 200) {
+            conn.getInputStream().close();
+            return null;
+        } else {
+            String err = "?";
+            try (InputStream is = conn.getErrorStream()) {
+                if (is != null) {
+                    err = IOUtils.toString(is, StandardCharsets.UTF_8);
+                }
+            } catch (Exception x) {
+                x.printStackTrace();
+            }
+            if (code == 500) {
+                throw new JenkinsStartupException(err);
+            }
+            return err;
+        }
+    }
+
+    private void addTimeout() {
         if (timeout > 0) {
             Timer.get().schedule(() -> {
                 if (proc != null) {
@@ -484,28 +741,77 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    public void stopJenkins() throws Throwable {
-        endpoint("exit").openStream().close();
-        if (!proc.waitFor(60, TimeUnit.SECONDS) ) {
-            System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
-            proc.destroyForcibly();
-            throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+    private static int readPort(File portFile) throws IOException {
+        String s = Files.readString(portFile.toPath(), StandardCharsets.UTF_8);
+
+        // Work around to non-atomic write of port value in Winstone releases prior to 6.1.
+        // TODO When Winstone 6.2 has been widely adopted, this can be deleted.
+        if (s.isEmpty()) {
+            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile.getAbsolutePath()));
+            return 0;
         }
-        int exitValue = proc.exitValue();
-        if (exitValue != 0) {
-            throw new AssertionError("nonzero exit code: " + exitValue);
+
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            throw new AssertionError("Unable to parse port from " + s + ". Jenkins did not start.");
         }
-        proc = null;
     }
 
-    public void runRemotely(Step s) throws Throwable {
+    /**
+     * Stops Jenkins and releases any system resources associated
+     * with it. If Jenkins is already stopped then invoking this
+     * method has no effect.
+     */
+    public void stopJenkins() throws Throwable {
+        if (proc != null) {
+            Process _proc = proc;
+            proc = null;
+            endpoint("exit").openStream().close();
+
+            if (!_proc.waitFor(60, TimeUnit.SECONDS) ) {
+                System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
+                _proc.destroyForcibly();
+                throw new AssertionError("Jenkins failed to terminate within 60 seconds");
+            }
+            int exitValue = _proc.exitValue();
+            if (exitValue != 0) {
+                throw new AssertionError("nonzero exit code: " + exitValue);
+            }
+        }
+    }
+
+    /**
+     * Runs one or more steps on the remote system.
+     * (Compared to multiple calls, passing a series of steps is slightly more efficient
+     * as only one network call is made.)
+     */
+    public void runRemotely(Step... steps) throws Throwable {
+        runRemotely(new StepsToStep2(steps));
+    }
+
+    public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
-        Init2.writeSer(conn.getOutputStream(), Arrays.asList(token, s));
-        Throwable error = (Throwable) Init2.readSer(conn.getInputStream(), null);
-        if (error != null) {
-            throw error;
+
+        Init2.writeSer(conn.getOutputStream(), new InputPayload(token, s, getUrl()));
+        try {
+            OutputPayload result = (OutputPayload) Init2.readSer(conn.getInputStream(), null);
+            if (result.error != null) {
+                throw new StepException(result.error);
+            }
+            return (T) result.result;
+        } catch (IOException e) {
+            if (conn.getErrorStream() != null) {
+                try {
+                    String errorMessage = IOUtils.toString(conn.getErrorStream(), StandardCharsets.UTF_8);
+                    e.addSuppressed(new IOException("Response body: " + errorMessage));
+                } catch (IOException e2) {
+                    e.addSuppressed(e2);
+                }
+            }
+            throw e;
         }
     }
 
@@ -515,7 +821,7 @@ public final class RealJenkinsRule implements TestRule {
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.lines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), Charset.defaultCharset()).map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 
@@ -570,6 +876,7 @@ public final class RealJenkinsRule implements TestRule {
         @SuppressWarnings("deprecation")
         public static void register() throws Exception {
             Jenkins j = Jenkins.get();
+            configureLogging();
             j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
                 @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -586,6 +893,33 @@ public final class RealJenkinsRule implements TestRule {
                 Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
             }
         }
+
+        private static Set<Logger> loggers = new HashSet<>();
+
+        private static void configureLogging() {
+            Level minLevel = Level.INFO;
+            for (String propertyName : System.getProperties().stringPropertyNames()) {
+                if (propertyName.startsWith(REAL_JENKINS_RULE_LOGGING)) {
+                    String loggerName = propertyName.substring(REAL_JENKINS_RULE_LOGGING.length());
+                    Logger logger = Logger.getLogger(loggerName);
+                    Level level = Level.parse(System.getProperty(propertyName));
+                    if (level.intValue() < minLevel.intValue()) {
+                        minLevel = level;
+                    }
+                    logger.setLevel(level);
+                    loggers.add(logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
+                }
+            }
+            // Increase ConsoleHandler level to the finest level we want to log.
+            if (!loggers.isEmpty()) {
+                for (Handler h : Logger.getLogger("").getHandlers()) {
+                    if (h instanceof ConsoleHandler) {
+                        h.setLevel(minLevel);
+                    }
+                }
+            }
+        }
+
         @Override public String getUrlName() {
             return "RealJenkinsRule";
         }
@@ -605,19 +939,37 @@ public final class RealJenkinsRule implements TestRule {
             System.err.println("Checking status");
             checkToken(token);
         }
+        /**
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
+         * does not inadvertently interact with the request for {@link #doStep} itself.
+         */
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
+                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
-            List<?> tokenAndStep = (List<?>) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
-            checkToken((String) tokenAndStep.get(0));
-            Step s = (Step) tokenAndStep.get(1);
+            InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
+            checkToken(input.token);
+            Step2<?> s = input.step;
+            URL url = input.url;
+
             Throwable err = null;
-            try (CustomJenkinsRule rule = new CustomJenkinsRule(); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
-                s.run(rule);
-            } catch (Throwable t) {
-                err = t;
+            Object object = null;
+            try {
+                object = STEP_RUNNER.submit(() -> {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                        return s.run(rule);
+                    } catch (Throwable t) {
+                        throw new RuntimeException(t);
+                    }
+                }).get();
+            } catch (ExecutionException e) {
+                // Unwrap once for ExecutionException and once for RuntimeException:
+                err = e.getCause().getCause();
+            } catch (CancellationException | InterruptedException e) {
+                err = e;
             }
             // TODO use raw err if it seems safe enough
-            Init2.writeSer(rsp.getOutputStream(), err != null ? new ProxyException(err) : null);
+            Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err != null ? new ProxyException(err) : null));
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
@@ -628,18 +980,22 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
+        private final URL url;
 
-        public CustomJenkinsRule() throws Exception {
+        public CustomJenkinsRule(URL url) throws Exception {
             this.jenkins = Jenkins.get();
+            this.url = url;
             jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
-            JenkinsLocationConfiguration.get().setUrl(getURL().toString());
+            if (JenkinsLocationConfiguration.get().getUrl() == null) {
+                JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
+            }
             testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsRule.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
         }
 
         @Override public URL getURL() throws IOException {
-            return new URL(System.getProperty("RealJenkinsRule.url"));
+            return url;
         }
 
         @Override public void close() throws Exception {
@@ -665,4 +1021,53 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
+    private static class StepsToStep2 implements Step2<Serializable> {
+        private final Step[] steps;
+
+        StepsToStep2(Step... steps) {
+            this.steps = steps;
+        }
+
+        @Override
+        public Serializable run(JenkinsRule r) throws Throwable {
+            for (Step step : steps) {
+                step.run(r);
+            }
+            return null;
+        }
+    }
+
+    public static class JenkinsStartupException extends IOException {
+        public JenkinsStartupException(String message) {
+            super(message);
+        }
+    }
+
+    public static class StepException extends Exception {
+        public StepException(Throwable cause) {
+            super("Remote step threw an exception: " + cause, cause);
+        }
+    }
+
+    private static class InputPayload implements Serializable {
+        private final String token;
+        private final Step2<?> step;
+        private final URL url;
+
+        InputPayload(String token, Step2<?> step, URL url) {
+            this.token = token;
+            this.step = step;
+            this.url = url;
+        }
+    }
+
+    private static class OutputPayload implements Serializable {
+        private final Object result;
+        private final Throwable error;
+
+        OutputPayload(Object result, Throwable error) {
+            this.result = result;
+            this.error = error;
+        }
+    }
 }

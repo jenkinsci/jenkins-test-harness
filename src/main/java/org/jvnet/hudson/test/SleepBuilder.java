@@ -23,15 +23,14 @@
  */
 package org.jvnet.hudson.test;
 
-import hudson.Launcher;
 import hudson.Extension;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.tasks.Builder;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import java.io.IOException;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * {@link Builder} that just sleeps for the specified amount of milli-seconds.
@@ -46,6 +45,7 @@ public class SleepBuilder extends Builder {
         this.time = time;
     }
 
+    @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         listener.getLogger().println("Sleeping "+time+"ms");
         Thread.sleep(time);

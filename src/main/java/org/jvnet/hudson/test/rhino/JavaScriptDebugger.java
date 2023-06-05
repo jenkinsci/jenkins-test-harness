@@ -23,14 +23,13 @@
  */
 package org.jvnet.hudson.test.rhino;
 
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebugFrame;
-import net.sourceforge.htmlunit.corejs.javascript.debug.DebuggableScript;
-import net.sourceforge.htmlunit.corejs.javascript.debug.Debugger;
-import org.jvnet.hudson.test.HudsonTestCase;
-
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.debug.DebugFrame;
+import org.htmlunit.corejs.javascript.debug.DebuggableScript;
+import org.htmlunit.corejs.javascript.debug.Debugger;
+import org.jvnet.hudson.test.HudsonTestCase;
 
 /**
  * Monitors the execution of the JavaScript inside HtmlUnit, and provides debug information
@@ -67,9 +66,11 @@ public class JavaScriptDebugger implements Debugger {
         this.callStack.remove(frame);
     }
 
+    @Override
     public void handleCompilationDone(Context cx, DebuggableScript fnOrScript, String source) {
     }
 
+    @Override
     public DebugFrame getFrame(Context cx, DebuggableScript fnOrScript) {
         return new CallStackFrame(this,fnOrScript);
     }
@@ -77,6 +78,7 @@ public class JavaScriptDebugger implements Debugger {
     /**
      * Formats the current call stack into a human readable string.
      */
+    @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
         synchronized (this) {

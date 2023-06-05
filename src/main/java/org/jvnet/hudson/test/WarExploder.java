@@ -32,10 +32,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
 /**
- * Ensures that <tt>jenkins.war</tt> is exploded.
+ * Ensures that {@code jenkins.war} is exploded.
  *
  * <p>
  * Depending on where the test is run (for example, inside Maven vs IDE), this code attempts to
@@ -50,6 +51,11 @@ public final class WarExploder {
     public static final String JENKINS_WAR_PATH_PROPERTY_NAME = "jth.jenkins-war.path";
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
+
+    /**
+     * A pattern that matches hex encoded strings.
+     */
+    private static final Pattern HEX_DIGITS = Pattern.compile("^[a-f0-9]+$");
 
     public static synchronized File getExplodedDir() throws Exception {
         if (EXPLODE_DIR == null) {
@@ -73,17 +79,41 @@ public final class WarExploder {
             }
         } else {
             // locate jenkins.war
-            URL winstone = WarExploder.class.getResource("/winstone.jar");
+            URL winstone = WarExploder.class.getResource("/executable/winstone.jar");
             if (winstone != null) {
-                war = Which.jarFile(Class.forName("executable.Executable"));
+                war = Which.jarFile(Class.forName("executable.Main"));
             } else {
                 // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
-                String version = core.getParentFile().getName();
-                if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
-                    war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
+                String version;
+                File coreArtifactDir;
+                if (HEX_DIGITS.matcher(core.getParentFile().getName()).matches()) {
+                    // Gradle
+                    version = core.getParentFile().getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
+                } else {
+                    // Maven
+                    version = core.getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile();
+                }
+                if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
+                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
+                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
                     if (!war.isFile()) {
-                        throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        File[] hashes = new File(warArtifactDir, version).listFiles();
+                        if (hashes != null) {
+                            for (File hash : hashes) {
+                                if (HEX_DIGITS.matcher(hash.getName()).matches()) {
+                                    war = new File(hash, "jenkins-war-" + version + ".war");
+                                    if (war.isFile()) {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!war.isFile()) {
+                            throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        }
                     }
                     LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
                 } else {

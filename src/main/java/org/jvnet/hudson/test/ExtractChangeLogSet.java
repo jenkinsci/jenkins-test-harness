@@ -25,11 +25,8 @@ package org.jvnet.hudson.test;
 
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
-
-import java.util.List;
-import java.util.Collections;
 import java.util.Iterator;
-
+import java.util.List;
 
 /**
  * @author Andrew Bayer
@@ -42,7 +39,7 @@ public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.Ext
         for (ExtractChangeLogParser.ExtractChangeLogEntry entry : changeLogs) {
             entry.setParent(this);
         }
-        this.changeLogs = Collections.unmodifiableList(changeLogs);
+        this.changeLogs = List.copyOf(changeLogs);
     }
 
     @Override
@@ -50,6 +47,7 @@ public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.Ext
         return changeLogs.isEmpty();
     }
 
+    @Override
     public Iterator<ExtractChangeLogParser.ExtractChangeLogEntry> iterator() {
         return changeLogs.iterator();
     }

@@ -1,4 +1,4 @@
-package com.gargoylesoftware.htmlunit;
+package org.htmlunit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
