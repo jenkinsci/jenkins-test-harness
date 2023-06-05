@@ -2828,7 +2828,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     // needs to keep reference, or it gets GC-ed.
     private static final Logger XML_HTTP_REQUEST_LOGGER = Logger.getLogger(XMLHttpRequest.class.getName());
     private static final Logger SPRING_LOGGER = Logger.getLogger("org.springframework");
-    private static final Logger JETTY_LOGGER = Logger.getLogger("org.mortbay.log");
     private static final Logger HTMLUNIT_DOCUMENT_LOGGER = Logger.getLogger("org.htmlunit.javascript.host.Document");
     private static final Logger HTMLUNIT_JS_LOGGER = Logger.getLogger("org.htmlunit.javascript.StrictErrorReporter");
 
@@ -2853,7 +2852,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         // suppress some logging which we do not much care about here
         SPRING_LOGGER.setLevel(Level.WARNING);
-        JETTY_LOGGER.setLevel(Level.WARNING);
 
         // hudson-behavior.js relies on this to decide whether it's running unit tests.
         Main.isUnitTest = true;
