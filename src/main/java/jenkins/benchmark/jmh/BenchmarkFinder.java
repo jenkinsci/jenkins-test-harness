@@ -1,11 +1,10 @@
 package jenkins.benchmark.jmh;
 
 
-import org.jvnet.hudson.annotation_indexer.Index;
-import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
-
 import java.io.IOException;
 import java.lang.reflect.AnnotatedElement;
+import org.jvnet.hudson.annotation_indexer.Index;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 
 /**
  * Find classes annotated with {@link JmhBenchmark} to run their benchmark methods.

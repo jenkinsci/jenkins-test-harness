@@ -1,14 +1,13 @@
 package org.jvnet.hudson.test;
 
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
 import groovy.lang.Closure;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.Builder;
-import hudson.Launcher;
-
 import java.io.IOException;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * {@link HudsonTestCase} with more convenience methods for Groovy.

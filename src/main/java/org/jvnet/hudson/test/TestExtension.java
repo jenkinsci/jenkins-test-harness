@@ -24,14 +24,12 @@
 package org.jvnet.hudson.test;
 
 import hudson.Extension;
-import net.java.sezpoz.Indexable;
-
 import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import net.java.sezpoz.Indexable;
 
 /**
  * Works like {@link Extension} except used for inserting extensions during unit tests.
@@ -44,8 +42,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * @see TestExtensionLoader
  */
 @Indexable
-@Retention(RUNTIME)
-@Target({TYPE, FIELD, METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
 @Documented
 public @interface TestExtension {
     /**

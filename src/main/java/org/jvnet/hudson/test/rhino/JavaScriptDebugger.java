@@ -23,14 +23,13 @@
  */
 package org.jvnet.hudson.test.rhino;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.htmlunit.corejs.javascript.Context;
 import org.htmlunit.corejs.javascript.debug.DebugFrame;
 import org.htmlunit.corejs.javascript.debug.DebuggableScript;
 import org.htmlunit.corejs.javascript.debug.Debugger;
 import org.jvnet.hudson.test.HudsonTestCase;
-
-import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Monitors the execution of the JavaScript inside HtmlUnit, and provides debug information

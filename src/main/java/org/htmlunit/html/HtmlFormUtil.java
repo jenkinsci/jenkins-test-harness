@@ -23,13 +23,12 @@
  */
 package org.htmlunit.html;
 
+import java.io.IOException;
+import java.util.List;
 import org.htmlunit.ElementNotFoundException;
 import org.htmlunit.Page;
 import org.htmlunit.WebClient;
 import org.htmlunit.WebClientUtil;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * {@link HtmlForm} helper functions.

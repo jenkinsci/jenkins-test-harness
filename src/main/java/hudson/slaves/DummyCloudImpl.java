@@ -25,16 +25,14 @@ package hudson.slaves;
 
 import hudson.model.Computer;
 import hudson.model.Descriptor;
-import hudson.model.Node;
 import hudson.model.Label;
+import hudson.model.Node;
 import hudson.slaves.NodeProvisioner.PlannedNode;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-
 import org.jvnet.hudson.test.JenkinsRule;
 
 /**

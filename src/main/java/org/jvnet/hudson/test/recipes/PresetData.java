@@ -23,16 +23,15 @@
  */
 package org.jvnet.hudson.test.recipes;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.util.Locale;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.lang.annotation.Documented;
-import static java.lang.annotation.ElementType.METHOD;
-import java.lang.annotation.Retention;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import java.lang.annotation.Target;
-import java.util.Locale;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
@@ -45,8 +44,8 @@ import org.jvnet.hudson.test.MockAuthorizationStrategy;
 @Documented
 @Recipe(PresetData.RunnerImpl.class)
 @JenkinsRecipe(PresetData.RuleRunnerImpl.class)
-@Target(METHOD)
-@Retention(RUNTIME)
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 @Deprecated
 public @interface PresetData {
     /**

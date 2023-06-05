@@ -2,7 +2,6 @@ package org.jvnet.hudson.test;
 
 import hudson.Launcher.ProcStarter;
 import hudson.Proc;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

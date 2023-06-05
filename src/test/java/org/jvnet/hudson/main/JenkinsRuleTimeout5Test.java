@@ -26,7 +26,6 @@ package org.jvnet.hudson.main;
 
 import hudson.model.listeners.ItemListener;
 import org.junit.Test;
-import static org.jvnet.hudson.main.JenkinsRuleTimeoutTestBase.hangInterruptibly;
 import org.jvnet.hudson.test.TestExtension;
 
 public class JenkinsRuleTimeout5Test extends JenkinsRuleTimeoutTestBase {
@@ -41,7 +40,7 @@ public class JenkinsRuleTimeout5Test extends JenkinsRuleTimeoutTestBase {
         @Override
         public void onLoaded() {
             try {
-                hangInterruptibly();
+                JenkinsRuleTimeoutTestBase.hangInterruptibly();
             } catch (InterruptedException x) {
                 System.err.println("Interrupted, good.");
             }

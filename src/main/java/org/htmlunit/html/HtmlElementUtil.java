@@ -23,12 +23,11 @@
  */
 package org.htmlunit.html;
 
+import java.io.IOException;
+import java.util.Set;
 import org.htmlunit.Page;
 import org.htmlunit.WebClient;
 import org.htmlunit.WebClientUtil;
-
-import java.io.IOException;
-import java.util.Set;
 
 /**
  * {@link HtmlElement} helper methods.

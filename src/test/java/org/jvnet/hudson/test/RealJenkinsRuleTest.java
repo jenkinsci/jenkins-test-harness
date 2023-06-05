@@ -50,7 +50,6 @@ import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;

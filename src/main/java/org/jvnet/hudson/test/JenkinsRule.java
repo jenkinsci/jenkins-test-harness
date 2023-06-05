@@ -24,39 +24,17 @@
  */
 package org.jvnet.hudson.test;
 
-import org.htmlunit.AjaxController;
-import org.htmlunit.BrowserVersion;
-import org.htmlunit.DefaultCssErrorHandler;
-import org.htmlunit.ElementNotFoundException;
-import org.htmlunit.FailingHttpStatusCodeException;
-import org.htmlunit.HttpMethod;
-import org.htmlunit.Page;
-import org.htmlunit.WebClientOptions;
-import org.htmlunit.WebClientUtil;
-import org.htmlunit.WebRequest;
-import org.htmlunit.WebResponse;
-import org.htmlunit.WebResponseData;
-import org.htmlunit.WebResponseListener;
-import org.htmlunit.cssparser.parser.CSSErrorHandler;
-import org.htmlunit.cssparser.parser.CSSException;
-import org.htmlunit.cssparser.parser.CSSParseException;
-import org.htmlunit.html.DomNode;
-import org.htmlunit.html.DomNodeUtil;
-import org.htmlunit.html.HtmlButton;
-import org.htmlunit.html.HtmlElement;
-import org.htmlunit.html.HtmlElementUtil;
-import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlFormUtil;
-import org.htmlunit.html.HtmlImage;
-import org.htmlunit.html.HtmlInput;
-import org.htmlunit.html.HtmlPage;
-import org.htmlunit.javascript.AbstractJavaScriptEngine;
-import org.htmlunit.javascript.HtmlUnitContextFactory;
-import org.htmlunit.javascript.JavaScriptEngine;
-import org.htmlunit.javascript.host.xml.XMLHttpRequest;
-import org.htmlunit.util.NameValuePair;
-import org.htmlunit.util.WebResponseWrapper;
-import org.htmlunit.xml.XmlPage;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -189,11 +167,8 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
-
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.htmlunit.corejs.javascript.Context;
-import org.htmlunit.corejs.javascript.ContextFactory;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -220,16 +195,41 @@ import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
 import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.htmlunit.AjaxController;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientOptions;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.WebResponse;
+import org.htmlunit.WebResponseData;
+import org.htmlunit.WebResponseListener;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlElementUtil;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.html.SubmittableElement;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.util.NameValuePair;
+import org.htmlunit.util.WebResponseWrapper;
+import org.htmlunit.xml.XmlPage;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.MethodRule;
@@ -1691,7 +1691,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(org.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(SubmittableElement)} doesn't work correctly due to the use of YUI in Jenkins.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form);
@@ -2425,7 +2425,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Short-hand method to ease discovery of feature + improve readability
          * 
          * @param enabled {@code true} to enable automatic redirection
-         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public void setRedirectEnabled(boolean enabled) {
@@ -2438,7 +2438,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *
          * @param enabled {@code true} to enable automatic redirection
          * @return self for fluent method chaining
-         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public WebClient withRedirectEnabled(boolean enabled) {

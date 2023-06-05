@@ -23,10 +23,10 @@
  */
 package org.htmlunit.html;
 
+import java.util.List;
+import org.htmlunit.WebClient;
 import org.htmlunit.WebClientUtil;
 import org.htmlunit.html.xpath.XPathHelper;
-
-import java.util.List;
 
 /**
  * {@link DomNode} helper methods.
@@ -38,7 +38,7 @@ public class DomNodeUtil {
     /**
      * Evaluates an XPath expression from the specified node, returning the resultant nodes.
      * <p>
-     * Calls {@link WebClientUtil#waitForJSExec(org.htmlunit.WebClient)} before
+     * Calls {@link WebClientUtil#waitForJSExec(WebClient)} before
      * executing the query.
      *
      * @param domNode the node to start searching from
@@ -54,7 +54,7 @@ public class DomNodeUtil {
      * Evaluates the specified XPath expression from this node, returning the first matching element,
      * or {@code null} if no node matches the specified XPath expression.
      * <p>
-     * Calls {@link WebClientUtil#waitForJSExec(org.htmlunit.WebClient)} before
+     * Calls {@link WebClientUtil#waitForJSExec(WebClient)} before
      * executing the query.
      *
      * @param domNode the node to start searching from
