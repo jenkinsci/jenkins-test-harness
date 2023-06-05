@@ -16,6 +16,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
+import org.jvnet.hudson.test.JavaNetReverseProxy;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
 import org.jvnet.hudson.test.TestPluginManager;
@@ -77,6 +78,11 @@ public abstract class JmhBenchmarkState implements RootAction {
             LOGGER.log(Level.SEVERE, "Exception occurred during tearDown of Jenkins instance", e);
         } finally {
             JenkinsRule._stopJenkins(server, null, jenkins);
+            try {
+                JavaNetReverseProxy.getInstance().stop();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Unable to stop JavaNetReverseProxy server", e);
+            }
             try {
                 temporaryDirectoryAllocator.dispose();
             } catch (InterruptedException | IOException e) {
