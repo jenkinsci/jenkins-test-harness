@@ -127,7 +127,6 @@ import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -2886,8 +2885,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
     public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
-
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
