@@ -2828,8 +2828,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     // needs to keep reference, or it gets GC-ed.
     private static final Logger XML_HTTP_REQUEST_LOGGER = Logger.getLogger(XMLHttpRequest.class.getName());
     private static final Logger SPRING_LOGGER = Logger.getLogger("org.springframework");
-    private static final Logger HTMLUNIT_DOCUMENT_LOGGER = Logger.getLogger("org.htmlunit.javascript.host.Document");
-    private static final Logger HTMLUNIT_JS_LOGGER = Logger.getLogger("org.htmlunit.javascript.StrictErrorReporter");
 
     static {
         // screen scraping relies on locale being fixed.
@@ -2861,17 +2859,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             @Override
             public boolean isLoggable(LogRecord record) {
                 return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
-            }
-        });
-        // JENKINS-14749: prototype.js intentionally swallows this exception (thrown on Firefox which we simulate), but HtmlUnit still tries to log it.
-        HTMLUNIT_DOCUMENT_LOGGER.setFilter(new Filter() {
-            @Override public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().equals("Unexpected exception occurred while parsing HTML snippet");
-            }
-        });
-        HTMLUNIT_JS_LOGGER.setFilter(new Filter() {
-            @Override public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().contains("Unexpected exception occurred while parsing HTML snippet: input name=\"x\"");
             }
         });
 
