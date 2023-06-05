@@ -24,6 +24,10 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
@@ -38,11 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.swing.BoundedRangeModel;
-
 import jenkins.model.Jenkins;
-import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
-
 import org.netbeans.insane.impl.LiveEngine;
 import org.netbeans.insane.live.LiveReferences;
 import org.netbeans.insane.live.Path;

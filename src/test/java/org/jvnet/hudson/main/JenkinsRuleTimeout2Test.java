@@ -25,13 +25,12 @@
 package org.jvnet.hudson.main;
 
 import org.junit.Test;
-import static org.jvnet.hudson.main.JenkinsRuleTimeoutTestBase.hangUninterruptibly;
 
 public class JenkinsRuleTimeout2Test extends JenkinsRuleTimeoutTestBase {
 
     @Test
     public void hangUninterruptiblyInTest() {
-        hangUninterruptibly();
+        JenkinsRuleTimeoutTestBase.hangUninterruptibly();
     }
 
 }

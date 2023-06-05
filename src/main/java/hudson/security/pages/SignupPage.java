@@ -1,12 +1,12 @@
 package hudson.security.pages;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertNotNull;
+
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlPage;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertNotNull;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * The signup page for {@link hudson.security.HudsonPrivateSecurityRealm}

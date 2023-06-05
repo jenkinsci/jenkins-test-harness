@@ -23,12 +23,11 @@
  */
 package org.htmlunit;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.javascript.JavaScriptErrorListener;
 import org.junit.Assert;
-
-import java.net.MalformedURLException;
-import java.net.URL;
 
 /**
  * {@link WebClient} helper methods.

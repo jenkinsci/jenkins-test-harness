@@ -25,6 +25,7 @@
 package org.jvnet.hudson.main;
 
 import static org.junit.Assert.fail;
+
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 

@@ -24,11 +24,13 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.Items;
 import hudson.model.listeners.ItemListener;
-import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
 

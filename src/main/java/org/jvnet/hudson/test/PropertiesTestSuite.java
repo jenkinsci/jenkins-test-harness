@@ -41,15 +41,13 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.commons.io.IOUtils;
 
-import static org.jvnet.hudson.test.JellyTestSuiteBuilder.scan;
-
 /**
  * Checks things about {@code *.properties}.
  */
 public class PropertiesTestSuite extends TestSuite {
 
     public PropertiesTestSuite(File resources) throws IOException {
-        for (Map.Entry<URL,String> entry : scan(resources, "properties").entrySet()) {
+        for (Map.Entry<URL,String> entry : JellyTestSuiteBuilder.scan(resources, "properties").entrySet()) {
             addTest(new PropertiesTest(entry.getKey(), entry.getValue()));
         }
     }

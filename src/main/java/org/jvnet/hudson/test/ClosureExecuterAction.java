@@ -25,14 +25,13 @@ package org.jvnet.hudson.test;
 
 import hudson.Extension;
 import hudson.model.RootAction;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerResponse;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * Server-side logic that implements {@link HudsonTestCase#executeOnServer(java.util.concurrent.Callable)}.

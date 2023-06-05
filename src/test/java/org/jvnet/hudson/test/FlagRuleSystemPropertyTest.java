@@ -24,11 +24,13 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import org.junit.AfterClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestRule;
 
 public class FlagRuleSystemPropertyTest {

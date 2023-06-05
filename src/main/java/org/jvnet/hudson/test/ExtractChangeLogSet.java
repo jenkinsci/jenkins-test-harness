@@ -25,10 +25,8 @@ package org.jvnet.hudson.test;
 
 import hudson.model.AbstractBuild;
 import hudson.scm.ChangeLogSet;
-
-import java.util.List;
 import java.util.Iterator;
-
+import java.util.List;
 
 /**
  * @author Andrew Bayer

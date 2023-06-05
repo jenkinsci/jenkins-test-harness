@@ -24,14 +24,16 @@
 
 package org.jvnet.hudson.test;
 
-import java.lang.ref.WeakReference;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
-import static org.jvnet.hudson.test.MemoryAssert.*;
+import static org.jvnet.hudson.test.MemoryAssert.assertGC;
+import static org.jvnet.hudson.test.MemoryAssert.assertHeapUsage;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;

@@ -26,9 +26,9 @@ package org.jvnet.hudson.test.recipes;
 import hudson.PluginManager;
 import java.io.File;
 import java.lang.annotation.Documented;
-import static java.lang.annotation.ElementType.METHOD;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Constructor;
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -43,8 +43,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 @Documented
 @Recipe(WithPluginManager.RunnerImpl.class)
 @JenkinsRecipe(WithPluginManager.RuleRunnerImpl.class)
-@Target(METHOD)
-@Retention(RUNTIME)
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface WithPluginManager {
     Class<? extends PluginManager> value();
 

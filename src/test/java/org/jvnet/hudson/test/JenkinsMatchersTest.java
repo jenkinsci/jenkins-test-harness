@@ -1,16 +1,15 @@
 package org.jvnet.hudson.test;
 
-import hudson.util.Secret;
-import org.junit.Test;
-
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasPlainText;
 import static org.jvnet.hudson.test.JenkinsMatchers.matchesPattern;
+
+import hudson.util.Secret;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import org.junit.Test;
 
 public class JenkinsMatchersTest {
 

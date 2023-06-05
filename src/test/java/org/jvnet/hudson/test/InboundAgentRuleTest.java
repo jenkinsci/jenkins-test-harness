@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import static org.junit.Assert.assertTrue;
+
 import org.junit.Rule;
 import org.junit.Test;
 
