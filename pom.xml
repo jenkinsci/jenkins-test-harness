@@ -83,52 +83,20 @@ THE SOFTWARE.
         <version>1.17</version>
       </dependency>
       <dependency>
-        <groupId>org.kohsuke</groupId>
-        <artifactId>access-modifier-annotation</artifactId>
-        <version>1.31</version>
-      </dependency>
-      <dependency>
         <!-- Avoid downloading multiple jenkins core versions and tons of stapler versions due to version range usage in older libs -->
         <groupId>org.jenkins-ci.main</groupId>
         <artifactId>jenkins-core</artifactId>
         <version>${jenkins.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.kohsuke</groupId>
+        <artifactId>access-modifier-annotation</artifactId>
+        <version>1.31</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
-    <dependency>
-      <groupId>org.jenkins-ci.main</groupId>
-      <artifactId>jenkins-war</artifactId>
-      <version>${jenkins.version}</version>
-      <type>executable-war</type>
-      <!--
-        To ensure consistent set of core artifacts are used, force the users to declare
-        a dependency to war
-      -->
-      <optional>true</optional>
-      <exclusions>
-        <exclusion>
-          <groupId>log4j</groupId>
-          <artifactId>log4j</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.jenkins-ci.modules</groupId>
-          <artifactId>sshd</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>144.v5c640e68276e</version>
-      <exclusions>
-        <exclusion>
-          <groupId>commons-io</groupId>
-          <artifactId>commons-io</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
@@ -188,18 +156,40 @@ THE SOFTWARE.
       <version>${hamcrest.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>jenkins-test-harness-htmlunit</artifactId>
+      <version>144.v5c640e68276e</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>jenkins-war</artifactId>
+      <version>${jenkins.version}</version>
+      <type>executable-war</type>
+      <!--
+        To ensure consistent set of core artifacts are used, force the users to declare
+        a dependency to war
+      -->
+      <optional>true</optional>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jenkins-ci.modules</groupId>
+          <artifactId>sshd</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.netbeans.modules</groupId>
@@ -222,20 +212,30 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.jenkins-ci.modules</groupId>
+      <artifactId>instance-identity</artifactId>
+      <version>3.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>matrix-auth</artifactId>
       <version>3.1.5</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>instance-identity</artifactId>
-      <version>3.1</version>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
