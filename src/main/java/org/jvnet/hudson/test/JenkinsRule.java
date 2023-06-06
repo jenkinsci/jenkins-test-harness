@@ -2225,7 +2225,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
+     * Create a web client instance using the browser version returned by {@link BrowserVersion#getDefault()}
+     * with support for the Fetch API.
      */
     public WebClient createWebClient() {
         WebClient webClient = new WebClient();
@@ -2243,8 +2244,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private List<WebResponseListener> webResponseListeners = new ArrayList<>();
 
         public WebClient() {
-            super(BrowserVersion.BEST_SUPPORTED);
-
 //            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);

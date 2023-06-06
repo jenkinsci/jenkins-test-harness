@@ -1392,7 +1392,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
+     * Create a web client instance using the browser version returned by {@link BrowserVersion#getDefault()}
+     * with support for the Fetch API.
      */
     public WebClient createWebClient() {
         WebClient webClient = new WebClient();
@@ -1408,8 +1409,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
-            super(BrowserVersion.BEST_SUPPORTED);
-
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
