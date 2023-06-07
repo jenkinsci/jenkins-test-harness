@@ -16,8 +16,10 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
+import org.jvnet.hudson.test.JavaNetReverseProxy;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
+import org.jvnet.hudson.test.TestPluginManager;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -77,6 +79,11 @@ public abstract class JmhBenchmarkState implements RootAction {
         } finally {
             JenkinsRule._stopJenkins(server, null, jenkins);
             try {
+                JavaNetReverseProxy.getInstance().stop();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Unable to stop JavaNetReverseProxy server", e);
+            }
+            try {
                 temporaryDirectoryAllocator.dispose();
             } catch (InterruptedException | IOException e) {
                 LOGGER.log(Level.WARNING, "Unable to dispose temporary Jenkins directory" +
@@ -92,7 +99,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         server = results.left;
         ServletContext webServer = results.right;
 
-        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer);
+        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);
