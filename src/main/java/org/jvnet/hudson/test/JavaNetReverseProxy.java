@@ -61,9 +61,11 @@ public class JavaNetReverseProxy extends HttpServlet {
         String d = Util.getDigestOf(path);
 
         File cache = new File(cacheFolder, d);
-        if(!cache.exists()) {
-            URL url = new URL("https://updates.jenkins.io/" + path);
-            FileUtils.copyURLToFile(url,cache);
+        synchronized(this) {
+            if (!cache.exists()) {
+                URL url = new URL("https://updates.jenkins.io/" + path);
+                FileUtils.copyURLToFile(url,cache);
+            }
         }
 
         resp.setContentType(getMimeType(path));
