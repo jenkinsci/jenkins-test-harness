@@ -24,10 +24,11 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertEquals;
+
 import hudson.model.FreeStyleProject;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 

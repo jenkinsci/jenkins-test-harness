@@ -23,6 +23,15 @@
  */
 package org.jvnet.hudson.test;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import junit.framework.TestCase;
 import junit.framework.TestResult;
 import junit.framework.TestSuite;
@@ -33,16 +42,6 @@ import org.dom4j.io.SAXReader;
 import org.jvnet.hudson.test.junit.GroupedTest;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.jelly.JellyClassLoaderTearOff;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 /**
  * Builds up a {@link TestSuite} for performing static syntax checks on Jelly scripts.

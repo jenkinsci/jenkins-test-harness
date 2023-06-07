@@ -1,11 +1,10 @@
 package org.jvnet.hudson.test;
 
-import java.io.IOException;
-
 import hudson.Plugin;
 import hudson.PluginManager;
 import hudson.PluginWrapper;
 import hudson.Util;
+import java.io.IOException;
 
 /** 
  * {@link PluginManager} to speed up unit tests.

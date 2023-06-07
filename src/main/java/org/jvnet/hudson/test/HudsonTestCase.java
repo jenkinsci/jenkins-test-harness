@@ -28,31 +28,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
-import org.htmlunit.AjaxController;
-import org.htmlunit.AlertHandler;
-import org.htmlunit.BrowserVersion;
-import org.htmlunit.DefaultCssErrorHandler;
-import org.htmlunit.FailingHttpStatusCodeException;
-import org.htmlunit.Page;
-import org.htmlunit.WebClientUtil;
-import org.htmlunit.WebRequest;
-import org.htmlunit.cssparser.parser.CSSErrorHandler;
-import org.htmlunit.cssparser.parser.CSSException;
-import org.htmlunit.cssparser.parser.CSSParseException;
-import org.htmlunit.html.DomNode;
-import org.htmlunit.html.DomNodeUtil;
-import org.htmlunit.html.HtmlButton;
-import org.htmlunit.html.HtmlElement;
-import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlFormUtil;
-import org.htmlunit.html.HtmlImage;
-import org.htmlunit.html.HtmlInput;
-import org.htmlunit.html.HtmlPage;
-import org.htmlunit.javascript.AbstractJavaScriptEngine;
-import org.htmlunit.javascript.HtmlUnitContextFactory;
-import org.htmlunit.javascript.JavaScriptEngine;
-import org.htmlunit.javascript.host.xml.XMLHttpRequest;
-import org.htmlunit.xml.XmlPage;
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -156,8 +131,6 @@ import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
 import junit.framework.TestCase;
 import net.sf.json.JSONObject;
-import org.htmlunit.corejs.javascript.Context;
-import org.htmlunit.corejs.javascript.ContextFactory;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -180,6 +153,34 @@ import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
 import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.htmlunit.AjaxController;
+import org.htmlunit.AlertHandler;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.html.SubmittableElement;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.util.NameValuePair;
+import org.htmlunit.xml.XmlPage;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
@@ -1041,7 +1042,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(org.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(SubmittableElement)} doesn't work correctly due to the use of YUI in Jenkins.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
@@ -1391,7 +1392,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
+     * Create a web client instance using the browser version returned by {@link BrowserVersion#getDefault()}
+     * with support for the Fetch API.
      */
     public WebClient createWebClient() {
         WebClient webClient = new WebClient();
@@ -1407,8 +1409,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
-            super(BrowserVersion.BEST_SUPPORTED);
-
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
@@ -1617,10 +1617,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
 
         /**
-         * Requests a page within Hudson.
+         * Requests a page within Jenkins.
          *
          * @param relative
-         *      Relative path within Hudson. Starts without '/'.
+         *      Relative path within Jenkins. Starts without '/'.
          *      For example, "job/test/" to go to a job top page.
          */
         public HtmlPage goTo(String relative) throws IOException, SAXException {
@@ -1684,10 +1684,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
         
         /**
-         * Adds a security crumb to the quest
+         * Adds a security crumb to the request.
          */
         public WebRequest addCrumb(WebRequest req) {
-            org.htmlunit.util.NameValuePair crumb = new org.htmlunit.util.NameValuePair(
+            NameValuePair crumb = new NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
                     jenkins.getCrumbIssuer().getCrumb( null ));
             req.setRequestParameters(List.of(crumb));

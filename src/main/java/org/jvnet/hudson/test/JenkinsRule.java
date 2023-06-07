@@ -24,39 +24,17 @@
  */
 package org.jvnet.hudson.test;
 
-import org.htmlunit.AjaxController;
-import org.htmlunit.BrowserVersion;
-import org.htmlunit.DefaultCssErrorHandler;
-import org.htmlunit.ElementNotFoundException;
-import org.htmlunit.FailingHttpStatusCodeException;
-import org.htmlunit.HttpMethod;
-import org.htmlunit.Page;
-import org.htmlunit.WebClientOptions;
-import org.htmlunit.WebClientUtil;
-import org.htmlunit.WebRequest;
-import org.htmlunit.WebResponse;
-import org.htmlunit.WebResponseData;
-import org.htmlunit.WebResponseListener;
-import org.htmlunit.cssparser.parser.CSSErrorHandler;
-import org.htmlunit.cssparser.parser.CSSException;
-import org.htmlunit.cssparser.parser.CSSParseException;
-import org.htmlunit.html.DomNode;
-import org.htmlunit.html.DomNodeUtil;
-import org.htmlunit.html.HtmlButton;
-import org.htmlunit.html.HtmlElement;
-import org.htmlunit.html.HtmlElementUtil;
-import org.htmlunit.html.HtmlForm;
-import org.htmlunit.html.HtmlFormUtil;
-import org.htmlunit.html.HtmlImage;
-import org.htmlunit.html.HtmlInput;
-import org.htmlunit.html.HtmlPage;
-import org.htmlunit.javascript.AbstractJavaScriptEngine;
-import org.htmlunit.javascript.HtmlUnitContextFactory;
-import org.htmlunit.javascript.JavaScriptEngine;
-import org.htmlunit.javascript.host.xml.XMLHttpRequest;
-import org.htmlunit.util.NameValuePair;
-import org.htmlunit.util.WebResponseWrapper;
-import org.htmlunit.xml.XmlPage;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
@@ -149,7 +127,6 @@ import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -189,11 +166,8 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
-
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.htmlunit.corejs.javascript.Context;
-import org.htmlunit.corejs.javascript.ContextFactory;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -202,7 +176,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.MimeTypes;
@@ -220,16 +193,41 @@ import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
 import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.htmlunit.AjaxController;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.HttpMethod;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientOptions;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.WebResponse;
+import org.htmlunit.WebResponseData;
+import org.htmlunit.WebResponseListener;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlElementUtil;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.html.SubmittableElement;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.util.NameValuePair;
+import org.htmlunit.util.WebResponseWrapper;
+import org.htmlunit.xml.XmlPage;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.MethodRule;
@@ -1302,7 +1300,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             WebResponseData webResponseData;
             try (InputStream responseStream = conn.getInputStream()) {
-                byte[] bytes = IOUtils.toByteArray(responseStream);
+                byte[] bytes = responseStream.readAllBytes();
                 webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
             }
 
@@ -1691,7 +1689,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(org.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(SubmittableElement)} doesn't work correctly due to the use of YUI in Jenkins.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form);
@@ -2227,7 +2225,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
+     * Create a web client instance using the browser version returned by {@link BrowserVersion#getDefault()}
+     * with support for the Fetch API.
      */
     public WebClient createWebClient() {
         WebClient webClient = new WebClient();
@@ -2245,8 +2244,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private List<WebResponseListener> webResponseListeners = new ArrayList<>();
 
         public WebClient() {
-            super(BrowserVersion.BEST_SUPPORTED);
-
 //            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
@@ -2425,7 +2422,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Short-hand method to ease discovery of feature + improve readability
          * 
          * @param enabled {@code true} to enable automatic redirection
-         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public void setRedirectEnabled(boolean enabled) {
@@ -2438,7 +2435,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *
          * @param enabled {@code true} to enable automatic redirection
          * @return self for fluent method chaining
-         * @see org.htmlunit.WebClientOptions#setRedirectEnabled(boolean)
+         * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
          */
         public WebClient withRedirectEnabled(boolean enabled) {
@@ -2830,9 +2827,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     // needs to keep reference, or it gets GC-ed.
     private static final Logger XML_HTTP_REQUEST_LOGGER = Logger.getLogger(XMLHttpRequest.class.getName());
     private static final Logger SPRING_LOGGER = Logger.getLogger("org.springframework");
-    private static final Logger JETTY_LOGGER = Logger.getLogger("org.mortbay.log");
-    private static final Logger HTMLUNIT_DOCUMENT_LOGGER = Logger.getLogger("org.htmlunit.javascript.host.Document");
-    private static final Logger HTMLUNIT_JS_LOGGER = Logger.getLogger("org.htmlunit.javascript.StrictErrorReporter");
 
     static {
         // screen scraping relies on locale being fixed.
@@ -2855,7 +2849,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         // suppress some logging which we do not much care about here
         SPRING_LOGGER.setLevel(Level.WARNING);
-        JETTY_LOGGER.setLevel(Level.WARNING);
 
         // hudson-behavior.js relies on this to decide whether it's running unit tests.
         Main.isUnitTest = true;
@@ -2867,17 +2860,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
         });
-        // JENKINS-14749: prototype.js intentionally swallows this exception (thrown on Firefox which we simulate), but HtmlUnit still tries to log it.
-        HTMLUNIT_DOCUMENT_LOGGER.setFilter(new Filter() {
-            @Override public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().equals("Unexpected exception occurred while parsing HTML snippet");
-            }
-        });
-        HTMLUNIT_JS_LOGGER.setFilter(new Filter() {
-            @Override public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().contains("Unexpected exception occurred while parsing HTML snippet: input name=\"x\"");
-            }
-        });
 
         // remove the upper bound of the POST data size in Jetty.
         System.setProperty("org.mortbay.jetty.Request.maxFormContentSize","-1");
@@ -2886,8 +2868,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
     public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
-
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.

@@ -37,8 +37,6 @@ import hudson.scm.NullSCM;
 import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
-import org.xml.sax.SAXException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -47,6 +45,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.xml.sax.SAXException;
 
 /**
  * Fake SCM implementation that can report arbitrary commits from arbitrary users.

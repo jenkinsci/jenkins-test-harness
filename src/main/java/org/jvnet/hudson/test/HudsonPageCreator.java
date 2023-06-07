@@ -23,14 +23,13 @@
  */
 package org.jvnet.hudson.test;
 
-import org.htmlunit.DefaultPageCreator;
-import org.htmlunit.Page;
-import org.htmlunit.WebResponse;
-import org.htmlunit.WebWindow;
-import org.htmlunit.PageCreator;
-
 import java.io.IOException;
 import java.util.Locale;
+import org.htmlunit.DefaultPageCreator;
+import org.htmlunit.Page;
+import org.htmlunit.PageCreator;
+import org.htmlunit.WebResponse;
+import org.htmlunit.WebWindow;
 
 /**
  * {@link PageCreator} that understands JNLP file.

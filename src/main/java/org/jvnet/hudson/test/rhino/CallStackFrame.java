@@ -23,13 +23,12 @@
  */
 package org.jvnet.hudson.test.rhino;
 
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.htmlunit.corejs.javascript.Context;
 import org.htmlunit.corejs.javascript.Scriptable;
 import org.htmlunit.corejs.javascript.debug.DebugFrame;
 import org.htmlunit.corejs.javascript.debug.DebuggableScript;
-
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Stack frame.

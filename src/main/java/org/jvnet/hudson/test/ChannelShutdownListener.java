@@ -7,7 +7,6 @@ import hudson.model.TaskListener;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import hudson.slaves.ComputerListener;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

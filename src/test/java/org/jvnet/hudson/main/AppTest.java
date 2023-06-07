@@ -25,14 +25,13 @@ package org.jvnet.hudson.main;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
-import hudson.tasks.Shell;
 import hudson.tasks.BatchFile;
+import hudson.tasks.Shell;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Experimenting with Hudson test suite.

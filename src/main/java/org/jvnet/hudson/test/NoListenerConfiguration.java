@@ -25,10 +25,9 @@ package org.jvnet.hudson.test;
 
 import hudson.WebAppMain;
 import java.util.EventListener;
+import javax.servlet.ServletContextListener;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.webapp.WebAppContext;
-
-import javax.servlet.ServletContextListener;
 
 /**
  * Kills off the {@link WebAppMain} {@link ServletContextListener}.

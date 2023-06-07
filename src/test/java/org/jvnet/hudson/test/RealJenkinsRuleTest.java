@@ -48,9 +48,9 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
@@ -65,7 +65,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -257,7 +256,7 @@ public class RealJenkinsRuleTest {
     public void test503Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(503);
-        when(conn.getErrorStream()).thenReturn(IOUtils.toInputStream("Jenkins Custom Error", "UTF-8"));
+        when(conn.getErrorStream()).thenReturn(new ByteArrayInputStream("Jenkins Custom Error".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsRule.checkResult(conn);
 
@@ -269,7 +268,7 @@ public class RealJenkinsRuleTest {
 
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(200);
-        when(conn.getInputStream()).thenReturn(IOUtils.toInputStream("blah blah blah", "UTF-8"));
+        when(conn.getInputStream()).thenReturn(new ByteArrayInputStream("blah blah blah".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsRule.checkResult(conn);
 

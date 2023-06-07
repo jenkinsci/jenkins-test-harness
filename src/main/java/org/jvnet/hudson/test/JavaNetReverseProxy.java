@@ -1,10 +1,10 @@
 package org.jvnet.hudson.test;
 
 import hudson.Util;
-import hudson.util.IOUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -69,7 +69,7 @@ public class JavaNetReverseProxy extends HttpServlet {
         }
 
         resp.setContentType(getMimeType(path));
-        IOUtils.copy(cache,resp.getOutputStream());
+        Files.copy(cache.toPath(), resp.getOutputStream());
     }
 
     private String getMimeType(String path) {
