@@ -187,6 +187,7 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -2862,7 +2863,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty("org.mortbay.jetty.Request.maxFormContentSize","-1");
+        System.setProperty(ContextHandler.MAX_FORM_CONTENT_SIZE_KEY, "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
