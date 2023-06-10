@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
@@ -71,6 +72,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
@@ -150,7 +152,7 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * JENKINS_HOME dir, consistent across restarts.
      */
-    private File home;
+    private AtomicReference<File> home;
 
     /**
      * TCP/IP port that the server is listening on.
@@ -195,6 +197,23 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+
+    public RealJenkinsRule() {
+        home = new AtomicReference<>();
+    }
+
+    /**
+     * Links this rule to another, with {@link #getHome} to be initialized by whichever copy starts first.
+     * Also copies configuration related to the setup of that directory:
+     * {@link #includeTestClasspathPlugins(boolean)}, {@link #addPlugins}, and {@link #omitPlugins}.
+     * Other configuration such as {@link #javaOptions(String...)} may be applied to both, but that is your choice.
+     */
+    public RealJenkinsRule(RealJenkinsRule source) {
+        this.home = source.home;
+        this.includeTestClasspathPlugins = source.includeTestClasspathPlugins;
+        this.extraPlugins.addAll(source.extraPlugins);
+        this.skippedPlugins.addAll(source.skippedPlugins);
+    }
 
     /**
      * Add some plugins to the test classpath.
@@ -409,16 +428,24 @@ public final class RealJenkinsRule implements TestRule {
         return new Statement() {
             @Override public void evaluate() throws Throwable {
                 System.out.println("=== Starting " + description);
+                if (war == null) {
+                    war = findJenkinsWar();
+                }
+                if (home.get() != null) {
+                    try {
+                        base.evaluate();
+                    } finally {
+                        stopJenkins();
+                    }
+                    return;
+                }
                 try {
-                    home = tmp.allocate();
+                    home.set(tmp.allocate());
                     LocalData localData = description.getAnnotation(LocalData.class);
                     if (localData != null) {
-                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(home);
+                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
                     }
-                    if (war == null) {
-                        war = findJenkinsWar();
-                    }
-                    File plugins = new File(home, "plugins");
+                    File plugins = new File(getHome(), "plugins");
                     plugins.mkdir();
                     FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
 
@@ -581,7 +608,7 @@ public final class RealJenkinsRule implements TestRule {
      * Normally it will suffice to use {@link LocalData} to populate files.
      */
     public File getHome() {
-        return home;
+        return home.get();
     }
 
     private static File findJenkinsWar() throws Exception {
@@ -602,13 +629,14 @@ public final class RealJenkinsRule implements TestRule {
         return WarExploder.findJenkinsWar();
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
     public void startJenkins() throws Throwable {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         String cp = System.getProperty("java.class.path");
         Files.writeString(
-                home.toPath().resolve("RealJenkinsRule-cp.txt"),
+                getHome().toPath().resolve("RealJenkinsRule-cp.txt"),
                 Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
                 StandardCharsets.UTF_8);
         List<String> argv = new ArrayList<>(List.of(
@@ -622,7 +650,8 @@ public final class RealJenkinsRule implements TestRule {
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
         }
-        portFile = new File(home, "jenkins-port.txt");
+        portFile = File.createTempFile("jenkins-port", ".txt", getHome());
+        Files.delete(portFile.toPath());
         argv.add("-Dwinstone.portFileName=" + portFile);
         boolean debugging = new DisableOnDebug(null).isDebugging();
         if (debugging) {
@@ -641,7 +670,7 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
         Map<String, String> env = new TreeMap<>();
-        env.put("JENKINS_HOME", home.getAbsolutePath());
+        env.put("JENKINS_HOME", getHome().getAbsolutePath());
         String forkNumber = System.getProperty("surefire.forkNumber");
         if (forkNumber != null) {
             // https://maven.apache.org/surefire/maven-surefire-plugin/examples/fork-options-and-parallel-execution.html#forked-test-execution
@@ -798,7 +827,7 @@ public final class RealJenkinsRule implements TestRule {
         try {
             OutputPayload result = (OutputPayload) Init2.readSer(conn.getInputStream(), null);
             if (result.error != null) {
-                throw new StepException(result.error);
+                throw new StepException(result.error, getName());
             }
             return (T) result.result;
         } catch (IOException e) {
@@ -1043,8 +1072,8 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     public static class StepException extends Exception {
-        public StepException(Throwable cause) {
-            super("Remote step threw an exception: " + cause, cause);
+        StepException(Throwable cause, @CheckForNull String name) {
+            super(name != null ? "Remote step in " + name + " threw an exception: " + cause : "Remote step threw an exception: " + cause, cause);
         }
     }
 
