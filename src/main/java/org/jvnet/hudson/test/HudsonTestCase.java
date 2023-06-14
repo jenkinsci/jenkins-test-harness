@@ -1443,10 +1443,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 }
 
                 private boolean ignore(final CSSParseException exception) {
-                    String uri = exception.getURI();
-                    return uri.contains("/yui/")
-                            // TODO JENKINS-14749: these are a mess today, and we know that
-                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
+                    return exception.getURI().contains("/yui/");
                 }
             });
 
