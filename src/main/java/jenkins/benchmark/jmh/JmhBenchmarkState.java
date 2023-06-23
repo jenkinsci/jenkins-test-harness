@@ -14,8 +14,8 @@ import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.jvnet.hudson.test.JavaNetReverseProxy;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
@@ -93,11 +93,15 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::set,
-                getClass().getClassLoader(), localPort.get(), JenkinsRule::_configureUserRealm);
+        server = JenkinsRule._createWebServer(
+                contextPath,
+                localPort::set,
+                getClass().getClassLoader(),
+                localPort.get(),
+                JenkinsRule::_configureUserRealm);
 
-        server = results.left;
-        ServletContext webServer = results.right;
+        ServletContext webServer =
+                server.getChildHandlerByClass(ContextHandler.class).getServletContext();
 
         jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);
