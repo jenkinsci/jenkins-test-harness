@@ -95,6 +95,16 @@ public class RealJenkinsRuleTest {
         assertThat(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException)).getMessage(),
             containsString("IllegalStateException: something is wrong"));
     }
+
+    @Test public void killedExternally() throws Throwable {
+        rr.startJenkins();
+        try {
+            rr.proc.destroy();
+        } finally {
+            assertThrows("nonzero exit code: 143", AssertionError.class, () -> rr.stopJenkins());
+        }
+    }
+
     private static void throwsException(JenkinsRule r) throws Throwable {
         throw new IllegalStateException("something is wrong");
     }

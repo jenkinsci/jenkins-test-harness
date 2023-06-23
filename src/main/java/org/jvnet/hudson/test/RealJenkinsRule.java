@@ -47,6 +47,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -183,7 +184,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private String host = "localhost";
 
-    private Process proc;
+    Process proc;
 
     private File portFile;
 
@@ -795,8 +796,15 @@ public final class RealJenkinsRule implements TestRule {
         if (proc != null) {
             Process _proc = proc;
             proc = null;
-            endpoint("exit").openStream().close();
-
+            if (_proc.isAlive()) {
+                try {
+                    endpoint("exit").openStream().close();
+                } catch (ConnectException e) {
+                    System.err.println("Unable to connect to the Jenkins process to stop it.");
+                }
+            } else {
+                System.err.println("Jenkins process was already terminated.");
+            }
             if (!_proc.waitFor(60, TimeUnit.SECONDS) ) {
                 System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
                 _proc.destroyForcibly();
