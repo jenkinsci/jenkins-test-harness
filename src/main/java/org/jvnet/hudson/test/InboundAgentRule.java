@@ -31,6 +31,7 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.model.Slave;
+import hudson.remoting.VirtualChannel;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
@@ -471,7 +472,9 @@ public final class InboundAgentRule extends ExternalResource {
             }
             r.waitOnline((Slave) node);
             if (!loggers.isEmpty()) {
-                node.getChannel().call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
+                VirtualChannel channel = node.getChannel();
+                assert channel != null;
+                channel.call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
             }
         }
     }
