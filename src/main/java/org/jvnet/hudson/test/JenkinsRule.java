@@ -108,6 +108,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.lang.annotation.Annotation;
 import java.lang.management.ThreadInfo;
@@ -1193,27 +1194,29 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param loggers {@link Logger#getName} tied to log level
      */
     public void showAgentLogs(Slave s, Map<String, Level> loggers) throws Exception {
-        s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers));
+        s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers, true));
     }
 
-    private static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
+    static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
         private final String name;
         private final Map<String, Level> loggers;
-        private final TaskListener stderr = StreamTaskListener.fromStderr();
+        private final TaskListener stderr;
         private final long start = DeltaSupportLogFormatter.start;
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         private static final List<Logger> loggerReferences = new LinkedList<>();
-        RemoteLogDumper(String name, Map<String, Level> loggers) {
+        RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
             this.name = name;
             this.loggers = loggers;
+            stderr = forward ? StreamTaskListener.fromStderr() : null;
         }
         @Override public Void call() throws RuntimeException {
+            PrintStream ps = stderr != null ? stderr.getLogger() : System.err;
             Handler handler = new Handler() {
                 final Formatter formatter = new DeltaSupportLogFormatter();
                 @Override public void publish(LogRecord record) {
                     if (isLoggable(record)) {
-                        stderr.getLogger().print(formatter.format(record).replaceAll("(?m)^([ 0-9.]*)", "$1[" + name + "] "));
-                        stderr.getLogger().flush();
+                        ps.print(formatter.format(record).replaceAll("(?m)^([ 0-9.]*)", name != null ? "$1[" + name + "] " : "$1 "));
+                        ps.flush();
                     }
                 }
                 @Override public void flush() {}
@@ -1227,8 +1230,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 loggerReferences.add(logger);
             });
             DeltaSupportLogFormatter.start = start; // match clock time on master
-            stderr.getLogger().println("Set up log dumper on " + name + ": " + loggers);
-            stderr.getLogger().flush();
+            if (name != null) {
+                ps.println("Set up log dumper on " + name + ": " + loggers);
+            } else {
+                ps.println("Set up log dumper: " + loggers);
+            }
+            ps.flush();
             return null;
         }
     }
