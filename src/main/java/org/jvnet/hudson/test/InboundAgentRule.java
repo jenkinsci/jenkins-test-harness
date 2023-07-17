@@ -31,6 +31,7 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.model.Slave;
+import hudson.remoting.VirtualChannel;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
@@ -40,10 +41,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
@@ -84,7 +88,7 @@ public final class InboundAgentRule extends ExternalResource {
         private boolean webSocket;
         @CheckForNull private String tunnel;
         private boolean start = true;
-
+        private final Map<String, Level> loggers = new LinkedHashMap<>();
         private String label;
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
@@ -206,6 +210,20 @@ public final class InboundAgentRule extends ExternalResource {
                 return this;
             }
 
+            public Builder withLogger(Class<?> clazz, Level level) {
+                return withLogger(clazz.getName(), level);
+            }
+
+            public Builder withPackageLogger(Class<?> clazz, Level level) {
+                return withLogger(clazz.getPackageName(), level);
+            }
+
+            public Builder withLogger(String logger, Level level) {
+                options.loggers.put(logger, level);
+                return this;
+            }
+
+
             /**
              * Build and return an {@link Options}.
              *
@@ -270,7 +288,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(GetAgentArguments.get(r, name), options);
-        WaitForAgentOnline.wait(r, name);
+        WaitForAgentOnline.wait(r, name, options.loggers);
     }
 
     /**
@@ -281,7 +299,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         start(r.runRemotely(new GetAgentArguments(name)), options);
-        r.runRemotely(new WaitForAgentOnline(name));
+        r.runRemotely(new WaitForAgentOnline(name, options.loggers));
     }
 
     @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
@@ -432,17 +450,19 @@ public final class InboundAgentRule extends ExternalResource {
 
     private static class WaitForAgentOnline implements RealJenkinsRule.Step {
         private final String name;
+        private final Map<String, Level> loggers;
 
-        WaitForAgentOnline(String name) {
+        WaitForAgentOnline(String name, Map<String, Level> loggers) {
             this.name = name;
+            this.loggers = loggers;
         }
 
         @Override
         public void run(JenkinsRule r) throws Throwable {
-            wait(r, name);
+            wait(r, name, loggers);
         }
 
-        static void wait(JenkinsRule r, String name) throws Exception {
+        static void wait(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
             Node node = r.jenkins.getNode(name);
             if (node == null) {
                 throw new AssertionError("no such agent: " + name);
@@ -451,6 +471,11 @@ public final class InboundAgentRule extends ExternalResource {
                 throw new AssertionError("agent is not a Slave: " + name);
             }
             r.waitOnline((Slave) node);
+            if (!loggers.isEmpty()) {
+                VirtualChannel channel = node.getChannel();
+                assert channel != null;
+                channel.call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
+            }
         }
     }
 
