@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [":dependencyDashboard"],
+  "enabledManagers": ["regex"],
+  "regexManagers": [
+    {
+      "fileMatch": ["^Jenkinsfile$"],
+      "matchStrings": ["jenkins: '(?<currentValue>.*?)'"],
+      "depNameTemplate": "org.jenkins-ci.main:jenkins-war",
+      "datasourceTemplate": "maven",
+      "registryUrlTemplate": "https://repo.jenkins-ci.org/releases/"
+    }
+  ]
+}
