@@ -56,7 +56,8 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.361</jenkins.version>
+    <!-- TODO https://ci.jenkins.io/job/Core/job/jenkins/job/jakarta/ -->
+    <jenkins.version>2.418-rc34039.9c17f4f87a_b_3</jenkins.version>
     <jmh.version>1.36</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
@@ -72,7 +73,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>10.0.15</version>
+        <version>11.0.15</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -325,6 +326,22 @@ THE SOFTWARE.
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <extensions>true</extensions>
+      </plugin>
+      <!-- TODO pending parent POM -->
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>display-info</id>
+            <configuration>
+              <rules>
+                <enforceBytecodeVersion>
+                  <maxJdkVersion>17</maxJdkVersion>
+                </enforceBytecodeVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

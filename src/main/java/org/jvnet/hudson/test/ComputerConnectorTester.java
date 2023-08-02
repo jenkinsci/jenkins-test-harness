@@ -28,9 +28,9 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerConnectorDescriptor;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;
-import javax.servlet.ServletException;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
