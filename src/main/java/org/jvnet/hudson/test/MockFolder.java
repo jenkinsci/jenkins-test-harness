@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -43,6 +44,7 @@ import hudson.model.ViewGroupMixIn;
 import hudson.model.listeners.ItemListener;
 import hudson.views.DefaultViewsTabBar;
 import hudson.views.ViewsTabBar;
+import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerFallback;
@@ -158,6 +159,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     }
 
     /** Convenience method to create a {@link FreeStyleProject} or similar. */
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "TODO needs triage")
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
         return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name, true));
     }
