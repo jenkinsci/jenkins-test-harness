@@ -57,7 +57,7 @@ THE SOFTWARE.
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.361</jenkins.version>
-    <jmh.version>1.36</jmh.version>
+    <jmh.version>1.37</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
