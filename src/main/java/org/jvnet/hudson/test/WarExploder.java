@@ -159,7 +159,6 @@ public final class WarExploder {
         // multiple surefire forks can be occuring in parallel (which is different processes)
         // so we can not use synchronisation here.
         Path lock = new File(explodeDir + ".lock").toPath();
-        // TODO do we need write to get the lock?
         // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable
         // but the lock we subsequently obtain on the file.
         try (FileChannel lockChannel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -180,7 +179,7 @@ public final class WarExploder {
 
     private static FileLock getLockForChannel(FileChannel channel) throws IOException, InterruptedException {
         FileLock lock = null;
-        int itteration = 0;
+        int iteration = 0;
         while (lock == null) {
             try {
                 lock = channel.tryLock();
@@ -191,7 +190,7 @@ public final class WarExploder {
                 // generic failure
             }
             if (lock == null) {
-                if (++itteration % 50 == 0) {
+                if (++iteration % 50 == 0) {
                     // only log every 5 seconds.
                     LOGGER.log(Level.INFO, "Waiting for an different JVM or thread to finish the unpack of the war");
                 }
