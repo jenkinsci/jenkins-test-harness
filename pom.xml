@@ -61,7 +61,7 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
 
     <!-- may use e.g. 2C for 2 × (number of cores) -->
-    <concurrency>1</concurrency>
+    <forkCount>1</forkCount>
 
     <!-- Normally filled in by "maven-hpi-plugin" with the path to "org-netbeans-insane-hook.jar" extracted from this repository -->
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
@@ -291,7 +291,7 @@ THE SOFTWARE.
             <buildDirectory>${project.build.directory}</buildDirectory>
           </systemPropertyVariables>
           <reuseForks>false</reuseForks>
-          <forkCount>${concurrency}</forkCount>
+          <forkCount>${forkCount}</forkCount>
           <trimStackTrace>false</trimStackTrace>
         </configuration>
       </plugin>
