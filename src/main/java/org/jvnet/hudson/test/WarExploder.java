@@ -156,7 +156,7 @@ public final class WarExploder {
         File explodeDir = new File(buildDirectory, "jenkins-for-test").getAbsoluteFile();
         explodeDir.getParentFile().mkdirs();
 
-        // multiple surefire forks can be occuring in parallel (which is different processes)
+        // multiple surefire forks can be running in parallel (which are different processes)
         // so we can not use synchronisation here.
         Path lock = new File(explodeDir + ".lock").toPath();
         // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable
@@ -184,7 +184,7 @@ public final class WarExploder {
             try {
                 lock = channel.tryLock();
             } catch (OverlappingFileLockException ignored) {
-                // should only occur we have multiple threads in this JVM attempting to lock this file
+                // should only occur when we have multiple threads in this JVM attempting to lock this file
                 // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
                 // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
                 // generic failure
@@ -192,7 +192,7 @@ public final class WarExploder {
             if (lock == null) {
                 if (++iteration % 50 == 0) {
                     // only log every 5 seconds.
-                    LOGGER.log(Level.INFO, "Waiting for an different JVM or thread to finish the unpack of the war");
+                    LOGGER.log(Level.INFO, "Waiting for a different JVM or thread to finish unpacking the war");
                 }
                 Thread.sleep(100);
             }
