@@ -159,7 +159,7 @@ public final class WarExploder {
         // multiple surefire forks can be running in parallel (which are different processes)
         // so we can not use synchronisation here.
         Path lock = new File(explodeDir + ".lock").toPath();
-        // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable
+        // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable)
         // but the lock we subsequently obtain on the file.
         try (FileChannel lockChannel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
                 FileLock fl = getLockForChannel(lockChannel)) {
@@ -178,26 +178,25 @@ public final class WarExploder {
     }
 
     private static FileLock getLockForChannel(FileChannel channel) throws IOException, InterruptedException {
-        FileLock lock = null;
         int iteration = 0;
-        while (lock == null) {
+        while (true) {
             try {
-                lock = channel.tryLock();
+                FileLock lock = channel.tryLock();
+                if (lock != null) {
+                    return lock;
+                }
             } catch (OverlappingFileLockException ignored) {
                 // should only occur when we have multiple threads in this JVM attempting to lock this file
                 // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
                 // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
                 // generic failure
             }
-            if (lock == null) {
-                if (++iteration % 50 == 0) {
-                    // only log every 5 seconds.
-                    LOGGER.log(Level.INFO, "Waiting for a different JVM or thread to finish unpacking the war");
-                }
-                Thread.sleep(100);
+            if (++iteration % 50 == 0) {
+                // only log every 5 seconds.
+                LOGGER.log(Level.INFO, "Waiting for a different JVM or thread to finish unpacking the war");
             }
+            Thread.sleep(100);
         }
-        return lock;
     }
 
     private WarExploder() {}
