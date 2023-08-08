@@ -30,6 +30,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -147,28 +152,53 @@ public final class WarExploder {
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case
         File buildDirectory = new File(System.getProperty("buildDirectory", "target"));
+
         File explodeDir = new File(buildDirectory, "jenkins-for-test").getAbsoluteFile();
         explodeDir.getParentFile().mkdirs();
-        while (new File(explodeDir + ".exploding").isFile()) {
-            explodeDir = new File(explodeDir + "x");
-        }
-        File timestamp = new File(explodeDir,".timestamp");
 
-        if(!timestamp.exists() || (timestamp.lastModified()!=war.lastModified())) {
-            LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
-            new FileOutputStream(explodeDir + ".exploding").close();
-            new FilePath(explodeDir).deleteRecursive();
-            new FilePath(war).unzip(new FilePath(explodeDir));
-            if(!explodeDir.exists())    // this is supposed to be impossible, but I'm investigating HUDSON-2605
-                throw new IOException("Failed to explode "+war);
-            new FileOutputStream(timestamp).close();
-            timestamp.setLastModified(war.lastModified());
-            new File(explodeDir + ".exploding").delete();
-        } else {
-            LOGGER.log(Level.INFO, "Picking up existing exploded jenkins.war at {0}", explodeDir.getAbsolutePath());
+        // multiple surefire forks can be occuring in parallel (which is different processes)
+        // so we can not use synchronisation here.
+        Path lock = new File(explodeDir + ".lock").toPath();
+        // TODO do we need write to get the lock?
+        // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable
+        // but the lock we subsequently obtain on the file.
+        try (FileChannel lockChannel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+                FileLock fl = getLockForChannel(lockChannel)) {
+            File timestamp = new File(explodeDir,".timestamp");
+            if(!timestamp.exists() || (timestamp.lastModified() != war.lastModified())) {
+                LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
+                new FilePath(explodeDir).deleteRecursive();
+                new FilePath(war).unzip(new FilePath(explodeDir));
+                timestamp.createNewFile();
+                timestamp.setLastModified(war.lastModified());
+            } else {
+                LOGGER.log(Level.INFO, "Picking up existing exploded jenkins.war at {0}", explodeDir.getAbsolutePath());
+            }
         }
-
         return explodeDir;
+    }
+
+    private static FileLock getLockForChannel(FileChannel channel) throws IOException, InterruptedException {
+        FileLock lock = null;
+        int itteration = 0;
+        while (lock == null) {
+            try {
+                lock = channel.tryLock();
+            } catch (OverlappingFileLockException ignored) {
+                // should only occur we have multiple threads in this JVM attempting to lock this file
+                // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
+                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
+                // generic failure
+            }
+            if (lock == null) {
+                if (++itteration % 50 == 0) {
+                    // only log every 5 seconds.
+                    LOGGER.log(Level.INFO, "Waiting for an different JVM or thread to finish the unpack of the war");
+                }
+                Thread.sleep(100);
+            }
+        }
+        return lock;
     }
 
     private WarExploder() {}
