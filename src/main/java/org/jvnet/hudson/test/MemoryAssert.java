@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeTrue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -294,7 +295,16 @@ public class MemoryAssert {
         }
         // TODO consider also: rootsHint2.add(Thread.getAllStackTraces().keySet()); // https://stackoverflow.com/a/3018672/12916
 
-        return engine.trace(objs, rootsHint2);
+        try {
+            return engine.trace(objs, rootsHint2);
+        } catch (NoClassDefFoundError e) {
+            if (e.getMessage().contains("MakeAccessible")) {
+                assumeNoException(e);
+                return null;
+            } else {
+                throw e;
+            }
+        }
     }
 
 }
