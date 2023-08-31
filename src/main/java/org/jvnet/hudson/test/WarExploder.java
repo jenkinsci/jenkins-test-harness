@@ -75,12 +75,14 @@ public final class WarExploder {
         File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
-            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
+            LOGGER.log(Level.INFO, "Using WAR file path {0} specified by the {1} system property",
                     new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
             if (!war.exists()) {
-                throw new IOException("A Predefined WAR file path does not exist: " + war);
+                throw new IOException("The WAR file path " + war + " specified by the " + JENKINS_WAR_PATH_PROPERTY_NAME
+                        + " system property does not exist");
             } else if (!war.isFile()) {
-                throw new IOException("A Predefined WAR file path does not point to a file: " + war);
+                throw new IOException("The WAR file path " + war + " specified by the " + JENKINS_WAR_PATH_PROPERTY_NAME
+                        + " system property is not a file");
             }
         } else {
             // locate jenkins.war
