@@ -262,6 +262,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * @deprecated
      *      Use {@link #pluginManager}
      */
+    @Deprecated
     public boolean useLocalPluginManager;
 
     /**
@@ -800,7 +801,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
+     * See <a href="https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing">Configuration Round-trip Testing</a>
      */
     protected <P extends Job> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job,"configure").getFormByName("config"));
@@ -1647,6 +1648,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          *      a relative path within the Hudson being tested. (IOW, if you really need to hit
          *      a website on the internet, there's nothing wrong with using this method.)
          */
+        @Deprecated
         @SuppressWarnings("unchecked")
         @Override
         public Page getPage(String url) throws IOException, FailingHttpStatusCodeException {

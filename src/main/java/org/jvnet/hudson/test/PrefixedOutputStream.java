@@ -68,6 +68,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
             this.code = code;
         }
 
+        @Override
         public String getCode() {
             return code;
         }

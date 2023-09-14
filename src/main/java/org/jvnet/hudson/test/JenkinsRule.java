@@ -324,6 +324,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated
      *      Use {@link #pluginManager}
      */
+    @Deprecated
     public boolean useLocalPluginManager;
 
     /**
@@ -1377,7 +1378,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
+     * See <a href="https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing">Configuration Round-trip Testing</a>
      */
     public <P extends Item> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job, "configure").getFormByName("config"));
@@ -1780,7 +1781,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      ','-separated list of property names that are compared.
      * @since 1.297
      */
-    public void assertEqualBeans(Object lhs, Object rhs, String properties) throws Exception {
+    public void assertEqualBeans(Object lhs, Object rhs, String properties) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         assertThat("LHS", lhs, notNullValue());
         assertThat("RHS", rhs, notNullValue());
         for (String p : properties.split(",")) {
@@ -1824,7 +1825,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Works like {@link #assertEqualBeans(Object, Object, String)} but figure out the properties
      * via {@link org.kohsuke.stapler.DataBoundConstructor} and {@link org.kohsuke.stapler.DataBoundSetter}
      */
-    public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws Exception {
+    public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if (lhs == null && rhs == null) {
             return;
         }
@@ -1856,7 +1857,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertEqualProperties(lhs, rhs, setterNames.toArray(new String[0]), setterTypes.toArray(new Class<?>[0]));
     }
 
-    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
+    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         List<String> primitiveProperties = new ArrayList<>();
 
         for (int i=0; i<types.length; i++) {
@@ -2634,6 +2635,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *      a relative path within the Hudson being tested. (IOW, if you really need to hit
          *      a website on the internet, there's nothing wrong with using this method.)
          */
+        @Deprecated
         @SuppressWarnings("unchecked")
         @Override
         public Page getPage(String url) throws IOException, FailingHttpStatusCodeException {
