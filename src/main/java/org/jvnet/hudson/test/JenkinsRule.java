@@ -324,6 +324,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @deprecated
      *      Use {@link #pluginManager}
      */
+    @Deprecated
     public boolean useLocalPluginManager;
 
     /**
@@ -2634,6 +2635,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *      a relative path within the Hudson being tested. (IOW, if you really need to hit
          *      a website on the internet, there's nothing wrong with using this method.)
          */
+        @Deprecated
         @SuppressWarnings("unchecked")
         @Override
         public Page getPage(String url) throws IOException, FailingHttpStatusCodeException {
