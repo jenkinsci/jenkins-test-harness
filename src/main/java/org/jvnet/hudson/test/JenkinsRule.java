@@ -1781,7 +1781,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      ','-separated list of property names that are compared.
      * @since 1.297
      */
-    public void assertEqualBeans(Object lhs, Object rhs, String properties) throws Exception {
+    public void assertEqualBeans(Object lhs, Object rhs, String properties) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         assertThat("LHS", lhs, notNullValue());
         assertThat("RHS", rhs, notNullValue());
         for (String p : properties.split(",")) {
@@ -1825,7 +1825,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Works like {@link #assertEqualBeans(Object, Object, String)} but figure out the properties
      * via {@link org.kohsuke.stapler.DataBoundConstructor} and {@link org.kohsuke.stapler.DataBoundSetter}
      */
-    public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws Exception {
+    public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if (lhs == null && rhs == null) {
             return;
         }
@@ -1857,7 +1857,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertEqualProperties(lhs, rhs, setterNames.toArray(new String[0]), setterTypes.toArray(new Class<?>[0]));
     }
 
-    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException, Exception {
+    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         List<String> primitiveProperties = new ArrayList<>();
 
         for (int i=0; i<types.length; i++) {
