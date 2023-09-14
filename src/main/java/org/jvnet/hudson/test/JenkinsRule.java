@@ -1378,7 +1378,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing
+     * See <a href="https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing">Configuration Round-trip Testing</a>
      */
     public <P extends Item> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job, "configure").getFormByName("config"));
