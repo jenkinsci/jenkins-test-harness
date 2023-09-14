@@ -88,7 +88,9 @@ public class CLICommandInvoker {
         this.rule = rule;
         this.command = CLICommand.clone(command);
 
-        if (this.command == null) throw new AssertionError("No such command: " + command);
+        if (this.command == null) {
+            throw new AssertionError("No such command: " + command);
+        }
     }
 
     /**
@@ -115,7 +117,9 @@ public class CLICommandInvoker {
 
     public CLICommandInvoker withStdin(final InputStream stdin) {
 
-        if (stdin == null) throw new NullPointerException("No stdin provided");
+        if (stdin == null) {
+            throw new NullPointerException("No stdin provided");
+        }
 
         this.stdin = stdin;
         return this;
@@ -199,7 +203,9 @@ public class CLICommandInvoker {
 
     private void setAuth() {
 
-        if (permissions.isEmpty()) return;
+        if (permissions.isEmpty()) {
+            return;
+        }
 
         JenkinsRule.DummySecurityRealm realm = rule.createDummySecurityRealm();
         realm.addGroups(username, "group");

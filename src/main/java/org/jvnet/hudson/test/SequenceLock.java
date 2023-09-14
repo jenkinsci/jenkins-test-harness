@@ -51,12 +51,15 @@ public class SequenceLock {
     public synchronized void phase(int i) throws InterruptedException {
         done(); // mark the previous phase done
         while (i!=n) {
-            if (aborted)
+            if (aborted) {
                 throw new IllegalStateException("SequenceLock aborted");
-            if (t!=null && !t.isAlive())
+            }
+            if (t != null && !t.isAlive()) {
                 throw new IllegalStateException("Owner thread of the current phase has quit"+t);
-            if (i<n)
+            }
+            if (i < n) {
                 throw new IllegalStateException("Phase "+i+" is already completed");
+            }
             wait();
         }
 

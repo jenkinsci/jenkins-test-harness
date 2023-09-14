@@ -54,8 +54,9 @@ public class TestPluginManager extends UnitTestSupportingPluginManager {
     // Releasing plugins result fail to access files in webapp directory in following tests.
     @Override
     public void stop() {
-        for (PluginWrapper p : activePlugins)
+        for (PluginWrapper p : activePlugins) {
             p.stop();
+        }
     }
 
     /**

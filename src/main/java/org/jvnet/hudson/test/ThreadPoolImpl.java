@@ -19,8 +19,9 @@ public class ThreadPoolImpl extends AbstractLifeCycle implements ThreadPool {
 
     @Override
     public void execute(@NonNull Runnable job) {
-        if (!isRunning() || job==null)
+        if (!isRunning() || job == null) {
             throw new RejectedExecutionException();
+        }
 
         es.submit(job);
     }

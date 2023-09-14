@@ -67,7 +67,10 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
         }
 
         TestExtension a = e.getAnnotation(TestExtension.class);
-        if (a==null)        return false;   // stale index
+        if (a == null) {
+            // stale index
+            return false;
+        }
         List<String> testNameList;
         try {
             testNameList = Arrays.asList(a.value());
@@ -76,8 +79,9 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
             return false;
         }
         Description description = env.description();
-        if (!testNameList.isEmpty() && !testNameList.contains(description.getMethodName()))
+        if (!testNameList.isEmpty() && !testNameList.contains(description.getMethodName())) {
             return false;   // doesn't apply to this test
+        }
         String className = description.getClassName();
         if (e instanceof Class) {
             for (Class<?> outer = (Class<?>) e; outer != null; outer = outer.getEnclosingClass()) {

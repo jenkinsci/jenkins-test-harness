@@ -107,7 +107,9 @@ public class CallStackFrame implements DebugFrame {
         buf.append(fnOrScript.getFunctionName());
         buf.append('(');
         for( int i=0; i<args.length; i++ ) {
-            if(i!=0)    buf.append(',');
+            if (i != 0) {
+                buf.append(',');
+            }
             buf.append(args[i]);
         }
         buf.append(')');

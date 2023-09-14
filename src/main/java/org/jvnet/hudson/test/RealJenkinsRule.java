@@ -379,8 +379,12 @@ public final class RealJenkinsRule implements TestRule {
      * @param debugPort the TCP port to use for debugging this Jenkins instance. Between 0 (random) and 65536 (excluded).
      */
     public RealJenkinsRule withDebugPort(int debugPort) {
-        if (debugPort < 0) throw new IllegalArgumentException("debugPort must be positive");
-        if (!(debugPort < 65536)) throw new IllegalArgumentException("debugPort must be a valid TCP port (< 65536)");
+        if (debugPort < 0) {
+            throw new IllegalArgumentException("debugPort must be positive");
+        }
+        if (!(debugPort < 65536)) {
+            throw new IllegalArgumentException("debugPort must be a valid TCP port (< 65536)");
+        }
         this.debugPort = debugPort;
         return this;
     }

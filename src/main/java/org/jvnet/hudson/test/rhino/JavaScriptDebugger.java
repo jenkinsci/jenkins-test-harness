@@ -82,8 +82,9 @@ public class JavaScriptDebugger implements Debugger {
     public String toString() {
         StringBuilder buf = new StringBuilder();
         synchronized (this) {
-            for( int i=callStack.size()-1; i>=0; i-- )
+            for (int i = callStack.size() - 1; i >= 0; i--) {
                 buf.append(callStack.get(i)).append('\n');
+            }
         }
         return buf.toString();
     }
