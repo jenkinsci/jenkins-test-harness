@@ -103,7 +103,8 @@ public class UnitTestSupportingPluginManager extends PluginManager {
         if(u==null){
         	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
         }
-        if (u!=null) try {
+        if (u != null) {
+          try {
             String thisPlugin;
             try (InputStream is = u.openStream()) {
                 thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
@@ -113,8 +114,9 @@ public class UnitTestSupportingPluginManager extends PluginManager {
             }
             names.add(thisPlugin + ".jpl");
             copyBundledPlugin(u, thisPlugin + ".jpl");
-        } catch (IOException e) {
+          } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
+          }
         }
 
         // and pick up test dependency *.jpi that are placed by maven-hpi-plugin TestDependencyMojo.

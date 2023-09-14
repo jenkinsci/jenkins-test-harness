@@ -86,7 +86,10 @@ public class DummyCloudImpl extends Cloud {
     @Override
     public Collection<PlannedNode> provision(Label label, int excessWorkload) {
         List<PlannedNode> r = new ArrayList<>();
-        if(label!=this.label)   return r;   // provisioning impossible
+        if (label != this.label) {
+            // provisioning impossible
+            return r;
+        }
 
         while(excessWorkload>0) {
             System.out.println("Provisioning");

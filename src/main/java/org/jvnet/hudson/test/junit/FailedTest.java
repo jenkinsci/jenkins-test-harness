@@ -48,7 +48,8 @@ public class FailedTest extends TestCase {
 
     @Override
     protected void runTest() throws Throwable {
-        if (problem!=null)
+        if (problem != null) {
             throw problem;
+        }
     }
 }

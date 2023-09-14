@@ -21,8 +21,9 @@ public class SignupPage {
 
         assertNotNull("The sign up page has a username field.", this.signupPage.getElementById("username"));
         for (HtmlForm signupForm : this.signupPage.getForms()) {
-            if (signupForm.getInputsByName("username").size() == 0)
+            if (signupForm.getInputsByName("username").size() == 0) {
                 continue;
+            }
             this.signupForm = signupForm;
         }
 

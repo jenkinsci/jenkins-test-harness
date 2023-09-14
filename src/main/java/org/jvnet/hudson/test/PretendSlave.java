@@ -47,7 +47,9 @@ public class PretendSlave extends Slave {
                     numLaunch++;
                 }
                 Proc p = faker.onLaunch(starter);
-                if (p!=null)    return p;
+                if (p != null) {
+                    return p;
+                }
                 return super.launch(starter);
             }
         };

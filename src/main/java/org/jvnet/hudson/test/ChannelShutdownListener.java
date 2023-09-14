@@ -40,10 +40,12 @@ public class ChannelShutdownListener extends ComputerListener implements EndOfTe
 
     @Override
     public synchronized void onTearDown() throws Exception {
-        for (Channel c : channels)
+        for (Channel c : channels) {
             c.close();
-        for (Channel c : channels)
+        }
+        for (Channel c : channels) {
             c.join();
+        }
         channels.clear();
     }
 }

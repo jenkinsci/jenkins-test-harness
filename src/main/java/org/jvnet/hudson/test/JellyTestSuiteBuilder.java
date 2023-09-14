@@ -102,8 +102,9 @@ public class JellyTestSuiteBuilder {
             Document dom = new SAXReader().read(jelly);
             if (requirePI) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
-                if (pi==null || !pi.getText().contains("escape-by-default"))
+                if (pi == null || !pi.getText().contains("escape-by-default")) {
                     throw new AssertionError("<?jelly escape-by-default='true'?> is missing in "+jelly);
+                }
 
             }
             // TODO: what else can we check statically? use of taglibs?

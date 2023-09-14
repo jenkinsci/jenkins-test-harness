@@ -84,11 +84,11 @@ public interface HudsonHomeLoader {
         void copy(File target) throws Exception {
             if(source.getProtocol().equals("file")) {
                 File src = new File(source.toURI());
-                if(src.isDirectory())
+                if (src.isDirectory()) {
                     new FilePath(src).copyRecursiveTo("**/*",new FilePath(target));
-                else
-                if(src.getName().endsWith(".zip"))
+                } else if (src.getName().endsWith(".zip")) {
                     new FilePath(src).unzip(new FilePath(target));
+                }
             } else {
                 File tmp = File.createTempFile("hudson","zip");
                 try {
@@ -122,8 +122,9 @@ public interface HudsonHomeLoader {
 
         void copy(File target) throws Exception {
             URL res = findDataResource();
-            if(!res.getProtocol().equals("file"))
+            if (!res.getProtocol().equals("file")) {
                 throw new AssertionError("Test data is not available in the file system: "+res);
+            }
             File source = new File(res.toURI());
             System.err.println("Loading $JENKINS_HOME from " + source);
             new CopyExisting(source).copy(target);
@@ -156,7 +157,9 @@ public interface HudsonHomeLoader {
             for( String middle : new String[]{ '/'+methodName, "" }) {
                 for( String suffix : SUFFIXES ) {
                     URL res = clazz.getResource(clazz.getSimpleName() + middle+suffix);
-                    if(res!=null)   return res;
+                    if (res != null) {
+                        return res;
+                    }
                 }
             }
 
