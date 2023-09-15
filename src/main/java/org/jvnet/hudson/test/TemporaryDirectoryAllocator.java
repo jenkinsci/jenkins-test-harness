@@ -144,6 +144,9 @@ public class TemporaryDirectoryAllocator {
                 throw new IOException(children.map(Path::toString).collect(Collectors.joining(" ")), x);
             }
         }
+        if (isWindows() && Files.deleteIfExists(p)) {
+            LOGGER.warning(() -> "had to try twice to delete " + p);
+        }
     }
 
     private boolean isWindows() {
