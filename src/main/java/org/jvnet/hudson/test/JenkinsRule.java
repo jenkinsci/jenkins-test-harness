@@ -563,7 +563,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-
+        tweakXmlFileLogger();
         if (jenkins != null) {
             jenkins.cleanUp();
         }
@@ -572,6 +572,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         if (exception.getSuppressed().length > 0) {
             throw exception;
+        }
+    }
+
+    private static void tweakXmlFileLogger() {
+        var logger = Logger.getLogger("hudson.XmlFile");
+        logger.setLevel(Level.FINEST);
+        for (Handler h : Logger.getLogger("").getHandlers()) {
+            if (h instanceof ConsoleHandler) {
+                h.setLevel(Level.FINEST);
+            }
         }
     }
 
