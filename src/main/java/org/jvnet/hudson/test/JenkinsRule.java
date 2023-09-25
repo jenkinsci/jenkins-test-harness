@@ -130,6 +130,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -563,24 +564,42 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        tweakXmlFileLogger();
-        if (jenkins != null) {
-            jenkins.cleanUp();
+        try (var ignored = new TemporaryConsoleLogTweak("hudson.XmlFile", Level.FINEST)) {
+            if (jenkins != null) {
+                jenkins.cleanUp();
+            }
+            ExtensionList.clearLegacyInstances();
+            DescriptorExtensionList.clearLegacyInstances();
         }
-        ExtensionList.clearLegacyInstances();
-        DescriptorExtensionList.clearLegacyInstances();
-
         if (exception.getSuppressed().length > 0) {
             throw exception;
         }
     }
 
-    private static void tweakXmlFileLogger() {
-        var logger = Logger.getLogger("hudson.XmlFile");
-        logger.setLevel(Level.FINEST);
-        for (Handler h : Logger.getLogger("").getHandlers()) {
-            if (h instanceof ConsoleHandler) {
-                h.setLevel(Level.FINEST);
+    private static final class TemporaryConsoleLogTweak implements AutoCloseable {
+        private final Handler handler;
+        private final Level priorHandlerLevel;
+        private final Logger logger;
+        private final Level priorLoggerLevel;
+
+        public TemporaryConsoleLogTweak(String loggerName, Level level) {
+            logger = Logger.getLogger(loggerName);
+            priorLoggerLevel = logger.getLevel();
+            logger.setLevel(level);
+            handler = Arrays.stream(Logger.getLogger("").getHandlers()).filter(ConsoleHandler.class::isInstance).findFirst().orElse(null);
+            if (handler != null) {
+                priorHandlerLevel = handler.getLevel();
+                handler.setLevel(level);
+            } else {
+                priorHandlerLevel = null;
+            }
+        }
+
+        @Override
+        public void close() {
+            logger.setLevel(priorLoggerLevel);
+            if (handler != null) {
+                handler.setLevel(priorHandlerLevel);
             }
         }
     }
