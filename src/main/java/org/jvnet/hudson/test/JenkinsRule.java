@@ -564,7 +564,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        try (var ignored = new TemporaryConsoleLogTweak("hudson.XmlFile", Level.FINEST)) {
+        try (var ignored = new SetConsoleLogger("hudson.XmlFile", Level.FINEST)) {
             if (jenkins != null) {
                 jenkins.cleanUp();
             }
@@ -576,20 +576,28 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
-    private static final class TemporaryConsoleLogTweak implements AutoCloseable {
+    /**
+     * Sets the given logger to the given level and applies it to the console handler,
+     * then returns an {@link AutoCloseable} that will restore the prior level.
+     */
+    private static final class SetConsoleLogger implements AutoCloseable {
         private final Handler handler;
         private final Level priorHandlerLevel;
         private final Logger logger;
         private final Level priorLoggerLevel;
 
-        public TemporaryConsoleLogTweak(String loggerName, Level level) {
+        public SetConsoleLogger(String loggerName, Level level) {
             logger = Logger.getLogger(loggerName);
             priorLoggerLevel = logger.getLevel();
-            logger.setLevel(level);
+            if (level.intValue() < priorLoggerLevel.intValue()) {
+                logger.setLevel(level);
+            }
             handler = Arrays.stream(Logger.getLogger("").getHandlers()).filter(ConsoleHandler.class::isInstance).findFirst().orElse(null);
             if (handler != null) {
                 priorHandlerLevel = handler.getLevel();
-                handler.setLevel(level);
+                if (level.intValue() < priorHandlerLevel.intValue()) {
+                    handler.setLevel(level);
+                }
             } else {
                 priorHandlerLevel = null;
             }
