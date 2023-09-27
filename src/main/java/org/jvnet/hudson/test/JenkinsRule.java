@@ -586,16 +586,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private final Logger logger;
         private final Level priorLoggerLevel;
 
-        public SetConsoleLogger(String loggerName, Level level) {
+        public SetConsoleLogger(@NonNull String loggerName, @NonNull Level level) {
             logger = Logger.getLogger(loggerName);
             priorLoggerLevel = logger.getLevel();
-            if (level.intValue() < priorLoggerLevel.intValue()) {
+            if (priorLoggerLevel == null || level.intValue() < priorLoggerLevel.intValue()) {
                 logger.setLevel(level);
             }
             handler = Arrays.stream(Logger.getLogger("").getHandlers()).filter(ConsoleHandler.class::isInstance).findFirst().orElse(null);
             if (handler != null) {
                 priorHandlerLevel = handler.getLevel();
-                if (level.intValue() < priorHandlerLevel.intValue()) {
+                if (priorHandlerLevel == null || level.intValue() < priorHandlerLevel.intValue()) {
                     handler.setLevel(level);
                 }
             } else {
