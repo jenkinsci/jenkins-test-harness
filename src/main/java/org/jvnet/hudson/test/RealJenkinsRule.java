@@ -99,6 +99,7 @@ import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.jvnet.hudson.test.recipes.TestPlugin;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
@@ -221,8 +222,7 @@ public final class RealJenkinsRule implements TestRule {
      *
      * @param plugins Filenames of the plugins to install. These are expected to be absolute test classpath resources,
      *     such as {@code plugins/workflow-job.hpi} for example.
-     *     <p>Committing that file to SCM (say, {@code src/test/resources/sample.jpi}) is
-     *     reasonable for small fake plugins built for this purpose and exercising some bit of code.
+     *     <p>For small fake plugins built for this purpose and exercising some bit of code, use {@link TestPlugin}.
      *     If you wish to test with larger archives of real plugins, this is possible for example by
      *     binding {@code dependency:copy} to the {@code process-test-resources} phase.
      *     <p>In most cases you do not need this method. Simply add whatever plugins you are
