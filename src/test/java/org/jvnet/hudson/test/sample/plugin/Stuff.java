@@ -28,11 +28,13 @@ import hudson.Extension;
 import hudson.model.InvisibleAction;
 import hudson.model.UnprotectedRootAction;
 import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import org.jvnet.hudson.test.RealJenkinsRuleSyntheticPluginTest;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 
 /**
  * Sample extension.
+ * @see RealJenkinsRuleSyntheticPluginTest
  */
 @Extension
 public final class Stuff extends InvisibleAction implements UnprotectedRootAction {

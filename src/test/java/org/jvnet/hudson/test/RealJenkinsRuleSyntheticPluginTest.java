@@ -22,7 +22,27 @@
  * THE SOFTWARE.
  */
 
-@TestPlugin(headers = "Plugin-Dependencies=instance-identity:0")
-package org.jvnet.hudson.test.sample.plugin;
+package org.jvnet.hudson.test;
 
-import org.jvnet.hudson.test.recipes.TestPlugin;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.sample.plugin.Stuff;
+
+public final class RealJenkinsRuleSyntheticPluginTest {
+
+    // TODO addSyntheticPlugin does not currently take effect when used inside test method
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addSyntheticPlugin(Stuff.class.getPackageName()).done();
+
+    @Test public void smokes() throws Throwable {
+        rr.then(RealJenkinsRuleSyntheticPluginTest::_smokes);
+    }
+
+    private static void _smokes(JenkinsRule r) throws Throwable {
+        assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
+            is(InstanceIdentity.get().getEncodedPublicKey()));
+    }
+
+}

@@ -201,12 +201,6 @@ THE SOFTWARE.
       <version>${jmh.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.kohsuke.metainf-services</groupId>
-      <artifactId>metainf-services</artifactId>
-      <version>1.11</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
       <scope>test</scope>
