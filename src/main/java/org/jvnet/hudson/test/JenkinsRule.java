@@ -130,6 +130,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -522,7 +523,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // TODO use URLClassLoader.close() in Java 7
             System.gc();
 
-            try {
+            try (var ignored = new SetConsoleLogger("hudson.XmlFile", Level.FINEST)) {
                 env.dispose();
             } finally {
                 // restore defaultUseCache
@@ -572,6 +573,42 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         if (exception.getSuppressed().length > 0) {
             throw exception;
+        }
+    }
+
+    /**
+     * Sets the given logger to the given level and applies it to the console handler,
+     * then returns an {@link AutoCloseable} that will restore the prior level.
+     */
+    private static final class SetConsoleLogger implements AutoCloseable {
+        private final Handler handler;
+        private final Level priorHandlerLevel;
+        private final Logger logger;
+        private final Level priorLoggerLevel;
+
+        public SetConsoleLogger(@NonNull String loggerName, @NonNull Level level) {
+            logger = Logger.getLogger(loggerName);
+            priorLoggerLevel = logger.getLevel();
+            if (priorLoggerLevel == null || level.intValue() < priorLoggerLevel.intValue()) {
+                logger.setLevel(level);
+            }
+            handler = Arrays.stream(Logger.getLogger("").getHandlers()).filter(ConsoleHandler.class::isInstance).findFirst().orElse(null);
+            if (handler != null) {
+                priorHandlerLevel = handler.getLevel();
+                if (priorHandlerLevel == null || level.intValue() < priorHandlerLevel.intValue()) {
+                    handler.setLevel(level);
+                }
+            } else {
+                priorHandlerLevel = null;
+            }
+        }
+
+        @Override
+        public void close() {
+            logger.setLevel(priorLoggerLevel);
+            if (handler != null) {
+                handler.setLevel(priorHandlerLevel);
+            }
         }
     }
 
