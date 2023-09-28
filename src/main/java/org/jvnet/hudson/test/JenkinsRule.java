@@ -523,7 +523,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // TODO use URLClassLoader.close() in Java 7
             System.gc();
 
-            try {
+            try (var ignored = new SetConsoleLogger("hudson.XmlFile", Level.FINEST)) {
                 env.dispose();
             } finally {
                 // restore defaultUseCache
@@ -564,13 +564,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        try (var ignored = new SetConsoleLogger("hudson.XmlFile", Level.FINEST)) {
-            if (jenkins != null) {
-                jenkins.cleanUp();
-            }
-            ExtensionList.clearLegacyInstances();
-            DescriptorExtensionList.clearLegacyInstances();
+
+        if (jenkins != null) {
+            jenkins.cleanUp();
         }
+        ExtensionList.clearLegacyInstances();
+        DescriptorExtensionList.clearLegacyInstances();
+
         if (exception.getSuppressed().length > 0) {
             throw exception;
         }
