@@ -501,11 +501,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             // cancel asynchronous operations as best as we can
             for (WebClient client : clients) {
-                // wait until current asynchronous operations have finished executing
-                WebClientUtil.waitForJSExec(client);
+                // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
+                // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
+                if (client.getJavaScriptEngine() != null) {
+                    // wait until current asynchronous operations have finished executing
+                    WebClientUtil.waitForJSExec(client);
+                }
                 // unload the page to prevent new asynchronous operations from being scheduled
                 try (client) {
-                    client.getPage("about:blank");
+                    // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
+                    // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
+                    if (client.getCurrentWindow() != null) {
+                        client.getPage("about:blank");
+                    }
                 } catch (IOException e) {
                     // should never happen when loading "about:blank"
                     throw new UncheckedIOException(e);
