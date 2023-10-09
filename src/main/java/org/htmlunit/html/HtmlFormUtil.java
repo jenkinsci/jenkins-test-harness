@@ -97,12 +97,7 @@ public class HtmlFormUtil {
      * Returns all the {@code <input type="submit">} elements in this form.
      */
     public static List<HtmlElement> getSubmitButtons(final HtmlForm htmlForm) throws ElementNotFoundException {
-        final List<HtmlElement> list = htmlForm.getElementsByAttribute("input", "type", "submit");
-
-        // collect inputs from lost children
-        list.addAll(htmlForm.getLostChildren());
-
-        return list;
+        return htmlForm.getElementsByAttribute("input", "type", "submit");
     }
 
     /**
