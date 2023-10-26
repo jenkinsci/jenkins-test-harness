@@ -37,6 +37,7 @@ import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
 import hudson.slaves.SlaveComputer;
 import hudson.util.StreamCopyThread;
+import hudson.util.VersionNumber;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.FileUtils;
@@ -84,6 +86,11 @@ public final class InboundAgentRule extends ExternalResource {
         // TODO Java 14+ use records
 
         @CheckForNull private String name;
+
+        /**
+         * @deprecated secret is used by default when using newer versions of Remoting
+         */
+        @Deprecated
         private boolean secret;
         private boolean webSocket;
         @CheckForNull private String tunnel;
@@ -96,6 +103,10 @@ public final class InboundAgentRule extends ExternalResource {
             return name;
         }
 
+        /**
+         * @deprecated secret is used by default when using newer versions of Remoting
+         */
+        @Deprecated
         public boolean isSecret() {
             return secret;
         }
@@ -154,7 +165,9 @@ public final class InboundAgentRule extends ExternalResource {
              * Use secret when connecting.
              *
              * @return this builder
+             * @deprecated secret is used by default when using newer versions of Remoting
              */
+            @Deprecated
             public Builder secret() {
                 options.secret = true;
                 return this;
@@ -314,12 +327,23 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("-Xdebug");
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
-        cmd.addAll(List.of(
-                "-jar", agentArguments.agentJar.getAbsolutePath(),
-                "-jnlpUrl", agentArguments.agentJnlpUrl));
-        if (options.isSecret()) {
-            // To watch it fail: secret = secret.replace('1', '2');
+        cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
+        if (agentArguments.agentJnlpUrl.endsWith("computer/" + options.getName() + "/slave-agent.jnlp") && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
+            cmd.addAll(List.of("-url", agentArguments.agentJnlpUrl.replaceAll("computer/" + options.getName() + "/slave-agent.jnlp$", "")));
             cmd.addAll(List.of("-secret", agentArguments.secret));
+            cmd.addAll(List.of("-name", options.getName()));
+            if (options.isWebSocket()) {
+                cmd.add("-webSocket");
+            }
+            if (options.getTunnel() != null) {
+                cmd.addAll(List.of("-tunnel", options.getTunnel()));
+            }
+        } else {
+            cmd.addAll(List.of("-jnlpUrl", agentArguments.agentJnlpUrl));
+            if (options.isSecret()) {
+                // To watch it fail: secret = secret.replace('1', '2');
+                cmd.addAll(List.of("-secret", agentArguments.secret));
+            }
         }
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -328,6 +352,16 @@ public final class InboundAgentRule extends ExternalResource {
         Process proc = pb.start();
         procs.put(options.getName(), proc);
         new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
+    }
+
+    private static VersionNumber remotingVersion(File agentJar) throws IOException {
+        try (JarFile j = new JarFile(agentJar)) {
+            String v = j.getManifest().getMainAttributes().getValue("Version");
+            if (v == null) {
+                throw new IOException("no Version in " + agentJar);
+            }
+            return new VersionNumber(v);
+        }
     }
 
     /**
