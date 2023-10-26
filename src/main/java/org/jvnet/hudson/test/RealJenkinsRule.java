@@ -555,7 +555,7 @@ public final class RealJenkinsRule implements TestRule {
      * One step to run.
      * <p>Since this thunk will be sent to a different JVM, it must be serializable.
      * The test class will certainly not be serializable, so you cannot use an anonymous inner class.
-     * If your thunk requires no parameters from the test JVM, the friendliest idiom is a static method reference:
+     * The friendliest idiom is a static method reference:
      * <pre>
      * &#64;Test public void stuff() throws Throwable {
      *     rr.then(YourTest::_stuff);
@@ -564,6 +564,8 @@ public final class RealJenkinsRule implements TestRule {
      *     // as needed
      * }
      * </pre>
+     * If you need to pass and/or return values, you can still use a static method reference:
+     * try {@link #runRemotely(Step2)} or {@link #runRemotely(StepWithReturnAndOneArg, Serializable)} etc.
      */
     @FunctionalInterface
     public interface Step extends Serializable {
@@ -852,6 +854,86 @@ public final class RealJenkinsRule implements TestRule {
                 e.addSuppressed(e2);
             }
             throw e;
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithOneArg<A1 extends Serializable> extends Serializable {
+       void run(JenkinsRule r, A1 arg1) throws Throwable;
+    }
+    public <A1 extends Serializable> void runRemotely(StepWithOneArg<A1> s, A1 arg1) throws Throwable {
+        runRemotely(new StepWithOneArgWrapper<>(s, arg1));
+    }
+    private static final class StepWithOneArgWrapper<A1 extends Serializable> implements Step {
+        private final StepWithOneArg<A1> delegate;
+        private final A1 arg1;
+        StepWithOneArgWrapper(StepWithOneArg<A1> delegate, A1 arg1) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+        }
+        @Override public void run(JenkinsRule r) throws Throwable {
+            delegate.run(r, arg1);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithTwoArgs<A1 extends Serializable, A2 extends Serializable> extends Serializable {
+       void run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
+    }
+    public <A1 extends Serializable, A2 extends Serializable> void runRemotely(StepWithTwoArgs<A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+        runRemotely(new StepWithTwoArgsWrapper<>(s, arg1, arg2));
+    }
+    private static final class StepWithTwoArgsWrapper<A1 extends Serializable, A2 extends Serializable> implements Step {
+        private final StepWithTwoArgs<A1, A2> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        StepWithTwoArgsWrapper(StepWithTwoArgs<A1, A2> delegate, A1 arg1, A2 arg2) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+        }
+        @Override public void run(JenkinsRule r) throws Throwable {
+            delegate.run(r, arg1, arg2);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithReturnAndOneArg<R extends Serializable, A1 extends Serializable> extends Serializable {
+        R run(JenkinsRule r, A1 arg1) throws Throwable;
+    }
+    public <R extends Serializable, A1 extends Serializable> R runRemotely(StepWithReturnAndOneArg<R, A1> s, A1 arg1) throws Throwable {
+        return runRemotely(new StepWithReturnAndOneArgWrapper<>(s, arg1));
+    }
+    private static final class StepWithReturnAndOneArgWrapper<R extends Serializable, A1 extends Serializable> implements Step2<R> {
+        private final StepWithReturnAndOneArg<R, A1> delegate;
+        private final A1 arg1;
+        StepWithReturnAndOneArgWrapper(StepWithReturnAndOneArg<R, A1> delegate, A1 arg1) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+        }
+        @Override public R run(JenkinsRule r) throws Throwable {
+            return delegate.run(r, arg1);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithReturnAndTwoArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable> extends Serializable {
+        R run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
+    }
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable> R runRemotely(StepWithReturnAndTwoArgs<R, A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+        return runRemotely(new StepWithReturnAndTwoArgsWrapper<>(s, arg1, arg2));
+    }
+    private static final class StepWithReturnAndTwoArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable> implements Step2<R> {
+        private final StepWithReturnAndTwoArgs<R, A1, A2> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        StepWithReturnAndTwoArgsWrapper(StepWithReturnAndTwoArgs<R, A1, A2> delegate, A1 arg1, A2 arg2) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+        }
+        @Override public R run(JenkinsRule r) throws Throwable {
+            return delegate.run(r, arg1, arg2);
         }
     }
 
