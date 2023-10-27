@@ -95,7 +95,7 @@ public final class InboundAgentRule extends ExternalResource {
         private boolean webSocket;
         @CheckForNull private String tunnel;
         private boolean start = true;
-        private final Map<String, Level> loggers = new LinkedHashMap<>();
+        private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
         private String label;
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
 
@@ -267,7 +267,7 @@ public final class InboundAgentRule extends ExternalResource {
      * @param options the options
      */
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
-        Slave s = CreateAgent.createAgent(r, options);
+        Slave s = createAgentJR(r, options);
         if (options.isStart()) {
             start(r, options);
         }
@@ -279,7 +279,7 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     public void createAgent(@NonNull RealJenkinsRule rr, Options options) throws Throwable {
-        String name = rr.runRemotely(new CreateAgent(options));
+        String name = rr.runRemotely(InboundAgentRule::createAgentRJR, options);
         options.name = name;
         if (options.isStart()) {
             start(rr, options);
@@ -300,8 +300,8 @@ public final class InboundAgentRule extends ExternalResource {
         String name = options.getName();
         Objects.requireNonNull(name);
         stop(r, name);
-        start(GetAgentArguments.get(r, name), options);
-        WaitForAgentOnline.wait(r, name, options.loggers);
+        start(getAgentArguments(r, name), options);
+        waitForAgentOnline(r, name, options.loggers);
     }
 
     /**
@@ -311,8 +311,8 @@ public final class InboundAgentRule extends ExternalResource {
         String name = options.getName();
         Objects.requireNonNull(name);
         stop(r, name);
-        start(r.runRemotely(new GetAgentArguments(name)), options);
-        r.runRemotely(new WaitForAgentOnline(name, options.loggers));
+        start(r.runRemotely(InboundAgentRule::getAgentArguments, name), options);
+        r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }
 
     @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
@@ -369,7 +369,7 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull JenkinsRule r, @NonNull String name) throws InterruptedException {
         stop(name);
-        WaitForAgentOffline.stop(r, name);
+        waitForAgentOffline(r, name);
     }
 
     /**
@@ -377,7 +377,7 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull RealJenkinsRule rjr, @NonNull String name) throws Throwable {
         stop(name);
-        rjr.runRemotely(new WaitForAgentOffline(name));
+        rjr.runRemotely(InboundAgentRule::waitForAgentOffline, name);
     }
 
     /**
@@ -447,124 +447,74 @@ public final class InboundAgentRule extends ExternalResource {
         }
     }
 
-    private static class GetAgentArguments implements RealJenkinsRule.Step2<AgentArguments> {
-
-        private final String name;
-
-        GetAgentArguments(String name) {
-            this.name = name;
+    private static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
+        Node node = r.jenkins.getNode(name);
+        if (node == null) {
+            throw new AssertionError("no such agent: " + name);
         }
-
-        @Override
-        public AgentArguments run(@NonNull JenkinsRule r) throws Throwable {
-            return get(r, name);
+        SlaveComputer c = (SlaveComputer) node.toComputer();
+        if (c == null) {
+            throw new AssertionError("agent " + node + " has no executor");
         }
-        private static AgentArguments get(JenkinsRule r, String name) throws IOException {
-            Node node = r.jenkins.getNode(name);
-            if (node == null) {
-                throw new AssertionError("no such agent: " + name);
-            }
-            SlaveComputer c = (SlaveComputer) node.toComputer();
-            if (c == null) {
-                throw new AssertionError("agent " + node + " has no executor");
-            }
-            JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
-            List<String> commandLineArgs = List.of();
-            if (!launcher.getWorkDirSettings().isDisabled()) {
-                commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
-            }
-            File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
-            if (!agentJar.isFile()) {
-                FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
-            }
-            return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+        JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
+        List<String> commandLineArgs = List.of();
+        if (!launcher.getWorkDirSettings().isDisabled()) {
+            commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
         }
-
+        File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
+        if (!agentJar.isFile()) {
+            FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
+        }
+        return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
     }
 
-    private static class WaitForAgentOnline implements RealJenkinsRule.Step {
-        private final String name;
-        private final Map<String, Level> loggers;
-
-        WaitForAgentOnline(String name, Map<String, Level> loggers) {
-            this.name = name;
-            this.loggers = loggers;
+    private static void waitForAgentOnline(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
+        Node node = r.jenkins.getNode(name);
+        if (node == null) {
+            throw new AssertionError("no such agent: " + name);
         }
-
-        @Override
-        public void run(JenkinsRule r) throws Throwable {
-            wait(r, name, loggers);
+        if (!(node instanceof Slave)) {
+            throw new AssertionError("agent is not a Slave: " + name);
         }
-
-        static void wait(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
-            Node node = r.jenkins.getNode(name);
-            if (node == null) {
-                throw new AssertionError("no such agent: " + name);
-            }
-            if (!(node instanceof Slave)) {
-                throw new AssertionError("agent is not a Slave: " + name);
-            }
-            r.waitOnline((Slave) node);
-            if (!loggers.isEmpty()) {
-                VirtualChannel channel = node.getChannel();
-                assert channel != null;
-                channel.call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
-            }
+        r.waitOnline((Slave) node);
+        if (!loggers.isEmpty()) {
+            VirtualChannel channel = node.getChannel();
+            assert channel != null;
+            channel.call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
         }
     }
 
-    private static class WaitForAgentOffline implements RealJenkinsRule.Step {
-        private final String name;
-        WaitForAgentOffline(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public void run(JenkinsRule r) throws Throwable {
-            stop(r, name);
-        }
-
-        private static void stop(JenkinsRule r, String name) throws InterruptedException {
-            Computer c = r.jenkins.getComputer(name);
-            if (c != null) {
-                while (c.isOnline()) {
-                    Thread.sleep(100);
-                }
-            }
-        }
-    }
-
-    private static class CreateAgent implements RealJenkinsRule.Step2<String> {
-        private final Options options;
-
-        CreateAgent(Options options) {
-            this.options = options;
-        }
-
-        @Override
-        public String run(JenkinsRule r) throws Throwable {
-            createAgent(r, options);
-            return options.getName();
-        }
-
-        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
-        private static Slave createAgent(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
-            if (options.getName() == null) {
-                options.name = "agent" + r.jenkins.getNodes().size();
-            }
-            JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
-            launcher.setWebSocket(options.isWebSocket());
-            DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
-            s.setLabelString(options.getLabel());
-            s.setRetentionStrategy(RetentionStrategy.NOOP);
-            r.jenkins.addNode(s);
-            // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
-            Computer computer = s.toComputer();
-            while (computer == null || computer.getOfflineCause() == null) {
+    private static void waitForAgentOffline(JenkinsRule r, String name) throws InterruptedException {
+        Computer c = r.jenkins.getComputer(name);
+        if (c != null) {
+            while (c.isOnline()) {
                 Thread.sleep(100);
-                computer = s.toComputer();
             }
-            return s;
         }
+    }
+
+    private static String createAgentRJR(JenkinsRule r, Options options) throws Throwable {
+        createAgentJR(r, options);
+        return options.getName();
+    }
+
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
+    private static Slave createAgentJR(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
+        if (options.getName() == null) {
+            options.name = "agent" + r.jenkins.getNodes().size();
+        }
+        JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
+        launcher.setWebSocket(options.isWebSocket());
+        DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
+        s.setLabelString(options.getLabel());
+        s.setRetentionStrategy(RetentionStrategy.NOOP);
+        r.jenkins.addNode(s);
+        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+        Computer computer = s.toComputer();
+        while (computer == null || computer.getOfflineCause() == null) {
+            Thread.sleep(100);
+            computer = s.toComputer();
+        }
+        return s;
     }
 }
