@@ -898,6 +898,54 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     @FunctionalInterface
+    public interface StepWithThreeArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
+       void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
+    }
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> void runRemotely(StepWithThreeArgs<A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+        runRemotely(new StepWithThreeArgsWrapper<>(s, arg1, arg2, arg3));
+    }
+    private static final class StepWithThreeArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step {
+        private final StepWithThreeArgs<A1, A2, A3> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        private final A3 arg3;
+        StepWithThreeArgsWrapper(StepWithThreeArgs<A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+            this.arg3 = arg3;
+        }
+        @Override public void run(JenkinsRule r) throws Throwable {
+            delegate.run(r, arg1, arg2, arg3);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithFourArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
+       void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
+    }
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> void runRemotely(StepWithFourArgs<A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+        runRemotely(new StepWithFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
+    }
+    private static final class StepWithFourArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step {
+        private final StepWithFourArgs<A1, A2, A3, A4> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        private final A3 arg3;
+        private final A4 arg4;
+        StepWithFourArgsWrapper(StepWithFourArgs<A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+            this.arg3 = arg3;
+            this.arg4 = arg4;
+        }
+        @Override public void run(JenkinsRule r) throws Throwable {
+            delegate.run(r, arg1, arg2, arg3, arg4);
+        }
+    }
+
+    @FunctionalInterface
     public interface StepWithReturnAndOneArg<R extends Serializable, A1 extends Serializable> extends Serializable {
         R run(JenkinsRule r, A1 arg1) throws Throwable;
     }
@@ -934,6 +982,54 @@ public final class RealJenkinsRule implements TestRule {
         }
         @Override public R run(JenkinsRule r) throws Throwable {
             return delegate.run(r, arg1, arg2);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithReturnAndThreeArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
+        R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
+    }
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> R runRemotely(StepWithReturnAndThreeArgs<R, A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+        return runRemotely(new StepWithReturnAndThreeArgsWrapper<>(s, arg1, arg2, arg3));
+    }
+    private static final class StepWithReturnAndThreeArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step2<R> {
+        private final StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        private final A3 arg3;
+        StepWithReturnAndThreeArgsWrapper(StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+            this.arg3 = arg3;
+        }
+        @Override public R run(JenkinsRule r) throws Throwable {
+            return delegate.run(r, arg1, arg2, arg3);
+        }
+    }
+
+    @FunctionalInterface
+    public interface StepWithReturnAndFourArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
+        R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
+    }
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> R runRemotely(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+        return runRemotely(new StepWithReturnAndFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
+    }
+    private static final class StepWithReturnAndFourArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step2<R> {
+        private final StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate;
+        private final A1 arg1;
+        private final A2 arg2;
+        private final A3 arg3;
+        private final A4 arg4;
+        StepWithReturnAndFourArgsWrapper(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+            this.delegate = delegate;
+            this.arg1 = arg1;
+            this.arg2 = arg2;
+            this.arg3 = arg3;
+            this.arg4 = arg4;
+        }
+        @Override public R run(JenkinsRule r) throws Throwable {
+            return delegate.run(r, arg1, arg2, arg3, arg4);
         }
     }
 
