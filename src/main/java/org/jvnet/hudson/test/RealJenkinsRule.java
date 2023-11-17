@@ -466,103 +466,12 @@ public final class RealJenkinsRule implements TestRule {
                     return;
                 }
                 try {
-                    home.set(tmp.allocate());
-                    LocalData localData = description.getAnnotation(LocalData.class);
-                    if (localData != null) {
-                        new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
-                    }
-                    File plugins = new File(getHome(), "plugins");
-                    plugins.mkdir();
-                    FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
-
-                    if (includeTestClasspathPlugins) {
-                        // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
-                        Set<String> snapshotPlugins = new TreeSet<>();
-                        Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
-                        while (indexJellies.hasMoreElements()) {
-                            String indexJelly = indexJellies.nextElement().toString();
-                            Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
-                            if (m.matches()) {
-                                Path snapshotManifest;
-                                snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
-                                if (!Files.exists(snapshotManifest)) {
-                                    snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
-                                }
-                                if (Files.exists(snapshotManifest)) {
-                                    String shortName;
-                                    try (InputStream is = Files.newInputStream(snapshotManifest)) {
-                                        shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
-                                    }
-                                    if (shortName == null) {
-                                        throw new IOException("malformed " + snapshotManifest);
-                                    }
-                                    if (skippedPlugins.contains(shortName)) {
-                                        continue;
-                                    }
-                                    // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
-                                    Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
-                                    snapshotPlugins.add(shortName);
-                                } else {
-                                    System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
-                                }
-                            } else {
-                                // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
-                            }
-                        }
-                        URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
-                        if (index != null) {
-                            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
-                                String line;
-                                while ((line = r.readLine()) != null) {
-                                    if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
-                                        continue;
-                                    }
-                                    final URL url = new URL(index, line + ".jpi");
-                                    File f;
-                                    try {
-                                        f = new File(url.toURI());
-                                    } catch (IllegalArgumentException x) {
-                                        if (x.getMessage().equals("URI is not hierarchical")) {
-                                            throw new IOException(
-                                                    "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                            " you are running this in your IDE and see this message, it is likely" +
-                                                            " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                            "from the command line (once only), which will copy the required plugins " +
-                                                            "into target/test-classes/test-dependencies - then retry your test", x);
-                                        } else {
-                                            throw new IOException(index + " contains bogus line " + line, x);
-                                        }
-                                    }
-                                    if (f.exists()) {
-                                        FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
-                                    } else {
-                                        FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    for (String extraPlugin : extraPlugins) {
-                        URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
-                        String name;
-                        try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
-                            Manifest man = jis.getManifest();
-                            if (man == null) {
-                                throw new IOException("No manifest found in " + extraPlugin);
-                            }
-                            name = man.getMainAttributes().getValue("Short-Name");
-                            if (name == null) {
-                                throw new IOException("No Short-Name found in " + extraPlugin);
-                            }
-                        }
-                        FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
-                    }
-                    System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
+                    provision(description);
                     base.evaluate();
                 } finally {
                     stopJenkins();
                     try {
-                        tmp.dispose();
+                        deprovision();
                     } catch (Exception x) {
                         LOGGER.log(Level.WARNING, null, x);
                     }
@@ -570,6 +479,131 @@ public final class RealJenkinsRule implements TestRule {
             }
 
         };
+    }
+
+    /**
+     * Initializes {@code JENKINS_HOME}, but does not start Jenkins.
+     *
+     * This method does not need to be invoked when using {@code @Rule} or {@code @ClassRule} to run {@code RealJenkinsRule}.
+     */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
+    public void provision(Description description) throws Exception {
+        this.description = description;
+        if (home.get() != null) {
+            throw new IllegalStateException(description + " was already provisioned");
+        }
+        if (war == null) {
+            war = findJenkinsWar();
+        }
+        home.set(tmp.allocate());
+        LocalData localData = description.getAnnotation(LocalData.class);
+        if (localData != null) {
+            new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
+        }
+        File plugins = new File(getHome(), "plugins");
+        Files.createDirectories(plugins.toPath());
+        FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
+
+        if (includeTestClasspathPlugins) {
+            // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
+            Set<String> snapshotPlugins = new TreeSet<>();
+            Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+            while (indexJellies.hasMoreElements()) {
+                String indexJelly = indexJellies.nextElement().toString();
+                Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
+                if (m.matches()) {
+                    Path snapshotManifest;
+                    snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.jpl"));
+                    if (!Files.exists(snapshotManifest)) {
+                        snapshotManifest = Paths.get(URI.create(m.group(1) + "/test-classes/the.hpl"));
+                    }
+                    if (Files.exists(snapshotManifest)) {
+                        String shortName;
+                        try (InputStream is = Files.newInputStream(snapshotManifest)) {
+                            shortName = new Manifest(is).getMainAttributes().getValue("Short-Name");
+                        }
+                        if (shortName == null) {
+                            throw new IOException("malformed " + snapshotManifest);
+                        }
+                        if (skippedPlugins.contains(shortName) || !snapshotPlugins.add(shortName)) {
+                            continue;
+                        }
+                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                        Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
+                        snapshotPlugins.add(shortName);
+                    } else {
+                        System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                    }
+                } else {
+                    // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
+                }
+            }
+            URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
+            if (index != null) {
+                try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        if (snapshotPlugins.contains(line)) {
+                            continue;
+                        }
+                        final URL url = new URL(index, line + ".jpi");
+                        File f;
+                        try {
+                            f = new File(url.toURI());
+                        } catch (IllegalArgumentException x) {
+                            if (x.getMessage().equals("URI is not hierarchical")) {
+                                throw new IOException(
+                                        "You are probably trying to load plugins from within a jarfile (not possible). If" +
+                                                " you are running this in your IDE and see this message, it is likely" +
+                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
+                                                "from the command line (once only), which will copy the required plugins " +
+                                                "into target/test-classes/test-dependencies - then retry your test", x);
+                            } else {
+                                throw new IOException(index + " contains bogus line " + line, x);
+                            }
+                        }
+                        if (f.exists()) {
+                            FileUtils.copyURLToFile(url, new File(plugins, line + ".jpi"));
+                        } else {
+                            FileUtils.copyURLToFile(new URL(index, line + ".hpi"), new File(plugins, line + ".jpi"));
+                        }
+                    }
+                }
+            }
+        }
+        for (String extraPlugin : extraPlugins) {
+            URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
+            String name;
+            try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+                Manifest man = jis.getManifest();
+                if (man == null) {
+                    throw new IOException("No manifest found in " + extraPlugin);
+                }
+                name = man.getMainAttributes().getValue("Short-Name");
+                if (name == null) {
+                    throw new IOException("No Short-Name found in " + extraPlugin);
+                }
+            }
+            FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
+        }
+        System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
+    }
+
+    /**
+     * Deletes {@code JENKINS_HOME}.
+     *
+     * This method does not need to be invoked when using {@code @Rule} or {@code @ClassRule} to run {@code RealJenkinsRule}.
+     */
+    public void deprovision() throws Exception {
+        tmp.dispose();
+        home.set(null);
+    }
+
+    /**
+     * Returns true if the Jenkins process is alive.
+     */
+    public boolean isAlive() {
+        return proc != null && proc.isAlive();
     }
 
     /**
