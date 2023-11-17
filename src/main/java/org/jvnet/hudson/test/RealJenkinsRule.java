@@ -132,7 +132,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>{@link TestExtension} is not available.
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
  * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
- * <li>There is not currently enough flexibility in how the controller is launched.
  * </ul>
  * <p>Systems not yet tested:
  * <ul>
@@ -177,6 +176,8 @@ public final class RealJenkinsRule implements TestRule {
     private final Set<String> skippedPlugins = new TreeSet<>();
 
     private final List<String> javaOptions = new ArrayList<>();
+
+    private final List<String> jenkinsOptions = new ArrayList<>();
 
     private final Map<String, String> extraEnv = new TreeMap<>();
 
@@ -251,6 +252,16 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule javaOptions(String... options) {
         javaOptions.addAll(List.of(options));
+        return this;
+    }
+
+    /**
+     * Add some Jenkins (including Winstone) startup options.
+     * You probably meant to use {@link #javaOptions(String...)}.
+     * @param options one or more options, like {@code --webroot=/tmp/war --pluginroot=/tmp/plugins}
+     */
+    public RealJenkinsRule jenkinsOptions(String... options) {
+        jenkinsOptions.addAll(List.of(options));
         return this;
     }
 
@@ -676,6 +687,7 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
+        argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", getHome().getAbsolutePath());
         String forkNumber = System.getProperty("surefire.forkNumber");
