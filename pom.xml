@@ -152,7 +152,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>161.v786c2c610d65</version>
+      <!-- TODO https://github.com/jenkinsci/jenkins-test-harness-htmlunit/pull/133 -->
+      <version>164.ve8b_431849a_b_c</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -238,6 +239,17 @@ THE SOFTWARE.
     <repository>
       <id>repo.jenkins-ci.org</id>
       <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+      <id>OSS Sonatype snapshots</id>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
     </repository>
   </repositories>
 
