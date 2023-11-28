@@ -23,15 +23,15 @@ class JUnit5JenkinsRule extends JenkinsRule {
 
     @Override
     public void recipe() throws Exception {
-        final JenkinsRecipe recipe = this.testDescription.getAnnotation(JenkinsRecipe.class);
+        final JenkinsRecipe jenkinsRecipe = this.testDescription.getAnnotation(JenkinsRecipe.class);
 
-        if (recipe == null) {
+        if (jenkinsRecipe == null) {
             return;
         }
         @SuppressWarnings("unchecked")
         final JenkinsRecipe.Runner<JenkinsRecipe> runner =
-                (JenkinsRecipe.Runner<JenkinsRecipe>) recipe.value().getDeclaredConstructor().newInstance();
+                (JenkinsRecipe.Runner<JenkinsRecipe>) jenkinsRecipe.value().getDeclaredConstructor().newInstance();
         recipes.add(runner);
-        tearDowns.add(() -> runner.tearDown(this, recipe));
+        tearDowns.add(() -> runner.tearDown(this, jenkinsRecipe));
     }
 }
