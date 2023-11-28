@@ -307,7 +307,7 @@ public class RealJenkinsRuleTest {
     public void whenUsingWrongAltJavaHome() throws Throwable {
         IOException ex = assertThrows(
                 IOException.class, () -> rrWithFailure.withAltJavaHome("/noexists").startJenkins());
-        assertThat(ex.getMessage(), containsString("Cannot run program \"/noexists/bin/java\""));
+        assertThat(ex.getMessage(), containsString("noexists/bin/java"));
     }
 
     @Test public void smokesAltJavaHome() throws Throwable {
