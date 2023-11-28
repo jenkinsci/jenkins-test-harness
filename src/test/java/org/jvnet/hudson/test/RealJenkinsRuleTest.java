@@ -303,6 +303,13 @@ public class RealJenkinsRuleTest {
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
+    @Test
+    public void whenUsingAltJavaHome() throws Throwable {
+        IOException ex = assertThrows(
+                IOException.class, () -> rrWithFailure.withAltJavaHome("/noexists").startJenkins());
+        assertThat(ex.getMessage(), containsString("Cannot run program \"/noexists/bin/java\""));
+    }
+
     // TODO interesting scenarios to test:
     // · throw an exception of a type defined in Jenkins code
     // · run with optional dependencies disabled
