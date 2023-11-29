@@ -303,6 +303,18 @@ public class RealJenkinsRuleTest {
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
+    @Test
+    public void whenUsingWrongAltJavaHome() throws Throwable {
+        IOException ex = assertThrows(
+                IOException.class, () -> rrWithFailure.withAltJavaHome("/noexists").startJenkins());
+        assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
+    }
+
+    @Test public void smokesAltJavaHome() throws Throwable {
+        String altJavaHome = System.getProperty("java.home");
+        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withAltJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+    }
+
     // TODO interesting scenarios to test:
     // · throw an exception of a type defined in Jenkins code
     // · run with optional dependencies disabled

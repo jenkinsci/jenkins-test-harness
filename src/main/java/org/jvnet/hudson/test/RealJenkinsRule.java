@@ -167,6 +167,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private File war;
 
+    private String altJavaHome;
+
     private boolean includeTestClasspathPlugins = true;
 
     private final String token = UUID.randomUUID().toString();
@@ -306,6 +308,14 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule withWar(File war) {
         this.war = war;
+        return this;
+    }
+
+    /**
+     * Allows to specify an alternate, not the one specified in JAVA_HOME, folder containing the JVM to use to launch the instance
+     */
+    public RealJenkinsRule withAltJavaHome(String altJavaHome) {
+        this.altJavaHome = altJavaHome;
         return this;
     }
 
@@ -658,7 +668,7 @@ public final class RealJenkinsRule implements TestRule {
                 Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
                 StandardCharsets.UTF_8);
         List<String> argv = new ArrayList<>(List.of(
-                new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(),
+                new File(altJavaHome != null ? altJavaHome : System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
