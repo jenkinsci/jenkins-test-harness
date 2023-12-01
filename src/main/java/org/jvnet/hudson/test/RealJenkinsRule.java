@@ -197,6 +197,8 @@ public final class RealJenkinsRule implements TestRule {
     private boolean debugServer = true;
     private boolean debugSuspend;
 
+    private boolean lazyProvisioning;
+
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
@@ -441,6 +443,18 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Allows JENKINS_HOME initialization to be delayed until {@link startJenkins} is called for the first time.
+     * <p>
+     * This allows methods such as {@link addPlugins} to be called dynamically inside of test methods, which enables
+     * related tests that need to configure {@link RealJenkinsRule} in different ways to be defined in the same class
+     * using only a single instance of {@link RealJenkinsRule}.
+     */
+    public RealJenkinsRule withLazyProvisioning(boolean lazyProvisioning) {
+        this.lazyProvisioning = lazyProvisioning;
+        return this;
+    }
+
     public static List<String> getJacocoAgentOptions() {
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         List<String> arguments = runtimeMxBean.getInputArguments();
@@ -466,7 +480,9 @@ public final class RealJenkinsRule implements TestRule {
                     return;
                 }
                 try {
-                    provision(description);
+                    if (!lazyProvisioning) {
+                        provision();
+                    }
                     base.evaluate();
                 } finally {
                     stopJenkins();
@@ -483,18 +499,9 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Initializes {@code JENKINS_HOME}, but does not start Jenkins.
-     *
-     * This method does not need to be invoked when using {@code @Rule} or {@code @ClassRule} to run {@code RealJenkinsRule}.
      */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
-    public void provision(Description description) throws Exception {
-        this.description = description;
-        if (home.get() != null) {
-            throw new IllegalStateException(description + " was already provisioned");
-        }
-        if (war == null) {
-            war = findJenkinsWar();
-        }
+    private void provision() throws Exception {
         home.set(tmp.allocate());
         LocalData localData = description.getAnnotation(LocalData.class);
         if (localData != null) {
@@ -695,6 +702,9 @@ public final class RealJenkinsRule implements TestRule {
     public void startJenkins() throws Throwable {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
+        }
+        if (lazyProvisioning && home.get() == null) {
+            provision();
         }
         String cp = System.getProperty("java.class.path");
         Files.writeString(
