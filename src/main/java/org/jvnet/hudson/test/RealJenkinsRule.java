@@ -198,6 +198,7 @@ public final class RealJenkinsRule implements TestRule {
     private boolean debugSuspend;
 
     private boolean lazyProvisioning;
+    private boolean provisioned;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -446,7 +447,7 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Allows JENKINS_HOME initialization to be delayed until {@link startJenkins} is called for the first time.
      * <p>
-     * This allows methods such as {@link addPlugins} to be called dynamically inside of test methods, which enables
+     * This allows methods such as {@link #addPlugins} to be called dynamically inside of test methods, which enables
      * related tests that need to configure {@link RealJenkinsRule} in different ways to be defined in the same class
      * using only a single instance of {@link RealJenkinsRule}.
      */
@@ -480,6 +481,7 @@ public final class RealJenkinsRule implements TestRule {
                     return;
                 }
                 try {
+                    home.set(tmp.allocate());
                     if (!lazyProvisioning) {
                         provision();
                     }
@@ -502,7 +504,10 @@ public final class RealJenkinsRule implements TestRule {
      */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
     private void provision() throws Exception {
-        home.set(tmp.allocate());
+        provisioned = true;
+        if (home.get() == null) {
+            home.set(tmp.allocate());
+        }
         LocalData localData = description.getAnnotation(LocalData.class);
         if (localData != null) {
             new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
@@ -604,6 +609,7 @@ public final class RealJenkinsRule implements TestRule {
     public void deprovision() throws Exception {
         tmp.dispose();
         home.set(null);
+        provisioned = false;
     }
 
     /**
@@ -703,7 +709,7 @@ public final class RealJenkinsRule implements TestRule {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
-        if (lazyProvisioning && home.get() == null) {
+        if (lazyProvisioning && !provisioned) {
             provision();
         }
         String cp = System.getProperty("java.class.path");

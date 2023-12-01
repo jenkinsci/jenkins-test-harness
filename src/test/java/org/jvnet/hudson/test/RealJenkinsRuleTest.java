@@ -72,11 +72,10 @@ import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
-    // TODO addPlugins does not currently take effect when used inside test method
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi").withDebugPort(4001).withDebugServer(false);
-    @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().withLazyProvisioning(true).withDebugPort(4001).withDebugServer(false);
 
     @Test public void smokes() throws Throwable {
+        rr.addPlugins("plugins/structs.hpi");
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
     }
     private static void _smokes(JenkinsRule r) throws Throwable {
@@ -299,19 +298,20 @@ public class RealJenkinsRuleTest {
     @Test
     public void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsRule.JenkinsStartupException jse = assertThrows(
-                RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
+                RealJenkinsRule.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi").startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
     @Test
     public void whenUsingWrongAltJavaHome() throws Throwable {
         IOException ex = assertThrows(
-                IOException.class, () -> rrWithFailure.withAltJavaHome("/noexists").startJenkins());
+                IOException.class, () -> rr.withAltJavaHome("/noexists").startJenkins());
         assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
     @Test public void smokesAltJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
+        rr.addPlugins("plugins/structs.hpi");
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withAltJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
     }
 
