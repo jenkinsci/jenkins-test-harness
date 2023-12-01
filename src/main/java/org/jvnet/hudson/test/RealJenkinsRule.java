@@ -445,7 +445,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Allows JENKINS_HOME initialization to be delayed until {@link startJenkins} is called for the first time.
+     * Allows JENKINS_HOME initialization to be delayed until {@link #startJenkins} is called for the first time.
      * <p>
      * This allows methods such as {@link #addPlugins} to be called dynamically inside of test methods, which enables
      * related tests that need to configure {@link RealJenkinsRule} in different ways to be defined in the same class
