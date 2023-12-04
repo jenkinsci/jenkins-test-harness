@@ -537,7 +537,7 @@ public final class RealJenkinsRule implements TestRule {
                         if (shortName == null) {
                             throw new IOException("malformed " + snapshotManifest);
                         }
-                        if (skippedPlugins.contains(shortName) || !snapshotPlugins.add(shortName)) {
+                        if (skippedPlugins.contains(shortName)) {
                             continue;
                         }
                         // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
@@ -555,7 +555,7 @@ public final class RealJenkinsRule implements TestRule {
                 try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = r.readLine()) != null) {
-                        if (snapshotPlugins.contains(line)) {
+                        if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
                             continue;
                         }
                         final URL url = new URL(index, line + ".jpi");
