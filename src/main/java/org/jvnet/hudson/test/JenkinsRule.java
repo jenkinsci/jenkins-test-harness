@@ -170,12 +170,7 @@ import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.userdetails.UserDetails;
-import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.http.HttpCompliance;
@@ -253,6 +248,12 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.springframework.dao.DataAccessException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.xml.sax.SAXException;
 
 /**
@@ -1034,29 +1035,28 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         DummySecurityRealm() {}
 
         @Override
-        protected UserDetails authenticate(String username, String password) throws AuthenticationException {
+        protected UserDetails authenticate2(String username, String password) throws AuthenticationException {
             if (username.equals(password)) {
-                return loadUserByUsername(username);
+                return loadUserByUsername2(username);
             }
             throw new BadCredentialsException(username);
         }
 
         @Override
-        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException,
-                DataAccessException {
+        public UserDetails loadUserByUsername2(String username) throws UsernameNotFoundException {
             List<GrantedAuthority> auths = new ArrayList<>();
-            auths.add(AUTHENTICATED_AUTHORITY);
+            auths.add(AUTHENTICATED_AUTHORITY2);
             Set<String> groups = groupsByUser.get(username);
             if (groups != null) {
                 for (String g : groups) {
-                    auths.add(new GrantedAuthorityImpl(g));
+                    auths.add(new SimpleGrantedAuthority(g));
                 }
             }
-            return new org.acegisecurity.userdetails.User(username,"",true,true,true,true, auths.toArray(new GrantedAuthority[0]));
+            return new org.springframework.security.core.userdetails.User(username, "", true, true, true, true, auths);
         }
 
         @Override
-        public GroupDetails loadGroupByGroupname(final String groupname) throws UsernameNotFoundException, DataAccessException {
+        public GroupDetails loadGroupByGroupname(final String groupname) throws UsernameNotFoundException {
             for (Set<String> groups : groupsByUser.values()) {
                 if (groups.contains(groupname)) {
                     return new GroupDetails() {

@@ -33,7 +33,7 @@ import javax.inject.Inject;
 import jenkins.security.QueueItemAuthenticator;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 import jenkins.security.QueueItemAuthenticatorDescriptor;
-import org.acegisecurity.Authentication;
+import org.springframework.security.core.Authentication;
 
 /**
  * Allows testing of anything related to {@link QueueItemAuthenticator}.
@@ -53,7 +53,7 @@ public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
         this.jobsToUsers = jobsToUsers;
     }
     
-    @Override public Authentication authenticate(Queue.Item item) {
+    @Override public Authentication authenticate2(Queue.Item item) {
         if (item.task instanceof Item) {
             return jobsToUsers.get(((Item) item.task).getFullName());
         } else {
