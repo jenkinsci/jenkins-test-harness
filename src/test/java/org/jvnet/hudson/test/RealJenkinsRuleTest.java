@@ -310,7 +310,8 @@ public class RealJenkinsRuleTest {
         assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
-    @Test public void smokesJavaHome() throws Throwable {
+    @Test 
+    public void smokesJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
     }
