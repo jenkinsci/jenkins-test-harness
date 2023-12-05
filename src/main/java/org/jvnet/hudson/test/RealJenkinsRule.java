@@ -167,7 +167,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private File war;
 
-    private String altJavaHome;
+    private String javaHome;
 
     private boolean includeTestClasspathPlugins = true;
 
@@ -312,10 +312,10 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Allows to specify an alternate, not the one specified in JAVA_HOME, folder containing the JVM to use to launch the instance
+     * Allows to specify a java home, defaults to JAVA_HOME if not used
      */
-    public RealJenkinsRule withAltJavaHome(String altJavaHome) {
-        this.altJavaHome = altJavaHome;
+    public RealJenkinsRule withJavaHome(String JavaHome) {
+        this.javaHome = JavaHome;
         return this;
     }
 
@@ -668,7 +668,7 @@ public final class RealJenkinsRule implements TestRule {
                 Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
                 StandardCharsets.UTF_8);
         List<String> argv = new ArrayList<>(List.of(
-                new File(altJavaHome != null ? altJavaHome : System.getProperty("java.home"), "bin/java").getAbsolutePath(),
+                new File(javaHome != null ? javaHome : System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
