@@ -197,7 +197,7 @@ public final class RealJenkinsRule implements TestRule {
     private boolean debugServer = true;
     private boolean debugSuspend;
 
-    private boolean lazyProvisioning;
+    private boolean prepareHomeLazily;
     private boolean provisioned;
 
     // TODO may need to be relaxed for Gradle-based plugins
@@ -445,14 +445,14 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Allows JENKINS_HOME initialization to be delayed until {@link #startJenkins} is called for the first time.
+     * Allows {@code JENKINS_HOME} initialization to be delayed until {@link #startJenkins} is called for the first time.
      * <p>
      * This allows methods such as {@link #addPlugins} to be called dynamically inside of test methods, which enables
      * related tests that need to configure {@link RealJenkinsRule} in different ways to be defined in the same class
      * using only a single instance of {@link RealJenkinsRule}.
      */
-    public RealJenkinsRule withLazyProvisioning(boolean lazyProvisioning) {
-        this.lazyProvisioning = lazyProvisioning;
+    public RealJenkinsRule prepareHomeLazily(boolean prepareHomeLazily) {
+        this.prepareHomeLazily = prepareHomeLazily;
         return this;
     }
 
@@ -482,7 +482,7 @@ public final class RealJenkinsRule implements TestRule {
                 }
                 try {
                     home.set(tmp.allocate());
-                    if (!lazyProvisioning) {
+                    if (!prepareHomeLazily) {
                         provision();
                     }
                     base.evaluate();
@@ -709,7 +709,7 @@ public final class RealJenkinsRule implements TestRule {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
-        if (lazyProvisioning && !provisioned) {
+        if (prepareHomeLazily && !provisioned) {
             provision();
         }
         String cp = System.getProperty("java.class.path");

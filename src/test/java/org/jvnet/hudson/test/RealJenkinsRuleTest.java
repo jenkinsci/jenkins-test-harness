@@ -72,7 +72,7 @@ import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().withLazyProvisioning(true).withDebugPort(4001).withDebugServer(false);
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true).withDebugPort(4001).withDebugServer(false);
 
     @Test public void smokes() throws Throwable {
         rr.addPlugins("plugins/structs.hpi");
