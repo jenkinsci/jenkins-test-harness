@@ -303,16 +303,17 @@ public class RealJenkinsRuleTest {
     }
 
     @Test
-    public void whenUsingWrongAltJavaHome() throws Throwable {
+    public void whenUsingWrongJavaHome() throws Throwable {
         IOException ex = assertThrows(
-                IOException.class, () -> rr.withAltJavaHome("/noexists").startJenkins());
+                IOException.class, () -> rr.withJavaHome("/noexists").startJenkins());
         assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
-    @Test public void smokesAltJavaHome() throws Throwable {
+    @Test 
+    public void smokesJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
         rr.addPlugins("plugins/structs.hpi");
-        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withAltJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
     }
 
     // TODO interesting scenarios to test:
