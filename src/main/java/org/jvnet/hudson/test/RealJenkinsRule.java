@@ -1246,7 +1246,7 @@ public final class RealJenkinsRule implements TestRule {
             Object object = null;
             try {
                 object = STEP_RUNNER.submit(() -> {
-                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
                         return s.run(rule);
                     } catch (Throwable t) {
                         throw new RuntimeException(t);
@@ -1263,7 +1263,7 @@ public final class RealJenkinsRule implements TestRule {
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
-            try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+            try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
                 return Jenkins.get().doSafeExit(null);
             }
         }

@@ -62,7 +62,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         // security setup as in a default installation.
         System.setProperty("jenkins.install.state", "TEST");
         launchInstance();
-        ACL.impersonate(ACL.SYSTEM);
+        ACL.impersonate2(ACL.SYSTEM2);
         setup();
     }
 
