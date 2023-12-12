@@ -377,7 +377,11 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void stop(@NonNull RealJenkinsRule rjr, @NonNull String name) throws Throwable {
         stop(name);
-        rjr.runRemotely(InboundAgentRule::waitForAgentOffline, name);
+        if (rjr.isAlive()) {
+            rjr.runRemotely(InboundAgentRule::waitForAgentOffline, name);
+        } else {
+            LOGGER.warning(() -> "Controller seems to have already shut down; not waiting for " + name + " to go offline");
+        }
     }
 
     /**
