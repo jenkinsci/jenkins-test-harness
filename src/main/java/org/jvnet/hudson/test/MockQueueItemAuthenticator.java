@@ -28,7 +28,9 @@ import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.model.User;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import jenkins.security.QueueItemAuthenticator;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
@@ -44,13 +46,27 @@ import org.springframework.security.core.Authentication;
 public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
 
     private transient final Map<String,Authentication> jobsToUsers;
-    
+
     /**
      * Creates a new authenticator.
-     * @param jobsToUsers a map from {@link Item#getFullName} to authentications such as from {@link User#impersonate}
      */
-    public MockQueueItemAuthenticator(Map<String,Authentication> jobsToUsers) {
-        this.jobsToUsers = jobsToUsers;
+    public MockQueueItemAuthenticator() {
+        jobsToUsers = new HashMap<>();
+    }
+
+    /** @deprecated use {@link #MockQueueItemAuthenticator()} plus {@link #authenticate} */
+    @Deprecated
+    public MockQueueItemAuthenticator(Map<String, org.acegisecurity.Authentication> jobsToUsers) {
+        this.jobsToUsers = jobsToUsers.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toSpring()));
+    }
+
+    /**
+     * @param jobFullName {@link Item#getFullName}
+     * @param authentication such as from {@link User#impersonate2}
+     */
+    public MockQueueItemAuthenticator authenticate(String jobFullName, Authentication authentication) {
+        jobsToUsers.put(jobFullName, authentication);
+        return this;
     }
     
     @Override public Authentication authenticate2(Queue.Item item) {
