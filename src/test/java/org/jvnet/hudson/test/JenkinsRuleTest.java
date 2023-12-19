@@ -409,7 +409,7 @@ public class JenkinsRuleTest {
 
     @Test
     public void serialization() throws Exception {
-        j.createSlave("agent", "agent", new EnvVars());
+        j.createAgent("agent", "agent", new EnvVars());
         j.jenkins.save();
     }
 

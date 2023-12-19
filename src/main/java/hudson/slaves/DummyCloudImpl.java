@@ -123,8 +123,8 @@ public class DummyCloudImpl extends Cloud {
             // since it's normally some async operation.
             Thread.sleep(time);
             
-            System.out.println("launching slave");
-            final DumbSlave slave = rule.createSlave(label);
+            System.out.println("launching agent");
+            final DumbSlave slave = rule.createAgent(label);
             for (NodeProperty nodeProperty : nodeProperties) {
                 slave.getNodeProperties().add(updateWithNode(nodeProperty, slave));
             }
