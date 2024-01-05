@@ -4,10 +4,74 @@
     Exclusions in this section have been triaged and determined to be false positives.
   -->
   <Match>
-    <Or>
-      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
-      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
-    </Or>
+    <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
+    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="hudson.slaves.DummyCloudImpl"/>
+    <Field name="numProvisioned"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.ComputerConnectorTester"/>
+    <Field name="connector"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="hudson"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="jenkins"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="useLocalPluginManager"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsComputerConnectorTester"/>
+    <Field name="connector"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="hudson"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="jenkins"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="useLocalPluginManager"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
+    <Field name="home"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
+    <Field name="j"/>
   </Match>
   <!--
     Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
