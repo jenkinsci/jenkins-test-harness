@@ -92,7 +92,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
-import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -128,7 +128,6 @@ import org.kohsuke.stapler.verb.POST;
  * <li>Remote thunks must be serializable. If they need data from the test JVM, you will need to create a {@code static} nested class to package that.
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
- * <li>{@link Assume} is not available.
  * <li>{@link TestExtension} is not available.
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
  * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
@@ -904,6 +903,7 @@ public final class RealJenkinsRule implements TestRule {
         runRemotely(new StepsToStep2(steps));
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
         conn.setRequestProperty("Content-Type", "application/octet-stream");
@@ -912,7 +912,9 @@ public final class RealJenkinsRule implements TestRule {
         Init2.writeSer(conn.getOutputStream(), new InputPayload(token, s, getUrl()));
         try {
             OutputPayload result = (OutputPayload) Init2.readSer(conn.getInputStream(), null);
-            if (result.error != null) {
+            if (result.assumptionFailure != null) {
+                throw new AssumptionViolatedException(result.assumptionFailure, result.error);
+            } else if (result.error != null) {
                 throw new StepException(result.error, getName());
             }
             return (T) result.result;
@@ -1258,8 +1260,7 @@ public final class RealJenkinsRule implements TestRule {
             } catch (CancellationException | InterruptedException e) {
                 err = e;
             }
-            // TODO use raw err if it seems safe enough
-            Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err != null ? new ProxyException(err) : null));
+            Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err));
         }
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
@@ -1353,11 +1354,14 @@ public final class RealJenkinsRule implements TestRule {
 
     private static class OutputPayload implements Serializable {
         private final Object result;
-        private final Throwable error;
+        private final ProxyException error;
+        private final String assumptionFailure;
 
         OutputPayload(Object result, Throwable error) {
             this.result = result;
-            this.error = error;
+            // TODO use raw error if it seems safe enough
+            this.error = error != null ? new ProxyException(error) : null;
+            assumptionFailure = error instanceof AssumptionViolatedException ? error.getMessage() : null;
         }
     }
 }
