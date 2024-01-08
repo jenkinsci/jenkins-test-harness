@@ -65,6 +65,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import static org.junit.Assume.assumeThat;
+import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -314,6 +316,21 @@ public class RealJenkinsRuleTest {
         String altJavaHome = System.getProperty("java.home");
         rr.addPlugins("plugins/structs.hpi");
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+    }
+
+    @Issue("https://github.com/jenkinsci/jenkins-test-harness/issues/359")
+    @Test
+    public void assumptions() throws Throwable {
+        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions1)).getMessage(), is("got: <4>, expected: is <5>"));
+        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions2)).getMessage(), is("oops: got: <4>, expected: is <5>"));
+    }
+
+    private static void _assumptions1(JenkinsRule r) throws Throwable {
+        assumeThat(2 + 2, is(5));
+    }
+
+    private static void _assumptions2(JenkinsRule r) throws Throwable {
+        assumeThat("oops", 2 + 2, is(5));
     }
 
     // TODO interesting scenarios to test:
