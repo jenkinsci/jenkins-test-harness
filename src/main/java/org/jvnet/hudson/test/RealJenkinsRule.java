@@ -49,6 +49,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -162,7 +163,7 @@ public final class RealJenkinsRule implements TestRule {
      */
     private int port;
 
-    private String httpListenAddress = "127.0.0.1";
+    private String httpListenAddress = InetAddress.getLoopbackAddress().getHostAddress();
 
     private File war;
 
