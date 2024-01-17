@@ -42,6 +42,7 @@ import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
@@ -170,7 +171,6 @@ import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.acegisecurity.GrantedAuthorityImpl;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.http.HttpCompliance;
@@ -3038,6 +3038,41 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     public Description getTestDescription() {
         return testDescription;
+    }
+
+    /**
+     * Restart the current instance with the same port and a copy of its {@code JENKINS_HOME}.
+     */
+    public void restart() throws Throwable {
+        // create backup of current instance in new home
+        URL source = jenkins.getRootDir().toURI().toURL();
+        File copy = new TemporaryDirectoryAllocator().allocate();
+
+        if(source.getProtocol().equals("file")) {
+            File src = new File(source.toURI());
+            if (src.isDirectory()) {
+                new FilePath(src).copyRecursiveTo("**/*",new FilePath(copy));
+            } else if (src.getName().endsWith(".zip")) {
+                new FilePath(src).unzip(new FilePath(copy));
+            }
+        } else {
+            File tmp = File.createTempFile("hudson","zip");
+            try {
+                FileUtils.copyURLToFile(source,tmp);
+                new FilePath(tmp).unzip(new FilePath(copy));
+            } finally {
+                FileUtils.deleteQuietly(tmp);
+            }
+        }
+
+        // shutdown and cleanup current instance
+        after();
+
+        // init new instance with backup
+        withExistingHome(copy);
+
+        // startup new instance
+        before();
     }
 
     private NameValuePair getCrumbHeaderNVP() {
