@@ -98,12 +98,17 @@ public class HtmlFormUtil {
     }
 
     /**
-     * Gets the first {@code <input type="submit">} element in this form.
+     * Gets the first {@code <input type="submit">} or {@code <button name="Submit">} element in this form.
      */
     public static HtmlElement getSubmitButton(final HtmlForm htmlForm) throws ElementNotFoundException {
         List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
         if (!submitButtons.isEmpty()) {
             return submitButtons.get(0);
+        }
+        for (HtmlElement element : htmlForm.getElementsByAttribute("button", "name", "Submit")) {
+            if(element instanceof HtmlButton) {
+                return element;
+            }
         }
         for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
             if(element instanceof HtmlButton) {
