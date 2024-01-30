@@ -98,24 +98,32 @@ public class HtmlFormUtil {
     }
 
     /**
-     * Gets the first {@code <input type="submit">} or {@code <button name="Submit">} element in this form.
+     * Gets the first {@code <button class="jenkins-submit-button">} element in this form.
+     * If not found, then it looks for the first {@code <input type="submit">} or {@code <button name="Submit">} or {@code <button>} (in that order).
      */
     public static HtmlElement getSubmitButton(final HtmlForm htmlForm) throws ElementNotFoundException {
-        List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
-        if (!submitButtons.isEmpty()) {
-            return submitButtons.get(0);
+        HtmlElement submitButton = htmlForm.getFirstByXPath("//button[contains(@class, 'jenkins-submit-button')]");
+        if (submitButton != null) {
+            return submitButton;
         }
         for (HtmlElement element : htmlForm.getElementsByAttribute("button", "name", "Submit")) {
             if(element instanceof HtmlButton) {
                 return element;
             }
         }
-        for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
-            if(element instanceof HtmlButton) {
-                return element;
+        // Kept for backward compatibility
+        {
+            List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
+            if (!submitButtons.isEmpty()) {
+                return submitButtons.get(0);
             }
+            for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
+                if (element instanceof HtmlButton) {
+                    return element;
+                }
+            }
+            return null;
         }
-        return null;
     }
 
     /**
