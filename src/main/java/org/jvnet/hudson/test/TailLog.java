@@ -99,12 +99,15 @@ public final class TailLog implements AutoCloseable {
             @Override
             public void handle(String line) {
                 if (ps == null) {
-                    ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.out)), true, StandardCharsets.UTF_8);
+                    ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.out)), false, StandardCharsets.UTF_8);
                 }
-                ps.append(DeltaSupportLogFormatter.elapsedTime());
-                ps.print(' ');
-                ps.print(line);
-                ps.println();
+                synchronized (System.out) {
+                    ps.append(DeltaSupportLogFormatter.elapsedTime());
+                    ps.print(' ');
+                    ps.print(line);
+                    ps.println();
+                    ps.flush();
+                }
                 if (line.startsWith("Finished: ")) {
                     finished.release();
                 }
