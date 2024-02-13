@@ -92,33 +92,35 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
     }
 
     @Override protected void eol(byte[] b, int len) throws IOException {
-        if (name != null) {
-            out.write('[');
-            out.write(name.getBytes(StandardCharsets.US_ASCII));
-            out.write(']');
-            out.write(' ');
-        }
-        if (color != null) {
-            out.write(27); // ESC
-            out.write('[');
-            out.write(color.getCode().getBytes(StandardCharsets.US_ASCII));
-            out.write('m');
-            // Preserving original line ending, so not using trimEOL:
-            int preNlLen = len;
-            while (preNlLen > 0 && (b[preNlLen - 1] == '\n' || b[preNlLen - 1] == '\r')) {
-                preNlLen--;
+        synchronized (out) {
+            if (name != null) {
+                out.write('[');
+                out.write(name.getBytes(StandardCharsets.US_ASCII));
+                out.write(']');
+                out.write(' ');
             }
-            assert 0 <= preNlLen;
-            assert preNlLen <= len;
-            assert len <= b.length;
-            out.write(b, 0, preNlLen);
-            out.write(27);
-            out.write('[');
-            out.write('0');
-            out.write('m');
-            out.write(b, preNlLen, len - preNlLen);
-        } else {
-            out.write(b, 0, len);
+            if (color != null) {
+                out.write(27); // ESC
+                out.write('[');
+                out.write(color.getCode().getBytes(StandardCharsets.US_ASCII));
+                out.write('m');
+                // Preserving original line ending, so not using trimEOL:
+                int preNlLen = len;
+                while (preNlLen > 0 && (b[preNlLen - 1] == '\n' || b[preNlLen - 1] == '\r')) {
+                    preNlLen--;
+                }
+                assert 0 <= preNlLen;
+                assert preNlLen <= len;
+                assert len <= b.length;
+                out.write(b, 0, preNlLen);
+                out.write(27);
+                out.write('[');
+                out.write('0');
+                out.write('m');
+                out.write(b, preNlLen, len - preNlLen);
+            } else {
+                out.write(b, 0, len);
+            }
         }
     }
 
