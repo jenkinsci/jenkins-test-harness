@@ -840,7 +840,19 @@ public final class RealJenkinsRule implements TestRule {
         if (timeout > 0) {
             Timer.get().schedule(() -> {
                 if (proc != null) {
-                    System.err.println("Test timeout expired, killing Jenkins process");
+                    LOGGER.warning("Test timeout expired, stopping steps…");
+                    try {
+                        endpoint("timeout").openStream().close();
+                    } catch (IOException x) {
+                        x.printStackTrace();
+                    }
+                    LOGGER.warning("…and giving steps a chance to fail…");
+                    try {
+                        Thread.sleep(15_000);
+                    } catch (InterruptedException x) {
+                        x.printStackTrace();
+                    }
+                    LOGGER.warning("…and killing Jenkins process.");
                     proc.destroyForcibly();
                     proc = null;
                 }
@@ -1267,6 +1279,18 @@ public final class RealJenkinsRule implements TestRule {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
                 return Jenkins.get().doSafeExit(null);
+            }
+        }
+        public void doTimeout(@QueryParameter String token) {
+            checkToken(token);
+            LOGGER.warning("Initiating shutdown");
+            STEP_RUNNER.shutdownNow();
+            try {
+                LOGGER.warning("Awaiting termination of steps…");
+                STEP_RUNNER.awaitTermination(30, TimeUnit.SECONDS);
+                LOGGER.warning("…terminated.");
+            } catch (InterruptedException x) {
+                x.printStackTrace();
             }
         }
     }
