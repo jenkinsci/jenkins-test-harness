@@ -671,7 +671,7 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL("http://" + host + ":" + port + "/jenkins/");
+        return new URL("http", host, port, "/jenkins/");
     }
 
     private URL endpoint(String method) throws MalformedURLException {
