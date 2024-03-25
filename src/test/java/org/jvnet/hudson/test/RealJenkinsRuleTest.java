@@ -28,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -46,6 +47,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.model.UpdateSite;
 import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
 import java.io.ByteArrayInputStream;
@@ -55,6 +57,8 @@ import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.servlet.Filter;
@@ -66,6 +70,7 @@ import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assume.assumeThat;
+
 import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -345,4 +350,29 @@ public class RealJenkinsRuleTest {
         Thread.sleep(Long.MAX_VALUE);
     }
 
+    @Test
+    public void withProxyUpdateSite() throws Throwable {
+        Map.Entry<String, String> site = rr.then(RealJenkinsRuleTest::getUpdateSiteIdAndURL);
+        assertThat(site.getKey(), is("default"));
+        assertThat(site.getValue(), matchesPattern("http://localhost:(\\d+)/update-center.json"));
+    }
+
+    @Test
+    public void withoutProxyUpdateSite() throws Throwable {
+        try {
+            rr.withoutProxyUpdateSite(true);
+
+            Map.Entry<String, String> site = rr.then(RealJenkinsRuleTest::getUpdateSiteIdAndURL);
+            assertThat(site.getKey(), is("default"));
+            assertThat(site.getValue(), is("https://updates.jenkins.io/update-center.json"));
+        }
+        finally {
+            rr.withoutProxyUpdateSite(false);
+        }
+    }
+
+    public static AbstractMap.SimpleImmutableEntry<String, String> getUpdateSiteIdAndURL(JenkinsRule r) throws Throwable {
+        UpdateSite site = r.jenkins.getUpdateCenter().getSites().get(0);
+        return new AbstractMap.SimpleImmutableEntry<>(site.getId(), site.getUrl());
+    }
 }

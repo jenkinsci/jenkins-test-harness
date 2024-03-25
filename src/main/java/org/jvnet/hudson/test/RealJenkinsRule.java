@@ -185,6 +185,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
+    private boolean withoutProxyUpdateSite = false;
+
     private String host = "localhost";
 
     Process proc;
@@ -441,6 +443,19 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule includeTestClasspathPlugins(boolean includeTestClasspathPlugins) {
         this.includeTestClasspathPlugins = includeTestClasspathPlugins;
+        return this;
+    }
+
+    /**
+     * By default a @{link {@link JenkinsRule#_configureUpdateCenter(Jenkins)} proxy update site}
+     * is used to reduce load on the update site.
+     * In some cases, for example when using a local file based HTTP update site,
+     * this proxy interferes with aim of the tests and as such can be skipped when needed.
+     * If you are not sure if you want this, then you do not actually want to call this!
+     * @param withoutProxyUpdateSite {@code true} to disabled swapping the update site for the proxy.
+     */
+    public RealJenkinsRule withoutProxyUpdateSite(boolean withoutProxyUpdateSite) {
+        this.withoutProxyUpdateSite = withoutProxyUpdateSite;
         return this;
     }
 
@@ -724,6 +739,9 @@ public final class RealJenkinsRule implements TestRule {
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
+        if (withoutProxyUpdateSite) {
+            argv.add("-DRealJenkinsRule.skipProxyUpdateSite=true");
+        }
         argv.addAll(getJacocoAgentOptions());
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
@@ -1192,7 +1210,9 @@ public final class RealJenkinsRule implements TestRule {
                     return false;
                 }
             });
-            JenkinsRule._configureUpdateCenter(j);
+            if (!Boolean.getBoolean("RealJenkinsRule.skipProxyUpdateSite")) {
+                JenkinsRule._configureUpdateCenter(j);
+            }
             System.err.println("RealJenkinsRule ready");
             if (!new DisableOnDebug(null).isDebugging()) {
                 Timer.get().scheduleAtFixedRate(JenkinsRule::dumpThreads, 2, 2, TimeUnit.MINUTES);
