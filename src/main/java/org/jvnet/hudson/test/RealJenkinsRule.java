@@ -185,7 +185,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
-    private String host = "localhost";
+    private String host = httpListenAddress;
 
     Process proc;
 
@@ -292,13 +292,13 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Sets a custom host name for the Jenkins root URL.
-     * <p>By default, this is just {@code localhost}.
-     * But you may wish to set it to something else that resolves to localhost,
+     * <p>By default, this is the same as the {@link #httpListenAddress}.
+     * But you may wish to set it to something else that resolves to the loopback address,
      * such as {@code some-id.127.0.0.1.nip.io}.
      * This is particularly useful when running multiple copies of Jenkins (and/or other services) in one test case,
      * since browser cookies are sensitive to host but not port and so otherwise {@link HttpServletRequest#getSession}
      * might accidentally be shared across otherwise distinct services.
-     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
+     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on the loopback address for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
      */
     public RealJenkinsRule withHost(String host) {
