@@ -976,9 +976,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return env.temporaryDirectoryAllocator.allocate();
     }
 
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
     @NonNull
+    @Deprecated
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        DumbSlave slave = createSlave();
+        return createAgent(waitForChannelConnect);
+    }
+
+    @NonNull
+    public DumbSlave createAgent(boolean waitForChannelConnect) throws Exception {
+        DumbSlave slave = createAgent();
         if (waitForChannelConnect) {
             long start = System.currentTimeMillis();
             while (slave.getChannel() == null) {
@@ -991,10 +1000,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return slave;
     }
 
+    /**
+     * @deprecated Use {@link disconnectAgent} instead.
+     */
     public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
+        disconnectAgent(slave);
+    }
+
+    public void disconnectAgent(DumbSlave agent) throws Exception {
+        agent.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
         long start = System.currentTimeMillis();
-        while (slave.getChannel() != null) {
+        while (agent.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
                 throw new IllegalStateException("Timed out waiting on DumbSlave channel to disconnect.");
             }
@@ -1007,16 +1023,33 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @see InboundAgentRule
      */
     @NonNull
+    public DumbSlave createAgent() throws Exception {
+        return createAgent("",null);
+    }
+
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
+    @NonNull
     public DumbSlave createSlave() throws Exception {
-        return createSlave("",null);
+        return createAgent();
+    }
+
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
+    @Deprecated
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
+    	return createAgent(l, null);
     }
 
     /**
      * Creates and launches a new slave on the local host.
      */
     @NonNull
-    public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
-    	return createSlave(l, null);
+    public DumbSlave createAgent(@CheckForNull Label l) throws Exception {
+    	return createAgent(l, null);
     }
 
     /**
@@ -1086,29 +1119,65 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return new URL("http://localhost:"+localPort+contextPath+"/");
     }
 
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
+    @Deprecated
     @NonNull
     public DumbSlave createSlave(@CheckForNull EnvVars env) throws Exception {
-        return createSlave("",env);
+        return createAgent(env);
     }
 
     @NonNull
-    public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
-        return createSlave(l==null ? null : l.getExpression(), env);
+    public DumbSlave createAgent(@CheckForNull EnvVars env) throws Exception {
+        return createAgent("",env);
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * @deprecated Use {@link createAgent} instead.
      */
+    @Deprecated
     @NonNull
-    public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
-        synchronized (jenkins) {
-            int sz = jenkins.getNodes().size();
-            return createSlave("slave" + sz,labels,env);
-    	}
+    public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
+        return createAgent(l, env);
     }
 
     @NonNull
+    public DumbSlave createAgent(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
+        return createAgent(l==null ? null : l.getExpression(), env);
+    }
+
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
+    @Deprecated
+    @NonNull
+    public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
+        return createAgent(labels, env);
+    }
+
+    /**
+     * Creates an agent with certain additional environment variables
+     */
+    @NonNull
+    public DumbSlave createAgent(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
+        synchronized (jenkins) {
+            int sz = jenkins.getNodes().size();
+            return createAgent("slave" + sz,labels,env);
+    	}
+    }
+
+    /**
+     * @deprecated Use {@link createAgent} instead.
+     */
+    @Deprecated
+    @NonNull
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
+        return createAgent(nodeName, labels, env);
+    }
+
+    @NonNull
+    public DumbSlave createAgent(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), createComputerLauncher(env));
             if (labels != null) {
@@ -1120,7 +1189,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     	}
     }
 
+    /**
+     * @deprecated Use {@link createPretendAgent} instead.
+     */
+    @Deprecated
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
+        return createPretendAgent(faker);
+    }
+
+    public PretendSlave createPretendAgent(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             String nodeName = "slave" + sz;
@@ -1152,10 +1229,32 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Create a new slave on the local host and wait for it to come online
      * before returning.
+     * @deprecated Use {@link #createOnlineAgent} instead.
      */
+    @Deprecated
     @NonNull
     public DumbSlave createOnlineSlave() throws Exception {
-        return createOnlineSlave(null);
+        return createOnlineAgent();
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning.
+     */
+    @NonNull
+    public DumbSlave createOnlineAgent() throws Exception {
+        return createOnlineAgent(null);
+    }
+
+    /**
+     * Create a new slave on the local host and wait for it to come online
+     * before returning.
+     * @deprecated Use {@link #createOnlineAgent} instead.
+     */
+    @NonNull
+    @Deprecated
+    public DumbSlave createOnlineSlave(@CheckForNull Label l) throws Exception {
+        return createOnlineAgent(l, null);
     }
 
     /**
@@ -1163,19 +1262,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * before returning.
      */
     @NonNull
-    public DumbSlave createOnlineSlave(@CheckForNull Label l) throws Exception {
-        return createOnlineSlave(l, null);
+    public DumbSlave createOnlineAgent(@CheckForNull Label l) throws Exception {
+        return createOnlineAgent(l, null);
     }
 
     /**
      * Create a new slave on the local host and wait for it to come online
      * before returning
+     * @deprecated Use {@link #createOnlineAgent} instead.
      * @see #waitOnline
      */
     @NonNull
-    @SuppressWarnings({"deprecation"})
+    @Deprecated
     public DumbSlave createOnlineSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
-        DumbSlave s = createSlave(l, env);
+        return createOnlineAgent(l, env);
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning
+     * @see #waitOnline
+     */
+    @NonNull
+    public DumbSlave createOnlineAgent(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
+        DumbSlave s = createAgent(l, env);
         waitOnline(s);
         return s;
     }
@@ -1198,8 +1308,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
     
     /**
-     * Waits for a newly created slave to come online.
-     * @see #createSlave()
+     * Waits for a newly created agent to come online.
+     * @see #createAgent()
      */
     public void waitOnline(Slave s) throws Exception {
         Computer computer = s.toComputer();
