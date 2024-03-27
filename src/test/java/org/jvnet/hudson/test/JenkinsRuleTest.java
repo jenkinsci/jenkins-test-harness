@@ -2,6 +2,9 @@ package org.jvnet.hudson.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,6 +17,7 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.RootAction;
 import hudson.model.User;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -27,6 +31,7 @@ import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.Description;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpResponse;
@@ -419,6 +424,31 @@ public class JenkinsRuleTest {
         p.getBuildersList().add(new SleepBuilder(1000));
         FreeStyleBuild b = p.scheduleBuild2(0).getStartCondition().get();
         j.assertBuildStatusSuccess(j.waitForCompletion(b));
+    }
+
+    @Test
+    public void restart() throws Throwable {
+        // preserve relevant properties
+        URL previousUrl = j.getURL();
+        Description previousTestDescription = j.testDescription;
+        File previousRoot = j.jenkins.getRootDir();
+
+        // create some configuration
+        j.createFreeStyleProject();
+        assertThat(j.jenkins.getJobNames(), hasSize(1));
+
+        // restart the instance with same port and new JENKINS_HOME
+        j.restart();
+
+        // validate properties and configuration were preserved
+        assertThat(j.getURL(), equalTo(previousUrl));
+        assertThat(j.testDescription, equalTo(previousTestDescription));
+        assertThat(j.jenkins.getRootDir(), not(previousRoot));
+        assertThat(j.jenkins.getJobNames(), hasSize(1));
+
+        // validate restarted instance is working
+        j.createFreeStyleProject();
+        assertThat(j.jenkins.getJobNames(), hasSize(2));
     }
 
 }
