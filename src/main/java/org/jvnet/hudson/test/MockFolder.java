@@ -153,13 +153,13 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return mixin().createProjectFromXML(name, xml);
     }
 
-    @Override public TopLevelItem createProject(TopLevelItemDescriptor type, String name, boolean notify) throws IOException {
+    @Override public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify) throws IOException {
         return mixin().createProject(type, name, notify);
     }
 
     /** Convenience method to create a {@link FreeStyleProject} or similar. */
-    public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name, true));
+    public <T extends TopLevelItem> T createProject(@NonNull Class<T> type, @NonNull String name) throws IOException {
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptorOrDie(type), name, true));
     }
 
     @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
