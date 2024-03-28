@@ -333,8 +333,16 @@ public class RealJenkinsRuleTest {
         assumeThat("oops", 2 + 2, is(5));
     }
 
-    // TODO interesting scenarios to test:
-    // · throw an exception of a type defined in Jenkins code
-    // · run with optional dependencies disabled
+    @Test
+    public void timeoutDuringStep() throws Throwable {
+        rr.withTimeout(10);
+        assertThat(Functions.printThrowable(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
+            containsString("\tat " + RealJenkinsRuleTest.class.getName() + ".hangs(RealJenkinsRuleTest.java:"));
+    }
+
+    private static void hangs(JenkinsRule r) throws Throwable {
+        System.err.println("Hanging step…");
+        Thread.sleep(Long.MAX_VALUE);
+    }
 
 }

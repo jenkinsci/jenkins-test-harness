@@ -2846,6 +2846,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public @NonNull WebClient withBasicApiToken(@NonNull String userId){
             User user = User.getById(userId, true);
+            assert user != null;
             return withBasicApiToken(user);
         }
 

@@ -112,7 +112,7 @@ public final class TailLog implements AutoCloseable {
                     finished.release();
                 }
             }
-        });
+        }, 50);
     }
 
     public void waitForCompletion() throws InterruptedException {

@@ -185,7 +185,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
-    private String host = "localhost";
+    private String host = httpListenAddress;
 
     Process proc;
 
@@ -292,13 +292,13 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Sets a custom host name for the Jenkins root URL.
-     * <p>By default, this is just {@code localhost}.
-     * But you may wish to set it to something else that resolves to localhost,
+     * <p>By default, this is the same as the {@link #httpListenAddress}.
+     * But you may wish to set it to something else that resolves to the loopback address,
      * such as {@code some-id.127.0.0.1.nip.io}.
      * This is particularly useful when running multiple copies of Jenkins (and/or other services) in one test case,
      * since browser cookies are sensitive to host but not port and so otherwise {@link HttpServletRequest#getSession}
      * might accidentally be shared across otherwise distinct services.
-     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
+     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on the loopback address for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
      */
     public RealJenkinsRule withHost(String host) {
@@ -671,7 +671,7 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL("http://" + host + ":" + port + "/jenkins/");
+        return new URL("http", host, port, "/jenkins/");
     }
 
     private URL endpoint(String method) throws MalformedURLException {
@@ -840,7 +840,19 @@ public final class RealJenkinsRule implements TestRule {
         if (timeout > 0) {
             Timer.get().schedule(() -> {
                 if (proc != null) {
-                    System.err.println("Test timeout expired, killing Jenkins process");
+                    LOGGER.warning("Test timeout expired, stopping steps…");
+                    try {
+                        endpoint("timeout").openStream().close();
+                    } catch (IOException x) {
+                        x.printStackTrace();
+                    }
+                    LOGGER.warning("…and giving steps a chance to fail…");
+                    try {
+                        Thread.sleep(15_000);
+                    } catch (InterruptedException x) {
+                        x.printStackTrace();
+                    }
+                    LOGGER.warning("…and killing Jenkins process.");
                     proc.destroyForcibly();
                     proc = null;
                 }
@@ -1267,6 +1279,18 @@ public final class RealJenkinsRule implements TestRule {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
                 return Jenkins.get().doSafeExit(null);
+            }
+        }
+        public void doTimeout(@QueryParameter String token) {
+            checkToken(token);
+            LOGGER.warning("Initiating shutdown");
+            STEP_RUNNER.shutdownNow();
+            try {
+                LOGGER.warning("Awaiting termination of steps…");
+                STEP_RUNNER.awaitTermination(30, TimeUnit.SECONDS);
+                LOGGER.warning("…terminated.");
+            } catch (InterruptedException x) {
+                x.printStackTrace();
             }
         }
     }
