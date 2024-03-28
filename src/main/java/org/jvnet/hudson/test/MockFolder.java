@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -158,6 +159,8 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     }
 
     /** Convenience method to create a {@link FreeStyleProject} or similar. */
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+                        justification = "Accept null pointer exception if caller passes an invalid project type")
     public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
         return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptor(type), name, true));
     }

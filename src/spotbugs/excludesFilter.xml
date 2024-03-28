@@ -73,12 +73,6 @@
     <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
     <Field name="j"/>
   </Match>
-  <Match>
-    <!-- Accept null pointer exception if caller passes an invalid project type -->
-    <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
-    <Class name="org.jvnet.hudson.test.MockFolder"/> -->
-    <Method name="createProject"/>
-  </Match>
   <!--
     Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
     on this section, pick an exclusion to triage, then:
