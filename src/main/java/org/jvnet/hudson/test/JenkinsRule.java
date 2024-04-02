@@ -2989,7 +2989,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         } finally {
             jettyLevel(Level.INFO);
         }
-        MIME_TYPES.addMimeMapping("js","application/javascript");
+        MIME_TYPES.addMimeMapping("js","text/javascript");
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {
