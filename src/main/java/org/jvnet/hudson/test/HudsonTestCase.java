@@ -1814,7 +1814,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
-        MIME_TYPES.addMimeMapping("js","application/javascript");
+        MIME_TYPES.addMimeMapping("js","text/javascript");
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {
