@@ -1321,7 +1321,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Performs a search from the search box.
      */
     public Page search(String q) throws Exception {
-        return new WebClient().search(q);
+        return createWebClient().search(q);
     }
 
     /**
