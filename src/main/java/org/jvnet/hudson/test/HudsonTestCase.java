@@ -787,7 +787,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Performs a search from the search box.
      */
     protected Page search(String q) throws Exception {
-        return new WebClient().search(q);
+        return createWebClient().search(q);
     }
 
     /**
