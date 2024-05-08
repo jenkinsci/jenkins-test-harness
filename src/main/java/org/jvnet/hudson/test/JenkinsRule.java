@@ -2969,7 +2969,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty(ContextHandler.MAX_FORM_CONTENT_SIZE_KEY, "-1");
+        System.setProperty("org.eclipse.jetty.server.Request.maxFormContentSize", "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
