@@ -861,7 +861,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
@@ -2981,6 +2980,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
     public static final MimeTypes MIME_TYPES;
     static {
         jettyLevel(Level.WARNING); // suppress Log.initialize message
