@@ -132,12 +132,7 @@ THE SOFTWARE.
       <groupId>org.eclipse.jetty.websocket</groupId>
       <!-- or websocket-javax-server -->
       <artifactId>websocket-jetty-server</artifactId>
-      <!-- until Jetty release including https://github.com/eclipse/jetty.project/pull/8199 -->
       <exclusions>
-        <exclusion>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-annotations</artifactId>
-        </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
