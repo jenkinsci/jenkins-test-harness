@@ -183,7 +183,6 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -800,15 +799,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
-        server = _createWebServer(
+        WebAppContext context = _createWebAppContext(
                 contextPath,
                 (x) -> localPort = x,
                 getClass().getClassLoader(),
                 localPort,
                 this::configureUserRealm,
                 contextAndServerConsumer);
+        server = context.getServer();
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
-        return server.getChildHandlerByClass(ContextHandler.class).getServletContext();
+        return context.getServletContext();
     }
 
     /**
@@ -822,14 +822,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                     the {@link Server}
      * @since 2.50
      */
-    public static Server _createWebServer(
+    public static WebAppContext _createWebAppContext(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
             int localPort,
             Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        return _createWebServer(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+        return _createWebAppContext(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
     }
     /**
      * Creates a web server on which Jenkins can run
@@ -843,7 +843,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                         the {@link Server}
      * @since 2.50
      */
-    public static Server _createWebServer(
+    public static WebAppContext _createWebAppContext(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
@@ -886,7 +886,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         portSetter.accept(connector.getLocalPort());
 
-        return server;
+        return context;
     }
 
     /**
