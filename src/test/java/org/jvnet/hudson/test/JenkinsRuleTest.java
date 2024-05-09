@@ -19,12 +19,15 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import net.sf.json.JSONObject;
 import org.htmlunit.FailingHttpStatusCodeException;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
+import org.htmlunit.WebResponse;
+import org.htmlunit.util.WebConnectionWrapper;
 import org.junit.Rule;
 import org.junit.Test;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -421,4 +424,21 @@ public class JenkinsRuleTest {
         j.assertBuildStatusSuccess(j.waitForCompletion(b));
     }
 
+    @Test
+    public void mimeType() throws IOException {
+        JenkinsRule.WebClient wc = j.createWebClient();
+        AtomicReference<String> contentType = new AtomicReference<>();
+        wc.setWebConnection(new WebConnectionWrapper(wc.getWebConnection()) {
+            @Override
+            public WebResponse getResponse(WebRequest request) throws IOException {
+                WebResponse response = super.getResponse(request);
+                if (request.getUrl().getFile().endsWith("hudson-behavior.js")) {
+                    contentType.set(response.getContentType());
+                }
+                return response;
+            }
+        });
+        wc.getPage(j.getURL());
+        assertEquals("text/javascript", contentType.get());
+    }
 }

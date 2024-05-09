@@ -555,7 +555,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.addBean(new NoListenerConfiguration(context));
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
         ServerConnector connector = new ServerConnector(server);
@@ -1811,6 +1810,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
     public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
         MIME_TYPES.addMimeMapping("js","text/javascript");
