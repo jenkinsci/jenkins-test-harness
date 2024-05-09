@@ -859,6 +859,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());

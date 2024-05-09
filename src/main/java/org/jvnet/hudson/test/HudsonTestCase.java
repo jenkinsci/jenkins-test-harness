@@ -553,6 +553,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(configureUserRealm());
