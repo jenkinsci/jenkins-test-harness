@@ -216,6 +216,7 @@ import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlFormUtil;
 import org.htmlunit.html.HtmlImage;
 import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlLink;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.html.SubmittableElement;
 import org.htmlunit.javascript.AbstractJavaScriptEngine;
