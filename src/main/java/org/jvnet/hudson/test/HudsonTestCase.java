@@ -1593,7 +1593,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             return r.get(0);
         }
 
-        public HtmlPage search(String q) throws IOException, SAXException {
+        public HtmlPage search(String q) throws IOException, SAXException, InterruptedException {
             HtmlPage top = goTo("");
             HtmlButton button = top.querySelector("#button-open-command-palette");
 
@@ -1609,6 +1609,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             HtmlInput search = top.querySelector("#command-bar");
             search.setValue(q);
 
+            Thread.sleep(100);
             HtmlLink firstResult = top.querySelector(".jenkins-command-palette__results__item");
             return firstResult.click();
         }

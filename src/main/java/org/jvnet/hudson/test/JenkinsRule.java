@@ -2626,7 +2626,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             return r.get();
         }
 
-        public HtmlPage search(String q) throws IOException, SAXException {
+        public HtmlPage search(String q) throws IOException, SAXException, InterruptedException {
             HtmlPage top = goTo("");
             HtmlButton button = top.querySelector("#button-open-command-palette");
 
@@ -2642,6 +2642,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             HtmlInput search = top.querySelector("#command-bar");
             search.setValue(q);
 
+            Thread.sleep(100);
             HtmlLink firstResult = top.querySelector(".jenkins-command-palette__results__item");
             return firstResult.click();
         }
