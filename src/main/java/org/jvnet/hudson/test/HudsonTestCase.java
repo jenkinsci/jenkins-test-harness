@@ -1593,7 +1593,33 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             return r.get(0);
         }
 
-        public HtmlPage search(String q) throws IOException, SAXException, InterruptedException {
+        private HtmlElement waitUntilElementIsPresent(HtmlPage page, String query) {
+            long maxWaitTime = TimeUnit.SECONDS.toMillis(3);
+            long startTime = System.currentTimeMillis();
+
+            // Loop until the element is found or timeout occurs
+            HtmlElement element = null;
+            while (element == null && System.currentTimeMillis() - startTime < maxWaitTime) {
+                // Try to find the element
+                try {
+                    element = page.querySelector(query);
+                } catch (Exception e) {
+                    // Ignore exceptions and continue waiting
+                }
+
+                // If the element is not found, wait for a short interval before trying again
+                if (element == null) {
+                    try {
+                        Thread.sleep(100); // Adjust the interval as needed
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            return element;
+        }
+
+        public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
             HtmlButton button = top.querySelector("#button-open-command-palette");
 
@@ -1604,13 +1630,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return (HtmlPage)HtmlFormUtil.submit(search, null);
             }
 
-            button.click();
-
             HtmlInput search = top.querySelector("#command-bar");
             search.setValue(q);
 
-            Thread.sleep(100);
-            HtmlLink firstResult = top.querySelector(".jenkins-command-palette__results__item");
+            HtmlLink firstResult = (HtmlLink) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                return null;
+            }
+
             return firstResult.click();
         }
 
