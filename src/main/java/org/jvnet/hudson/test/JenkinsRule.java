@@ -100,6 +100,8 @@ import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
@@ -162,8 +164,6 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -174,10 +174,10 @@ import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.ee8.webapp.Configuration;
-import org.eclipse.jetty.ee8.webapp.WebAppContext;
-import org.eclipse.jetty.ee8.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.ee9.webapp.Configuration;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
+import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
@@ -432,6 +432,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
     }
 
+    private static boolean _isEE9Plus() {
+        try {
+            Jenkins.class.getDeclaredMethod("getServletContext");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     /**
      * Configures a Jenkins instance for test.
      *
@@ -441,9 +450,47 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
-        jenkins.servletContext.setAttribute("app", jenkins);
-        jenkins.servletContext.setAttribute("version", "?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+        if (_isEE9Plus()) {
+            ServletContext servletContext;
+            try {
+                servletContext = (ServletContext)
+                        Jenkins.class.getDeclaredMethod("getServletContext").invoke(jenkins);
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+            servletContext.setAttribute("app", jenkins);
+            servletContext.setAttribute("version", "?");
+            try {
+                WebAppMain.class
+                        .getDeclaredMethod("installExpressionFactory", ServletContextEvent.class)
+                        .invoke(null, new ServletContextEvent(servletContext));
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+        } else {
+            javax.servlet.ServletContext servletContext = jenkins.servletContext;
+            servletContext.setAttribute("app", jenkins);
+            servletContext.setAttribute("version", "?");
+            WebAppMain.installExpressionFactory(new javax.servlet.ServletContextEvent(servletContext));
+        }
 
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
@@ -474,7 +521,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         final String updateCenterUrl;
         jettyLevel(Level.WARNING);
         try {
-            updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+            int localPort = _isEE9Plus()
+                    ? JavaNetReverseProxy2.getInstance().localPort
+                    : JavaNetReverseProxy.getInstance().localPort;
+            updateCenterUrl = "http://localhost:" + localPort + "/update-center.json";
         } finally {
             jettyLevel(Level.INFO);
         }
@@ -737,17 +787,45 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected Hudson newHudson() throws Exception {
         jettyLevel(Level.WARNING);
-        ServletContext webServer = createWebServer();
-        File home = homeLoader.allocate();
-        for (JenkinsRecipe.Runner r : recipes) {
-            r.decorateHome(this,home);
-        }
-        try {
-            return new Hudson(home, webServer, getPluginManager());
-        } catch (InterruptedException x) {
-            throw new AssumptionViolatedException("Jenkins startup interrupted", x);
-        } finally {
-            jettyLevel(Level.INFO);
+        if (_isEE9Plus()) {
+            ServletContext webServer = createWebServer2();
+            File home = homeLoader.allocate();
+            for (JenkinsRecipe.Runner r : recipes) {
+                r.decorateHome(this, home);
+            }
+            try {
+                return Hudson.class
+                        .getDeclaredConstructor(File.class, ServletContext.class, PluginManager.class)
+                        .newInstance(home, webServer, getPluginManager());
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof InterruptedException) {
+                    throw new AssumptionViolatedException("Jenkins startup interrupted", t);
+                } else if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            } finally {
+                jettyLevel(Level.INFO);
+            }
+        } else {
+            javax.servlet.ServletContext webServer = createWebServer();
+            File home = homeLoader.allocate();
+            for (JenkinsRecipe.Runner r : recipes) {
+                r.decorateHome(this, home);
+            }
+            try {
+                return new Hudson(home, webServer, getPluginManager());
+            } catch (InterruptedException e) {
+                throw new AssumptionViolatedException("Jenkins startup interrupted", e);
+            } finally {
+                jettyLevel(Level.INFO);
+            }
         }
     }
 
@@ -783,23 +861,23 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
      * that we need for testing.
      */
-    protected ServletContext createWebServer() throws Exception {
-        return createWebServer(null);
+    protected ServletContext createWebServer2() throws Exception {
+        return createWebServer2(null);
     }
 
     /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
      * that we need for testing.
      * 
      * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
      * @since 2.63
      */
-    protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
+    protected ServletContext createWebServer2(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
-        WebAppContext context = _createWebAppContext(
+        WebAppContext context = _createWebAppContext2(
                 contextPath,
                 (x) -> localPort = x,
                 getClass().getClassLoader(),
@@ -822,14 +900,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                     the {@link Server}
      * @since 2.50
      */
-    public static WebAppContext _createWebAppContext(
+    public static WebAppContext _createWebAppContext2(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
             int localPort,
             Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        return _createWebAppContext(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+        return _createWebAppContext2(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
     }
     /**
      * Creates a web server on which Jenkins can run
@@ -843,7 +921,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                         the {@link Server}
      * @since 2.50
      */
-    public static WebAppContext _createWebAppContext(
+    public static WebAppContext _createWebAppContext2(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
@@ -864,10 +942,134 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         };
         context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
+        context.addBean(new NoListenerConfiguration2(context));
         context.setServer(server);
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
+        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
+        context.setResourceBase(WarExploder.getExplodedDir().getPath());
+
+        ServerConnector connector = new ServerConnector(server);
+        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
+        config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
+        connector.setHost("localhost");
+        if (System.getProperty("port") != null) {
+            connector.setPort(Integer.parseInt(System.getProperty("port")));
+        } else if (localPort != 0) {
+            connector.setPort(localPort);
+        }
+
+        server.addConnector(connector);
+        if (contextAndServerConsumer != null) {
+            contextAndServerConsumer.accept(context, server);
+        }
+        server.start();
+
+        portSetter.accept(connector.getLocalPort());
+
+        return context;
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * that we need for testing.
+     *
+     * @deprecated {use {@link #createWebServer2()}}
+     */
+    @Deprecated
+    protected javax.servlet.ServletContext createWebServer() throws Exception {
+        return createWebServer(null);
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * that we need for testing.
+     *
+     * @deprecated use {@link #createWebServer2(BiConsumer)}
+     * @param contextAndServerConsumer configures the {@link org.eclipse.jetty.ee8.webapp.WebAppContext} and the {@link Server} for the instance, before they are started
+     * @since 2.63
+     */
+    @Deprecated
+    protected javax.servlet.ServletContext createWebServer(
+            @CheckForNull BiConsumer<org.eclipse.jetty.ee8.webapp.WebAppContext, Server> contextAndServerConsumer)
+            throws Exception {
+        org.eclipse.jetty.ee8.webapp.WebAppContext context = _createWebAppContext(
+                contextPath,
+                (x) -> localPort = x,
+                getClass().getClassLoader(),
+                localPort,
+                this::configureUserRealm,
+                contextAndServerConsumer);
+        server = context.getServer();
+        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        return context.getServletContext();
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath          the context path at which to put Jenkins
+     * @param portSetter           the port on which the server runs will be set using this function
+     * @param classLoader          the class loader for the {@link org.eclipse.jetty.ee8.webapp.WebAppContext}
+     * @param localPort            port on which the server runs
+     * @param loginServiceSupplier configures the {@link LoginService} for the instance
+     * @return                     the {@link Server}
+     * @deprecated                 use {@link #_createWebAppContext2(String, Consumer, ClassLoader, int, Supplier)}
+     * @since 2.50
+     */
+    @Deprecated
+    public static org.eclipse.jetty.ee8.webapp.WebAppContext _createWebAppContext(
+            String contextPath,
+            Consumer<Integer> portSetter,
+            ClassLoader classLoader,
+            int localPort,
+            Supplier<LoginService> loginServiceSupplier)
+            throws Exception {
+        return _createWebAppContext(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath              the context path at which to put Jenkins
+     * @param portSetter               the port on which the server runs will be set using this function
+     * @param classLoader              the class loader for the {@link org.eclipse.jetty.ee8.webapp.WebAppContext}
+     * @param localPort                port on which the server runs
+     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
+     * @param contextAndServerConsumer configures the {@link org.eclipse.jetty.ee8.webapp.WebAppContext} and the {@link Server} for the instance, before they are started
+     * @return                         the {@link Server}
+     * @deprecated                     use {@link #_createWebAppContext2(String, Consumer, ClassLoader, int, Supplier, BiConsumer)}
+     * @since 2.50
+     */
+    @Deprecated
+    public static org.eclipse.jetty.ee8.webapp.WebAppContext _createWebAppContext(
+            String contextPath,
+            Consumer<Integer> portSetter,
+            ClassLoader classLoader,
+            int localPort,
+            Supplier<LoginService> loginServiceSupplier,
+            @CheckForNull BiConsumer<org.eclipse.jetty.ee8.webapp.WebAppContext, Server> contextAndServerConsumer)
+            throws Exception {
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (JenkinsRule)");
+        Server server = new Server(qtp);
+
+        org.eclipse.jetty.ee8.webapp.WebAppContext context = new org.eclipse.jetty.ee8.webapp.WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
+        context.setClassLoader(classLoader);
+        context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
+        context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
+        server.setHandler(context);
+        org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
@@ -2827,7 +3029,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public URL createCrumbedUrl(String relativePath) throws IOException {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
-            String crumb = issuer.getCrumb(null);
+            String crumb = issuer.getCrumb((javax.servlet.ServletRequest) null);
             if (relativePath.indexOf('?') == -1) {
                 return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
             }
@@ -3062,6 +3264,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private NameValuePair getCrumbHeaderNVP() {
         return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                        jenkins.getCrumbIssuer().getCrumb( null ));
+                        jenkins.getCrumbIssuer().getCrumb((javax.servlet.ServletRequest) null));
     }
 }
