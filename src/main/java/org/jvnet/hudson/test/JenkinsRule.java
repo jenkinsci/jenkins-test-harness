@@ -170,11 +170,9 @@ import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
-import org.acegisecurity.GrantedAuthorityImpl;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -246,7 +244,6 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -2981,19 +2978,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    /**
-     * @deprecated removed without replacement
-     */
-    @Deprecated
-    public static final MimeTypes MIME_TYPES;
     static {
-        jettyLevel(Level.WARNING); // suppress Log.initialize message
-        try {
-            MIME_TYPES = new MimeTypes();
-        } finally {
-            jettyLevel(Level.INFO);
-        }
-        MIME_TYPES.addMimeMapping("js","text/javascript");
+        jettyLevel(Level.INFO);
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {
