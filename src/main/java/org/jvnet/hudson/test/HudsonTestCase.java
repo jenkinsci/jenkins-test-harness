@@ -138,7 +138,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -1866,13 +1865,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    /**
-     * @deprecated removed without replacement
-     */
-    @Deprecated
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
-        MIME_TYPES.addMimeMapping("js","text/javascript");
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {
