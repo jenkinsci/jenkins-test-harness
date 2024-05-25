@@ -2634,8 +2634,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 // Try to find the element
                 try {
                     element = page.querySelector(query);
-                } catch (Exception e) {
-                    // Ignore exceptions and continue waiting
+                } catch (Exception ignored) {
+                    System.out.println("Looking again for element: " + query);
                 }
 
                 // If the element is not found, wait for a short interval before trying again
