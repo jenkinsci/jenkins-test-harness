@@ -2657,6 +2657,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             HtmlPage top = goTo("");
             HtmlButton button = top.querySelector("#button-open-command-palette");
 
+            System.out.println("Found button");
+            System.out.println(button);
+
             // Legacy versions of Jenkins
             if (button == null) {
                 HtmlForm search = top.getFormByName("search");
@@ -2667,11 +2670,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             HtmlInput search = top.querySelector("#command-bar");
             search.setValue(q);
 
+            System.out.println("Found command bar");
+            System.out.println(search);
+
             HtmlLink firstResult = (HtmlLink) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
 
             if (firstResult == null) {
+                System.out.println("Couldnt find result");
                 return null;
             }
+
+            System.out.println("Found result");
+            System.out.println(firstResult);
 
             return firstResult.click();
         }
