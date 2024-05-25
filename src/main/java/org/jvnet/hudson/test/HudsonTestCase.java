@@ -1596,6 +1596,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             long maxWaitTime = TimeUnit.SECONDS.toMillis(3);
             long startTime = System.currentTimeMillis();
 
+            System.out.println("Initial HTML:");
+            System.out.println(page.getWebResponse().getContentAsString());
+
             // Loop until the element is found or timeout occurs
             HtmlElement element = null;
             while (element == null && System.currentTimeMillis() - startTime < maxWaitTime) {
