@@ -20,7 +20,7 @@ public final class QueryUtils {
         long startTime = System.currentTimeMillis();
 
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
-            if (page.querySelector("*").getTextContent().contains(value)) {
+            if (page.querySelector("*").getVisibleText().contains(value)) {
                 System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " +
                         "until string '" + value + "' was present");
                 return;
@@ -47,7 +47,7 @@ public final class QueryUtils {
         long startTime = System.currentTimeMillis();
 
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
-            if (page.querySelector("*").getTextContent().contains(value)) {
+            if (page.querySelector("*").getVisibleText().contains(value)) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
