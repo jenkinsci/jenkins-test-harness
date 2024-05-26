@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -167,13 +169,13 @@ import org.htmlunit.cssparser.parser.CSSException;
 import org.htmlunit.cssparser.parser.CSSParseException;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlFormUtil;
 import org.htmlunit.html.HtmlImage;
 import org.htmlunit.html.HtmlInput;
-import org.htmlunit.html.HtmlLink;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.html.SubmittableElement;
 import org.htmlunit.javascript.AbstractJavaScriptEngine;
@@ -1592,66 +1594,30 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             return r.get(0);
         }
 
-        private HtmlElement waitUntilElementIsPresent(HtmlPage page, String query) {
-            long maxWaitTime = TimeUnit.SECONDS.toMillis(3);
-            long startTime = System.currentTimeMillis();
-
-            System.out.println("Initial HTML:");
-            System.out.println(page.getWebResponse().getContentAsString());
-
-            // Loop until the element is found or timeout occurs
-            HtmlElement element = null;
-            while (element == null && System.currentTimeMillis() - startTime < maxWaitTime) {
-                // Try to find the element
-                try {
-                    System.out.println("Current HTML:");
-                    System.out.println(page.getWebResponse().getContentAsString());
-                    element = page.querySelector(query);
-                } catch (Exception ignored) {
-                    System.out.println("Looking again for element: " + query);
-                }
-
-                // If the element is not found, wait for a short interval before trying again
-                if (element == null) {
-                    try {
-                        Thread.sleep(100); // Adjust the interval as needed
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-            return element;
-        }
-
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
             HtmlButton button = top.querySelector("#button-open-command-palette");
-
-            System.out.println("Found button");
-            System.out.println(button);
 
             // Legacy versions of Jenkins
             if (button == null) {
                 HtmlForm search = top.getFormByName("search");
                 search.getInputByName("q").setValue(q);
-                return (HtmlPage)HtmlFormUtil.submit(search, null);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
             }
 
+            button.click();
             HtmlInput search = top.querySelector("#command-bar");
             search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
 
-            System.out.println("Found command bar");
-            System.out.println(search);
-
-            HtmlLink firstResult = (HtmlLink) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
 
             if (firstResult == null) {
-                System.out.println("Couldnt find result");
+                System.out.println("Couldn't find result for query '" + q + "'");
                 return null;
             }
-
-            System.out.println("Found result");
-            System.out.println(firstResult);
 
             return firstResult.click();
         }
