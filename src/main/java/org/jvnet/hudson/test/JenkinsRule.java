@@ -34,6 +34,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -207,6 +209,7 @@ import org.htmlunit.cssparser.parser.CSSException;
 import org.htmlunit.cssparser.parser.CSSParseException;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlElementUtil;
@@ -2624,9 +2627,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValue(q);
-            return (HtmlPage)HtmlFormUtil.submit(search, null);
+            HtmlButton button = top.querySelector("#button-open-command-palette");
+
+            // Legacy versions of Jenkins
+            if (button == null) {
+                HtmlForm search = top.getFormByName("search");
+                search.getInputByName("q").setValue(q);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
+            }
+
+            button.click();
+            HtmlInput search = top.querySelector("#command-bar");
+            search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
+
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                System.out.println("Couldn't find result for query '" + q + "'");
+                return null;
+            }
+
+            return firstResult.click();
         }
 
         /**
