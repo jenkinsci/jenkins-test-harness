@@ -5,8 +5,9 @@ import org.htmlunit.html.HtmlPage;
 
 import java.util.concurrent.TimeUnit;
 
-// TODO - This might need to be moved to a more appropriate package
-public class QueryUtils {
+public final class QueryUtils {
+
+    private QueryUtils() {}
 
     /**
      * Waits until the given string is visible on the page, otherwise throws an exception
@@ -20,19 +21,19 @@ public class QueryUtils {
 
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
             if (page.querySelector("*").getTextContent().contains(value)) {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "' milliseconds " +
+                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " +
                         "until string '" + value + "' was present");
                 return;
             } else {
                 try {
-                    Thread.sleep(100); // Adjust the interval as needed
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
 
-        throw new RuntimeException("String '" + value + "' was not present '" + value + "' after '" + maxWaitTime + "' seconds");
+        throw new RuntimeException("String '" + value + "' was not present '" + value + "' after '" + maxWaitTime + "s'");
     }
 
     /**
@@ -48,18 +49,18 @@ public class QueryUtils {
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
             if (page.querySelector("*").getTextContent().contains(value)) {
                 try {
-                    Thread.sleep(100); // Adjust the interval as needed
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             } else {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "' milliseconds " +
+                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " +
                         "until string '" + value + "' was no longer present");
                 return;
             }
         }
 
-        throw new RuntimeException("String '" + value + "' is still present '" + value + "' after '" + maxWaitTime + "' seconds");
+        throw new RuntimeException("String '" + value + "' is still present '" + value + "' after '" + maxWaitTime + "s'");
     }
 
     /**
@@ -84,7 +85,7 @@ public class QueryUtils {
             // If the element is not found, wait for a short interval before trying again
             if (element == null) {
                 try {
-                    Thread.sleep(100); // Adjust the interval as needed
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
