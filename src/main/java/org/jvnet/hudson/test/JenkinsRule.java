@@ -34,6 +34,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -174,7 +176,6 @@ import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -183,7 +184,6 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -210,6 +210,7 @@ import org.htmlunit.cssparser.parser.CSSException;
 import org.htmlunit.cssparser.parser.CSSParseException;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlElementUtil;
@@ -247,7 +248,6 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -800,15 +800,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected ServletContext createWebServer(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
-        server = _createWebServer(
+        WebAppContext context = _createWebAppContext(
                 contextPath,
                 (x) -> localPort = x,
                 getClass().getClassLoader(),
                 localPort,
                 this::configureUserRealm,
                 contextAndServerConsumer);
+        server = context.getServer();
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
-        return server.getChildHandlerByClass(ContextHandler.class).getServletContext();
+        return context.getServletContext();
     }
 
     /**
@@ -822,14 +823,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                     the {@link Server}
      * @since 2.50
      */
-    public static Server _createWebServer(
+    public static WebAppContext _createWebAppContext(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
             int localPort,
             Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        return _createWebServer(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+        return _createWebAppContext(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
     }
     /**
      * Creates a web server on which Jenkins can run
@@ -843,7 +844,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                         the {@link Server}
      * @since 2.50
      */
-    public static Server _createWebServer(
+    public static WebAppContext _createWebAppContext(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
@@ -859,9 +860,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
@@ -886,7 +887,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         portSetter.accept(connector.getLocalPort());
 
-        return server;
+        return context;
     }
 
     /**
@@ -2627,9 +2628,30 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValue(q);
-            return (HtmlPage)HtmlFormUtil.submit(search, null);
+            HtmlButton button = top.querySelector("#button-open-command-palette");
+
+            // Legacy versions of Jenkins
+            if (button == null) {
+                HtmlForm search = top.getFormByName("search");
+                search.getInputByName("q").setValue(q);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
+            }
+
+            button.click();
+            HtmlInput search = top.querySelector("#command-bar");
+            search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
+
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                System.out.println("Couldn't find result for query '" + q + "'");
+                return null;
+            }
+
+            return firstResult.click();
         }
 
         /**
@@ -2969,7 +2991,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty(ContextHandler.MAX_FORM_CONTENT_SIZE_KEY, "-1");
+        System.setProperty("org.eclipse.jetty.server.Request.maxFormContentSize", "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
@@ -2981,15 +3003,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES;
     static {
-        jettyLevel(Level.WARNING); // suppress Log.initialize message
-        try {
-            MIME_TYPES = new MimeTypes();
-        } finally {
-            jettyLevel(Level.INFO);
-        }
-        MIME_TYPES.addMimeMapping("js","text/javascript");
+        jettyLevel(Level.INFO);
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {

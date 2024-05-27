@@ -15,7 +15,7 @@ import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.webapp.WebAppContext;
 import org.jvnet.hudson.test.JavaNetReverseProxy;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
@@ -93,15 +93,15 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        server = JenkinsRule._createWebServer(
+        WebAppContext context = JenkinsRule._createWebAppContext(
                 contextPath,
                 localPort::set,
                 getClass().getClassLoader(),
                 localPort.get(),
                 JenkinsRule::_configureUserRealm);
+        server = context.getServer();
 
-        ServletContext webServer =
-                server.getChildHandlerByClass(ContextHandler.class).getServletContext();
+        ServletContext webServer = context.getServletContext();
 
         jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);

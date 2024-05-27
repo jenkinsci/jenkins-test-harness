@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -138,7 +140,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -147,7 +148,6 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -169,6 +169,7 @@ import org.htmlunit.cssparser.parser.CSSException;
 import org.htmlunit.cssparser.parser.CSSParseException;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
@@ -554,9 +555,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
         server.setHandler(context);
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
         ServerConnector connector = new ServerConnector(server);
@@ -1595,9 +1596,30 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValue(q);
-            return (HtmlPage)HtmlFormUtil.submit(search, null);
+            HtmlButton button = top.querySelector("#button-open-command-palette");
+
+            // Legacy versions of Jenkins
+            if (button == null) {
+                HtmlForm search = top.getFormByName("search");
+                search.getInputByName("q").setValue(q);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
+            }
+
+            button.click();
+            HtmlInput search = top.querySelector("#command-bar");
+            search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
+
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                System.out.println("Couldn't find result for query '" + q + "'");
+                return null;
+            }
+
+            return firstResult.click();
         }
 
         /**
@@ -1800,7 +1822,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty(ContextHandler.MAX_FORM_CONTENT_SIZE_KEY, "-1");
+        System.setProperty("org.eclipse.jetty.server.Request.maxFormContentSize", "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
@@ -1812,9 +1834,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
-        MIME_TYPES.addMimeMapping("js","text/javascript");
         Functions.DEBUG_YUI = true;
 
         if (Functions.isGlibcSupported()) {
