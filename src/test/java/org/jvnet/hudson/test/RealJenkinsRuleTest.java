@@ -27,6 +27,7 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -53,6 +54,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,6 +93,14 @@ public class RealJenkinsRuleTest {
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+    }
+
+    @Test public void ipv6() throws Throwable {
+        // Use -Djava.net.preferIPv6Addresses=true if dualstack
+        assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
+        rr.withHost("::1").startJenkins();
+        var externalForm = rr.getUrl().toExternalForm();
+        assertEquals(externalForm, rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     @Test public void testThrowsException() {
