@@ -200,7 +200,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
-    private boolean updateRealJenkinsRuleInitPluginBaseline;
+    private boolean updateRealJenkinsRuleInitPluginBaseline = true;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -449,7 +449,7 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Updates the Jenkins-Version defined by the {@code RealJenkinsRuleInit} plugin to match the version of Jenkins that will be run.
      * The intended use case of this is to prevent any detached plugins being dragged in when they would not normally be.
-     * @param updateRealJenkinsRuleInitPluginBaseline {@code true} to update the plugin, false to use the plugin as is.
+     * @param updateRealJenkinsRuleInitPluginBaseline {@code false} to skip updating the plugin, {@code true} (the default) to update the baseline.
      */
     public RealJenkinsRule updateRealJenkinsRuleInitPluginBaseline(boolean updateRealJenkinsRuleInitPluginBaseline) {
         this.updateRealJenkinsRuleInitPluginBaseline = updateRealJenkinsRuleInitPluginBaseline;

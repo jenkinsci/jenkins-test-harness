@@ -361,15 +361,8 @@ public class RealJenkinsRuleTest {
 
     @Test
     public void noDetachedPlugins() throws Throwable {
-        // XXX this test will fail if the RealJenkinsRuleInit plugin targets a version of Jenkins that has detacthed plugins.
-        // if it is updated this test will no longer catch a regression
-        try {
-            rr.updateRealJenkinsRuleInitPluginBaseline(true);
-            rr.then(RealJenkinsRuleTest::_noDetachedPlugins);
-        }
-        finally {
-            rr.updateRealJenkinsRuleInitPluginBaseline(false);
-        }
+        // XXX this test will falsely pass if the RealJenkinsRuleInit plugin targets a version of Jenkins that has no detacthed plugins.
+        rr.then(RealJenkinsRuleTest::_noDetachedPlugins);
     }
 
     private static void _noDetachedPlugins(JenkinsRule r) throws Throwable {
