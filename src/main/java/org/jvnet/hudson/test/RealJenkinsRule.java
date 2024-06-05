@@ -75,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
@@ -199,6 +200,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
+    private boolean updateRealJenkinsRuleInitPluginBaseline;
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -445,6 +447,16 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
+     * Updates the Jenkins-Version defined by the {@code RealJenkinsRuleInit} plugin to match the version of Jenkins that will be run.
+     * The intended use case of this is to prevent any detached plugins being dragged in when they would not normally be.
+     * @param updateRealJenkinsRuleInitPluginBaseline {@code true} to update the plugin, false to use the plugin as is.
+     */
+    public RealJenkinsRule updateRealJenkinsRuleInitPluginBaseline(boolean updateRealJenkinsRuleInitPluginBaseline) {
+        this.updateRealJenkinsRuleInitPluginBaseline = updateRealJenkinsRuleInitPluginBaseline;
+        return this;
+    }
+
+    /**
      * Allows {@code JENKINS_HOME} initialization to be delayed until {@link #startJenkins} is called for the first time.
      * <p>
      * This allows methods such as {@link #addPlugins} to be called dynamically inside of test methods, which enables
@@ -514,7 +526,16 @@ public final class RealJenkinsRule implements TestRule {
         }
         File plugins = new File(getHome(), "plugins");
         Files.createDirectories(plugins.toPath());
-        FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
+        if (updateRealJenkinsRuleInitPluginBaseline) {
+            try (JarFile jf = new JarFile(war);
+                    InputStream resourceAsStream = RealJenkinsRule.class.getResourceAsStream("RealJenkinsRuleInit.jpi");
+                    JarInputStream jis = new JarInputStream(resourceAsStream)) {
+                String targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+                PluginUtils.updateMinimumJenkinsVersion(jis, new File(plugins, "RealJenkinsRuleInit.jpi"), targetJenkinsVersion);
+            }
+        } else {
+            FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
+        }
 
         if (includeTestClasspathPlugins) {
             // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
