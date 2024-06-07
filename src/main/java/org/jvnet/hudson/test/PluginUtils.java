@@ -42,39 +42,33 @@ class PluginUtils {
 
         // we need to create a jar for the classes which we can then put into the plugin.
         Path tmpClassesJar = Files.createTempFile("rjr", "jar");
-        try (FileOutputStream fos = new FileOutputStream(tmpClassesJar.toFile());
-                JarOutputStream classesJarOS = new JarOutputStream(fos, mf)) {
-
-            // the actual class
-            try (InputStream classIS = RealJenkinsRuleInit.class.getResourceAsStream(RealJenkinsRuleInit.class.getSimpleName() + ".class")) {
-                String path = RealJenkinsRuleInit.class.getPackageName().replace('.', '/');
-                createJarEntry(classesJarOS, path + '/' + RealJenkinsRuleInit.class.getSimpleName() + ".class", classIS);
+        try {
+            try (FileOutputStream fos = new FileOutputStream(tmpClassesJar.toFile());
+                    JarOutputStream classesJarOS = new JarOutputStream(fos, mf)) {
+                // the actual class
+                try (InputStream classIS = RealJenkinsRuleInit.class.getResourceAsStream(RealJenkinsRuleInit.class.getSimpleName() + ".class")) {
+                    String path = RealJenkinsRuleInit.class.getPackageName().replace('.', '/');
+                    createJarEntry(classesJarOS, path + '/' + RealJenkinsRuleInit.class.getSimpleName() + ".class", classIS);
+                }
             }
-            createJarEntry(classesJarOS, "META-INF/services/hudson.Plugin", RealJenkinsRuleInit.class.getName().getBytes(StandardCharsets.UTF_8));
-        }
 
-        // the actual JPI
-        File jpi = new File(destinationDirectory, pluginName+".jpi");
-        try (FileOutputStream fos = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(fos, mf)) {
-            try (FileInputStream fis = new FileInputStream(tmpClassesJar.toFile())) {
-                createJarEntry(jos, "WEB-INF/lib/"+pluginName+".jar", fis);
+            // the actual JPI
+            File jpi = new File(destinationDirectory, pluginName+".jpi");
+            try (FileOutputStream fos = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(fos, mf)) {
+                try (FileInputStream fis = new FileInputStream(tmpClassesJar.toFile())) {
+                    createJarEntry(jos, "WEB-INF/lib/" + pluginName + ".jar", fis);
+                }
             }
+            return jpi;
+        } finally {
+            Files.delete(tmpClassesJar);
         }
-        Files.delete(tmpClassesJar);
-        return jpi;
     }
 
     private static void createJarEntry(JarOutputStream jos, String entryName, InputStream data) throws IOException {
         JarEntry je = new JarEntry(entryName);
         jos.putNextEntry(je);
         data.transferTo(jos);
-        jos.closeEntry();
-    }
-
-    private static void createJarEntry(JarOutputStream jos, String entryName, byte[] data) throws IOException {
-        JarEntry je = new JarEntry(entryName);
-        jos.putNextEntry(je);
-        jos.write(data);
         jos.closeEntry();
     }
 
