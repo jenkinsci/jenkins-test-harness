@@ -34,7 +34,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import jenkins.model.Jenkins;
 
 /**
- * Plugin for use by {@link RealJenkinsRule}.
+ * Plugin for use <b>internally only</b> by {@link RealJenkinsRule}, do not use this from plugin test code!
  * <p>
  * <strong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsRulePlugin(java.io.File, String)}.
  * In order for this to occur correctly there need to be no inner classes or other code dependencies here (except what can be loaded by reflection).
