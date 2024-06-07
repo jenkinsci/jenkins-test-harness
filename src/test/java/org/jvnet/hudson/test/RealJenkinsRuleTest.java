@@ -361,7 +361,7 @@ public class RealJenkinsRuleTest {
 
     @Test
     public void noDetachedPlugins() throws Throwable {
-        // XXX this test will falsely pass if the RealJenkinsRuleInit plugin targets a version of Jenkins that has no detacthed plugins.
+        // we should be the only plugin in Jenkins.
         rr.then(RealJenkinsRuleTest::_noDetachedPlugins);
     }
 
