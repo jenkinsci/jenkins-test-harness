@@ -36,7 +36,7 @@ import jenkins.model.Jenkins;
 /**
  * Plugin for use by {@link RealJenkinsRule}.
  * <p>
- * <stong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsRulePlugin(java.io.File, String)}.
+ * <strong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsRulePlugin(java.io.File, String)}.
  * In order for this to occur correctly there need to be no inner classes or other code dependencies here (except what can be loaded by reflection).
  */
 @Restricted(NoExternalUse.class)
