@@ -27,8 +27,19 @@ package org.jvnet.hudson.test;
 import hudson.Plugin;
 import java.net.URL;
 import java.net.URLClassLoader;
+
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import jenkins.model.Jenkins;
 
+/**
+ * Plugin for use by {@link RealJenkinsRule}.
+ * <p>
+ * <stong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsRulePlugin(java.io.File, String)}.
+ * In order for this to occur correctly there need to be no inner classes or other code dependencies here (except what can be loaded by reflection).
+ */
+@Restricted(NoExternalUse.class)
 public class RealJenkinsRuleInit extends Plugin {
 
     @SuppressWarnings("deprecation") // @Initializer just gets run too late, even with before = InitMilestone.PLUGINS_PREPARED
@@ -36,7 +47,7 @@ public class RealJenkinsRuleInit extends Plugin {
 
     @Override
     public void start() throws Exception {
-        new URLClassLoader(new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))}, ClassLoader.getSystemClassLoader().getParent()).
+        new URLClassLoader("RealJenkinsRule",new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))}, ClassLoader.getSystemClassLoader().getParent()).
                 loadClass("org.jvnet.hudson.test.RealJenkinsRule$Init2").
                 getMethod("run", Object.class).
                 invoke(null, Jenkins.get());
