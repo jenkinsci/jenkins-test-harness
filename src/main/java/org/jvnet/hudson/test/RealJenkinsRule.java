@@ -75,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
@@ -512,9 +513,14 @@ public final class RealJenkinsRule implements TestRule {
         if (localData != null) {
             new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
         }
+
         File plugins = new File(getHome(), "plugins");
         Files.createDirectories(plugins.toPath());
-        FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
+        try (JarFile jf = new JarFile(war)) {
+            // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
+            String targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            PluginUtils.createRealJenkinsRulePlugin(plugins, targetJenkinsVersion);
+        }
 
         if (includeTestClasspathPlugins) {
             // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
