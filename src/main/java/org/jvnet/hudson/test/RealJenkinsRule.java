@@ -1284,7 +1284,7 @@ public final class RealJenkinsRule implements TestRule {
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit(null);
+                return Jenkins.get().doSafeExit((StaplerRequest) null);
             }
         }
         public void doTimeout(@QueryParameter String token) {

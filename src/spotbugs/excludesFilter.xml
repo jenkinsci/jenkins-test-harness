@@ -183,6 +183,7 @@
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
           <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$Jpl"/>
           <Class name="org.jvnet.hudson.test.MockFolder"/>
@@ -213,6 +214,7 @@
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
           <Class name="org.jvnet.hudson.test.TemporaryDirectoryAllocator"/>
@@ -231,6 +233,7 @@
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient$1"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient$1"/>
         </Or>
       </And>
