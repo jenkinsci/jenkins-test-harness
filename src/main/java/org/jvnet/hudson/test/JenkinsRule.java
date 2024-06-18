@@ -174,6 +174,10 @@ import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
+import org.eclipse.jetty.ee8.webapp.Configuration;
+import org.eclipse.jetty.ee8.webapp.WebAppContext;
+import org.eclipse.jetty.ee8.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
@@ -185,10 +189,6 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.eclipse.jetty.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.htmlunit.AjaxController;
 import org.htmlunit.BrowserVersion;
 import org.htmlunit.DefaultCssErrorHandler;
@@ -855,7 +855,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         qtp.setName("Jetty (JenkinsRule)");
         Server server = new Server(qtp);
 
-        WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
+        WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
         context.setClassLoader(classLoader);
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
