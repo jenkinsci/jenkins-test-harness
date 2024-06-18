@@ -153,6 +153,7 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.htmlunit.AjaxController;
@@ -636,7 +637,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration2(context));
         context.setServer(server);
-        server.setHandler(context);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
         JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
@@ -682,7 +692,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         context.setServer(server);
-        server.setHandler(context);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
         org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
