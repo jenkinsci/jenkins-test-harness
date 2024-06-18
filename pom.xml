@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>jenkins-test-harness</artifactId>
-  <version>${changelist}</version>
+  <version>2225.${changelist}</version>
 
   <name>Test harness for Jenkins and plugins</name>
   <description>Harness used to run functional tests of Jenkins core and plugins.</description>
