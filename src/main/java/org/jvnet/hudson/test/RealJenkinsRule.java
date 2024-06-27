@@ -75,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
@@ -185,7 +186,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 600);
 
-    private String host = httpListenAddress;
+    private String host = "localhost";
 
     Process proc;
 
@@ -292,13 +293,13 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Sets a custom host name for the Jenkins root URL.
-     * <p>By default, this is the same as the {@link #httpListenAddress}.
-     * But you may wish to set it to something else that resolves to the loopback address,
-     * such as {@code some-id.127.0.0.1.nip.io}.
+     * <p>By default, this is just {@code localhost}.
+     * But you may wish to set it to something else that resolves to localhost,
+     * such as {@code some-id.localtest.me}.
      * This is particularly useful when running multiple copies of Jenkins (and/or other services) in one test case,
      * since browser cookies are sensitive to host but not port and so otherwise {@link HttpServletRequest#getSession}
      * might accidentally be shared across otherwise distinct services.
-     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on the loopback address for security reasons
+     * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
      */
     public RealJenkinsRule withHost(String host) {
@@ -512,9 +513,14 @@ public final class RealJenkinsRule implements TestRule {
         if (localData != null) {
             new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
         }
+
         File plugins = new File(getHome(), "plugins");
         Files.createDirectories(plugins.toPath());
-        FileUtils.copyURLToFile(RealJenkinsRule.class.getResource("RealJenkinsRuleInit.jpi"), new File(plugins, "RealJenkinsRuleInit.jpi"));
+        try (JarFile jf = new JarFile(war)) {
+            // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
+            String targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            PluginUtils.createRealJenkinsRulePlugin(plugins, targetJenkinsVersion);
+        }
 
         if (includeTestClasspathPlugins) {
             // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
@@ -1278,7 +1284,7 @@ public final class RealJenkinsRule implements TestRule {
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit(null);
+                return Jenkins.get().doSafeExit((StaplerRequest) null);
             }
         }
         public void doTimeout(@QueryParameter String token) {

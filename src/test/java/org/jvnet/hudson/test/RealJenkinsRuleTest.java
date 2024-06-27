@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -42,6 +44,7 @@ import static org.mockito.Mockito.when;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
+import hudson.PluginWrapper;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
@@ -53,8 +56,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.servlet.Filter;
@@ -90,6 +96,14 @@ public class RealJenkinsRuleTest {
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+    }
+
+    @Test public void ipv6() throws Throwable {
+        // Use -Djava.net.preferIPv6Addresses=true if dualstack
+        assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
+        rr.withHost("::1").startJenkins();
+        var externalForm = rr.getUrl().toExternalForm();
+        assertEquals(externalForm, rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     @Test public void testThrowsException() {
@@ -345,4 +359,16 @@ public class RealJenkinsRuleTest {
         Thread.sleep(Long.MAX_VALUE);
     }
 
+    @Test
+    public void noDetachedPlugins() throws Throwable {
+        // we should be the only plugin in Jenkins.
+        rr.then(RealJenkinsRuleTest::_noDetachedPlugins);
+    }
+
+    private static void _noDetachedPlugins(JenkinsRule r) throws Throwable {
+        // only RealJenkinsRuleInit should be present
+        List<PluginWrapper> plugins = r.jenkins.getPluginManager().getPlugins();
+        assertThat(plugins, hasSize(1));
+        assertThat(plugins.get(0).getShortName(), is("RealJenkinsRuleInit"));
+    }
 }

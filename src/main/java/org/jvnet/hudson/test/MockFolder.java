@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerFallback;
@@ -162,8 +161,15 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptorOrDie(type), name, true));
     }
 
-    @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        return mixin().createTopLevelItem(req, rsp);
+    @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        try {
+            return mixin().createTopLevelItem(req, rsp);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            // TODO stop wrapping once we drop support for EE 8
+            throw new RuntimeException(e);
+        }
     }
 
     @Override public String getUrlChildPrefix() {

@@ -1,17 +1,17 @@
 package org.jvnet.hudson.test;
 
 import hudson.Util;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.ee8.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee8.servlet.ServletHolder;
+import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee9.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
@@ -24,16 +24,14 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
  * The contents are cached locally.
  *
  * @author Kohsuke Kawaguchi
- * @deprecated use {@link JavaNetReverseProxy2}
  */
-@Deprecated
-public class JavaNetReverseProxy extends HttpServlet {
+public class JavaNetReverseProxy2 extends HttpServlet {
     private final Server server;
     public final int localPort;
 
     private final File cacheFolder;
 
-    public JavaNetReverseProxy(File cacheFolder) throws Exception {
+    public JavaNetReverseProxy2(File cacheFolder) throws Exception {
         this.cacheFolder = cacheFolder;
         cacheFolder.mkdirs();
         QueuedThreadPool qtp = new QueuedThreadPool();
@@ -63,10 +61,10 @@ public class JavaNetReverseProxy extends HttpServlet {
         String d = Util.getDigestOf(path);
 
         File cache = new File(cacheFolder, d);
-        synchronized(this) {
+        synchronized (this) {
             if (!cache.exists()) {
                 URL url = new URL("https://updates.jenkins.io/" + path);
-                FileUtils.copyURLToFile(url,cache);
+                FileUtils.copyURLToFile(url, cache);
             }
         }
 
@@ -77,7 +75,7 @@ public class JavaNetReverseProxy extends HttpServlet {
     private String getMimeType(String path) {
         int idx = path.indexOf('?');
         if (idx >= 0) {
-            path = path.substring(0,idx);
+            path = path.substring(0, idx);
         }
         if (path.endsWith(".json")) {
             return "text/javascript";
@@ -85,15 +83,16 @@ public class JavaNetReverseProxy extends HttpServlet {
         return getServletContext().getMimeType(path);
     }
 
-    private static volatile JavaNetReverseProxy INSTANCE;
+    private static volatile JavaNetReverseProxy2 INSTANCE;
 
     /**
      * Gets the default instance.
      */
-    public static synchronized JavaNetReverseProxy getInstance() throws Exception {
+    public static synchronized JavaNetReverseProxy2 getInstance() throws Exception {
         if (INSTANCE == null) {
             // TODO: think of a better location --- ideally inside the target/ dir so that clean would wipe them out
-            INSTANCE = new JavaNetReverseProxy(new File(new File(System.getProperty("java.io.tmpdir")),"jenkins.io-cache2"));
+            INSTANCE = new JavaNetReverseProxy2(
+                    new File(new File(System.getProperty("java.io.tmpdir")), "jenkins.io-cache2"));
         }
         return INSTANCE;
     }
