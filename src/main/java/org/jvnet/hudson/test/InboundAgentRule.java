@@ -36,6 +36,7 @@ import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
 import hudson.slaves.SlaveComputer;
+import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
 import hudson.util.VersionNumber;
 import java.io.File;
@@ -46,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.jar.JarFile;
@@ -77,6 +79,7 @@ public final class InboundAgentRule extends ExternalResource {
 
     private static final Logger LOGGER = Logger.getLogger(InboundAgentRule.class.getName());
 
+    private final String id = UUID.randomUUID().toString();
     private final ConcurrentMap<String, Process> procs = new ConcurrentHashMap<>();
 
     /**
@@ -348,6 +351,8 @@ public final class InboundAgentRule extends ExternalResource {
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
+        pb.environment().put("INBOUND_AGENT_RULE_ID", id);
+        pb.environment().put("INBOUND_AGENT_RULE_NAME", options.getName());
         LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
         procs.put(options.getName(), proc);
@@ -391,6 +396,7 @@ public final class InboundAgentRule extends ExternalResource {
     public void stop(@NonNull String name) throws InterruptedException {
         Process proc = procs.remove(name);
         if (proc != null) {
+            ProcessTree.get().killAll(proc, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
             proc.destroyForcibly();
             proc.waitFor();
         }
