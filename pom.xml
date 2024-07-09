@@ -120,7 +120,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.servlet</groupId>
       <artifactId>javax-servlet-api</artifactId>
-      <version>4.0.7</version>
+      <version>4.0.8</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
