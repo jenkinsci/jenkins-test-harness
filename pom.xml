@@ -120,7 +120,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.servlet</groupId>
       <artifactId>javax-servlet-api</artifactId>
-      <version>4.0.7</version>
+      <!-- TODO https://github.com/jenkinsci/javax-servlet-api/pull/10 -->
+      <version>4.0.8-rc26.4f08ea_e33d0d</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
