@@ -43,13 +43,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +80,7 @@ public final class InboundAgentRule extends ExternalResource {
     private static final Logger LOGGER = Logger.getLogger(InboundAgentRule.class.getName());
 
     private final String id = UUID.randomUUID().toString();
-    private final ConcurrentMap<String, Process> procs = new ConcurrentHashMap<>();
+    private final Map<String, Process> procs = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * The options used to (re)start an inbound agent.
@@ -394,11 +394,14 @@ public final class InboundAgentRule extends ExternalResource {
      * You need only call this to simulate an agent crash, followed by {@link #start}.
      */
     public void stop(@NonNull String name) throws InterruptedException {
-        Process proc = procs.remove(name);
+        Process proc = procs.put(name, null);
         if (proc != null) {
-            ProcessTree.get().killAll(proc, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
+            LOGGER.info(() -> "Killing " + name + " agent JVM (but not subprocesses)");
             proc.destroyForcibly();
             proc.waitFor();
+        } else {
+            // (normal when called from #start)
+            LOGGER.fine(() -> "No " + name + " agent JVM found to kill");
         }
     }
 
@@ -412,14 +415,22 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     @Override protected void after() {
-        for (String name : procs.keySet()) {
+        for (var entry : procs.entrySet()) {
+            String name = entry.getKey();
+            Process proc = entry.getValue();
             try {
-                stop(name);
+                LOGGER.info(() -> "Cleaning up " + name + " agent JVM and/or any subprocesses");
+                ProcessTree.get().killAll(proc, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
+                if (proc != null) {
+                    proc.destroyForcibly();
+                    proc.waitFor();
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
             }
         }
+        procs.clear();
     }
 
     public static class AgentArguments implements Serializable {
