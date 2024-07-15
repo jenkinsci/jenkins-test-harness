@@ -23,20 +23,24 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
 import hudson.remoting.Which;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 
-import javax.annotation.CheckForNull;
-
 /**
- * Ensures that <tt>jenkins.war</tt> is exploded.
+ * Ensures that {@code jenkins.war} is exploded.
  *
  * <p>
  * Depending on where the test is run (for example, inside Maven vs IDE), this code attempts to
@@ -52,6 +56,11 @@ public final class WarExploder {
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
+    /**
+     * A pattern that matches hex encoded strings.
+     */
+    private static final Pattern HEX_DIGITS = Pattern.compile("^[a-f0-9]+$");
+
     public static synchronized File getExplodedDir() throws Exception {
         if (EXPLODE_DIR == null) {
             EXPLODE_DIR = explode();
@@ -65,26 +74,52 @@ public final class WarExploder {
         File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
-            LOGGER.log(Level.INFO, "Using a predefined WAR file {0} define by the {1} system property",
+            LOGGER.log(Level.INFO, "Using WAR file path {0} specified by the {1} system property",
                     new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
             if (!war.exists()) {
-                throw new IOException("A Predefined WAR file path does not exist: " + war);
+                throw new IOException("The WAR file path " + war + " specified by the " + JENKINS_WAR_PATH_PROPERTY_NAME
+                        + " system property does not exist");
             } else if (!war.isFile()) {
-                throw new IOException("A Predefined WAR file path does not point to a file: " + war);
+                throw new IOException("The WAR file path " + war + " specified by the " + JENKINS_WAR_PATH_PROPERTY_NAME
+                        + " system property is not a file");
             }
         } else {
             // locate jenkins.war
-            URL winstone = WarExploder.class.getResource("/winstone.jar");
+            URL winstone = WarExploder.class.getResource("/executable/winstone.jar");
             if (winstone != null) {
-                war = Which.jarFile(Class.forName("executable.Executable"));
+                war = Which.jarFile(Class.forName("executable.Main"));
             } else {
                 // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
                 File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
-                String version = core.getParentFile().getName();
-                if (core.getName().equals("jenkins-core-" + version + ".jar") && core.getParentFile().getParentFile().getName().equals("jenkins-core")) {
-                    war = new File(new File(new File(core.getParentFile().getParentFile().getParentFile(), "jenkins-war"), version), "jenkins-war-" + version + ".war");
+                String version;
+                File coreArtifactDir;
+                if (HEX_DIGITS.matcher(core.getParentFile().getName()).matches()) {
+                    // Gradle
+                    version = core.getParentFile().getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile().getParentFile();
+                } else {
+                    // Maven
+                    version = core.getParentFile().getName();
+                    coreArtifactDir = core.getParentFile().getParentFile();
+                }
+                if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
+                    File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
+                    war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
                     if (!war.isFile()) {
-                        throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        File[] hashes = new File(warArtifactDir, version).listFiles();
+                        if (hashes != null) {
+                            for (File hash : hashes) {
+                                if (HEX_DIGITS.matcher(hash.getName()).matches()) {
+                                    war = new File(hash, "jenkins-war-" + version + ".war");
+                                    if (war.isFile()) {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!war.isFile()) {
+                            throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                        }
                     }
                     LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
                 } else {
@@ -118,28 +153,51 @@ public final class WarExploder {
 
         // TODO this assumes that the CWD of the Maven process is the plugin ${basedir}, which may not be the case
         File buildDirectory = new File(System.getProperty("buildDirectory", "target"));
+
         File explodeDir = new File(buildDirectory, "jenkins-for-test").getAbsoluteFile();
         explodeDir.getParentFile().mkdirs();
-        while (new File(explodeDir + ".exploding").isFile()) {
-            explodeDir = new File(explodeDir + "x");
-        }
-        File timestamp = new File(explodeDir,".timestamp");
 
-        if(!timestamp.exists() || (timestamp.lastModified()!=war.lastModified())) {
-            LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
-            new FileOutputStream(explodeDir + ".exploding").close();
-            new FilePath(explodeDir).deleteRecursive();
-            new FilePath(war).unzip(new FilePath(explodeDir));
-            if(!explodeDir.exists())    // this is supposed to be impossible, but I'm investigating HUDSON-2605
-                throw new IOException("Failed to explode "+war);
-            new FileOutputStream(timestamp).close();
-            timestamp.setLastModified(war.lastModified());
-            new File(explodeDir + ".exploding").delete();
-        } else {
-            LOGGER.log(Level.INFO, "Picking up existing exploded jenkins.war at {0}", explodeDir.getAbsolutePath());
+        // multiple surefire forks can be running in parallel (which are different processes)
+        // so we can not use synchronisation here.
+        Path lock = new File(explodeDir + ".lock").toPath();
+        // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable)
+        // but the lock we subsequently obtain on the file.
+        try (FileChannel lockChannel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+                FileLock fl = getLockForChannel(lockChannel)) {
+            File timestamp = new File(explodeDir,".timestamp");
+            if(!timestamp.exists() || (timestamp.lastModified() != war.lastModified())) {
+                LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
+                new FilePath(explodeDir).deleteRecursive();
+                new FilePath(war).unzip(new FilePath(explodeDir));
+                timestamp.createNewFile();
+                timestamp.setLastModified(war.lastModified());
+            } else {
+                LOGGER.log(Level.INFO, "Picking up existing exploded jenkins.war at {0}", explodeDir.getAbsolutePath());
+            }
         }
-
         return explodeDir;
+    }
+
+    private static FileLock getLockForChannel(FileChannel channel) throws IOException, InterruptedException {
+        int iteration = 0;
+        while (true) {
+            try {
+                FileLock lock = channel.tryLock();
+                if (lock != null) {
+                    return lock;
+                }
+            } catch (OverlappingFileLockException ignored) {
+                // should only occur when we have multiple threads in this JVM attempting to lock this file
+                // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
+                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
+                // generic failure
+            }
+            if (++iteration % 50 == 0) {
+                // only log every 5 seconds.
+                LOGGER.log(Level.INFO, "Waiting for a different JVM or thread to finish unpacking the war");
+            }
+            Thread.sleep(100);
+        }
     }
 
     private WarExploder() {}

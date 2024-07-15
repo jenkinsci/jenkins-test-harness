@@ -42,13 +42,14 @@ public class FailedTest extends TestCase {
         this.problem = problem;
     }
 
-    public FailedTest(Class name, Throwable problem) {
+    public FailedTest(Class<?> name, Throwable problem) {
         this(name.getName(),problem);
     }
 
     @Override
     protected void runTest() throws Throwable {
-        if (problem!=null)
+        if (problem != null) {
             throw problem;
+        }
     }
 }

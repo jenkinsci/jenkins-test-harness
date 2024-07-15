@@ -24,18 +24,16 @@
 package org.jvnet.hudson.test.recipes;
 
 import hudson.PluginManager;
+import java.io.File;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Constructor;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.File;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-import java.lang.reflect.Constructor;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.*;
 
 /**
  * Runs the test case with a custom plugin manager.
@@ -45,8 +43,8 @@ import static java.lang.annotation.RetentionPolicy.*;
 @Documented
 @Recipe(WithPluginManager.RunnerImpl.class)
 @JenkinsRecipe(WithPluginManager.RuleRunnerImpl.class)
-@Target(METHOD)
-@Retention(RUNTIME)
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface WithPluginManager {
     Class<? extends PluginManager> value();
 
@@ -60,13 +58,13 @@ public @interface WithPluginManager {
         @Override
         public void decorateHome(HudsonTestCase testCase, File home) throws Exception {
             Class<? extends PluginManager> c = recipe.value();
-            Constructor ctr = c.getConstructors()[0];
+            Constructor<?> ctr = c.getConstructors()[0];
 
             // figure out parameters
-            Class[] pt = ctr.getParameterTypes();
+            Class<?>[] pt = ctr.getParameterTypes();
             Object[] args = new Object[pt.length];
             for (int i=0; i<args.length; i++) {
-                Class t = pt[i];
+                Class<?> t = pt[i];
                 if (t==File.class) {
                     args[i] = home;
                     continue;
@@ -91,8 +89,8 @@ public @interface WithPluginManager {
         @Override
         public void decorateHome(JenkinsRule jenkinsRule, File home) throws Exception {
             Class<? extends PluginManager> c = recipe.value();
-            Constructor ctr = c.getDeclaredConstructor(File.class);
-            jenkinsRule.setPluginManager((PluginManager)ctr.newInstance(home));
+            Constructor<? extends PluginManager> ctr = c.getDeclaredConstructor(File.class);
+            jenkinsRule.setPluginManager(ctr.newInstance(home));
         }
     }
 }

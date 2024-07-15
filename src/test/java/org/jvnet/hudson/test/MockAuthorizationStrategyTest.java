@@ -24,15 +24,17 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import jenkins.model.Jenkins;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.Rule;
+import org.junit.Test;
 
 public class MockAuthorizationStrategyTest {
 
@@ -74,7 +76,7 @@ public class MockAuthorizationStrategyTest {
             assertTrue(d.hasPermission(Item.EXTENDED_READ));
             assertFalse(p.hasPermission(Item.CREATE));
         }
-        try (ACLContext ctx = ACL.as(Jenkins.ANONYMOUS)) {
+        try (ACLContext ctx = ACL.as2(Jenkins.ANONYMOUS2)) {
             assertFalse(r.jenkins.hasPermission(Jenkins.ADMINISTER));
             assertTrue(r.jenkins.hasPermission(Jenkins.READ));
             assertFalse(p.hasPermission(Item.DELETE));
@@ -88,7 +90,7 @@ public class MockAuthorizationStrategyTest {
     public void noPermissionsByDefault() {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy());
-        assertFalse(r.jenkins.getACL().hasPermission(User.get("alice").impersonate(), Jenkins.ADMINISTER));
+        assertFalse(r.jenkins.getACL().hasPermission2(User.getById("alice", true).impersonate2(), Jenkins.ADMINISTER));
     }
 
 }

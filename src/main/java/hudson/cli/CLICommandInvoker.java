@@ -24,34 +24,34 @@
 
 package hudson.cli;
 
-import hudson.Extension;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ExtensionList;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
-
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
+import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
+import java.util.Set;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
-
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Helper class to invoke {@link CLICommand} and check the response.
@@ -71,20 +71,14 @@ public class CLICommandInvoker {
     private SecurityContext originalSecurityContext = null;
 
     private InputStream stdin;
-    private List<String> args = Collections.emptyList();
+    private List<String> args = List.of();
     @Deprecated
-    private List<Permission> permissions = Collections.emptyList();
+    private List<Permission> permissions = List.of();
     private Locale locale = Locale.ENGLISH;
 
     public CLICommandInvoker(final JenkinsRule rule, final CLICommand command) {
 
-        if (command.getClass().getAnnotation(Extension.class) == null) {
-
-            throw new AssertionError(String.format(
-                    "Command %s is missing @Extension annotation.",
-                    command.getClass()
-            ));
-        }
+        ExtensionList.lookupSingleton(command.getClass()); // verify that it was registered e.g. with @Extension
 
         this.rule = rule;
         this.command = command;
@@ -94,7 +88,9 @@ public class CLICommandInvoker {
         this.rule = rule;
         this.command = CLICommand.clone(command);
 
-        if (this.command == null) throw new AssertionError("No such command: " + command);
+        if (this.command == null) {
+            throw new AssertionError("No such command: " + command);
+        }
     }
 
     /**
@@ -102,8 +98,7 @@ public class CLICommandInvoker {
      */
     @Deprecated
     public CLICommandInvoker authorizedTo(final Permission... permissions) {
-
-        this.permissions = Arrays.asList(permissions);
+        this.permissions = List.of(permissions);
         return this;
     }
 
@@ -116,21 +111,22 @@ public class CLICommandInvoker {
      * @see MockAuthorizationStrategy
      */
     public CLICommandInvoker asUser(String user) {
-        command.setTransportAuth(User.get(user).impersonate());
+        command.setTransportAuth2(User.getById(user, true).impersonate2());
         return this;
     }
 
     public CLICommandInvoker withStdin(final InputStream stdin) {
 
-        if (stdin == null) throw new NullPointerException("No stdin provided");
+        if (stdin == null) {
+            throw new NullPointerException("No stdin provided");
+        }
 
         this.stdin = stdin;
         return this;
     }
 
     public CLICommandInvoker withArgs(final String... args) {
-
-        this.args = Arrays.asList(args);
+        this.args = List.of(args);
         return this;
     }
 
@@ -146,25 +142,41 @@ public class CLICommandInvoker {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-        final int returnCode = command.main(
-                args, locale, stdin, new PrintStream(out), new PrintStream(err)
-        );
+        final Charset outCharset;
+        final Charset errCharset;
+        try {
+            outCharset = errCharset = command.getClientCharset();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        final int returnCode =
+                command.main(
+                        args,
+                        locale,
+                        stdin,
+                        new PrintStream(out, false, outCharset),
+                        new PrintStream(err, false, errCharset));
 
         restoreAuth();
 
-        return new Result(returnCode, out, err);
+        return new Result(returnCode, out, outCharset, err, errCharset);
     }
 
     private static class GrantPermissions extends AuthorizationStrategy {
         final String username;
-        final List<Permission> permissions;
+        final Set<String> permissions;
         GrantPermissions(String username, List<Permission> permissions) {
             this.username = username;
-            this.permissions = permissions;
+            this.permissions = permissions.stream().map(Permission::getId).collect(Collectors.toSet());
             for (Permission p : permissions) {
                 p.setEnabled(true);
             }
         }
+
+        @NonNull
         @Override
         public ACL getRootACL() {
             return new SidACL() {
@@ -172,7 +184,7 @@ public class CLICommandInvoker {
                 protected Boolean hasPermission(Sid u, Permission permission) {
                     if (u instanceof PrincipalSid && ((PrincipalSid) u).getPrincipal().equals(username)) {
                         for (Permission p = permission; p != null; p = p.impliedBy) {
-                            if (permissions.contains(p)) {
+                            if (permissions.contains(p.getId())) {
                                 return true;
                             }
                         }
@@ -181,15 +193,20 @@ public class CLICommandInvoker {
                 }
             };
         }
+
+        @NonNull
         @Override
         public Collection<String> getGroups() {
-            return Collections.emptySet();
+            return Set.of();
         }
     }
 
+    @Deprecated
     private void setAuth() {
 
-        if (permissions.isEmpty()) return;
+        if (permissions.isEmpty()) {
+            return;
+        }
 
         JenkinsRule.DummySecurityRealm realm = rule.createDummySecurityRealm();
         realm.addGroups(username, "group");
@@ -200,11 +217,12 @@ public class CLICommandInvoker {
         originalAuthorizationStrategy = rule.jenkins.getAuthorizationStrategy();
         rule.jenkins.setAuthorizationStrategy(new GrantPermissions(username, permissions));
 
-        command.setTransportAuth(user().impersonate());
+        command.setTransportAuth2(user().impersonate2());
         // Otherwise it is SYSTEM, which would be relevant for a command overriding main:
-        originalSecurityContext = ACL.impersonate(Jenkins.ANONYMOUS);
+        originalSecurityContext = ACL.impersonate2(Jenkins.ANONYMOUS2);
     }
 
+    @Deprecated
     private void restoreAuth() {
         if (originalSecurityRealm != null) {
             rule.jenkins.setSecurityRealm(originalSecurityRealm);
@@ -235,17 +253,23 @@ public class CLICommandInvoker {
 
         private final int result;
         private final ByteArrayOutputStream out;
+        private final Charset outCharset;
         private final ByteArrayOutputStream err;
+        private final Charset errCharset;
 
         private Result(
                 final int result,
                 final ByteArrayOutputStream out,
-                final ByteArrayOutputStream err
+                final Charset outCharset,
+                final ByteArrayOutputStream err,
+                final Charset errCharset
         ) {
 
             this.result = result;
             this.out = out;
+            this.outCharset = outCharset;
             this.err = err;
+            this.errCharset = errCharset;
         }
 
         public int returnCode() {
@@ -254,8 +278,7 @@ public class CLICommandInvoker {
         }
 
         public String stdout() {
-
-            return out.toString();
+            return out.toString(outCharset);
         }
 
         public byte[] stdoutBinary() {
@@ -263,8 +286,7 @@ public class CLICommandInvoker {
         }
 
         public String stderr() {
-
-            return err.toString();
+            return err.toString(errCharset);
         }
 
         public byte[] stderrBinary() {
@@ -301,6 +323,7 @@ public class CLICommandInvoker {
             description.appendText(result.toString());
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText(this.description);
         }

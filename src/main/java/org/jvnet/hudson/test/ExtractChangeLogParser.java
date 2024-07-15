@@ -27,18 +27,18 @@ import hudson.model.AbstractBuild;
 import hudson.model.User;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.ChangeLogSet;
-import org.apache.commons.digester.Digester;
-import org.kohsuke.stapler.export.Exported;
-import org.kohsuke.stapler.export.ExportedBean;
-import org.xml.sax.SAXException;
-
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
+import org.xml.sax.SAXException;
 
 /**
  * @author Andrew Bayer
@@ -48,9 +48,10 @@ public class ExtractChangeLogParser extends ChangeLogParser {
     @Override
     public ExtractChangeLogSet parse(AbstractBuild build, File changeLogFile) throws IOException, SAXException {
         if (changeLogFile.exists()) {
-            FileInputStream fis = new FileInputStream(changeLogFile);
-            ExtractChangeLogSet logSet = parse(build, fis);
-            fis.close();
+            ExtractChangeLogSet logSet;
+            try (FileInputStream fis = new FileInputStream(changeLogFile)) {
+                logSet = parse(build, fis);
+            }
             return logSet;
         } else {
             return new ExtractChangeLogSet(build, new ArrayList<>());
@@ -59,41 +60,23 @@ public class ExtractChangeLogParser extends ChangeLogParser {
 
     @SuppressWarnings("rawtypes")
     public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
-
-        ArrayList<ExtractChangeLogEntry> changeLog = new ArrayList<>();
-
-        Digester digester = new Digester();
-        digester.setClassLoader(ExtractChangeLogSet.class.getClassLoader());
-        digester.push(changeLog);
-        digester.addObjectCreate("*/extractChanges/entry", ExtractChangeLogEntry.class);
-
-        digester.addBeanPropertySetter("*/extractChanges/entry/zipFile");
-
-        digester.addObjectCreate("*/extractChanges/entry/file",
-                FileInZip.class);
-        digester.addBeanPropertySetter("*/extractChanges/entry/file/fileName");
-        digester.addSetNext("*/extractChanges/entry/file", "addFile");
-        digester.addSetNext("*/extractChanges/entry", "add");
-
-        digester.parse(changeLogStream);
-
-        return new ExtractChangeLogSet(build, changeLog);
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(changeLogStream, build.getCharset()))) {
+            ExtractChangeLogEntry entry = new ExtractChangeLogEntry(br.readLine());
+            String fileName;
+            while ((fileName = br.readLine()) != null) {
+                entry.addFile(new FileInZip(fileName));
+            }
+            return new ExtractChangeLogSet(build, List.of(entry));
+        }
     }
 
 
     @ExportedBean(defaultVisibility = 999)
     public static class ExtractChangeLogEntry extends ChangeLogSet.Entry {
-        private List<FileInZip> files = new ArrayList<>();
-        private String zipFile;
+        private final List<FileInZip> files = new ArrayList<>();
+        private final String zipFile;
 
-        public ExtractChangeLogEntry() {
-        }
-
-        public ExtractChangeLogEntry(String zipFile) {
-            this.zipFile = zipFile;
-        }
-
-        public void setZipFile(String zipFile) {
+        ExtractChangeLogEntry(String zipFile) {
             this.zipFile = zipFile;
         }
 
@@ -132,19 +115,13 @@ public class ExtractChangeLogParser extends ChangeLogParser {
             files.add(fileName);
         }
 
-        public void addFiles(Collection<FileInZip> fileNames) {
-            this.files.addAll(fileNames);
-        }
     }
 
     @ExportedBean(defaultVisibility = 999)
     public static class FileInZip {
-        private String fileName = "";
+        private final String fileName;
 
-        public FileInZip() {
-        }
-
-        public FileInZip(String fileName) {
+        FileInZip(String fileName) {
             this.fileName = fileName;
         }
 
@@ -153,9 +130,6 @@ public class ExtractChangeLogParser extends ChangeLogParser {
             return fileName;
         }
 
-        public void setFileName(String fileName) {
-            this.fileName = fileName;
-        }
     }
 
 }

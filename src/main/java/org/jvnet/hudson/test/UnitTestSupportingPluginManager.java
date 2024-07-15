@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import hudson.LocalPluginManager;
 import hudson.Plugin;
 import hudson.PluginManager;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +42,7 @@ import java.util.Set;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import javax.servlet.ServletContext;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 
@@ -64,7 +63,7 @@ import org.junit.Assert;
 public class UnitTestSupportingPluginManager extends PluginManager {
 
     public UnitTestSupportingPluginManager(File rootDir) {
-        super(null, new File(rootDir, "plugins"));
+        super((ServletContext) null, new File(rootDir, "plugins"));
     }
 
     /** @see LocalPluginManager#loadBundledPlugins */
@@ -105,7 +104,8 @@ public class UnitTestSupportingPluginManager extends PluginManager {
         if(u==null){
         	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
         }
-        if (u!=null) try {
+        if (u != null) {
+          try {
             String thisPlugin;
             try (InputStream is = u.openStream()) {
                 thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
@@ -115,8 +115,9 @@ public class UnitTestSupportingPluginManager extends PluginManager {
             }
             names.add(thisPlugin + ".jpl");
             copyBundledPlugin(u, thisPlugin + ".jpl");
-        } catch (IOException e) {
+          } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
+          }
         }
 
         // and pick up test dependency *.jpi that are placed by maven-hpi-plugin TestDependencyMojo.

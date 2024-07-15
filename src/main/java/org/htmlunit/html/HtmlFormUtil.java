@@ -21,15 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.gargoylesoftware.htmlunit.html;
-
-import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
+package org.htmlunit.html;
 
 import java.io.IOException;
 import java.util.List;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.Page;
+import org.htmlunit.WebClient;
+import org.htmlunit.WebClientUtil;
 
 /**
  * {@link HtmlForm} helper functions.
@@ -71,22 +70,19 @@ public class HtmlFormUtil {
                 return submitElement.click();
             }
 
-            try {
-                htmlForm.submit((SubmittableElement) submitElement);
-            } finally {
-                // The HtmlForm submit doesn't really do anything. It just adds a "LoadJob"
-                // to an internal queue. What we are doing here is manually forcing the load of
-                // the response for that submit LoadJob and then getting the enclosing page
-                // from the current window on the WebClient, allowing us to return the correct
-                // HtmlPage object to the test.
-                webClient.loadDownloadedResponses();
-                Page resultPage = webClient.getCurrentWindow().getEnclosedPage();
+            htmlForm.submit((SubmittableElement) submitElement);
+            // The HtmlForm submit doesn't really do anything. It just adds a "LoadJob"
+            // to an internal queue. What we are doing here is manually forcing the load of
+            // the response for that submit LoadJob and then getting the enclosing page
+            // from the current window on the WebClient, allowing us to return the correct
+            // HtmlPage object to the test.
+            webClient.loadDownloadedResponses();
+            Page resultPage = webClient.getCurrentWindow().getEnclosedPage();
 
-                if (resultPage == htmlPage) {
-                    return HtmlElementUtil.click(submitElement);
-                } else {
-                    return resultPage;
-                }
+            if (resultPage == htmlPage) {
+                return HtmlElementUtil.click(submitElement);
+            } else {
+                return resultPage;
             }
         } finally {
             // Make sure all background JS has executed.
@@ -98,28 +94,36 @@ public class HtmlFormUtil {
      * Returns all the {@code <input type="submit">} elements in this form.
      */
     public static List<HtmlElement> getSubmitButtons(final HtmlForm htmlForm) throws ElementNotFoundException {
-        final List<HtmlElement> list = htmlForm.getElementsByAttribute("input", "type", "submit");
-
-        // collect inputs from lost children
-        list.addAll(htmlForm.getLostChildren());
-
-        return list;
+        return htmlForm.getElementsByAttribute("input", "type", "submit");
     }
 
     /**
-     * Gets the first {@code <input type="submit">} element in this form.
+     * Gets the first {@code <button class="jenkins-submit-button">} element in this form.
+     * If not found, then it looks for the first {@code <input type="submit">} or {@code <button name="Submit">} or {@code <button>} (in that order).
      */
     public static HtmlElement getSubmitButton(final HtmlForm htmlForm) throws ElementNotFoundException {
-        List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
-        if (!submitButtons.isEmpty()) {
-            return submitButtons.get(0);
+        HtmlElement submitButton = htmlForm.getFirstByXPath("//button[contains(@class, 'jenkins-submit-button')]");
+        if (submitButton != null) {
+            return submitButton;
         }
-        for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
+        for (HtmlElement element : htmlForm.getElementsByAttribute("button", "name", "Submit")) {
             if(element instanceof HtmlButton) {
                 return element;
             }
         }
-        return null;
+        // Kept for backward compatibility
+        {
+            List<HtmlElement> submitButtons = getSubmitButtons(htmlForm);
+            if (!submitButtons.isEmpty()) {
+                return submitButtons.get(0);
+            }
+            for (HtmlElement element : htmlForm.getElementsByTagName("button")) {
+                if (element instanceof HtmlButton) {
+                    return element;
+                }
+            }
+            return null;
+        }
     }
 
     /**
@@ -137,4 +141,7 @@ public class HtmlFormUtil {
         }
         throw new ElementNotFoundException("button", "caption", caption);
     }
+
+    private HtmlFormUtil() {}
+
 }

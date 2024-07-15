@@ -23,14 +23,13 @@
  */
 package org.jvnet.hudson.test;
 
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Descriptor;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import hudson.model.Descriptor;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
-import hudson.Launcher;
-
 import java.io.IOException;
 
 /**
@@ -44,11 +43,13 @@ import java.io.IOException;
  */
 public abstract class TestBuilder extends Builder {
 
+    @Override
     public abstract boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException;
 
+    @Override
     public Descriptor<Builder> getDescriptor() {
         // throw new UnsupportedOperationException();
-        return new BuildStepDescriptor<Builder>() {
+        return new BuildStepDescriptor<>() {
             @Override
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;

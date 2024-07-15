@@ -23,26 +23,22 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.FilePath;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-
-import javax.annotation.CheckForNull;
+import org.apache.commons.io.FileUtils;
 
 /**
- * Controls how a {@link HudsonTestCase} initializes <tt>JENKINS_HOME</tt>.
+ * Controls how a {@link HudsonTestCase} initializes {@code JENKINS_HOME}.
  *
  * @author Kohsuke Kawaguchi
  */
 public interface HudsonHomeLoader {
     /** 
-     * Returns a directory to be used as <tt>JENKINS_HOME</tt>
+     * Returns a directory to be used as {@code JENKINS_HOME}
      *
      * @throws Exception
      *      to cause a test to fail.
@@ -52,11 +48,7 @@ public interface HudsonHomeLoader {
     /**
      * Allocates a new empty directory, meaning this will emulate the fresh Hudson installation.
      */
-    HudsonHomeLoader NEW = new HudsonHomeLoader() {
-        public File allocate() throws IOException {
-            return TestEnvironment.get().temporaryDirectoryAllocator.allocate();
-        }
-    };
+    HudsonHomeLoader NEW = () -> TestEnvironment.get().temporaryDirectoryAllocator.allocate();
 
     /**
      * Allocates a new directory by copying from an existing directory, or unzipping from a zip file.
@@ -82,15 +74,21 @@ public interface HudsonHomeLoader {
             this.source = source;
         }
 
+        @Override
         public File allocate() throws Exception {
             File target = NEW.allocate();
+            copy(target);
+            return target;
+        }
+
+        void copy(File target) throws Exception {
             if(source.getProtocol().equals("file")) {
                 File src = new File(source.toURI());
-                if(src.isDirectory())
+                if (src.isDirectory()) {
                     new FilePath(src).copyRecursiveTo("**/*",new FilePath(target));
-                else
-                if(src.getName().endsWith(".zip"))
+                } else if (src.getName().endsWith(".zip")) {
                     new FilePath(src).unzip(new FilePath(target));
+                }
             } else {
                 File tmp = File.createTempFile("hudson","zip");
                 try {
@@ -100,7 +98,6 @@ public interface HudsonHomeLoader {
                     tmp.delete();
                 }
             }
-            return target;
         }
     }
 
@@ -116,18 +113,25 @@ public interface HudsonHomeLoader {
             this.alterName = alterName;
         }
 
+        @Override
         public File allocate() throws Exception {
-            URL res = findDataResource();
-            if(!res.getProtocol().equals("file"))
-                throw new AssertionError("Test data is not available in the file system: "+res);
-            File home = new File(res.toURI());
-            System.err.println("Loading $JENKINS_HOME from " + home);
+            File target = NEW.allocate();
+            copy(target);
+            return target;
+        }
 
-            return new CopyExisting(home).allocate();
+        void copy(File target) throws Exception {
+            URL res = findDataResource();
+            if (!res.getProtocol().equals("file")) {
+                throw new AssertionError("Test data is not available in the file system: "+res);
+            }
+            File source = new File(res.toURI());
+            System.err.println("Loading $JENKINS_HOME from " + source);
+            new CopyExisting(source).copy(target);
         }
 
         public static boolean isJavaIdentifier(@CheckForNull String name) {
-            if (StringUtils.isEmpty(name)) {
+            if (name == null || name.isEmpty()) {
                 return false;
             }
             if (!Character.isJavaIdentifierStart(name.charAt(0))) {
@@ -153,7 +157,9 @@ public interface HudsonHomeLoader {
             for( String middle : new String[]{ '/'+methodName, "" }) {
                 for( String suffix : SUFFIXES ) {
                     URL res = clazz.getResource(clazz.getSimpleName() + middle+suffix);
-                    if(res!=null)   return res;
+                    if (res != null) {
+                        return res;
+                    }
                 }
             }
 

@@ -23,14 +23,13 @@
  */
 package org.jvnet.hudson.test.recipes;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.lang.annotation.Documented;
-import static java.lang.annotation.ElementType.METHOD;
-import java.lang.annotation.Retention;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import java.lang.annotation.Target;
 
 /**
  * Times out the test after the specified number of seconds.
@@ -44,8 +43,8 @@ import java.lang.annotation.Target;
 @Recipe(WithTimeout.RunnerImpl.class)
 // No need for @JenkinsRecipe in JUnit 4 as it's implemented directly in JenkinsRule 
 // by the private method: getTestTimeoutOverride.
-@Target(METHOD)
-@Retention(RUNTIME)
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface WithTimeout {
     /**
      * Number of seconds.

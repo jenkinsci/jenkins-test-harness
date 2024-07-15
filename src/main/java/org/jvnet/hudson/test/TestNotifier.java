@@ -23,11 +23,11 @@
  */
 package org.jvnet.hudson.test;
 
+import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
-import hudson.model.AbstractProject;
 
 /**
  * Partial {@link Notifier} implementation to facilitate notifier implementation for testing.
@@ -36,7 +36,7 @@ public abstract class TestNotifier extends Notifier {
 
     @Override
     public BuildStepDescriptor<Publisher> getDescriptor() {
-        return new BuildStepDescriptor<Publisher>() {
+        return new BuildStepDescriptor<>() {
             @Override
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;
@@ -44,6 +44,7 @@ public abstract class TestNotifier extends Notifier {
         };
     }
 
+    @Override
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }

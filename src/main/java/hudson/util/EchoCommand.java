@@ -32,9 +32,11 @@ public final class EchoCommand {
     public static void main(String[] args) {
         StringBuilder sb = new StringBuilder();
         for (String a: args) {
-            if (sb.length() != 0) sb.append(' ');
+            if (sb.length() != 0) {
+                sb.append(' ');
+            }
             sb.append(a);
         }
-        System.out.println(sb.toString());
+        System.out.println(sb);
     }
 }

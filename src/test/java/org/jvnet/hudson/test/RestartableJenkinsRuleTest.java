@@ -1,29 +1,31 @@
 package org.jvnet.hudson.test;
 
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeThat;
 
+import hudson.PluginManager;
+import hudson.PluginWrapper;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import jenkins.model.Jenkins;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.WithPluginManager;
 
-import hudson.PluginManager;
-import hudson.PluginWrapper;
-
-import jenkins.model.Jenkins;
-
 public class RestartableJenkinsRuleTest {
 
-    @Rule public RestartableJenkinsRule noPortReuse = new RestartableJenkinsRule();
+    @Rule
+    public RestartableJenkinsRule noPortReuse = new RestartableJenkinsRule();
 
     @Rule
     public RestartableJenkinsRule portReuse =
@@ -63,14 +65,12 @@ public class RestartableJenkinsRuleTest {
         final String pluginId = "display-url-api";
         noPortReuse.then(jr -> {
             System.out.println(WarExploder.getExplodedDir());
-            Path srcLdap = new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins/"+pluginId+".hpi").toPath();
-            Path dstLdap = new File(jr.jenkins.pluginManager.rootDir, pluginId+".jpi").toPath();
+            Path srcLdap = new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins/" + pluginId + ".hpi").toPath();
+            Path dstLdap = new File(jr.jenkins.pluginManager.rootDir, pluginId + ".jpi").toPath();
             Files.createDirectories(dstLdap.getParent());
             Files.copy(srcLdap, dstLdap);
-            //jr.getPluginManager().doCheckUpdatesServer();
-            //jr.getPluginManager().install(Collections.singletonList("cvs"),true);
         });
-        
+
         noPortReuse.then(jr -> {
             Jenkins j = jr.jenkins;
             PluginManager pm = j.getPluginManager();
@@ -81,9 +81,20 @@ public class RestartableJenkinsRuleTest {
 
         noPortReuse.then(jr -> {
             assertFalse(pluginId + " is not enabled",
-                        jr.jenkins.getPluginManager().getPlugin(pluginId).isEnabled());
+                    jr.jenkins.getPluginManager().getPlugin(pluginId).isEnabled());
             assertFalse(pluginId + " should not be active",
-                        jr.jenkins.getPluginManager().getPlugin(pluginId).isActive());
+                    jr.jenkins.getPluginManager().getPlugin(pluginId).isActive());
         });
     }
+
+    @Test
+    public void verify_CopyFileVisitor_visitFileFailed_NoSuchFileException() {
+        Path testPath = new File("./").toPath();
+        RestartableJenkinsRule.CopyFileVisitor visitor = new RestartableJenkinsRule.CopyFileVisitor(testPath);
+
+        assertEquals(FileVisitResult.CONTINUE, visitor.visitFileFailed(testPath, new FileNotFoundException()));
+        assertEquals(FileVisitResult.CONTINUE, visitor.visitFileFailed(testPath, new NoSuchFileException("./")));
+        assertEquals(FileVisitResult.TERMINATE, visitor.visitFileFailed(testPath, new IOException()));
+    }
 }
+

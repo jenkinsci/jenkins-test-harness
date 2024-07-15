@@ -23,19 +23,20 @@
  */
 package org.jvnet.hudson.test;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.Test;
-import org.junit.Rule;
-
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.jvnet.hudson.test.LoggerRule.recorded;
+import static org.junit.Assert.assertThrows;
+
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class LoggerRuleTest {
 
@@ -49,12 +50,22 @@ public class LoggerRuleTest {
     public void testRecordedSingleLogger() {
         logRule.record("Foo", Level.INFO).capture(1);
         FOO_LOGGER.log(Level.INFO, "Entry 1");
-        assertThat(logRule, recorded(equalTo("Entry 1")));
-        assertThat(logRule, recorded(Level.INFO, equalTo("Entry 1")));
-        assertThat(logRule, not(recorded(Level.WARNING, equalTo("Entry 1"))));
+        assertThat(logRule, LoggerRule.recorded(Level.INFO, equalTo("Entry 1")));
+        assertThat(logRule, not(LoggerRule.recorded(Level.WARNING, equalTo("Entry 1"))));
         FOO_LOGGER.log(Level.INFO, "Entry 2");
-        assertThat(logRule, not(recorded(equalTo("Entry 1"))));
-        assertThat(logRule, recorded(equalTo("Entry 2")));
+        assertThat(logRule, not(LoggerRule.recorded(equalTo("Entry 1"))));
+        assertThat(logRule, LoggerRule.recorded(equalTo("Entry 2")));
+    }
+
+    @Test
+    public void assertionErrorMatchesExpectedText() {
+        logRule.record("Foo", Level.INFO).capture(2);
+        FOO_LOGGER.log(Level.INFO, "Entry 1");
+        FOO_LOGGER.log(Level.INFO, "Entry 3");
+        AssertionError assertionError = assertThrows(AssertionError.class, () -> assertThat(logRule, LoggerRule.recorded(Level.INFO, equalTo("Entry 2"))));
+
+        assertThat(assertionError.getMessage(), containsString("Expected: has LogRecord with level \"INFO\" with a message matching \"Entry 2\""));
+        assertThat(assertionError.getMessage(), containsString("     but: was <INFO->Entry 3,INFO->Entry 1>"));
     }
 
     @Test
@@ -62,19 +73,19 @@ public class LoggerRuleTest {
         logRule.record("Foo", Level.INFO).record("Bar", Level.SEVERE).capture(2);
         FOO_LOGGER.log(Level.INFO, "Foo Entry 1");
         BAR_LOGGER.log(Level.SEVERE, "Bar Entry 1");
-        assertThat(logRule, recorded(equalTo("Foo Entry 1")));
-        assertThat(logRule, recorded(equalTo("Bar Entry 1")));
+        assertThat(logRule, LoggerRule.recorded(equalTo("Foo Entry 1")));
+        assertThat(logRule, LoggerRule.recorded(equalTo("Bar Entry 1")));
         // All criteria must match a single LogRecord.
-        assertThat(logRule, not(recorded(Level.INFO, equalTo("Bar Entry 1"))));
+        assertThat(logRule, not(LoggerRule.recorded(Level.INFO, equalTo("Bar Entry 1"))));
     }
 
     @Test
     public void testRecordedThrowable() {
         logRule.record("Foo", Level.INFO).capture(1);
         FOO_LOGGER.log(Level.INFO, "Foo Entry 1", new IllegalStateException());
-        assertThat(logRule, recorded(equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
-        assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
-        assertThat(logRule, not(recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IOException.class))));
+        assertThat(logRule, LoggerRule.recorded(equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
+        assertThat(logRule, LoggerRule.recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IllegalStateException.class)));
+        assertThat(logRule, not(LoggerRule.recorded(Level.INFO, equalTo("Foo Entry 1"), instanceOf(IOException.class))));
     }
 
     @Test
@@ -82,8 +93,8 @@ public class LoggerRuleTest {
         logRule.record("Foo", Level.INFO).capture(2);
         FOO_LOGGER.log(Level.INFO, "Foo Entry", new IllegalStateException());
         FOO_LOGGER.log(Level.INFO, "Foo Entry", new IOException());
-        assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IllegalStateException.class)));
-        assertThat(logRule, recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
+        assertThat(logRule, LoggerRule.recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IllegalStateException.class)));
+        assertThat(logRule, LoggerRule.recorded(Level.INFO, equalTo("Foo Entry"), instanceOf(IOException.class)));
     }
 
     @Test

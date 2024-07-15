@@ -23,8 +23,8 @@
  */
 package org.jvnet.hudson.test.junit;
 
-import junit.framework.TestSuite;
 import junit.framework.TestResult;
+import junit.framework.TestSuite;
 import org.junit.runner.manipulation.Filter;
 import org.junit.runner.manipulation.Filterable;
 import org.junit.runner.manipulation.NoTestsRemainException;
@@ -72,6 +72,7 @@ public class GroupedTest extends TestSuite implements Filterable {
     protected void tearDown() throws Exception {
     }
 
+    @Override
     public void filter(Filter filter) throws NoTestsRemainException {} // SUREFIRE-974
 
 }

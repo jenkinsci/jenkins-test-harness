@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2021 CloudBees, Inc.
+ * Copyright 2022 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,27 @@
  * THE SOFTWARE.
  */
 
-import jenkins.model.Jenkins
-URL[] urls = [new URL(System.getProperty('RealJenkinsRule.location'))]
-new URLClassLoader(urls, ClassLoader.systemClassLoader.parent).loadClass('org.jvnet.hudson.test.RealJenkinsRule$Init2').getMethod('run', Object).invoke(null, Jenkins.instance)
+package org.jvnet.hudson.test;
+
+import static org.junit.Assert.assertEquals;
+
+import hudson.model.FreeStyleProject;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import org.junit.Rule;
+import org.junit.Test;
+
+public class ExtractResourceWithChangesSCMTest {
+
+    @Rule public JenkinsRule r = new JenkinsRule();
+
+    @Test public void smokes() throws Exception {
+        FreeStyleProject p = r.createFreeStyleProject();
+        p.setScm(new ExtractResourceWithChangesSCM(
+            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/initial.zip"),
+            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/patch.zip")));
+        r.buildAndAssertSuccess(p);
+        assertEquals("[[dir/subdir/bottom, top]]", StreamSupport.stream(r.buildAndAssertSuccess(p).getChangeSet().spliterator(), false).map(entry -> entry.getAffectedPaths().stream().sorted().collect(Collectors.toList())).collect(Collectors.toList()).toString());
+    }
+
+}

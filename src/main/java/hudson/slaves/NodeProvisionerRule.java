@@ -27,8 +27,14 @@ package hudson.slaves;
 import hudson.model.LoadStatistics;
 import hudson.slaves.NodeProvisioner.NodeProvisionerInvoker;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.RealJenkinsRule;
 
-/** Overrides {@link LoadStatistics#CLOCK}, {@link NodeProvisionerInvoker#INITIALDELAY}, and/or {@link NodeProvisionerInvoker#RECURRENCEPERIOD} during the test. */
+/**
+ * Overrides {@link LoadStatistics#CLOCK}, {@link NodeProvisionerInvoker#INITIALDELAY}, and/or {@link NodeProvisionerInvoker#RECURRENCEPERIOD} during the test.
+ *
+ * @deprecated use {@link RealJenkinsRule}
+ */
+@Deprecated
 public class NodeProvisionerRule extends JenkinsRule {
 
     private final int clock;

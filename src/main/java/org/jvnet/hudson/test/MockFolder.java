@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
@@ -33,8 +34,8 @@ import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.ItemGroupMixIn;
-import hudson.model.ModifiableViewGroup;
 import hudson.model.Job;
+import hudson.model.ModifiableViewGroup;
 import hudson.model.TopLevelItem;
 import hudson.model.TopLevelItemDescriptor;
 import hudson.model.View;
@@ -47,13 +48,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import javax.servlet.ServletException;
 import jenkins.model.DirectlyModifiableTopLevelItemGroup;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerFallback;
@@ -72,7 +71,7 @@ import org.kohsuke.stapler.WebMethod;
 public class MockFolder extends AbstractItem implements DirectlyModifiableTopLevelItemGroup, TopLevelItem, ModifiableViewGroup, StaplerFallback {
 
     private transient Map<String,TopLevelItem> items = new TreeMap<>();
-    private final List<View> views = new ArrayList<>(Collections.singleton(new AllView("All", this)));
+    private final List<View> views = new ArrayList<>(Set.of(new AllView("All", this)));
     private String primaryView;
     private ViewsTabBar viewsTabBar;
 
@@ -121,6 +120,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
 
     private ViewGroupMixIn vgmixin() {
         return new ViewGroupMixIn(this) {
+            @NonNull
             @Override protected List<View> views() {
                 return views;
             }
@@ -152,17 +152,24 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return mixin().createProjectFromXML(name, xml);
     }
 
-    @Override public TopLevelItem createProject(TopLevelItemDescriptor type, String name, boolean notify) throws IOException {
+    @Override public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify) throws IOException {
         return mixin().createProject(type, name, notify);
     }
 
     /** Convenience method to create a {@link FreeStyleProject} or similar. */
-    public <T extends TopLevelItem> T createProject(Class<T> type, String name) throws IOException {
-        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.getInstance().getDescriptor(type), name, true));
+    public <T extends TopLevelItem> T createProject(@NonNull Class<T> type, @NonNull String name) throws IOException {
+        return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptorOrDie(type), name, true));
     }
 
-    @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        return mixin().createTopLevelItem(req, rsp);
+    @Override public TopLevelItem doCreateItem(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        try {
+            return mixin().createTopLevelItem(req, rsp);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            // TODO stop wrapping once we drop support for EE 8
+            throw new RuntimeException(e);
+        }
     }
 
     @Override public String getUrlChildPrefix() {
@@ -204,10 +211,10 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     }
 
     @Override public TopLevelItemDescriptor getDescriptor() {
-        return Jenkins.getInstance().getDescriptorByType(DescriptorImpl.class);
+        return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    @Override public void addView(View view) throws IOException {
+    @Override public void addView(@NonNull View view) throws IOException {
         vgmixin().addView(view);
     }
 
@@ -249,7 +256,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     @Override public List<Action> getViewActions() {
         // TODO what should the default be? View.getOwnerViewActions uses Jenkins.actions; Jenkins.viewActions would make more sense as a default;
         // or should it be empty by default since non-top-level folders probably do not need the same actions as root?
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override public Object getStaplerFallback() {
@@ -271,9 +278,7 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         }
     }
 
-    /* TODO uncomment when core dep ≥ 2.110:
     @Override
-    */
     public boolean isNameEditable() {
         return true;
     }

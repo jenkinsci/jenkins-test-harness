@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.Result;
@@ -42,7 +43,8 @@ public class UnstableBuilder extends MockBuilder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        public UnstableBuilder newInstance(StaplerRequest req, JSONObject data) {
+        @Override
+        public UnstableBuilder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             return new UnstableBuilder();
         }
     }

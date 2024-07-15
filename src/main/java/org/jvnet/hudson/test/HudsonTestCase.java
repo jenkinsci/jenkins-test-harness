@@ -24,22 +24,15 @@
  */
 package org.jvnet.hudson.test;
 
-import com.gargoylesoftware.css.parser.CSSErrorHandler;
-import com.gargoylesoftware.css.parser.CSSException;
-import com.gargoylesoftware.css.parser.CSSParseException;
-import com.gargoylesoftware.htmlunit.AlertHandler;
-import com.gargoylesoftware.htmlunit.WebClientUtil;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
-import com.google.inject.Injector;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
-import hudson.ClassicPluginStrategy;
+import com.google.inject.Injector;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.CloseProofOutputStream;
-import hudson.DNSMultiCast;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -52,11 +45,32 @@ import hudson.Main;
 import hudson.PluginManager;
 import hudson.Util;
 import hudson.WebAppMain;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Computer;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import hudson.model.DownloadService;
 import hudson.model.Executor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.JDK;
+import hudson.model.Job;
+import hudson.model.Label;
+import hudson.model.Node;
 import hudson.model.Node.Mode;
 import hudson.model.Queue.Executable;
-import hudson.os.PosixAPI;
+import hudson.model.Result;
+import hudson.model.RootAction;
+import hudson.model.Run;
+import hudson.model.Saveable;
+import hudson.model.TaskListener;
+import hudson.model.UpdateSite;
+import hudson.model.User;
+import hudson.model.View;
 import hudson.security.ACL;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
@@ -75,7 +89,9 @@ import hudson.tools.ToolProperty;
 import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
-
+import hudson.util.jna.GNUCLibrary;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -86,14 +102,16 @@ import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -102,29 +120,32 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
+import jenkins.model.JenkinsLocationConfiguration;
 import junit.framework.TestCase;
 import net.sf.json.JSONObject;
-import net.sourceforge.htmlunit.corejs.javascript.Context;
-import net.sourceforge.htmlunit.corejs.javascript.ContextFactory;
-
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.ee9.webapp.Configuration;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
+import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.http.HttpCompliance;
+import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
@@ -132,11 +153,38 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import org.htmlunit.AjaxController;
+import org.htmlunit.AlertHandler;
+import org.htmlunit.BrowserVersion;
+import org.htmlunit.DefaultCssErrorHandler;
+import org.htmlunit.FailingHttpStatusCodeException;
+import org.htmlunit.Page;
+import org.htmlunit.WebClientUtil;
+import org.htmlunit.WebRequest;
+import org.htmlunit.corejs.javascript.Context;
+import org.htmlunit.corejs.javascript.ContextFactory;
+import org.htmlunit.cssparser.parser.CSSErrorHandler;
+import org.htmlunit.cssparser.parser.CSSException;
+import org.htmlunit.cssparser.parser.CSSParseException;
+import org.htmlunit.html.DomNode;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlImage;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
+import org.htmlunit.html.SubmittableElement;
+import org.htmlunit.javascript.AbstractJavaScriptEngine;
+import org.htmlunit.javascript.JavaScriptEngine;
+import org.htmlunit.javascript.host.xml.XMLHttpRequest;
+import org.htmlunit.util.NameValuePair;
+import org.htmlunit.xml.XmlPage;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
@@ -150,34 +198,13 @@ import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.mozilla.javascript.tools.debugger.Dim;
-import org.mozilla.javascript.tools.shell.Global;
 import org.springframework.dao.DataAccessException;
 import org.xml.sax.SAXException;
-
-import com.gargoylesoftware.htmlunit.AjaxController;
-import com.gargoylesoftware.htmlunit.BrowserVersion;
-import com.gargoylesoftware.htmlunit.DefaultCssErrorHandler;
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.html.DomNode;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.javascript.HtmlUnitContextFactory;
-import com.gargoylesoftware.htmlunit.javascript.host.xml.XMLHttpRequest;
-import com.gargoylesoftware.htmlunit.xml.XmlPage;
-import java.net.HttpURLConnection;
-
-
-import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Base class for all Jenkins test cases.
  *
- * @see <a href="http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test">Wiki article about unit testing in Hudson</a>
+ * @see <a href="https://www.jenkins.io/doc/developer/testing/">Wiki article about unit testing in Jenkins</a>
  * @author Kohsuke Kawaguchi
  * @deprecated New code should use {@link JenkinsRule}.
  */
@@ -238,6 +265,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * @deprecated
      *      Use {@link #pluginManager}
      */
+    @Deprecated
     public boolean useLocalPluginManager;
 
     /**
@@ -304,8 +332,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         env.pin();
         recipe();
         for (Runner r : recipes) {
-            if (r instanceof WithoutJenkins.RunnerImpl)
+            if (r instanceof WithoutJenkins.RunnerImpl) {
                 return; // no setup
+            }
         }
         AbstractProject.WORKSPACE.toString();
         User.clear();
@@ -327,9 +356,47 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         
         jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
-        jenkins.servletContext.setAttribute("app", jenkins);
-        jenkins.servletContext.setAttribute("version","?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+        if (_isEE9Plus()) {
+            ServletContext servletContext;
+            try {
+                servletContext = (ServletContext)
+                        Jenkins.class.getDeclaredMethod("getServletContext").invoke(jenkins);
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+            servletContext.setAttribute("app", jenkins);
+            servletContext.setAttribute("version", "?");
+            try {
+                WebAppMain.class
+                        .getDeclaredMethod("installExpressionFactory", ServletContextEvent.class)
+                        .invoke(null, new ServletContextEvent(servletContext));
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+        } else {
+            javax.servlet.ServletContext servletContext = jenkins.servletContext;
+            servletContext.setAttribute("app", jenkins);
+            servletContext.setAttribute("version", "?");
+            WebAppMain.installExpressionFactory(new javax.servlet.ServletContextEvent(servletContext));
+        }
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
 
         // set a default JDK to be the one that the harness is using.
@@ -343,8 +410,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         // cause all the descriptors to reload.
         // ideally we'd like to reset them to properly emulate the behavior, but that's not possible.
-        for( Descriptor d : jenkins.getExtensionList(Descriptor.class) )
+        for (Descriptor d : jenkins.getExtensionList(Descriptor.class)) {
             d.load();
+        }
 
         // allow the test class to inject Jenkins components
         Jenkins.lookup(Injector.class).injectMembers(this);
@@ -352,8 +420,20 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         setUpTimeout();
     }
 
+    private static boolean _isEE9Plus() {
+        try {
+            Jenkins.class.getDeclaredMethod("getServletContext");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     protected void setUpTimeout() {
-        if (timeout<=0)     return; // no timeout
+        if (timeout <= 0) {
+            // no timeout
+            return;
+        }
 
         final Thread testThread = Thread.currentThread();
         timeoutTimer = new Timer();
@@ -374,7 +454,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
-        final String updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        int localPort = _isEE9Plus()
+                ? JavaNetReverseProxy2.getInstance().localPort
+                : JavaNetReverseProxy.getInstance().localPort;
+        final String updateCenterUrl = "http://localhost:" + localPort + "/update-center.json";
 
         // don't waste bandwidth talking to the update center
         DownloadService.neverUpdate = true;
@@ -389,8 +472,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     protected void tearDown() throws Exception {
         try {
             if (jenkins!=null) {
-                for (EndOfTestListener tl : jenkins.getExtensionList(EndOfTestListener.class))
+                for (EndOfTestListener tl : jenkins.getExtensionList(EndOfTestListener.class)) {
                     tl.onTearDown();
+                }
             }
 
             if (timeoutTimer!=null) {
@@ -406,27 +490,30 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
             clients.clear();
         } finally {
-            if (server!=null)
+            if (server != null) {
                 server.stop();
-            for (LenientRunnable r : tearDowns)
+            }
+            for (LenientRunnable r : tearDowns) {
                 r.run();
+            }
 
-            if (jenkins!=null)
+            if (jenkins != null) {
                 jenkins.cleanUp();
+            }
             ExtensionList.clearLegacyInstances();
             DescriptorExtensionList.clearLegacyInstances();
+
+            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
+            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
+            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
+            // see https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4950148
+            System.gc();
 
             try {
                 env.dispose();
             } catch (Exception x) {
                 x.printStackTrace();
             }
-
-            // Jenkins creates ClassLoaders for plugins that hold on to file descriptors of its jar files,
-            // but because there's no explicit dispose method on ClassLoader, they won't get GC-ed until
-            // at some later point, leading to possible file descriptor overflow. So encourage GC now.
-            // see http://bugs.sun.com/view_bug.do?bug_id=4950148
-            System.gc();
             
             // restore defaultUseCache
             if(Functions.isWindows()) {
@@ -464,14 +551,17 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     @SuppressWarnings("serial")
     public static class BreakException extends Exception {}
 
+    @Override
     public String getIconFileName() {
         return null;
     }
 
+    @Override
     public String getDisplayName() {
         return null;
     }
 
+    @Override
     public String getUrlName() {
         return "self";
     }
@@ -481,10 +571,34 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * you can override it.
      */
     protected Hudson newHudson() throws Exception {
-        File home = homeLoader.allocate();
-        for (Runner r : recipes)
-            r.decorateHome(this,home);
-        return new Hudson(home, createWebServer(), useLocalPluginManager ? null : pluginManager);
+        if (_isEE9Plus()) {
+            File home = homeLoader.allocate();
+            for (Runner r : recipes) {
+                r.decorateHome(this,home);
+            }
+            try {
+                return Hudson.class
+                        .getDeclaredConstructor(File.class, ServletContext.class, PluginManager.class)
+                        .newInstance(home, createWebServer2(), useLocalPluginManager ? null : pluginManager);
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+        } else {
+            File home = homeLoader.allocate();
+            for (Runner r : recipes) {
+                r.decorateHome(this,home);
+            }
+            return new Hudson(home, createWebServer(), useLocalPluginManager ? null : pluginManager);
+        }
     }
 
     /**
@@ -496,27 +610,44 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public void setPluginManager(PluginManager pluginManager) {
         this.useLocalPluginManager = false;
         this.pluginManager = pluginManager;
-        if (jenkins !=null)
+        if (jenkins != null) {
             throw new IllegalStateException("Too late to override the plugin manager");
+        }
     }
 
     /**
      * Prepares a webapp hosting environment to get {@link ServletContext} implementation
      * that we need for testing.
      */
-    protected ServletContext createWebServer() throws Exception {
+    protected ServletContext createWebServer2() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (HudsonTestCase)");
         server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
-        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);
+        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
         context.setResourceBase(explodedWarDir.getPath());
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
-        server.setHandler(context);
-        context.setMimeTypes(MIME_TYPES);
+        context.addBean(new NoListenerConfiguration2(context));
+        context.setServer(server);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
+        JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
         ServerConnector connector = new ServerConnector(server);
@@ -524,6 +655,63 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
+        connector.setHost("localhost");
+
+        server.addConnector(connector);
+        server.start();
+
+        localPort = connector.getLocalPort();
+
+        return context.getServletContext();
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
+     * that we need for testing.
+     *
+     * @deprecated use {@link #createWebServer2()}
+     */
+    @Deprecated
+    protected javax.servlet.ServletContext createWebServer() throws Exception {
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (HudsonTestCase)");
+        server = new Server(qtp);
+
+        explodedWarDir = WarExploder.getExplodedDir();
+        org.eclipse.jetty.ee8.webapp.WebAppContext context = new org.eclipse.jetty.ee8.webapp.WebAppContext(explodedWarDir.getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
+        context.setResourceBase(explodedWarDir.getPath());
+        context.setClassLoader(getClass().getClassLoader());
+        context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
+        context.addBean(new NoListenerConfiguration(context));
+        context.setServer(server);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
+        org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
+        context.getSecurityHandler().setLoginService(configureUserRealm());
+
+        ServerConnector connector = new ServerConnector(server);
+
+        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
+        config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
         connector.setHost("localhost");
 
         server.addConnector(connector);
@@ -597,8 +785,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         return new AbstractPasswordBasedSecurityRealm() {
             @Override
             protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-                if (username.equals(password))
+                if (username.equals(password)) {
                     return loadUserByUsername(username);
+                }
                 throw new BadCredentialsException(username);
             }
 
@@ -644,7 +833,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         synchronized (jenkins) {
             DumbSlave slave = new DumbSlave(nodeName, "dummy",
     				createTmpDir().getPath(), "1", Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env),
-			        RetentionStrategy.NOOP, Collections.emptyList());
+			        RetentionStrategy.NOOP, List.of());
     		jenkins.addNode(slave);
     		return slave;
     	}
@@ -668,7 +857,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -jar \"%s\"",
+                String.format("\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
                         System.getProperty("java.home"),
                         SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
                         "-Djava.awt.headless=true",
@@ -720,7 +909,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void interactiveBreak() throws Exception {
         System.out.println("Jenkins is running at http://localhost:"+localPort+"/");
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
@@ -737,14 +926,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * from an browser, while developing a test case.
      */
     protected void pause() throws IOException {
-        new BufferedReader(new InputStreamReader(System.in)).readLine();
+        new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
     /**
      * Performs a search from the search box.
      */
     protected Page search(String q) throws Exception {
-        return new WebClient().search(q);
+        return createWebClient().search(q);
     }
 
     /**
@@ -758,7 +947,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Loads a configuration page and submits it without any modifications, to
      * perform a round-trip configuration test.
      * <p>
-     * See http://wiki.jenkins-ci.org/display/JENKINS/Unit+Test#UnitTest-Configurationroundtriptesting
+     * See <a href="https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing">Configuration Round-trip Testing</a>
      */
     protected <P extends Job> P configRoundtrip(P job) throws Exception {
         submit(createWebClient().getPage(job,"configure").getFormByName("config"));
@@ -820,8 +1009,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Asserts that the outcome of the build is a specific outcome.
      */
     public <R extends Run> R assertBuildStatus(Result status, R r) throws Exception {
-        if(status==r.getResult())
+        if (status == r.getResult()) {
             return r;
+        }
 
         // dump the build output in failure message
         String msg = "unexpected build status; build log was:\n------\n" + getLog(r) + "\n------\n";
@@ -873,16 +1063,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Asserts that the console output of the build contains the given substring.
      */
     public void assertLogContains(String substring, Run run) throws Exception {
-        String log = getLog(run);
-        assertTrue("Console output of "+run+" didn't contain "+substring+":\n"+log,log.contains(substring));
+        assertThat(getLog(run), containsString(substring));
     }
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
      */
     public void assertLogNotContains(String substring, Run run) throws Exception {
-        String log = getLog(run);
-        assertFalse("Console output of "+run+" contains "+substring+":\n"+log,log.contains(substring));
+        assertThat(getLog(run), not(containsString(substring)));
     }
 
     /**
@@ -906,7 +1094,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * examine XmlPages.
      */
     public void assertXPath(DomNode page, String xpath) {
-        List< ? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertFalse("There should be an object that matches XPath:" + xpath, nodes.isEmpty());
     }
 
@@ -927,11 +1115,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         org.w3c.dom.Node n = (org.w3c.dom.Node) node;
         String textString = n.getTextContent();
-        assertTrue("needle found in haystack", textString.contains(needle)); 
+        assertThat(textString, containsString(needle));
     }
 
     public void assertXPathResultsContainText(DomNode page, String xpath, String needle) {
-        List<? extends Object> nodes = page.getByXPath(xpath);
+        List<?> nodes = page.getByXPath(xpath);
         assertFalse("no nodes matching xpath found", nodes.isEmpty());
         boolean found = false;
         for (Object o : nodes) {
@@ -966,11 +1154,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
 
     public void assertStringContains(String message, String haystack, String needle) {
-        assertTrue(message + " (seeking '" + needle + "')",haystack.contains(needle));
+        assertThat(message, haystack, containsString(needle));
     }
 
     public void assertStringContains(String haystack, String needle) {
-        assertTrue("Could not find '" + needle + "'.",haystack.contains(needle));
+        assertThat(haystack, containsString(needle));
     }
 
     /**
@@ -982,7 +1170,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *      ','-separated list of properties whose help files should exist.
      */
     public void assertHelpExists(final Class<? extends Describable> type, final String properties) throws Exception {
-        executeOnServer(new Callable<Object>() {
+        executeOnServer(new Callable<>() {
+            @Override
             public Object call() throws Exception {
                 Descriptor d = jenkins.getDescriptor(type);
                 WebClient wc = createWebClient();
@@ -1014,7 +1203,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Submits the form.
      *
-     * Plain {@link HtmlForm#submit(com.gargoylesoftware.htmlunit.html.SubmittableElement)} doesn't work correctly due to the use of YUI in Hudson.
+     * Plain {@link HtmlForm#submit(SubmittableElement)} doesn't work correctly due to the use of YUI in Jenkins.
      */
     public HtmlPage submit(HtmlForm form) throws Exception {
         return (HtmlPage) HtmlFormUtil.submit(form, last(form.getElementsByTagName("button")));
@@ -1042,8 +1231,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     protected HtmlButton getButtonByCaption(HtmlForm f, String s) {
         for (HtmlElement b : f.getElementsByTagName("button")) {
-            if(b.getTextContent().trim().equals(s))
+            if (b.getTextContent().trim().equals(s)) {
                 return (HtmlButton)b;
+            }
         }
         return null;
     }
@@ -1104,8 +1294,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 int m = Array.getLength(lp);
                 int n = Array.getLength(rp);
                 assertEquals("Array length is different for property "+p, m,n);
-                for (int i=0; i<m; i++)
+                for (int i = 0; i < m; i++) {
                     assertEquals(p+"["+i+"] is different", Array.get(lp,i),Array.get(rp,i));
+                }
                 return;
             }
 
@@ -1122,9 +1313,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * via {@link DataBoundConstructor}
      */
     public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws Exception {
-        if (lhs==null && rhs==null)     return;
-        if (lhs==null)      fail("lhs is null while rhs="+rhs);
-        if (rhs==null)      fail("rhs is null while lhs="+lhs);
+        if (lhs == null && rhs == null) {
+            return;
+        }
+        if (lhs == null) {
+            fail("lhs is null while rhs=" + rhs);
+        }
+        if (rhs == null) {
+            fail("rhs is null while lhs=" + lhs);
+        }
         
         Constructor<?> lc = findDataBoundConstructor(lhs.getClass());
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
@@ -1164,8 +1361,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
 
         // compare shallow primitive properties
-        if (!primitiveProperties.isEmpty())
+        if (!primitiveProperties.isEmpty()) {
             assertEqualBeans(lhs,rhs,Util.join(primitiveProperties,","));
+        }
     }
 
     /**
@@ -1173,14 +1371,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public void assertEqualDataBoundBeans(List<?> lhs, List<?> rhs) throws Exception {
         assertEquals(lhs.size(), rhs.size());
-        for (int i=0; i<lhs.size(); i++) 
+        for (int i = 0; i < lhs.size(); i++) {
             assertEqualDataBoundBeans(lhs.get(i),rhs.get(i));
+        }
     }
 
     protected Constructor<?> findDataBoundConstructor(Class<?> c) {
         for (Constructor<?> m : c.getConstructors()) {
-            if (m.getAnnotation(DataBoundConstructor.class)!=null)
+            if (m.getAnnotation(DataBoundConstructor.class) != null) {
                 return m;
+            }
         }
         return null;
     }
@@ -1197,11 +1397,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Returns true if Hudson is building something or going to build something.
      */
     protected boolean isSomethingHappening() {
-        if (!jenkins.getQueue().isEmpty())
+        if (!jenkins.getQueue().isEmpty()) {
             return true;
-        for (Computer n : jenkins.getComputers())
-            if (!n.isIdle())
+        }
+        for (Computer n : jenkins.getComputers()) {
+            if (!n.isIdle()) {
                 return true;
+            }
+        }
         return false;
     }
 
@@ -1224,24 +1427,28 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         while (true) {
             Thread.sleep(100);
-            if (isSomethingHappening())
+            if (isSomethingHappening()) {
                 streak=0;
-            else
+            } else {
                 streak++;
+            }
 
-            if (streak>2)   // the system is quiet for a while
+            if (streak > 2) {
+                // the system is quiet for a while
                 return;
+            }
 
             if (System.currentTimeMillis()-startTime > timeout) {
                 List<Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
-                        if (e.isBusy())
+                        if (e.isBusy()) {
                             building.add(e.getCurrentExecutable());
+                        }
                     }
                 }
                 throw new AssertionError(String.format("Jenkins is still doing something after %dms: queue=%s building=%s",
-                        timeout, Arrays.asList(jenkins.getQueue().getItems()), building));
+                        timeout, List.of(jenkins.getQueue().getItems()), building));
             }
         }
     }
@@ -1267,14 +1474,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             Method runMethod= getClass().getMethod(getName());
             for( final Annotation a : runMethod.getAnnotations() ) {
                 Recipe r = a.annotationType().getAnnotation(Recipe.class);
-                if(r==null)     continue;
+                if (r == null) {
+                    continue;
+                }
                 final Runner runner = r.value().newInstance();
                 recipes.add(runner);
-                tearDowns.add(new LenientRunnable() {
-                    public void run() throws Exception {
-                        runner.tearDown(HudsonTestCase.this,a);
-                    }
-                });
+                tearDowns.add(() -> runner.tearDown(HudsonTestCase.this, a));
                 runner.setup(this,a);
             }
         } catch (NoSuchMethodException e) {
@@ -1283,12 +1488,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * If this test harness is launched for a Jenkins plugin, locate the <tt>target/test-classes/the.jpl</tt>
+     * If this test harness is launched for a Jenkins plugin, locate the {@code target/test-classes/the.jpl}
      * and add a recipe to install that to the new Jenkins.
      *
      * <p>
-     * This file is created by <tt>maven-hpi-plugin</tt> at the testCompile phase when the current
-     * packaging is <tt>hpi</tt>.
+     * This file is created by {@code maven-hpi-plugin} at the testCompile phase when the current
+     * packaging is {@code hpi}.
      */
     protected void recipeLoadCurrentPlugin() throws Exception {
     	final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
@@ -1297,7 +1502,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         final List<URL> all = Collections.list(jpls);
         all.addAll(Collections.list(hpls));
         
-        if(all.isEmpty())    return; // nope
+        if (all.isEmpty()) {
+            // nope
+            return;
+        }
 
         recipes.add(new Runner() {
             @Override
@@ -1323,7 +1531,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public HudsonTestCase withPresetData(String name) {
         name = "/" + name + ".zip";
         URL res = getClass().getResource(name);
-        if(res==null)   throw new IllegalArgumentException("No such data set found: "+name);
+        if (res == null) {
+            throw new IllegalArgumentException("No such data set found: " + name);
+        }
 
         return with(new CopyExisting(res));
     }
@@ -1368,27 +1578,29 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * This is to assist Groovy test clients who are incapable of instantiating the inner classes properly.
+     * Create a web client instance using the browser version returned by {@link BrowserVersion#getDefault()}
+     * with support for the Fetch API.
      */
     public WebClient createWebClient() {
-        return new WebClient();
+        WebClient webClient = new WebClient();
+        webClient.getOptions().setFetchPolyfillEnabled(true);
+        return webClient;
     }
     
     /**
-     * Extends {@link com.gargoylesoftware.htmlunit.WebClient} and provide convenience methods
+     * Extends {@link org.htmlunit.WebClient} and provide convenience methods
      * for accessing Hudson.
      */
-    public class WebClient extends com.gargoylesoftware.htmlunit.WebClient {
+    public class WebClient extends org.htmlunit.WebClient {
         private static final long serialVersionUID = 8720028298174337333L;
 
         public WebClient() {
-            super(BrowserVersion.BEST_SUPPORTED);
-
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = 6730107519583349963L;
+                @Override
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
                 }
@@ -1399,27 +1611,27 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
                 @Override
                 public void warning(final CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
+                    if (!ignore(exception)) {
                         defaultHandler.warning(exception);
+                    }
                 }
 
                 @Override
                 public void error(final CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
+                    if (!ignore(exception)) {
                         defaultHandler.error(exception);
+                    }
                 }
 
                 @Override
                 public void fatalError(final CSSParseException exception) throws CSSException {
-                    if (!ignore(exception))
+                    if (!ignore(exception)) {
                         defaultHandler.fatalError(exception);
+                    }
                 }
 
                 private boolean ignore(final CSSParseException exception) {
-                    String uri = exception.getURI();
-                    return uri.contains("/yui/")
-                            // TODO JENKINS-14749: these are a mess today, and we know that
-                            || uri.contains("/css/style.css") || uri.contains("/css/responsive-grid.css");
+                    return exception.getURI().contains("/yui/");
                 }
             });
 
@@ -1429,17 +1641,21 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             if (javaScriptEngine instanceof JavaScriptEngine) {
                 ((JavaScriptEngine) javaScriptEngine).getContextFactory()
                                                      .addListener(new ContextFactory.Listener() {
+                                                         @Override
                                                          public void contextCreated(Context cx) {
-                                                             if (cx.getDebugger() == null)
+                                                             if (cx.getDebugger() == null) {
                                                                  cx.setDebugger(jsDebugger, null);
+                                                             }
                                                          }
 
+                                                         @Override
                                                          public void contextReleased(Context cx) {
                                                          }
                                                      });
             }
 
             setAlertHandler(new AlertHandler() {
+                @Override
                 public void handleAlert(Page page, String message) {
                     throw new AssertionError("Alert dialog popped up: "+message);
                 }
@@ -1457,8 +1673,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             HtmlPage page = goTo("/login");
 
             HtmlForm form = page.getFormByName("login");
-            form.getInputByName("j_username").setValueAttribute(username);
-            form.getInputByName("j_password").setValueAttribute(password);
+            form.getInputByName("j_username").setValue(username);
+            form.getInputByName("j_password").setValue(password);
             HtmlFormUtil.submit(form, null);
             return this;
         }
@@ -1503,6 +1719,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
             cea.add(id,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         StaplerResponse rsp = Stapler.getCurrentResponse();
@@ -1516,16 +1733,38 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             });
             goTo("closures/?uuid="+id);
 
-            if (t[0]!=null)
+            if (t[0] != null) {
                 throw t[0];
+            }
             return r.get(0);
         }
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValueAttribute(q);
-            return (HtmlPage)HtmlFormUtil.submit(search, null);
+            HtmlButton button = top.querySelector("#button-open-command-palette");
+
+            // Legacy versions of Jenkins
+            if (button == null) {
+                HtmlForm search = top.getFormByName("search");
+                search.getInputByName("q").setValue(q);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
+            }
+
+            button.click();
+            HtmlInput search = top.querySelector("#command-bar");
+            search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
+
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                System.out.println("Couldn't find result for query '" + q + "'");
+                return null;
+            }
+
+            return firstResult.click();
         }
 
         /**
@@ -1576,6 +1815,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          *      a relative path within the Hudson being tested. (IOW, if you really need to hit
          *      a website on the internet, there's nothing wrong with using this method.)
          */
+        @Deprecated
         @SuppressWarnings("unchecked")
         @Override
         public Page getPage(String url) throws IOException, FailingHttpStatusCodeException {
@@ -1587,10 +1827,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
 
         /**
-         * Requests a page within Hudson.
+         * Requests a page within Jenkins.
          *
          * @param relative
-         *      Relative path within Hudson. Starts without '/'.
+         *      Relative path within Jenkins. Starts without '/'.
          *      For example, "job/test/" to go to a job top page.
          */
         public HtmlPage goTo(String relative) throws IOException, SAXException {
@@ -1603,7 +1843,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
 
         public Page goTo(String relative, String expectedContentType) throws IOException, SAXException {
-            while (relative.startsWith("/")) relative = relative.substring(1);
+            while (relative.startsWith("/")) {
+                relative = relative.substring(1);
+            }
             Page p;
             try {
                 p = super.getPage(getContextPath() + relative);
@@ -1625,10 +1867,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public XmlPage goToXml(String path) throws IOException, SAXException {
             Page page = goTo(path, "application/xml");
-            if (page instanceof XmlPage)
+            if (page instanceof XmlPage) {
                 return (XmlPage) page;
-            else
+            } else {
                 return null;
+            }
         }
         
         /**
@@ -1654,13 +1897,13 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
         
         /**
-         * Adds a security crumb to the quest
+         * Adds a security crumb to the request.
          */
         public WebRequest addCrumb(WebRequest req) {
-            com.gargoylesoftware.htmlunit.util.NameValuePair crumb = new com.gargoylesoftware.htmlunit.util.NameValuePair(
+            NameValuePair crumb = new NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                    jenkins.getCrumbIssuer().getCrumb( null ));
-            req.setRequestParameters(Collections.singletonList(crumb));
+                    jenkins.getCrumbIssuer().getCrumb((javax.servlet.ServletRequest) null));
+            req.setRequestParameters(List.of(crumb));
             return req;
         }
         
@@ -1670,7 +1913,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public URL createCrumbedUrl(String relativePath) throws IOException {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
-            String crumb = issuer.getCrumb(null);
+            String crumb = issuer.getCrumb((javax.servlet.ServletRequest) null);
             
             return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
         }
@@ -1685,34 +1928,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             return goTo("closures/?uuid="+id);
         }
 
-        /**
-         * Starts an interactive JavaScript debugger, and break at the next JavaScript execution.
-         *
-         * <p>
-         * This is useful during debugging a test so that you can step execute and inspect state of JavaScript.
-         * This will launch a Swing GUI, and the method returns immediately.
-         *
-         * <p>
-         * Note that installing a debugger appears to make an execution of JavaScript substantially slower.
-         *
-         * <p>
-         * TODO: because each script block evaluation in HtmlUnit is done in a separate Rhino context,
-         * if you step over from one script block, the debugger fails to kick in on the beginning of the next script block.
-         * This makes it difficult to set a break point on arbitrary script block in the HTML page. We need to fix this
-         * by tweaking {@link Dim.StackFrame#onLineChange(Context, int)}.
-         */
-        public Dim interactiveJavaScriptDebugger() {
-            Global global = new Global();
-            HtmlUnitContextFactory cf = ((JavaScriptEngine)getJavaScriptEngine()).getContextFactory();
-            global.init(cf);
-
-            Dim dim = org.mozilla.javascript.tools.debugger.Main.mainEmbedded(cf, global, "Rhino debugger: " + getName());
-
-            // break on exceptions. this catch most of the errors
-            dim.setBreakOnExceptions(true);
-
-            return dim;
-        }
     }
 
     // needs to keep reference, or it gets GC-ed.
@@ -1727,13 +1942,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             MetaClass.NO_CACHE=true;
             // load resources from the source dir.
             File dir = new File("src/main/resources");
-            if(dir.exists() && MetaClassLoader.debugLoader==null)
+            if (dir.exists() && MetaClassLoader.debugLoader == null) {
                 try {
                     MetaClassLoader.debugLoader = new MetaClassLoader(
                         new URLClassLoader(new URL[]{dir.toURI().toURL()}));
                 } catch (MalformedURLException e) {
                     throw new AssertionError(e);
                 }
+            }
         }
 
         // suppress INFO output from Spring, which is verbose
@@ -1744,41 +1960,32 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         // prototype.js calls this method all the time, so ignore this warning.
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
+            @Override
             public boolean isLoggable(LogRecord record) {
                 return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty("org.mortbay.jetty.Request.maxFormContentSize","-1");
+        System.setProperty("org.eclipse.jetty.server.Request.maxFormContentSize", "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
 
-    protected static final List<ToolProperty<?>> NO_PROPERTIES = Collections.emptyList();
+    protected static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
-        MIME_TYPES.addMimeMapping("js","application/javascript");
         Functions.DEBUG_YUI = true;
 
-        // during the unit test, predictably releasing classloader is important to avoid
-        // file descriptor leak.
-        ClassicPluginStrategy.useAntClassLoader = true;
-
-        // DNS multicast support takes up a lot of time during tests, so just disable it altogether
-        // this also prevents tests from falsely advertising Hudson
-        DNSMultiCast.disabled = true;
-
-        if (!Functions.isWindows()) {
+        if (Functions.isGlibcSupported()) {
             try {
-                PosixAPI.jnr().unsetenv("MAVEN_OPTS");
-                PosixAPI.jnr().unsetenv("MAVEN_DEBUG_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
+                GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
             }
@@ -1807,7 +2014,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
         }

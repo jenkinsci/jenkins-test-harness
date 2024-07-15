@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
@@ -32,7 +33,6 @@ import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.tasks.Builder;
 import java.io.IOException;
-import javax.annotation.Nonnull;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -42,23 +42,23 @@ import org.kohsuke.stapler.StaplerRequest;
  */
 public class CreateFileBuilder extends Builder {
     
-    @Nonnull
+    @NonNull
     private final String fileName;
     
-    @Nonnull
+    @NonNull
     private final String fileContent;
 
-    public CreateFileBuilder(@Nonnull String fileName, @Nonnull String fileContent) {
+    public CreateFileBuilder(@NonNull String fileName, @NonNull String fileContent) {
         this.fileName = fileName;
         this.fileContent = fileContent;
     }
 
-    @Nonnull 
+    @NonNull
     public String getFileName() {
         return fileName;
     }
 
-    @Nonnull 
+    @NonNull
     public String getFileContent() {
         return fileContent;
     }
@@ -85,11 +85,12 @@ public class CreateFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, JSONObject data) {
+        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException("This is a temporary test class, "
                     + "which should not be configured from UI");
         }
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Create a file";

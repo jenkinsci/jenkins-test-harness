@@ -1,28 +1,34 @@
 package jenkins.benchmark.jmh;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.PluginManager;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
+import jakarta.servlet.ServletContext;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
 import org.eclipse.jetty.server.Server;
+import org.junit.internal.AssumptionViolatedException;
+import org.jvnet.hudson.test.JavaNetReverseProxy;
+import org.jvnet.hudson.test.JavaNetReverseProxy2;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
+import org.jvnet.hudson.test.TestPluginManager;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-
-import javax.annotation.CheckForNull;
-import javax.servlet.ServletContext;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Standard benchmark {@link State} for JMH when a Jenkins instance is required.
@@ -42,7 +48,7 @@ public abstract class JmhBenchmarkState implements RootAction {
     private static final String contextPath = "/jenkins";
 
     private final TemporaryDirectoryAllocator temporaryDirectoryAllocator = new TemporaryDirectoryAllocator();
-    private final MutableInt localPort = new MutableInt();
+    private final AtomicInteger localPort = new AtomicInteger();
 
     private Jenkins jenkins = null;
     private Server server = null;
@@ -61,7 +67,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         // security setup as in a default installation.
         System.setProperty("jenkins.install.state", "TEST");
         launchInstance();
-        ACL.impersonate(ACL.SYSTEM);
+        ACL.impersonate2(ACL.SYSTEM2);
         setup();
     }
 
@@ -78,6 +84,15 @@ public abstract class JmhBenchmarkState implements RootAction {
         } finally {
             JenkinsRule._stopJenkins(server, null, jenkins);
             try {
+                if (_isEE9Plus()) {
+                    JavaNetReverseProxy2.getInstance().stop();
+                } else {
+                    JavaNetReverseProxy.getInstance().stop();
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Unable to stop JavaNetReverseProxy server", e);
+            }
+            try {
                 temporaryDirectoryAllocator.dispose();
             } catch (InterruptedException | IOException e) {
                 LOGGER.log(Level.WARNING, "Unable to dispose temporary Jenkins directory" +
@@ -87,13 +102,45 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        ImmutablePair<Server, ServletContext> results = JenkinsRule._createWebServer(contextPath, localPort::setValue,
-                getClass().getClassLoader(), localPort.getValue(), JenkinsRule::_configureUserRealm);
+        if (_isEE9Plus()) {
+            WebAppContext context = JenkinsRule._createWebAppContext2(
+                    contextPath,
+                    localPort::set,
+                    getClass().getClassLoader(),
+                    localPort.get(),
+                    JenkinsRule::_configureUserRealm);
+            server = context.getServer();
+            ServletContext webServer = context.getServletContext();
+            try {
+                jenkins = Hudson.class
+                        .getDeclaredConstructor(File.class, ServletContext.class, PluginManager.class)
+                        .newInstance(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
+            } catch (NoSuchMethodException e) {
+                throw new AssertionError(e);
+            } catch (InvocationTargetException e) {
+                Throwable t = e.getCause();
+                if (t instanceof InterruptedException) {
+                    throw new AssumptionViolatedException("Jenkins startup interrupted", t);
+                } else if (t instanceof Exception) {
+                    throw (Exception) t;
+                } else if (t instanceof Error) {
+                    throw (Error) t;
+                } else {
+                    throw e;
+                }
+            }
+        } else {
+            org.eclipse.jetty.ee8.webapp.WebAppContext context = JenkinsRule._createWebAppContext(
+                    contextPath,
+                    localPort::set,
+                    getClass().getClassLoader(),
+                    localPort.get(),
+                    JenkinsRule::_configureUserRealm);
+            server = context.getServer();
+            javax.servlet.ServletContext webServer = context.getServletContext();
+            jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
+        }
 
-        server = results.left;
-        ServletContext webServer = results.right;
-
-        jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer);
         JenkinsRule._configureJenkinsForTest(jenkins);
         JenkinsRule._configureUpdateCenter(jenkins);
         jenkins.getActions().add(this);
@@ -103,8 +150,17 @@ public abstract class JmhBenchmarkState implements RootAction {
         LOGGER.log(Level.INFO, "Running on {0}", url);
     }
 
+    private static boolean _isEE9Plus() {
+        try {
+            Jenkins.class.getDeclaredMethod("getServletContext");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     private URL getJenkinsURL() throws MalformedURLException {
-        return new URL("http://localhost:" + localPort.getValue() + contextPath + "/");
+        return new URL("http://localhost:" + localPort.get() + contextPath + "/");
     }
 
     /**
