@@ -10,7 +10,7 @@ import hudson.model.Result;
 import hudson.tasks.Builder;
 import java.io.IOException;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Forces the build result to be some pre-configured value.
@@ -39,7 +39,7 @@ public class MockBuilder extends Builder {
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
         @Override
-        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
+        public Builder newInstance(StaplerRequest2 req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
     }

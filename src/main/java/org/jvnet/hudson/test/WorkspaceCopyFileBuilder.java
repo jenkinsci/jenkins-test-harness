@@ -36,7 +36,7 @@ import hudson.tasks.Builder;
 import java.io.IOException;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Test Builder, which copies a file from a workspace of another job.
@@ -105,7 +105,7 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
+        public Builder newInstance(StaplerRequest2 req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();
         }
 
