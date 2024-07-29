@@ -34,7 +34,7 @@ import hudson.model.Descriptor;
 import hudson.tasks.Builder;
 import java.io.IOException;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Creates a test builder, which creates a file in the workspace.
@@ -85,7 +85,7 @@ public class CreateFileBuilder extends Builder {
     public static final class DescriptorImpl extends Descriptor<Builder> {
         
         @Override
-        public Builder newInstance(StaplerRequest req, @NonNull JSONObject data) {
+        public Builder newInstance(StaplerRequest2 req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException("This is a temporary test class, "
                     + "which should not be configured from UI");
         }
