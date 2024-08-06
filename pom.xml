@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.116</version>
+    <version>1.119</version>
     <relativePath />
   </parent>
 
@@ -61,7 +61,7 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <!-- Normally filled in by "maven-hpi-plugin" with the path to "org-netbeans-insane-hook.jar" extracted from this repository -->
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
-    <jetty.version>12.0.10</jetty.version>
+    <jetty.version>12.0.11</jetty.version>
   </properties>
 
   <dependencyManagement>
@@ -118,11 +118,6 @@ THE SOFTWARE.
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>io.jenkins.servlet</groupId>
-      <artifactId>javax-servlet-api</artifactId>
-      <version>4.0.7</version>
-    </dependency>
-    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
     </dependency>
@@ -141,11 +136,6 @@ THE SOFTWARE.
       <groupId>org.eclipse.jetty.ee8</groupId>
       <artifactId>jetty-ee8-webapp</artifactId>
       <exclusions>
-        <!-- Provided by io.jenkins.servlet:javax-servlet-api -->
-        <exclusion>
-          <groupId>org.eclipse.jetty.toolchain</groupId>
-          <artifactId>jetty-servlet-api</artifactId>
-        </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -162,11 +152,6 @@ THE SOFTWARE.
         <exclusion>
           <groupId>jakarta.annotation</groupId>
           <artifactId>jakarta.annotation-api</artifactId>
-        </exclusion>
-        <!-- Provided by io.jenkins.servlet:javax-servlet-api -->
-        <exclusion>
-          <groupId>org.eclipse.jetty.toolchain</groupId>
-          <artifactId>jetty-servlet-api</artifactId>
         </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
@@ -209,7 +194,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>183.v9742e5ca_c784</version>
+      <version>187.v1e8425eb_77c5</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
