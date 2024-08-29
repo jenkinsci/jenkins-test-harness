@@ -97,6 +97,7 @@ public final class InboundAgentRule extends ExternalResource {
         private boolean secret;
         private boolean webSocket;
         @CheckForNull private String tunnel;
+        private List<String> javaOptions = new ArrayList<>();
         private boolean start = true;
         private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
         private String label;
@@ -203,6 +204,11 @@ public final class InboundAgentRule extends ExternalResource {
              */
             public Builder tunnel(String tunnel) {
                 options.tunnel = tunnel;
+                return this;
+            }
+
+            public Builder javaOptions(String... opts) {
+                options.javaOptions.addAll(List.of(opts));
                 return this;
             }
 
@@ -330,6 +336,7 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("-Xdebug");
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
+        cmd.addAll(options.javaOptions);
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
         if (agentArguments.agentJnlpUrl.endsWith("computer/" + options.getName() + "/slave-agent.jnlp") && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
             cmd.addAll(List.of("-url", agentArguments.agentJnlpUrl.replaceAll("computer/" + options.getName() + "/slave-agent.jnlp$", "")));
