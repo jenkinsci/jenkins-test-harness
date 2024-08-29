@@ -86,7 +86,6 @@ public final class InboundAgentRule extends ExternalResource {
      * The options used to (re)start an inbound agent.
      */
     public static final class Options implements Serializable {
-        // TODO Java 14+ use records
 
         @CheckForNull private String name;
 
@@ -433,40 +432,14 @@ public final class InboundAgentRule extends ExternalResource {
         procs.clear();
     }
 
-    public static class AgentArguments implements Serializable {
-        /**
-         * URL to the agent JNLP file.
-         */
-        @NonNull
-        private final String agentJnlpUrl;
-        /**
-         * A reference to the agent jar
-         */
-        @NonNull
-        private final File agentJar;
-        /**
-         * The secret the agent should use to connect.
-         */
-        @NonNull
-        private final String secret;
-        /**
-         * The number of nodes in the Jenkins instance where the agent is running.
-         */
-        private final int numberOfNodes;
-        /**
-         * Additional command line arguments to pass to the agent.
-         */
-        @NonNull
-        private final List<String> commandLineArgs;
-
-        public AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
-            this.agentJnlpUrl = agentJnlpUrl;
-            this.agentJar = agentJar;
-            this.secret = secret;
-            this.numberOfNodes = numberOfNodes;
-            this.commandLineArgs = commandLineArgs;
-        }
-    }
+    /**
+     * @param agentJnlpUrl URL to the agent JNLP file.
+     * @param agentJar A reference to the agent jar
+     * @param secret The secret the agent should use to connect.
+     * @param numberOfNodes The number of nodes in the Jenkins instance where the agent is running.
+     * @param commandLineArgs Additional command line arguments to pass to the agent.
+     */
+    public record AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) implements Serializable {}
 
     private static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
         Node node = r.jenkins.getNode(name);
