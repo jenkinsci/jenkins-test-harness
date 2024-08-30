@@ -42,6 +42,7 @@ import hudson.util.VersionNumber;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import java.util.UUID;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -330,10 +332,11 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
-        if (agentArguments.agentJnlpUrl.endsWith("computer/" + options.getName() + "/slave-agent.jnlp") && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
-            cmd.addAll(List.of("-url", agentArguments.agentJnlpUrl.replaceAll("computer/" + options.getName() + "/slave-agent.jnlp$", "")));
+        var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentArguments.agentJnlpUrl);
+        if (m.matches() && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
+            cmd.addAll(List.of("-url", m.group(1)));
             cmd.addAll(List.of("-secret", agentArguments.secret));
-            cmd.addAll(List.of("-name", options.getName()));
+            cmd.addAll(List.of("-name", URI.create(m.group(2)).getPath()));
             if (options.isWebSocket()) {
                 cmd.add("-webSocket");
             }
