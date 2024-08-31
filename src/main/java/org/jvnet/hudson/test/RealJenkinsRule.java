@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -65,6 +66,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -94,6 +97,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
@@ -200,6 +204,9 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
+    private boolean fipsEnabled;
+    private Path fipsLibrariesPath;
+
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -455,6 +462,119 @@ public final class RealJenkinsRule implements TestRule {
     public RealJenkinsRule prepareHomeLazily(boolean prepareHomeLazily) {
         this.prepareHomeLazily = prepareHomeLazily;
         return this;
+    }
+
+    /**
+     * Use {@link #withFIPSEnabled(Path)} with default value of {@code target/dependency}
+     * @return
+     */
+    public RealJenkinsRule withFIPSEnabled() {
+        return withFIPSEnabled(Path.of("target", "dependency"));
+    }
+
+    /**
+     * Enable FIPS mode assuming all FIPS BouncyCastle jars (bc-fips.jar, bctls-fips.jar and bcpkix-fips.jar) are in the provided directory.
+     * This will set some System properties such :
+     * <ul>
+     *   <li>-Xbootclasspath with FIPS BouncyCastle jars</li>
+     *   <li>java.security.properties to a new temp file configuring the security provider to FIPS BouncyCastle</li>
+     *   <li>-Dsecurity.overridePropertiesFile=true</li>
+     *   <li>-Djavax.net.ssl.trustStoreType=PKCS12</li>
+     *   <li>-Djenkins.security.FIPS140.COMPLIANCE=true</li>
+     *   <li>-Dcom.redhat.fips=false</li>
+     * </ul>
+     * @param fipsLibrariesPath path to directory with FIPS BouncyCastle jars
+     * @return
+     */
+    public RealJenkinsRule withFIPSEnabled(@NonNull Path fipsLibrariesPath) {
+        this.fipsLibrariesPath = Objects.requireNonNull(fipsLibrariesPath);
+        // check expected BouncyCastle fips jars are here
+        if  (!Files.exists(this.fipsLibrariesPath) ||
+                !Files.exists(this.fipsLibrariesPath.resolve("bc-fips.jar")) ||
+                !Files.exists(this.fipsLibrariesPath.resolve("bctls-fips.jar")) ||
+                !Files.exists(this.fipsLibrariesPath.resolve("bcpkix-fips.jar"))) {
+            throw fipsIllegalSetupException(this.fipsLibrariesPath);
+        }
+        Path bcFips = fipsLibrariesPath.resolve("bc-fips.jar");
+        Path bcTLFips = fipsLibrariesPath.resolve("bctls-fips.jar");
+        Path bcpkixFips = fipsLibrariesPath.resolve("bcpkix-fips.jar");
+
+        String xBootClasspath = "-Xbootclasspath/a:"+ bcFips.toFile().getAbsolutePath() +":" + bcTLFips.toFile().getAbsolutePath() +":"+bcpkixFips.toFile().getAbsolutePath();
+        try {
+            javaOptions(xBootClasspath, "--add-exports", "java.base/sun.security.provider=ALL-UNNAMED",
+                            "-Dsecurity.overridePropertiesFile=true",
+                            "-Djava.security.properties=" + writeFIPSJavaSecurityFile().toUri(),
+                            "-Dorg.bouncycastle.fips.approved_only=true",
+                            "-Djavax.net.ssl.trustStoreType=PKCS12",
+                            "-Djenkins.security.FIPS140.COMPLIANCE=true",
+                            "-Dcom.redhat.fips=false");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    private IllegalArgumentException fipsIllegalSetupException(Path fipsLibrariesPath) {
+        String message = "Path " + fipsLibrariesPath.toString() + " must contains the FIPS BouncyCastle jars:";
+        message += "bc-fips.jar, bctls-fips.jar and bcpkix-fips.jar" + System.lineSeparator();
+        message += "Configure your pom.xml with this plugin execution: " + System.lineSeparator();
+        message += "<plugin>\n" +
+                "  <groupId>org.apache.maven.plugins</groupId>\n" +
+                "  <artifactId>maven-dependency-plugin</artifactId>\n" +
+                "  <executions>\n" +
+                "    <execution>\n" +
+                "      <id>copy-libs</id>\n" +
+                "      <goals>\n" +
+                "        <goal>copy</goal>\n" +
+                "      </goals>\n" +
+                "      <configuration>\n" +
+                "        <artifactItems>\n" +
+                "          <artifactItem>\n" +
+                "            <groupId>org.bouncycastle</groupId>\n" +
+                "            <artifactId>bc-fips</artifactId>\n" +
+                "            <version>1.0.2.4</version>\n" +
+                "          </artifactItem>\n" +
+                "          <artifactItem>\n" +
+                "            <groupId>org.bouncycastle</groupId>\n" +
+                "            <artifactId>bcpkix-fips</artifactId>\n" +
+                "            <version>1.0.7</version>\n" +
+                "          </artifactItem>\n" +
+                "          <artifactItem>\n" +
+                "            <groupId>org.bouncycastle</groupId>\n" +
+                "            <artifactId>bctls-fips</artifactId>\n" +
+                "            <version>1.0.17</version>\n" +
+                "          </artifactItem>\n" +
+                "        </artifactItems>\n" +
+                "        <stripVersion>true</stripVersion>\n" +
+                "      </configuration>\n" +
+                "    </execution>\n" +
+                "  </executions>\n" +
+                "</plugin>";
+        return new IllegalArgumentException(message);
+    }
+
+    private Path writeFIPSJavaSecurityFile() throws IOException {
+        String javaHome = System.getProperty("java.home");
+        Assume.assumeTrue(javaHome != null);
+        Path javaSecurity = Paths.get(javaHome, "conf", "security", "java.security");
+        Properties properties = new Properties();
+        Path securityFile = Files.createTempFile("java", ".security");
+        try (InputStream inputStream = Files.newInputStream(javaSecurity);
+             OutputStream outputStream = Files.newOutputStream(securityFile)) {
+            properties.load(inputStream);
+            properties.put("security.provider.1", "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};");
+            properties.put("security.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
+            properties.put("security.provider.3", "sun.security.provider.Sun");
+            properties.put("fips.provider.1", "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};");
+            properties.put("fips.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
+            properties.put("keystore.type", "BCFKS");
+            //properties.put("securerandom.strongAlgorithms", "PKCS11:SunPKCS11-NSS-FIPS");
+            properties.put("security.useSystemPropertiesFile", "false");
+            properties.put("ssl.KeyManagerFactory.algorithm", "PKIX");
+            properties.put("fips.keystore.type", "BCFKS");
+            properties.store(outputStream, "");
+        }
+        return securityFile;
     }
 
     public static List<String> getJacocoAgentOptions() {
@@ -745,7 +865,6 @@ public final class RealJenkinsRule implements TestRule {
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         argv.addAll(javaOptions);
-
 
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
