@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
+import hudson.Functions;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -97,6 +98,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
@@ -495,11 +497,16 @@ public final class RealJenkinsRule implements TestRule {
                 !Files.exists(this.fipsLibrariesPath.resolve("bcpkix-fips.jar"))) {
             throw fipsIllegalSetupException(this.fipsLibrariesPath);
         }
+
         Path bcFips = fipsLibrariesPath.resolve("bc-fips.jar");
         Path bcTLFips = fipsLibrariesPath.resolve("bctls-fips.jar");
         Path bcpkixFips = fipsLibrariesPath.resolve("bcpkix-fips.jar");
 
-        String xBootClasspath = "-Xbootclasspath/a:"+ bcFips.toFile().getAbsolutePath() +":" + bcTLFips.toFile().getAbsolutePath() +":"+bcpkixFips.toFile().getAbsolutePath();
+        String pathSeparator = Functions.isWindows() ? ";" : ":";
+
+        String xBootClasspath = "-Xbootclasspath/a:"+ FilenameUtils.separatorsToSystem(bcFips.toFile().getAbsolutePath())
+                + pathSeparator + FilenameUtils.separatorsToSystem(bcTLFips.toFile().getAbsolutePath())
+                + pathSeparator + FilenameUtils.separatorsToSystem(bcpkixFips.toFile().getAbsolutePath());
         try {
             javaOptions(xBootClasspath, "--add-exports", "java.base/sun.security.provider=ALL-UNNAMED",
                             "-Dsecurity.overridePropertiesFile=true",
