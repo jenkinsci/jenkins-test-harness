@@ -726,6 +726,16 @@ public final class RealJenkinsRule implements TestRule {
         return home.get();
     }
 
+    /**
+     * Switch the Jenkins home directory.
+     * Will affect subsequent startups of this rule,
+     * but not other copies linked via {@link RealJenkinsRule#RealJenkinsRule(RealJenkinsRule)}.
+     * Normally unnecessary but could be used to simulate running on the wrong home.
+     */
+    public void setHome(File newHome) {
+        home = new AtomicReference<>(newHome);
+    }
+
     private static File findJenkinsWar() throws Exception {
         // Adapted from WarExploder.explode
 
