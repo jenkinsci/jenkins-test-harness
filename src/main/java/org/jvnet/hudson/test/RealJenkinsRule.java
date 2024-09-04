@@ -1317,7 +1317,9 @@ public final class RealJenkinsRule implements TestRule {
         public CustomJenkinsRule(URL url) throws Exception {
             this.jenkins = Jenkins.get();
             this.url = url;
-            jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+            if (jenkins.isUsageStatisticsCollected()) {
+                jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+            }
             if (JenkinsLocationConfiguration.get().getUrl() == null) {
                 JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
             }
