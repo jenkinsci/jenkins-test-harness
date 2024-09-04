@@ -498,13 +498,11 @@ public final class RealJenkinsRule implements TestRule {
                             fipsLibrariesPath.resolve("bctls-fips.jar").toFile(),
                             fipsLibrariesPath.resolve("bcpkix-fips.jar").toFile());
         try {
-            javaOptions("--add-exports", "java.base/sun.security.provider=ALL-UNNAMED",
-                            "-Dsecurity.overridePropertiesFile=true",
+            javaOptions(    "-Dsecurity.overridePropertiesFile=true",
                             "-Djava.security.properties=" + writeFIPSJavaSecurityFile().toUri(),
                             "-Dorg.bouncycastle.fips.approved_only=true",
                             "-Djavax.net.ssl.trustStoreType=PKCS12",
-                            "-Djenkins.security.FIPS140.COMPLIANCE=true",
-                            "-Dcom.redhat.fips=false");
+                            "-Djenkins.security.FIPS140.COMPLIANCE=true");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
