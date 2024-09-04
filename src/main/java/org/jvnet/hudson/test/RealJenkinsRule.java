@@ -873,8 +873,10 @@ public final class RealJenkinsRule implements TestRule {
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         if(!bootClasspathFiles.isEmpty()) {
-            String fileList = String.join(File.pathSeparator, bootClasspathFiles.stream()
-                    .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList());
+            //String fileList = String.join(File.pathSeparator, bootClasspathFiles.stream()
+            //        .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList());
+
+            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
             argv.add("-Xbootclasspath/a:" + fileList);
 
         }
