@@ -206,7 +206,7 @@ public final class RealJenkinsRule implements TestRule {
     private boolean prepareHomeLazily;
     private boolean provisioned;
     private Path fipsLibrariesPath;
-    private List<File> bootClasspathFiles = new ArrayList<>();
+    private final List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -874,7 +874,7 @@ public final class RealJenkinsRule implements TestRule {
             String pathSeparator = Functions.isWindows() ? ";" : ":";
             String fileList = String.join(pathSeparator, bootClasspathFiles.stream()
                     .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList());
-            javaOptions("-Xbootclasspath/a:" + fileList);
+            argv.add("-Xbootclasspath/a:" + fileList);
 
         }
         argv.addAll(javaOptions);
