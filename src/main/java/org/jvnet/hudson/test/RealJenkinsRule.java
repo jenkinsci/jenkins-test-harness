@@ -97,6 +97,7 @@ import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
+import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.Assume;
@@ -206,9 +207,8 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
-    private boolean fipsEnabled;
     private Path fipsLibrariesPath;
-
+    private List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -498,17 +498,11 @@ public final class RealJenkinsRule implements TestRule {
             throw fipsIllegalSetupException(this.fipsLibrariesPath);
         }
 
-        Path bcFips = fipsLibrariesPath.resolve("bc-fips.jar");
-        Path bcTLFips = fipsLibrariesPath.resolve("bctls-fips.jar");
-        Path bcpkixFips = fipsLibrariesPath.resolve("bcpkix-fips.jar");
-
-        String pathSeparator = Functions.isWindows() ? ";" : ":";
-
-        String xBootClasspath = "-Xbootclasspath/a:"+ FilenameUtils.separatorsToSystem(bcFips.toFile().getAbsolutePath())
-                + pathSeparator + FilenameUtils.separatorsToSystem(bcTLFips.toFile().getAbsolutePath())
-                + pathSeparator + FilenameUtils.separatorsToSystem(bcpkixFips.toFile().getAbsolutePath());
+        withBootClasspath(fipsLibrariesPath.resolve("bc-fips.jar").toFile(),
+                            fipsLibrariesPath.resolve("bctls-fips.jar").toFile(),
+                            fipsLibrariesPath.resolve("bcpkix-fips.jar").toFile());
         try {
-            javaOptions(xBootClasspath, "--add-exports", "java.base/sun.security.provider=ALL-UNNAMED",
+            javaOptions("--add-exports", "java.base/sun.security.provider=ALL-UNNAMED",
                             "-Dsecurity.overridePropertiesFile=true",
                             "-Djava.security.properties=" + writeFIPSJavaSecurityFile().toUri(),
                             "-Dorg.bouncycastle.fips.approved_only=true",
@@ -518,6 +512,11 @@ public final class RealJenkinsRule implements TestRule {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        return this;
+    }
+
+    public RealJenkinsRule withBootClasspath(File...files) {
+        this.bootClasspathFiles.addAll(List.of(files));
         return this;
     }
 
@@ -870,6 +869,13 @@ public final class RealJenkinsRule implements TestRule {
                     + ",server=" + (debugServer ? "y" : "n")
                     + ",suspend=" + (debugSuspend ? "y" : "n")
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
+        }
+        if(!bootClasspathFiles.isEmpty()) {
+            String pathSeparator = Functions.isWindows() ? ";" : ":";
+            String fileList = Strings.join(bootClasspathFiles.stream()
+                    .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList(), pathSeparator);
+            javaOptions("-Xbootclasspath/a:" + fileList);
+
         }
         argv.addAll(javaOptions);
 
