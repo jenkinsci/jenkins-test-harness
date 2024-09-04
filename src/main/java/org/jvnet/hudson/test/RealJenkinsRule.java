@@ -466,7 +466,6 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Use {@link #withFIPSEnabled(Path)} with default value of {@code target/dependency}
-     * @return
      */
     public RealJenkinsRule withFIPSEnabled() {
         return withFIPSEnabled(Path.of("target", "dependency"));
@@ -484,7 +483,6 @@ public final class RealJenkinsRule implements TestRule {
      *   <li>-Dcom.redhat.fips=false</li>
      * </ul>
      * @param fipsLibrariesPath path to directory with FIPS BouncyCastle jars
-     * @return
      */
     public RealJenkinsRule withFIPSEnabled(@NonNull Path fipsLibrariesPath) {
         this.fipsLibrariesPath = Objects.requireNonNull(fipsLibrariesPath);
@@ -513,6 +511,10 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     *
+     * @param files add some {@link File} to bootclasspath
+     */
     public RealJenkinsRule withBootClasspath(File...files) {
         this.bootClasspathFiles.addAll(List.of(files));
         return this;
@@ -871,8 +873,7 @@ public final class RealJenkinsRule implements TestRule {
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         if(!bootClasspathFiles.isEmpty()) {
-            String pathSeparator = Functions.isWindows() ? ";" : ":";
-            String fileList = String.join(pathSeparator, bootClasspathFiles.stream()
+            String fileList = String.join(File.pathSeparator, bootClasspathFiles.stream()
                     .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList());
             argv.add("-Xbootclasspath/a:" + fileList);
 
