@@ -99,7 +99,6 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
@@ -560,7 +559,9 @@ public final class RealJenkinsRule implements TestRule {
 
     private Path writeFIPSJavaSecurityFile() throws IOException {
         String javaHome = System.getProperty("java.home");
-        Assume.assumeTrue(javaHome != null);
+        if(javaHome == null) {
+            throw new IllegalArgumentException("Cannot find java.home property");
+        }
         Path javaSecurity = Paths.get(javaHome, "conf", "security", "java.security");
         Properties properties = new Properties();
         Path securityFile = Files.createTempFile("java", ".security");
