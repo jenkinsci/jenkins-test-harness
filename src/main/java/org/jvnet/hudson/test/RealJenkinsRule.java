@@ -97,7 +97,6 @@ import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
-import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.Assume;
@@ -872,8 +871,8 @@ public final class RealJenkinsRule implements TestRule {
         }
         if(!bootClasspathFiles.isEmpty()) {
             String pathSeparator = Functions.isWindows() ? ";" : ":";
-            String fileList = Strings.join(bootClasspathFiles.stream()
-                    .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList(), pathSeparator);
+            String fileList = String.join(pathSeparator, bootClasspathFiles.stream()
+                    .map(file -> FilenameUtils.separatorsToSystem(file.getAbsolutePath())).toList());
             javaOptions("-Xbootclasspath/a:" + fileList);
 
         }
