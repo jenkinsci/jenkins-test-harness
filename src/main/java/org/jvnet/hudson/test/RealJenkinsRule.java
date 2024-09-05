@@ -747,6 +747,10 @@ public final class RealJenkinsRule implements TestRule {
         portFile = File.createTempFile("jenkins-port", ".txt", getHome());
         Files.delete(portFile.toPath());
         argv.add("-Dwinstone.portFileName=" + portFile);
+        var tmp = System.getProperty("java.io.tmpdir");
+        if (tmp != null) {
+            argv.add("-Djava.io.tmpdir=" + tmp);
+        }
         boolean debugging = new DisableOnDebug(null).isDebugging();
         if (debugging) {
             argv.add("-agentlib:jdwp=transport=dt_socket"
