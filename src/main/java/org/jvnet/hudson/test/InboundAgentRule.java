@@ -42,6 +42,7 @@ import hudson.util.VersionNumber;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import java.util.UUID;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.rules.ExternalResource;
@@ -86,7 +88,6 @@ public final class InboundAgentRule extends ExternalResource {
      * The options used to (re)start an inbound agent.
      */
     public static final class Options implements Serializable {
-        // TODO Java 14+ use records
 
         @CheckForNull private String name;
 
@@ -97,6 +98,7 @@ public final class InboundAgentRule extends ExternalResource {
         private boolean secret;
         private boolean webSocket;
         @CheckForNull private String tunnel;
+        private List<String> javaOptions = new ArrayList<>();
         private boolean start = true;
         private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
         private String label;
@@ -203,6 +205,11 @@ public final class InboundAgentRule extends ExternalResource {
              */
             public Builder tunnel(String tunnel) {
                 options.tunnel = tunnel;
+                return this;
+            }
+
+            public Builder javaOptions(String... opts) {
+                options.javaOptions.addAll(List.of(opts));
                 return this;
             }
 
@@ -330,11 +337,13 @@ public final class InboundAgentRule extends ExternalResource {
             cmd.add("-Xdebug");
             cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
+        cmd.addAll(options.javaOptions);
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
-        if (agentArguments.agentJnlpUrl.endsWith("computer/" + options.getName() + "/slave-agent.jnlp") && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
-            cmd.addAll(List.of("-url", agentArguments.agentJnlpUrl.replaceAll("computer/" + options.getName() + "/slave-agent.jnlp$", "")));
+        var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentArguments.agentJnlpUrl);
+        if (m.matches() && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
+            cmd.addAll(List.of("-url", m.group(1)));
             cmd.addAll(List.of("-secret", agentArguments.secret));
-            cmd.addAll(List.of("-name", options.getName()));
+            cmd.addAll(List.of("-name", URI.create(m.group(2)).getPath()));
             if (options.isWebSocket()) {
                 cmd.add("-webSocket");
             }
@@ -433,40 +442,14 @@ public final class InboundAgentRule extends ExternalResource {
         procs.clear();
     }
 
-    public static class AgentArguments implements Serializable {
-        /**
-         * URL to the agent JNLP file.
-         */
-        @NonNull
-        private final String agentJnlpUrl;
-        /**
-         * A reference to the agent jar
-         */
-        @NonNull
-        private final File agentJar;
-        /**
-         * The secret the agent should use to connect.
-         */
-        @NonNull
-        private final String secret;
-        /**
-         * The number of nodes in the Jenkins instance where the agent is running.
-         */
-        private final int numberOfNodes;
-        /**
-         * Additional command line arguments to pass to the agent.
-         */
-        @NonNull
-        private final List<String> commandLineArgs;
-
-        public AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
-            this.agentJnlpUrl = agentJnlpUrl;
-            this.agentJar = agentJar;
-            this.secret = secret;
-            this.numberOfNodes = numberOfNodes;
-            this.commandLineArgs = commandLineArgs;
-        }
-    }
+    /**
+     * @param agentJnlpUrl URL to the agent JNLP file.
+     * @param agentJar A reference to the agent jar
+     * @param secret The secret the agent should use to connect.
+     * @param numberOfNodes The number of nodes in the Jenkins instance where the agent is running.
+     * @param commandLineArgs Additional command line arguments to pass to the agent.
+     */
+    public record AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) implements Serializable {}
 
     private static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
         Node node = r.jenkins.getNode(name);

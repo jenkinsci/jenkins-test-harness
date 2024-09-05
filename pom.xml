@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.119</version>
+    <version>1.122</version>
     <relativePath />
   </parent>
 
@@ -61,7 +61,7 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <!-- Normally filled in by "maven-hpi-plugin" with the path to "org-netbeans-insane-hook.jar" extracted from this repository -->
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
-    <jetty.version>12.0.11</jetty.version>
+    <jetty.version>12.0.12</jetty.version>
   </properties>
 
   <dependencyManagement>
@@ -340,7 +340,7 @@ THE SOFTWARE.
           <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.10.14</version>
+            <version>1.10.15</version>
           </dependency>
         </dependencies>
         <executions>
