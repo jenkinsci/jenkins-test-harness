@@ -55,12 +55,14 @@ public class RealJenkinsRuleFIPSTest {
             Provider provider = Security.getProvider("BCFIPS");
             assertThat(provider, notNullValue());
             assertThat(provider.getClass().getName(), is("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"));
-
             assertThat(providers[0].getClass().getName(), is("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"));
             assertThat(providers[1].getClass().getName(), is("org.bouncycastle.jsse.provider.BouncyCastleJsseProvider"));
             assertThat(providers[2].getClass().getName(), is("sun.security.provider.Sun"));
             assertThat(KeyStore.getDefaultType(), is("BCFKS"));
             assertThat(KeyManagerFactory.getDefaultAlgorithm(), is("PKIX"));
+
+
+            assertThat(providers.length, is(3));
         });
     }
 

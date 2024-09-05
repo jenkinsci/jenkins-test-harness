@@ -98,7 +98,6 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
@@ -498,11 +497,12 @@ public final class RealJenkinsRule implements TestRule {
                             fipsLibrariesPath.resolve("bctls-fips.jar").toFile(),
                             fipsLibrariesPath.resolve("bcpkix-fips.jar").toFile());
         try {
-            javaOptions(    "-Dsecurity.overridePropertiesFile=true",
-                            "-Djava.security.properties=" + writeFIPSJavaSecurityFile().toUri(),
+            javaOptions(    "-Djava.security.properties==" + writeFIPSJavaSecurityFile().toUri(),
                             "-Dorg.bouncycastle.fips.approved_only=true",
                             "-Djavax.net.ssl.trustStoreType=PKCS12",
                             "-Djenkins.security.FIPS140.COMPLIANCE=true");
+            javaOptions("-Dsecurity.useSystemPropertiesFile=false");
+            javaOptions("-Dsecurity.overridePropertiesFile=true");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -565,9 +565,11 @@ public final class RealJenkinsRule implements TestRule {
         Path javaSecurity = Paths.get(javaHome, "conf", "security", "java.security");
         Properties properties = new Properties();
         Path securityFile = Files.createTempFile("java", ".security");
+        securityFile.toFile().deleteOnExit();
         try (InputStream inputStream = Files.newInputStream(javaSecurity);
              OutputStream outputStream = Files.newOutputStream(securityFile)) {
             properties.load(inputStream);
+            properties.keySet().removeIf(o -> ((String)o).startsWith("security.provider"));
             properties.put("security.provider.1", "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};");
             properties.put("security.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
             properties.put("security.provider.3", "sun.security.provider.Sun");
@@ -575,11 +577,13 @@ public final class RealJenkinsRule implements TestRule {
             properties.put("fips.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
             properties.put("keystore.type", "BCFKS");
             //properties.put("securerandom.strongAlgorithms", "PKCS11:SunPKCS11-NSS-FIPS");
-            properties.put("security.useSystemPropertiesFile", "false");
+            javaOptions("-Dsecurity.useSystemPropertiesFile=false");
             properties.put("ssl.KeyManagerFactory.algorithm", "PKIX");
             properties.put("fips.keystore.type", "BCFKS");
             properties.store(outputStream, "");
         }
+
+        System.out.println("securityFile: " + securityFile);
         return securityFile;
     }
 
