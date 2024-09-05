@@ -497,10 +497,10 @@ public final class RealJenkinsRule implements TestRule {
                             fipsLibrariesPath.resolve("bcpkix-fips.jar").toFile());
         try {
             // please note == is not a typo, but it makes our file completely override the jvm security file
-            javaOptions(    "-Djava.security.properties==" + writeFIPSJavaSecurityFile().toUri(),
-                            "-Dorg.bouncycastle.fips.approved_only=true",
-                            "-Djavax.net.ssl.trustStoreType=PKCS12",
-                            "-Djenkins.security.FIPS140.COMPLIANCE=true");
+            javaOptions("-Djava.security.properties==" + writeFIPSJavaSecurityFile().toUri(),
+                    "-Dorg.bouncycastle.fips.approved_only=true",
+                    "-Djavax.net.ssl.trustStoreType=PKCS12",
+                    "-Djenkins.security.FIPS140.COMPLIANCE=true");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
