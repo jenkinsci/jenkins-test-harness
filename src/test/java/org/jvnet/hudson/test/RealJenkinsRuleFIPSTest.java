@@ -41,7 +41,8 @@ public class RealJenkinsRuleFIPSTest {
 
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true)
             .withDebugPort(4001).withDebugServer(false)
-            .withFIPSEnabled().javaOptions("-Djava.security.debug=properties");
+            .withFIPSEnabled()
+            .javaOptions("-Djava.security.debug=properties");
 
     @Test
     public void fipsMode() throws Throwable {
@@ -60,7 +61,6 @@ public class RealJenkinsRuleFIPSTest {
             assertThat(providers[2].getClass().getName(), is("sun.security.provider.Sun"));
             assertThat(KeyStore.getDefaultType(), is("BCFKS"));
             assertThat(KeyManagerFactory.getDefaultAlgorithm(), is("PKIX"));
-
 
             assertThat(providers.length, is(3));
         });
