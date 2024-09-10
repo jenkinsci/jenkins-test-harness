@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -41,7 +42,7 @@ public class RealJenkinsRuleFIPSTest {
 
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true)
             .withDebugPort(4001).withDebugServer(false)
-            .withFIPSEnabled()
+            .withFIPSEnabled(FIPSTestBundleProvider.get())
             .javaOptions("-Djava.security.debug=properties");
 
     @Test

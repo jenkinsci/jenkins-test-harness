@@ -25,7 +25,6 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -67,7 +66,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -93,6 +91,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
@@ -203,7 +203,6 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
-    private Path fipsLibrariesPath;
     private final List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
@@ -463,48 +462,24 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Use {@link #withFIPSEnabled(Path)} with default value of {@code target/dependency}
+     * Use {@link #withFIPSEnabled(FIPSTestBundleProvider)}  with default value of {@link FIPSTestBundleProvider#get()}
      */
     public RealJenkinsRule withFIPSEnabled() {
-        return withFIPSEnabled(Path.of("target", "dependency"));
+        return withFIPSEnabled(FIPSTestBundleProvider.get());
     }
 
     /**
-     * Enable FIPS mode assuming all FIPS BouncyCastle jars (bc-fips.jar, bctls-fips.jar and bcpkix-fips.jar) are in the provided directory.
-     * This will set some System properties such :
-     * <ul>
-     *   <li>-Xbootclasspath with FIPS BouncyCastle jars</li>
-     *   <li>java.security.properties to a new temp file configuring the security provider to FIPS BouncyCastle</li>
-     *   <li>-Dsecurity.overridePropertiesFile=true</li>
-     *   <li>-Djavax.net.ssl.trustStoreType=PKCS12</li>
-     *   <li>-Djenkins.security.FIPS140.COMPLIANCE=true</li>
-     *   <li>-Dcom.redhat.fips=false</li>
-     * </ul>
-     * @param fipsLibrariesPath path to directory with FIPS BouncyCastle jars
+     +
+     * @param fipsTestBundleProvider the {@link FIPSTestBundleProvider} to use for testing
      */
-    public RealJenkinsRule withFIPSEnabled(@NonNull Path fipsLibrariesPath) {
-        this.fipsLibrariesPath = Objects.requireNonNull(fipsLibrariesPath);
-        // check expected BouncyCastle fips jars are here
-        if  (!Files.exists(this.fipsLibrariesPath) ||
-                !Files.exists(this.fipsLibrariesPath.resolve("bc-fips.jar")) ||
-                !Files.exists(this.fipsLibrariesPath.resolve("bctls-fips.jar")) ||
-                !Files.exists(this.fipsLibrariesPath.resolve("bcpkix-fips.jar"))) {
-            throw fipsIllegalSetupException(this.fipsLibrariesPath);
-        }
-
-        withBootClasspath(fipsLibrariesPath.resolve("bc-fips.jar").toFile(),
-                            fipsLibrariesPath.resolve("bctls-fips.jar").toFile(),
-                            fipsLibrariesPath.resolve("bcpkix-fips.jar").toFile());
+    public RealJenkinsRule withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
+        Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
         try {
-            // please note == is not a typo, but it makes our file completely override the jvm security file
-            javaOptions("-Djava.security.properties==" + writeFIPSJavaSecurityFile().toUri(),
-                    "-Dorg.bouncycastle.fips.approved_only=true",
-                    "-Djavax.net.ssl.trustStoreType=PKCS12",
-                    "-Djenkins.security.FIPS140.COMPLIANCE=true");
+            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+                    .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return this;
     }
 
     /**
@@ -514,73 +489,6 @@ public final class RealJenkinsRule implements TestRule {
     public RealJenkinsRule withBootClasspath(File...files) {
         this.bootClasspathFiles.addAll(List.of(files));
         return this;
-    }
-
-    private IllegalArgumentException fipsIllegalSetupException(Path fipsLibrariesPath) {
-        String message = "Path " + fipsLibrariesPath.toString() + " must contains the FIPS BouncyCastle jars:";
-        message += "bc-fips.jar, bctls-fips.jar and bcpkix-fips.jar" + System.lineSeparator();
-        message += "Configure your pom.xml with this plugin execution: " + System.lineSeparator();
-        message += "<plugin>\n" +
-                "  <groupId>org.apache.maven.plugins</groupId>\n" +
-                "  <artifactId>maven-dependency-plugin</artifactId>\n" +
-                "  <executions>\n" +
-                "    <execution>\n" +
-                "      <id>copy-libs</id>\n" +
-                "      <goals>\n" +
-                "        <goal>copy</goal>\n" +
-                "      </goals>\n" +
-                "      <configuration>\n" +
-                "        <artifactItems>\n" +
-                "          <artifactItem>\n" +
-                "            <groupId>org.bouncycastle</groupId>\n" +
-                "            <artifactId>bc-fips</artifactId>\n" +
-                "            <version>1.0.2.4</version>\n" +
-                "          </artifactItem>\n" +
-                "          <artifactItem>\n" +
-                "            <groupId>org.bouncycastle</groupId>\n" +
-                "            <artifactId>bcpkix-fips</artifactId>\n" +
-                "            <version>1.0.7</version>\n" +
-                "          </artifactItem>\n" +
-                "          <artifactItem>\n" +
-                "            <groupId>org.bouncycastle</groupId>\n" +
-                "            <artifactId>bctls-fips</artifactId>\n" +
-                "            <version>1.0.17</version>\n" +
-                "          </artifactItem>\n" +
-                "        </artifactItems>\n" +
-                "        <stripVersion>true</stripVersion>\n" +
-                "      </configuration>\n" +
-                "    </execution>\n" +
-                "  </executions>\n" +
-                "</plugin>";
-        return new IllegalArgumentException(message);
-    }
-
-    private Path writeFIPSJavaSecurityFile() throws IOException {
-        String javaHome = System.getProperty("java.home");
-        if(javaHome == null) {
-            throw new IllegalArgumentException("Cannot find java.home property");
-        }
-        Path javaSecurity = Paths.get(javaHome, "conf", "security", "java.security");
-        Properties properties = new Properties();
-        Path securityFile = Files.createTempFile("java", ".security");
-        securityFile.toFile().deleteOnExit();
-        try (InputStream inputStream = Files.newInputStream(javaSecurity);
-             OutputStream outputStream = Files.newOutputStream(securityFile)) {
-            properties.load(inputStream);
-            properties.keySet().removeIf(o -> ((String)o).startsWith("security.provider"));
-            properties.put("security.provider.1", "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};");
-            properties.put("security.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
-            properties.put("security.provider.3", "sun.security.provider.Sun");
-            properties.put("fips.provider.1", "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider C:HYBRID;ENABLE{All};");
-            properties.put("fips.provider.2", "org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS");
-            properties.put("keystore.type", "BCFKS");
-            //properties.put("securerandom.strongAlgorithms", "PKCS11:SunPKCS11-NSS-FIPS");
-            javaOptions("-Dsecurity.useSystemPropertiesFile=false");
-            properties.put("ssl.KeyManagerFactory.algorithm", "PKIX");
-            properties.put("fips.keystore.type", "BCFKS");
-            properties.store(outputStream, "");
-        }
-        return securityFile;
     }
 
     public static List<String> getJacocoAgentOptions() {
