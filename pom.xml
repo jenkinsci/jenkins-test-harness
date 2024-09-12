@@ -321,32 +321,6 @@ THE SOFTWARE.
               <overWriteSnapshots>true</overWriteSnapshots>
             </configuration>
           </execution>
-          <execution>
-            <id>copy-fips-libs</id>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.bouncycastle</groupId>
-                  <artifactId>bc-fips</artifactId>
-                  <version>1.0.2.4</version>
-                </artifactItem>
-                <artifactItem>
-                  <groupId>org.bouncycastle</groupId>
-                  <artifactId>bcpkix-fips</artifactId>
-                  <version>1.0.7</version>
-                </artifactItem>
-                <artifactItem>
-                  <groupId>org.bouncycastle</groupId>
-                  <artifactId>bctls-fips</artifactId>
-                  <version>1.0.17</version>
-                </artifactItem>
-              </artifactItems>
-              <stripVersion>true</stripVersion>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
       <plugin>
