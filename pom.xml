@@ -225,8 +225,8 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>io.jenkins.test.fips</groupId>
-      <artifactId>lib-fips-bundle-test</artifactId>
-      <version>-rc16.e95456a_916d7</version>
+      <artifactId>fips-bundle-test</artifactId>
+      <version>23.v76d4fd57f5b_d</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import io.jenkins.test.fips.FIPSTestBundleProvider;
+import jenkins.security.FIPS140;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -64,6 +65,8 @@ public class RealJenkinsRuleFIPSTest {
             assertThat(KeyManagerFactory.getDefaultAlgorithm(), is("PKIX"));
 
             assertThat(providers.length, is(3));
+
+            assertThat(FIPS140.useCompliantAlgorithms(), is(true));
         });
     }
 
