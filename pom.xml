@@ -224,6 +224,11 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.jenkins.test.fips</groupId>
+      <artifactId>fips-bundle-test</artifactId>
+      <version>23.v76d4fd57f5b_d</version>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
     </dependency>

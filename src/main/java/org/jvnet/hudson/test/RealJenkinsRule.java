@@ -65,6 +65,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -90,6 +91,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
@@ -200,6 +203,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
+    private final List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -454,6 +458,36 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule prepareHomeLazily(boolean prepareHomeLazily) {
         this.prepareHomeLazily = prepareHomeLazily;
+        return this;
+    }
+
+    /**
+     * Use {@link #withFIPSEnabled(FIPSTestBundleProvider)}  with default value of {@link FIPSTestBundleProvider#get()}
+     */
+    public RealJenkinsRule withFIPSEnabled() {
+        return withFIPSEnabled(FIPSTestBundleProvider.get());
+    }
+
+    /**
+     +
+     * @param fipsTestBundleProvider the {@link FIPSTestBundleProvider} to use for testing
+     */
+    public RealJenkinsRule withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
+        Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
+        try {
+            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+                    .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     *
+     * @param files add some {@link File} to bootclasspath
+     */
+    public RealJenkinsRule withBootClasspath(File...files) {
+        this.bootClasspathFiles.addAll(List.of(files));
         return this;
     }
 
@@ -744,8 +778,12 @@ public final class RealJenkinsRule implements TestRule {
                     + ",suspend=" + (debugSuspend ? "y" : "n")
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
-        argv.addAll(javaOptions);
+        if(!bootClasspathFiles.isEmpty()) {
+            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+            argv.add("-Xbootclasspath/a:" + fileList);
 
+        }
+        argv.addAll(javaOptions);
 
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
