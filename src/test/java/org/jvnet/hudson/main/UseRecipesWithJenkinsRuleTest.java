@@ -7,10 +7,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import hudson.LocalPluginManager;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.htmlunit.html.HtmlPage;
 import org.junit.Rule;
