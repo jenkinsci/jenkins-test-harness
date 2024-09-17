@@ -51,6 +51,7 @@ public final class TailLogTest {
             }
             var log2 = new File(dir, "log.tmp");
             FileUtils.copyFile(log, log2);
+            FileUtils.delete(log);
             assertTrue(log2.renameTo(log));
             try (var os = new FileOutputStream(log, true); var pw = new PrintWriter(os)) {
                 for (int i = 10; i < 20; i++) {
