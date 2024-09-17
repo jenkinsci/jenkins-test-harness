@@ -182,7 +182,6 @@
           <Class name="org.jvnet.hudson.test.ExtractResourceSCM"/>
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
           <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$Jpl"/>
@@ -213,7 +212,6 @@
         <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
@@ -232,7 +230,6 @@
         <Bug pattern="SE_BAD_FIELD"/>
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient$1"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
           <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient$1"/>
         </Or>
