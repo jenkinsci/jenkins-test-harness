@@ -67,7 +67,7 @@ public @interface Recipe {
         public void setup(HudsonTestCase testCase, T recipe) throws Exception {}
 
         /**
-         * Called right before {@link jenkins.model.Jenkins#Jenkins(File, javax.servlet.ServletContext)} is invoked
+         * Called right before {@link jenkins.model.Jenkins#Jenkins(File, jakarta.servlet.ServletContext)} is invoked
          * to decorate the hudson home directory.
          */
         public void decorateHome(HudsonTestCase testCase, File home) throws Exception {}

@@ -33,6 +33,10 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -66,6 +70,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -87,10 +92,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
@@ -107,8 +110,8 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.verb.POST;
 
 /**
@@ -202,6 +205,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
+    private final List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
@@ -456,6 +460,36 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule prepareHomeLazily(boolean prepareHomeLazily) {
         this.prepareHomeLazily = prepareHomeLazily;
+        return this;
+    }
+
+    /**
+     * Use {@link #withFIPSEnabled(FIPSTestBundleProvider)}  with default value of {@link FIPSTestBundleProvider#get()}
+     */
+    public RealJenkinsRule withFIPSEnabled() {
+        return withFIPSEnabled(FIPSTestBundleProvider.get());
+    }
+
+    /**
+     +
+     * @param fipsTestBundleProvider the {@link FIPSTestBundleProvider} to use for testing
+     */
+    public RealJenkinsRule withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
+        Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
+        try {
+            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+                    .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     *
+     * @param files add some {@link File} to bootclasspath
+     */
+    public RealJenkinsRule withBootClasspath(File...files) {
+        this.bootClasspathFiles.addAll(List.of(files));
         return this;
     }
 
@@ -773,8 +807,12 @@ public final class RealJenkinsRule implements TestRule {
                     + ",suspend=" + (debugSuspend ? "y" : "n")
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
-        argv.addAll(javaOptions);
+        if(!bootClasspathFiles.isEmpty()) {
+            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+            argv.add("-Xbootclasspath/a:" + fileList);
 
+        }
+        argv.addAll(javaOptions);
 
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
@@ -1286,7 +1324,7 @@ public final class RealJenkinsRule implements TestRule {
         private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
                 new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
-        public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
+        public void doStep(StaplerRequest2 req, StaplerResponse2 rsp) throws Throwable {
             InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken(input.token);
             Step2<?> s = input.step;
@@ -1313,7 +1351,7 @@ public final class RealJenkinsRule implements TestRule {
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit((StaplerRequest) null);
+                return Jenkins.get().doSafeExit((StaplerRequest2) null);
             }
         }
         public void doTimeout(@QueryParameter String token) {

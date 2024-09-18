@@ -56,12 +56,12 @@ THE SOFTWARE.
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.463</jenkins.version>
+    <jenkins.version>2.476</jenkins.version>
     <jmh.version>1.37</jmh.version>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <!-- Normally filled in by "maven-hpi-plugin" with the path to "org-netbeans-insane-hook.jar" extracted from this repository -->
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
-    <jetty.version>12.0.12</jetty.version>
+    <jetty.version>12.0.13</jetty.version>
   </properties>
 
   <dependencyManagement>
@@ -69,13 +69,6 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>${jetty.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.eclipse.jetty.ee8</groupId>
-        <artifactId>jetty-ee8-bom</artifactId>
         <version>${jetty.version}</version>
         <type>pom</type>
         <scope>import</scope>
@@ -125,34 +118,6 @@ THE SOFTWARE.
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
       <exclusions>
-        <!-- Provided by Jenkins core -->
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty.ee8</groupId>
-      <artifactId>jetty-ee8-webapp</artifactId>
-      <exclusions>
-        <!-- Provided by Jenkins core -->
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty.ee8.websocket</groupId>
-      <artifactId>jetty-ee8-websocket-jetty-server</artifactId>
-      <!-- or jetty-ee8-websocket-javax-server -->
-      <exclusions>
-        <!-- Provided by Jenkins core -->
-        <exclusion>
-          <groupId>jakarta.annotation</groupId>
-          <artifactId>jakarta.annotation-api</artifactId>
-        </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -222,6 +187,11 @@ THE SOFTWARE.
           <artifactId>sshd</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.test.fips</groupId>
+      <artifactId>fips-bundle-test</artifactId>
+      <version>23.v76d4fd57f5b_d</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

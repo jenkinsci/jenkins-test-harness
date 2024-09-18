@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerResponse2;
 
 /**
  * Server-side logic that implements {@link HudsonTestCase#executeOnServer(java.util.concurrent.Callable)}.
@@ -46,7 +46,7 @@ public final class ClosureExecuterAction implements RootAction {
         runnables.put(uuid,r);
     }
 
-    public void doIndex(StaplerResponse rsp, @QueryParameter("uuid") String uuid) throws IOException {
+    public void doIndex(StaplerResponse2 rsp, @QueryParameter("uuid") String uuid) throws IOException {
         Runnable r = runnables.remove(UUID.fromString(uuid));
         if (r!=null) {
             r.run();
