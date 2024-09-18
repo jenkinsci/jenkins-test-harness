@@ -43,6 +43,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -440,6 +442,11 @@ public final class InboundAgentRule extends ExternalResource {
             }
         }
         procs.clear();
+        try {
+            FileUtils.deleteDirectory(Path.of(System.getProperty("java.io.tmpdir"), "agent-work-dirs").toFile());
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
     }
 
     /**
@@ -465,7 +472,7 @@ public final class InboundAgentRule extends ExternalResource {
         if (!launcher.getWorkDirSettings().isDisabled()) {
             commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
         }
-        File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
+        File agentJar = new File(System.getProperty("java.io.tmpdir"), "agent.jar");
         if (!agentJar.isFile()) {
             FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
         }
@@ -509,7 +516,9 @@ public final class InboundAgentRule extends ExternalResource {
         }
         JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
         launcher.setWebSocket(options.isWebSocket());
-        DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
+        var agentWorkDirs = Path.of(System.getProperty("java.io.tmpdir"), "agent-work-dirs");
+        Files.createDirectories(agentWorkDirs);
+        DumbSlave s = new DumbSlave(options.getName(), Files.createTempDirectory(agentWorkDirs, options.getName()).toString(), launcher);
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
