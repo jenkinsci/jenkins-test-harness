@@ -58,6 +58,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -96,6 +97,7 @@ import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
@@ -190,7 +192,7 @@ public final class RealJenkinsRule implements TestRule {
 
     Process proc;
 
-    private File portFile;
+    private Path portFile;
 
     private Map<String, Level> loggers = new HashMap<>();
 
@@ -470,30 +472,30 @@ public final class RealJenkinsRule implements TestRule {
         return new Statement() {
             @Override public void evaluate() throws Throwable {
                 System.out.println("=== Starting " + description);
-                if (war == null) {
-                    war = findJenkinsWar();
-                }
-                if (home.get() != null) {
+                try {
+                    jenkinsOptions("--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
+                    if (war == null) {
+                        war = findJenkinsWar();
+                    }
+                    if (home.get() != null) {
+                        try {
+                            base.evaluate();
+                        } finally {
+                            stopJenkins();
+                        }
+                        return;
+                    }
                     try {
+                        home.set(tmp.allocate());
+                        if (!prepareHomeLazily) {
+                            provision();
+                        }
                         base.evaluate();
                     } finally {
                         stopJenkins();
                     }
-                    return;
-                }
-                try {
-                    home.set(tmp.allocate());
-                    if (!prepareHomeLazily) {
-                        provision();
-                    }
-                    base.evaluate();
                 } finally {
-                    stopJenkins();
-                    try {
-                        deprovision();
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, null, x);
-                    }
+                    tmp.dispose();
                 }
             }
 
@@ -619,6 +621,17 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
+     * Creates a temporary directory.
+     * Unlike {@link Files#createTempDirectory(String, FileAttribute...)}
+     * this will be cleaned up after the test exits (like {@link TemporaryFolder}),
+     * and will honor {@code java.io.tmpdir} set by Surefire
+     * after {@code StaticProperty.JAVA_IO_TMPDIR} has been initialized.
+     */
+    public Path createTempDirectory(String prefix) throws IOException {
+        return tmp.allocate(prefix).toPath();
+    }
+
+    /**
      * Returns true if the Jenkins process is alive.
      */
     public boolean isAlive() {
@@ -728,15 +741,18 @@ public final class RealJenkinsRule implements TestRule {
         if (prepareHomeLazily && !provisioned) {
             provision();
         }
+        var metadata = createTempDirectory("RealJenkinsRule");
+        var cpFile = metadata.resolve("cp.txt");
         String cp = System.getProperty("java.class.path");
         Files.writeString(
-                getHome().toPath().resolve("RealJenkinsRule-cp.txt"),
+                cpFile,
                 Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
                 StandardCharsets.UTF_8);
         List<String> argv = new ArrayList<>(List.of(
                 new File(javaHome != null ? javaHome : System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
+                "-DRealJenkinsRule.classpath=" + cpFile,
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
@@ -744,8 +760,7 @@ public final class RealJenkinsRule implements TestRule {
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
         }
-        portFile = File.createTempFile("jenkins-port", ".txt", getHome());
-        Files.delete(portFile.toPath());
+        portFile = metadata.resolve("jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
         var tmp = System.getProperty("java.io.tmpdir");
         if (tmp != null) {
@@ -797,7 +812,7 @@ public final class RealJenkinsRule implements TestRule {
                 proc = null;
                 throw new IOException("Jenkins process terminated prematurely with exit code " + exitValue);
             }
-            if (port == 0 && portFile != null && portFile.exists()) {
+            if (port == 0 && portFile != null && Files.isRegularFile(portFile)) {
                 port = readPort(portFile);
             }
             if (port != 0) {
@@ -880,13 +895,13 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private static int readPort(File portFile) throws IOException {
-        String s = Files.readString(portFile.toPath(), StandardCharsets.UTF_8);
+    private static int readPort(Path portFile) throws IOException {
+        String s = Files.readString(portFile, StandardCharsets.UTF_8);
 
         // Work around to non-atomic write of port value in Winstone releases prior to 6.1.
         // TODO When Winstone 6.2 has been widely adopted, this can be deleted.
         if (s.isEmpty()) {
-            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile.getAbsolutePath()));
+            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile));
             return 0;
         }
 
@@ -1146,7 +1161,7 @@ public final class RealJenkinsRule implements TestRule {
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getProperty("RealJenkinsRule.classpath")), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 

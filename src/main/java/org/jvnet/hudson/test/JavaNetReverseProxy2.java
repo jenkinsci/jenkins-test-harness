@@ -34,6 +34,17 @@ public class JavaNetReverseProxy2 extends HttpServlet {
     public JavaNetReverseProxy2(File cacheFolder) throws Exception {
         this.cacheFolder = cacheFolder;
         cacheFolder.mkdirs();
+        Runtime.getRuntime().addShutdownHook(new Thread("delete " + cacheFolder) {
+            @Override
+            public void run() {
+                try {
+                    Util.deleteRecursive(cacheFolder);
+                } catch (IOException x) {
+                    x.printStackTrace();
+                }
+            }
+        });
+
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (JavaNetReverseProxy)");
         server = new Server(qtp);
@@ -90,7 +101,6 @@ public class JavaNetReverseProxy2 extends HttpServlet {
      */
     public static synchronized JavaNetReverseProxy2 getInstance() throws Exception {
         if (INSTANCE == null) {
-            // TODO: think of a better location --- ideally inside the target/ dir so that clean would wipe them out
             INSTANCE = new JavaNetReverseProxy2(
                     new File(new File(System.getProperty("java.io.tmpdir")), "jenkins.io-cache2"));
         }
