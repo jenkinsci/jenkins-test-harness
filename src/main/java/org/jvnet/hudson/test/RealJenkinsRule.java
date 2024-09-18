@@ -529,7 +529,11 @@ public final class RealJenkinsRule implements TestRule {
                         stopJenkins();
                     }
                 } finally {
-                    tmp.dispose();
+                    try {
+                        tmp.dispose();
+                    } catch (Exception x) {
+                        LOGGER.log(Level.WARNING, null, x);
+                    }
                 }
             }
 
