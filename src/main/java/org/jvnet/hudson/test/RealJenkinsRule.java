@@ -33,10 +33,6 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,10 +47,10 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -92,6 +88,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
@@ -110,8 +110,8 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.StaplerResponse2;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.verb.POST;
 
 /**
@@ -966,8 +966,8 @@ public final class RealJenkinsRule implements TestRule {
             if (_proc.isAlive()) {
                 try {
                     endpoint("exit").openStream().close();
-                } catch (ConnectException e) {
-                    System.err.println("Unable to connect to the Jenkins process to stop it.");
+                } catch (SocketException e) {
+                    System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {
                 System.err.println("Jenkins process was already terminated.");
@@ -1328,7 +1328,7 @@ public final class RealJenkinsRule implements TestRule {
         private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
                 new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
         @POST
-        public void doStep(StaplerRequest2 req, StaplerResponse2 rsp) throws Throwable {
+        public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken(input.token);
             Step2<?> s = input.step;
@@ -1355,7 +1355,7 @@ public final class RealJenkinsRule implements TestRule {
         public HttpResponse doExit(@QueryParameter String token) throws IOException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit((StaplerRequest2) null);
+                return Jenkins.get().doSafeExit((StaplerRequest) null);
             }
         }
         public void doTimeout(@QueryParameter String token) {
