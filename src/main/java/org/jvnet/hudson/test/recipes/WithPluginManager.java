@@ -90,7 +90,7 @@ public @interface WithPluginManager {
         public void decorateHome(JenkinsRule jenkinsRule, File home) throws Exception {
             Class<? extends PluginManager> c = recipe.value();
             Constructor<? extends PluginManager> ctr = c.getDeclaredConstructor(File.class);
-            jenkinsRule.setPluginManager(ctr.newInstance(new File(home, "plugins")));
+            jenkinsRule.setPluginManager(ctr.newInstance(home));
         }
     }
 }
