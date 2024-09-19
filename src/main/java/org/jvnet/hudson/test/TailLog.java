@@ -32,8 +32,10 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
+import static org.junit.Assert.assertTrue;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
@@ -116,7 +118,7 @@ public final class TailLog implements AutoCloseable {
     }
 
     public void waitForCompletion() throws InterruptedException {
-        finished.acquire();
+        assertTrue(finished.tryAcquire(1, TimeUnit.MINUTES));
     }
 
     @Override
