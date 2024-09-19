@@ -43,13 +43,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -83,6 +87,7 @@ public final class InboundAgentRule extends ExternalResource {
 
     private final String id = UUID.randomUUID().toString();
     private final Map<String, Process> procs = Collections.synchronizedMap(new HashMap<>());
+    private final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * The options used to (re)start an inbound agent.
@@ -278,6 +283,7 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
         Slave s = createAgentJR(r, options);
+        workDirs.add(s.getRemoteFS());
         if (options.isStart()) {
             start(r, options);
         }
@@ -289,8 +295,9 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     public void createAgent(@NonNull RealJenkinsRule rr, Options options) throws Throwable {
-        String name = rr.runRemotely(InboundAgentRule::createAgentRJR, options);
-        options.name = name;
+        var nameAndWorkDir = rr.runRemotely(InboundAgentRule::createAgentRJR, options);
+        options.name = nameAndWorkDir[0];
+        workDirs.add(nameAndWorkDir[1]);
         if (options.isStart()) {
             start(rr, options);
         }
@@ -423,6 +430,7 @@ public final class InboundAgentRule extends ExternalResource {
         return proc != null && proc.isAlive();
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test code")
     @Override protected void after() {
         for (var entry : procs.entrySet()) {
             String name = entry.getKey();
@@ -440,6 +448,14 @@ public final class InboundAgentRule extends ExternalResource {
             }
         }
         procs.clear();
+        for (var workDir : workDirs) {
+            LOGGER.info(() -> "Deleting " + workDir);
+            try {
+                FileUtils.deleteDirectory(new File(workDir));
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, null, x);
+            }
+        }
     }
 
     /**
@@ -465,7 +481,7 @@ public final class InboundAgentRule extends ExternalResource {
         if (!launcher.getWorkDirSettings().isDisabled()) {
             commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
         }
-        File agentJar = new File(r.jenkins.getRootDir(), "agent.jar");
+        File agentJar = new File(System.getProperty("java.io.tmpdir"), "agent.jar");
         if (!agentJar.isFile()) {
             FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
         }
@@ -497,9 +513,9 @@ public final class InboundAgentRule extends ExternalResource {
         }
     }
 
-    private static String createAgentRJR(JenkinsRule r, Options options) throws Throwable {
-        createAgentJR(r, options);
-        return options.getName();
+    private static String[] createAgentRJR(JenkinsRule r, Options options) throws Throwable {
+        var agent = createAgentJR(r, options);
+        return new String[] {options.getName(), agent.getRemoteFS()};
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
@@ -509,7 +525,7 @@ public final class InboundAgentRule extends ExternalResource {
         }
         JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
         launcher.setWebSocket(options.isWebSocket());
-        DumbSlave s = new DumbSlave(options.getName(), new File(r.jenkins.getRootDir(), "agent-work-dirs/" + options.getName()).getAbsolutePath(), launcher);
+        DumbSlave s = new DumbSlave(options.getName(), Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work").toString(), launcher);
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);

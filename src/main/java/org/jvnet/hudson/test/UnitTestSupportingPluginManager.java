@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import hudson.LocalPluginManager;
 import hudson.Plugin;
 import hudson.PluginManager;
-import jakarta.servlet.ServletContext;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +42,7 @@ import java.util.Set;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.ServletContext;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 
@@ -63,7 +63,7 @@ import org.junit.Assert;
 public class UnitTestSupportingPluginManager extends PluginManager {
 
     public UnitTestSupportingPluginManager(File rootDir) {
-        super((ServletContext) null, new File(rootDir, "plugins"));
+        super((ServletContext) null, rootDir);
     }
 
     /** @see LocalPluginManager#loadBundledPlugins */
