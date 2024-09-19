@@ -47,10 +47,10 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -933,8 +933,8 @@ public final class RealJenkinsRule implements TestRule {
             if (_proc.isAlive()) {
                 try {
                     endpoint("exit").openStream().close();
-                } catch (ConnectException e) {
-                    System.err.println("Unable to connect to the Jenkins process to stop it.");
+                } catch (SocketException e) {
+                    System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {
                 System.err.println("Jenkins process was already terminated.");
