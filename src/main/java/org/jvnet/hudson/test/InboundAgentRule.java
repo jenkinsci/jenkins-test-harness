@@ -88,6 +88,7 @@ public final class InboundAgentRule extends ExternalResource {
     private final String id = UUID.randomUUID().toString();
     private final Map<String, Process> procs = Collections.synchronizedMap(new HashMap<>());
     private final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
+    private final Set<File> jars = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * The options used to (re)start an inbound agent.
@@ -317,7 +318,9 @@ public final class InboundAgentRule extends ExternalResource {
         String name = options.getName();
         Objects.requireNonNull(name);
         stop(r, name);
-        start(getAgentArguments(r, name), options);
+        var args = getAgentArguments(r, name);
+        jars.add(args.agentJar);
+        start(args, options);
         waitForAgentOnline(r, name, options.loggers);
     }
 
@@ -328,7 +331,9 @@ public final class InboundAgentRule extends ExternalResource {
         String name = options.getName();
         Objects.requireNonNull(name);
         stop(r, name);
-        start(r.runRemotely(InboundAgentRule::getAgentArguments, name), options);
+        var args = r.runRemotely(InboundAgentRule::getAgentArguments, name);
+        jars.add(args.agentJar);
+        start(args, options);
         r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }
 
@@ -456,6 +461,14 @@ public final class InboundAgentRule extends ExternalResource {
                 LOGGER.log(Level.WARNING, null, x);
             }
         }
+        for (var jar : jars) {
+            LOGGER.info(() -> "Deleting " + jar);
+            try {
+                Files.deleteIfExists(jar.toPath());
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, null, x);
+            }
+        }
     }
 
     /**
@@ -481,10 +494,8 @@ public final class InboundAgentRule extends ExternalResource {
         if (!launcher.getWorkDirSettings().isDisabled()) {
             commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
         }
-        File agentJar = new File(System.getProperty("java.io.tmpdir"), "agent.jar");
-        if (!agentJar.isFile()) {
-            FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
-        }
+        File agentJar = Files.createTempFile(Path.of(System.getProperty("java.io.tmpdir")), "agent", ".jar").toFile();
+        FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
         return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
     }
 
