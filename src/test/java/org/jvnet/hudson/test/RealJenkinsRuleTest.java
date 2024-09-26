@@ -371,4 +371,22 @@ public class RealJenkinsRuleTest {
         assertThat(plugins, hasSize(1));
         assertThat(plugins.get(0).getShortName(), is("RealJenkinsRuleInit"));
     }
+
+    @Test
+    public void safeExit() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_safeExit);
+    }
+
+    private static void _safeExit(JenkinsRule r) throws Throwable {
+        var p = r.createFreeStyleProject();
+        p.getBuildersList().add(new TestBuilder() {
+            @Override
+            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                Thread.sleep(Long.MAX_VALUE);
+                return false;
+            }
+        });
+        p.scheduleBuild2(0).waitForStart();
+    }
+
 }
