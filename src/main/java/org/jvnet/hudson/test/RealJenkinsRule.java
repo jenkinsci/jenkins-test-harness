@@ -1342,11 +1342,17 @@ public final class RealJenkinsRule implements TestRule {
             }
             Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err));
         }
-        public HttpResponse doExit(@QueryParameter String token) throws IOException {
+        public HttpResponse doExit(@QueryParameter String token) throws IOException, InterruptedException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit((StaplerRequest) null);
+                Jenkins j = Jenkins.get();
+                j.doQuietDown(true, 30_000, null, false); // 30s < 60s timeout of stopJenkins
+                // Cannot use doExit since it requires StaplerRequest2, so would throw an error on older cores:
+                j.getLifecycle().onStop("RealJenkinsRule", null);
+                j.cleanUp();
+                new Thread(() -> System.exit(0), "exiting").start();
             }
+            return HttpResponses.ok();
         }
         public void doTimeout(@QueryParameter String token) {
             checkToken(token);
