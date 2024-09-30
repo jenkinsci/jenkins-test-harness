@@ -83,7 +83,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>annotation-indexer</artifactId>
-        <version>1.17</version>
+        <version>1.18</version>
       </dependency>
       <dependency>
         <!-- Avoid downloading multiple jenkins core versions and tons of stapler versions due to version range usage in older libs -->
