@@ -61,6 +61,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -211,6 +212,7 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+    private boolean https;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -728,7 +730,15 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL("http", host, port, "/jenkins/");
+        return new URL(https ? "https" : "http", host, port, "/jenkins/");
+    }
+
+    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword) {
+        this.https = true;
+        this.jenkinsOptions(
+                "--httpsKeyStore=" + keyStoreFile.getAbsolutePath(),
+                "--httpsKeyStorePassword=" + keyStorePassword);
+        return this;
     }
 
     private URL endpoint(String method) throws MalformedURLException {
@@ -821,9 +831,9 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
-                "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
+        argv.addAll(getPortOptions());
         argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", getHome().getAbsolutePath());
@@ -889,6 +899,15 @@ public final class RealJenkinsRule implements TestRule {
             Thread.sleep(100);
         }
         addTimeout();
+    }
+
+    private Collection<String> getPortOptions() {
+        // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.);
+        if (https) {
+            return List.of("--httpPort=-1", "--httpsPort=" + port);
+        } else {
+            return List.of("--httpPort=" + port);
+        }
     }
 
     @CheckForNull
