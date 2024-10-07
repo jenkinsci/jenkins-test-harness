@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -54,6 +55,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -874,10 +876,7 @@ public final class RealJenkinsRule implements TestRule {
             if (port != 0) {
                 try {
                     URL status = endpoint("status");
-                    HttpURLConnection conn = (HttpURLConnection) status.openConnection();
-                    if (https && sslContext != null) {
-                        ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
-                    }
+                    HttpURLConnection conn = decorateConnection(status.openConnection());
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
@@ -991,7 +990,7 @@ public final class RealJenkinsRule implements TestRule {
             proc = null;
             if (_proc.isAlive()) {
                 try {
-                    endpoint("exit").openStream().close();
+                    decorateConnection(endpoint("exit").openConnection()).getInputStream().close();
                 } catch (SocketException e) {
                     System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
@@ -1021,10 +1020,7 @@ public final class RealJenkinsRule implements TestRule {
 
     @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
-        HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
-        if (https && sslContext != null) {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
-        }
+        HttpURLConnection conn = decorateConnection(endpoint("step").openConnection());
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
 
@@ -1048,6 +1044,13 @@ public final class RealJenkinsRule implements TestRule {
             }
             throw e;
         }
+    }
+
+    private HttpURLConnection decorateConnection(@NonNull URLConnection step) {
+        if (https && sslContext != null) {
+            ((HttpsURLConnection) step).setSSLSocketFactory(sslContext.getSocketFactory());
+        }
+        return (HttpURLConnection) step;
     }
 
     @FunctionalInterface
