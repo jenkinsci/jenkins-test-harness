@@ -89,6 +89,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -213,6 +215,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
     private boolean https;
+    private SSLContext sslContext;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -733,8 +736,9 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(https ? "https" : "http", host, port, "/jenkins/");
     }
 
-    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword) {
+    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLContext sslContext) {
         this.https = true;
+        this.sslContext = sslContext;
         this.jenkinsOptions(
                 "--httpsKeyStore=" + keyStoreFile.getAbsolutePath(),
                 "--httpsKeyStorePassword=" + keyStorePassword);
@@ -871,6 +875,9 @@ public final class RealJenkinsRule implements TestRule {
                 try {
                     URL status = endpoint("status");
                     HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+                    if (https && sslContext != null) {
+                        ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+                    }
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
@@ -1015,6 +1022,9 @@ public final class RealJenkinsRule implements TestRule {
     @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        if (https && sslContext != null) {
+            ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+        }
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
 
