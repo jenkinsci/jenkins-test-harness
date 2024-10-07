@@ -1046,11 +1046,11 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private HttpURLConnection decorateConnection(@NonNull URLConnection step) {
+    private HttpURLConnection decorateConnection(@NonNull URLConnection urlConnection) {
         if (https && sslContext != null) {
-            ((HttpsURLConnection) step).setSSLSocketFactory(sslContext.getSocketFactory());
+            ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslContext.getSocketFactory());
         }
-        return (HttpURLConnection) step;
+        return (HttpURLConnection) urlConnection;
     }
 
     @FunctionalInterface
