@@ -92,7 +92,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -217,7 +217,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
     @CheckForNull
-    private SSLContext sslContext;
+    private SSLSocketFactory sslSocketFactory;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -735,11 +735,11 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(sslContext != null ? "https" : "http", host, port, "/jenkins/");
+        return new URL(sslSocketFactory != null ? "https" : "http", host, port, "/jenkins/");
     }
 
-    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLContext sslContext) {
-        this.sslContext = sslContext;
+    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLSocketFactory sslSocketFactory) {
+        this.sslSocketFactory = sslSocketFactory;
         this.jenkinsOptions(
                 "--httpsKeyStore=" + keyStoreFile.getAbsolutePath(),
                 "--httpsKeyStorePassword=" + keyStorePassword);
@@ -908,7 +908,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private Collection<String> getPortOptions() {
         // Initially port=0. On subsequent runs, this is set to the port allocated randomly on the first run.
-        if (sslContext != null) {
+        if (sslSocketFactory != null) {
             return List.of("--httpPort=-1", "--httpsPort=" + port);
         } else {
             return List.of("--httpPort=" + port);
@@ -1046,8 +1046,8 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private HttpURLConnection decorateConnection(@NonNull URLConnection urlConnection) {
-        if (sslContext != null) {
-            ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslContext.getSocketFactory());
+        if (sslSocketFactory != null) {
+            ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslSocketFactory);
         }
         return (HttpURLConnection) urlConnection;
     }
