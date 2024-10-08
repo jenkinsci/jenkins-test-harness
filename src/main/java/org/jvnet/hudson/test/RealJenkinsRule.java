@@ -216,7 +216,7 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
-    private boolean https;
+    @CheckForNull
     private SSLContext sslContext;
 
     public RealJenkinsRule() {
@@ -735,11 +735,10 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(https ? "https" : "http", host, port, "/jenkins/");
+        return new URL(sslContext != null ? "https" : "http", host, port, "/jenkins/");
     }
 
     public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLContext sslContext) {
-        this.https = true;
         this.sslContext = sslContext;
         this.jenkinsOptions(
                 "--httpsKeyStore=" + keyStoreFile.getAbsolutePath(),
@@ -909,7 +908,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private Collection<String> getPortOptions() {
         // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.);
-        if (https) {
+        if (sslContext != null) {
             return List.of("--httpPort=-1", "--httpsPort=" + port);
         } else {
             return List.of("--httpPort=" + port);
@@ -1047,7 +1046,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private HttpURLConnection decorateConnection(@NonNull URLConnection urlConnection) {
-        if (https && sslContext != null) {
+        if (sslContext != null) {
             ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslContext.getSocketFactory());
         }
         return (HttpURLConnection) urlConnection;
