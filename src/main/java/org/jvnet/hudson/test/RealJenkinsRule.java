@@ -26,6 +26,7 @@ package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -61,9 +62,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -93,7 +101,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -112,6 +122,8 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import jenkins.test.https.KeyStoreManager;
+import jenkins.test.https.SelfSignedCertificates;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
@@ -218,11 +230,10 @@ public final class RealJenkinsRule implements TestRule {
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
-    @CheckForNull
+    private boolean https;
+    private KeyStoreManager keyStoreManager;
     private SSLSocketFactory sslSocketFactory;
-    private File keyStoreFile;
-    private String keyStorePassword;
-    private URL keyStoreUrl;
+    private X509Certificate rootCA;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -319,8 +330,13 @@ public final class RealJenkinsRule implements TestRule {
      * might accidentally be shared across otherwise distinct services.
      * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
+     * <p>
+     * When using HTTPS, use @{link #https(String)} instead.
      */
     public RealJenkinsRule withHost(String host) {
+        if (https) {
+            throw new IllegalStateException("Don't call this method when using HTTPS");
+        }
         this.host = host;
         return this;
     }
@@ -740,15 +756,85 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(sslSocketFactory != null ? "https" : "http", host, port, "/jenkins/");
+        return new URL(https ? "https" : "http", host, port, "/jenkins/");
     }
 
-    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLSocketFactory sslSocketFactory) throws MalformedURLException {
-        this.sslSocketFactory = sslSocketFactory;
-        this.keyStoreFile = keyStoreFile;
-        this.keyStoreUrl = keyStoreFile.toURI().toURL();
-        this.keyStorePassword = keyStorePassword;
+    /**
+     * Sets up HTTPS for the current instance, and disables plain HTTP.
+     * This generates a self-signed certificate for localhost. The corresponding root CA that needs to be trusted by HTTP client can be obtained using {@link #getRootCA()}.
+     *
+     * @return the current instance
+     * @see #createWebClient()
+     */
+    public RealJenkinsRule https() {
+        return https("localhost");
+    }
+
+
+    /**
+     * Sets up HTTPS for the current instance, and disables plain HTTP.
+     * This generates a self-signed certificate for the given host name. The corresponding root CA that needs to be trusted by HTTP client can be obtained using {@link #getRootCA()}.
+     * <p>
+     * You don't need to call {@link #withHost(String)} when calling this method.
+     *
+     * @param host the host name to use in the certificate
+     * @return the current instance
+     * @see #createWebClient()
+     * @see #withHost(String)
+     */
+    public RealJenkinsRule https(@NonNull String host) {
+        this.host = host;
+        this.https = true;
+        try {
+            var keyStoreManager = new KeyStoreManager(createTempDirectory("keystore").resolve("keyStore.p12"), token);
+            var rootCAs = SelfSignedCertificates.createRootCAs();
+            var userCert = SelfSignedCertificates.createUserCert(host, rootCAs.intermediate());
+            keyStoreManager.setCertificateEntry(host, rootCAs.root().certificate());
+            keyStoreManager.setKeyEntry(host, userCert.keyPair().getPrivate(), new Certificate[]{
+                    userCert.certificate(),
+                    rootCAs.intermediate().certificate(),
+                    rootCAs.root().certificate()
+            });
+            keyStoreManager.save();
+            this.rootCA = rootCAs.root().certificate();
+            this.keyStoreManager = keyStoreManager;
+            this.sslSocketFactory = keyStoreManager.buildClientSSLContext().getSocketFactory();
+        } catch (CertificateException | KeyStoreException | NoSuchAlgorithmException | KeyManagementException |
+                 IOException e) {
+            throw new RuntimeException(e);
+        }
         return this;
+    }
+
+    /**
+     * @return the current autogenerated root CA or null if {@link #https(String)} has not been called.
+     */
+    @Nullable
+    public X509Certificate getRootCA() {
+        return rootCA;
+    }
+
+    /**
+     * Builds a {@link SSLContext} trusting the current instance.
+     */
+    @NonNull
+    public SSLContext buildSSLContext() throws NoSuchAlgorithmException {
+        if (rootCA != null) {
+            try {
+                var myTrustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                myTrustStore.load(null, null);
+                myTrustStore.setCertificateEntry(getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
+                var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init(myTrustStore);
+                var context = SSLContext.getInstance("TLS");
+                context.init(null, trustManagerFactory.getTrustManagers(), null);
+                return context;
+            } catch (CertificateException | KeyManagementException | IOException | KeyStoreException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return SSLContext.getDefault();
+        }
     }
 
     private URL endpoint(String method) throws MalformedURLException {
@@ -792,12 +878,12 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Create a client configured to trust the self-signed certificate used by Jenkins.
+     * Create a client configured to trust the self-signed certificate used by this instance.
      */
     public WebClient createWebClient() {
         var wc = new WebClient();
-        if (keyStoreUrl != null && keyStorePassword != null) {
-            wc.getOptions().setSSLTrustStore(keyStoreUrl, keyStorePassword, KeyStore.getDefaultType());
+        if (keyStoreManager != null) {
+            wc.getOptions().setSSLTrustStore(keyStoreManager.getURL(), keyStoreManager.getPassword(), keyStoreManager.getType());
         }
         return wc;
     }
@@ -855,8 +941,8 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
         argv.addAll(getPortOptions());
-        if (keyStoreFile != null && keyStorePassword != null) {
-            argv.addAll(List.of("--httpsKeyStore=" + keyStoreFile.getAbsolutePath(), "--httpsKeyStorePassword=" + keyStorePassword));
+        if (https) {
+            argv.addAll(List.of("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath(), "--httpsKeyStorePassword=" + token));
         }
         argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
@@ -927,7 +1013,7 @@ public final class RealJenkinsRule implements TestRule {
 
     private Collection<String> getPortOptions() {
         // Initially port=0. On subsequent runs, this is set to the port allocated randomly on the first run.
-        if (sslSocketFactory != null) {
+        if (https) {
             return List.of("--httpPort=-1", "--httpsPort=" + port);
         } else {
             return List.of("--httpPort=" + port);
