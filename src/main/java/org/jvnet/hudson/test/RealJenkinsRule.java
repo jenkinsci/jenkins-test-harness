@@ -61,6 +61,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,6 +104,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.htmlunit.WebClient;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TemporaryFolder;
@@ -218,6 +220,9 @@ public final class RealJenkinsRule implements TestRule {
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
     @CheckForNull
     private SSLSocketFactory sslSocketFactory;
+    private File keyStoreFile;
+    private String keyStorePassword;
+    private URL keyStoreUrl;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -738,11 +743,11 @@ public final class RealJenkinsRule implements TestRule {
         return new URL(sslSocketFactory != null ? "https" : "http", host, port, "/jenkins/");
     }
 
-    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLSocketFactory sslSocketFactory) {
+    public RealJenkinsRule https(File keyStoreFile, String keyStorePassword, SSLSocketFactory sslSocketFactory) throws MalformedURLException {
         this.sslSocketFactory = sslSocketFactory;
-        this.jenkinsOptions(
-                "--httpsKeyStore=" + keyStoreFile.getAbsolutePath(),
-                "--httpsKeyStorePassword=" + keyStorePassword);
+        this.keyStoreFile = keyStoreFile;
+        this.keyStoreUrl = keyStoreFile.toURI().toURL();
+        this.keyStorePassword = keyStorePassword;
         return this;
     }
 
@@ -784,6 +789,17 @@ public final class RealJenkinsRule implements TestRule {
         }
 
         return WarExploder.findJenkinsWar();
+    }
+
+    /**
+     * Create a client configured to trust the self-signed certificate used by Jenkins.
+     */
+    public WebClient createWebClient() {
+        var wc = new WebClient();
+        if (keyStoreUrl != null && keyStorePassword != null) {
+            wc.getOptions().setSSLTrustStore(keyStoreUrl, keyStorePassword, KeyStore.getDefaultType());
+        }
+        return wc;
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
@@ -839,6 +855,9 @@ public final class RealJenkinsRule implements TestRule {
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
         argv.addAll(getPortOptions());
+        if (keyStoreFile != null && keyStorePassword != null) {
+            argv.addAll(List.of("--httpsKeyStore=" + keyStoreFile.getAbsolutePath(), "--httpsKeyStorePassword=" + keyStorePassword));
+        }
         argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", getHome().getAbsolutePath());
