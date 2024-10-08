@@ -962,7 +962,7 @@ public final class RealJenkinsRule implements TestRule {
                 if (proc != null) {
                     LOGGER.warning("Test timeout expired, stopping steps…");
                     try {
-                        decorateConnection(endpoint("timeout").openConnection()).openStream().close();
+                        decorateConnection(endpoint("timeout").openConnection()).getInputStream().close();
                     } catch (IOException x) {
                         x.printStackTrace();
                     }
