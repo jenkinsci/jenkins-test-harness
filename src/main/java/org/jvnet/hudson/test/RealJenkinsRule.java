@@ -907,7 +907,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     private Collection<String> getPortOptions() {
-        // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.);
+        // Initially port=0. On subsequent runs, this is set to the port allocated randomly on the first run.
         if (sslContext != null) {
             return List.of("--httpPort=-1", "--httpsPort=" + port);
         } else {
