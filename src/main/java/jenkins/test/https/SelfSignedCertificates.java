@@ -36,7 +36,6 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.List;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -146,9 +145,7 @@ public record SelfSignedCertificates(CertificateKeyPair root, CertificateKeyPair
                     keyPair.getPublic());
             builder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
             builder.addExtension(Extension.basicConstraints, false, new BasicConstraints(false));
-            var altNames = List.of(new GeneralName(GeneralName.dNSName, dnsName));
-            var subjectAltNames = GeneralNames.getInstance(new DERSequence(altNames.toArray(new GeneralName[0])));
-            builder.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
+            builder.addExtension(Extension.subjectAlternativeName, false, GeneralNames.getInstance(new DERSequence(new GeneralName(GeneralName.dNSName, dnsName))));
             return new CertificateKeyPair(
                     keyPair,
                     new JcaX509CertificateConverter().getCertificate(builder.build(newContentSigner(issuer.keyPair()))));
