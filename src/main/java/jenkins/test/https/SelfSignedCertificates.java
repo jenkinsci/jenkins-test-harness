@@ -54,11 +54,10 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 /**
  * A utility class to generate self-signed certificates.
- * <ul>
- *   <li>A root CA
- *   <li>An intermediate CA signed by the root CA
- * </ul>
- * Then you can generate user certificates for a given DNS name signed by the intermediate CA.
+ * <p>Use static method {@link #createRootCAs()} to generate a root CA.
+ * <p>Then you can generate user certificates for a given DNS name signed by the intermediate CA.
+ * @param root The root CA certificate and key pair.
+ * @param intermediate The intermediate CA certificate and key pair.
  *
  * @see #createRootCAs()
  * @see #createUserCert(String, CertificateKeyPair)
