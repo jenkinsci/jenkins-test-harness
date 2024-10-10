@@ -8,28 +8,28 @@ trap 'rm -rf $tmpDir' EXIT
 
 cat > "$tmpDir/req.cnf" <<EOF
 [ req ]
-default_bits 		= 2048
-prompt 				= no
-distinguished_name 	= req_distinguished_name
-x509_extensions 	= req_ext
+default_bits						= 2048
+prompt									= no
+distinguished_name			= req_distinguished_name
+x509_extensions					= req_ext
 
 [ req_distinguished_name ]
-countryName         	= US
-stateOrProvinceName 	= NY
-localityName 			= New York
-organizationName    	= Jenkins
-organizationalUnitName 	= Test
-commonName          	= Self-Signed CA
-emailAddress			= noreply@jenkins.io
+countryName							= US
+stateOrProvinceName 		= NY
+localityName						= New York
+organizationName				= Jenkins
+organizationalUnitName	= Test
+commonName							= Self-Signed CA
+emailAddress						= noreply@jenkins.io
 
 [ req_ext ]
-keyUsage				= digitalSignature
-basicConstraints		= CA:false
-subjectAltName 			= @alternate_names
-subjectKeyIdentifier 	= hash
+keyUsage								= digitalSignature
+basicConstraints				= CA:false
+subjectAltName					= @alternate_names
+subjectKeyIdentifier		= hash
 
 [ alternate_names ]
-DNS.1         = localhost
+DNS.1										= localhost
 EOF
 
 mkdir -p "$tmpDir/output"
