@@ -333,6 +333,7 @@ public final class InboundAgentRule extends ExternalResource {
         stop(r, name);
         var args = r.runRemotely(InboundAgentRule::getAgentArguments, name);
         jars.add(args.agentJar);
+        options.javaOptions.addAll(List.of(r.getTruststoreJavaOptions()));
         start(args, options);
         r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }

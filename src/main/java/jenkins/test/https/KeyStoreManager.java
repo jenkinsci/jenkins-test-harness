@@ -40,6 +40,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -211,6 +212,13 @@ public class KeyStoreManager {
      */
     public void setKeyEntry(String host, PrivateKey privateKey, Certificate[] certificates) throws KeyStoreException {
         keyStore.setKeyEntry(host, privateKey, password.toCharArray(), certificates);
+    }
+
+    public String[] getTruststoreJavaOptions() {
+        return Stream.of(
+                "-Djavax.net.ssl.trustStore=" + getPath().toAbsolutePath(),
+                        "-Djavax.net.ssl.trustStorePassword=" + getPassword()
+                ).toArray(String[]::new);
     }
 
     private static class MergedTrustManager implements X509TrustManager {

@@ -704,6 +704,10 @@ public final class RealJenkinsRule implements TestRule {
         return proc != null && proc.isAlive();
     }
 
+    public String[] getTruststoreJavaOptions() {
+        return keyStoreManager != null ? keyStoreManager.getTruststoreJavaOptions() : new String[0];
+    }
+
     /**
      * One step to run.
      * <p>Since this thunk will be sent to a different JVM, it must be serializable.
