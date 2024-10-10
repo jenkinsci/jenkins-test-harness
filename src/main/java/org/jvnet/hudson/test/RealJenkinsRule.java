@@ -330,7 +330,7 @@ public final class RealJenkinsRule implements TestRule {
      * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
      * <p>
-     * When using HTTPS, use @{link #https(String)} instead.
+     * When using HTTPS, use {@link #https(String)} instead.
      */
     public RealJenkinsRule withHost(String host) {
         if (https) {

@@ -51,9 +51,9 @@ import javax.net.ssl.X509TrustManager;
 import org.htmlunit.WebClient;
 
 /**
- * Allows to manage a java keystore file more easily than base JDK.
+ * Manages a Java keystore file.
  */
-public class KeyStoreManager {
+public final class KeyStoreManager {
     @NonNull
     private final Path path;
     @NonNull

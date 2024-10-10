@@ -36,7 +36,6 @@ mkdir -p "$tmpDir/output"
 key="$tmpDir/output/key.pem"
 cert="$tmpDir/output/cert.pem"
 certP12="$tmpDir/output/cert.p12"
-# Generate a self-signed cert valid for 100 years
 echo "Generate self-signed cert for localhost for 100 years"
 openssl req -newkey rsa:2048 -nodes -keyout "$key" -x509 -days 36500 -out "$cert" -config "$tmpDir/req.cnf"
 echo "Generate PKCS12 keystore"
