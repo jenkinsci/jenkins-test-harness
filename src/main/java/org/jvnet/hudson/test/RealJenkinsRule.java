@@ -882,7 +882,7 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Create a client configured to trust the self-signed certificate used by this instance.
+     * Create a client configured to trust any self-signed certificate used by this instance.
      */
     public WebClient createWebClient() {
         var wc = new WebClient();
