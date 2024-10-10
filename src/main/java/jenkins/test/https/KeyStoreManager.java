@@ -24,6 +24,7 @@
 
 package jenkins.test.https;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.net.URL;
@@ -38,9 +39,9 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -56,8 +57,8 @@ public class KeyStoreManager {
     private final Path path;
     @NonNull
     private final URL url;
-    @NonNull
-    private final String password;
+    @CheckForNull
+    private final char[] password;
     @NonNull
     private final KeyStore keyStore;
     @NonNull
@@ -66,9 +67,18 @@ public class KeyStoreManager {
     /**
      * Creates a new instance using the default keystore type.
      * @param path path of the keystore file. If it exists, it will be loaded automatically.
+     */
+    public KeyStoreManager(@NonNull Path path)
+            throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException {
+        this(path, null, KeyStore.getDefaultType());
+    }
+
+    /**
+     * Creates a new instance using the default keystore type.
+     * @param path path of the keystore file. If it exists, it will be loaded automatically.
      * @param password password for the keystore file.
      */
-    public KeyStoreManager(@NonNull Path path, @NonNull String password)
+    public KeyStoreManager(@NonNull Path path, @CheckForNull String password)
             throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException {
         this(path, password, KeyStore.getDefaultType());
     }
@@ -79,16 +89,16 @@ public class KeyStoreManager {
      * @param password password for the keystore file.
      * @param type type of the keystore file.
      */
-    public KeyStoreManager(@NonNull Path path, @NonNull String password, @NonNull String type)
+    public KeyStoreManager(@NonNull Path path, @CheckForNull String password, @NonNull String type)
             throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException {
         this.path = path;
         this.url = path.toUri().toURL();
-        this.password = password;
+        this.password = password == null ? null : password.toCharArray();
         this.type = type;
         var tmpKeyStore = KeyStore.getInstance(type);
         if (Files.exists(path)) {
             try (var is = Files.newInputStream(path)) {
-                tmpKeyStore.load(is, password.toCharArray());
+                tmpKeyStore.load(is, this.password);
             }
         } else {
             tmpKeyStore.load(null);
@@ -109,7 +119,7 @@ public class KeyStoreManager {
      * @return the password for the managed keystore
      */
     public String getPassword() {
-        return password;
+        return password == null ? null : new String(password);
     }
 
     /**
@@ -141,7 +151,7 @@ public class KeyStoreManager {
      */
     public void save() throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
         try (var os = Files.newOutputStream(path)) {
-            keyStore.store(os, password.toCharArray());
+            keyStore.store(os, password);
         }
     }
 
@@ -155,7 +165,7 @@ public class KeyStoreManager {
         X509TrustManager result;
         try (var myKeysInputStream = Files.newInputStream(path)) {
             var myTrustStore = KeyStore.getInstance(type);
-            myTrustStore.load(myKeysInputStream, password.toCharArray());
+            myTrustStore.load(myKeysInputStream, password);
             var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(myTrustStore);
             result = getDefaultX509CertificateTrustManager(trustManagerFactory);
@@ -176,7 +186,7 @@ public class KeyStoreManager {
         final KeyManager[] keyManagers;
         try {
             var keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(keyStore, password.toCharArray());
+            keyManagerFactory.init(keyStore, password);
             keyManagers = keyManagerFactory.getKeyManagers();
         } catch (NoSuchAlgorithmException | UnrecoverableKeyException | KeyStoreException e) {
             throw new RuntimeException("Unable to initialise KeyManager[]", e);
@@ -211,14 +221,16 @@ public class KeyStoreManager {
      * @see KeyStore#setKeyEntry(String, byte[], Certificate[])
      */
     public void setKeyEntry(String host, PrivateKey privateKey, Certificate[] certificates) throws KeyStoreException {
-        keyStore.setKeyEntry(host, privateKey, password.toCharArray(), certificates);
+        keyStore.setKeyEntry(host, privateKey, password, certificates);
     }
 
     public String[] getTruststoreJavaOptions() {
-        return Stream.of(
-                "-Djavax.net.ssl.trustStore=" + getPath().toAbsolutePath(),
-                        "-Djavax.net.ssl.trustStorePassword=" + getPassword()
-                ).toArray(String[]::new);
+        var list = new ArrayList<String>();
+        list.add("-Djavax.net.ssl.trustStore=" + getPath().toAbsolutePath());
+        if (password != null) {
+            list.add("-Djavax.net.ssl.trustStorePassword=" + new String(password));
+        }
+        return list.toArray(new String[0]);
     }
 
     private static class MergedTrustManager implements X509TrustManager {

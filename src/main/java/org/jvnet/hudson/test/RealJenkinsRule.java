@@ -790,6 +790,7 @@ public final class RealJenkinsRule implements TestRule {
         this.host = host;
         this.https = true;
         try {
+            // TODO remove password once we have https://github.com/jenkinsci/winstone/pull/417
             var keyStoreManager = new KeyStoreManager(createTempDirectory("keystore").resolve("keyStore.p12"), token);
             var rootCAs = SelfSignedCertificates.createRootCAs();
             var userCert = SelfSignedCertificates.createUserCert(host, rootCAs.intermediate());
@@ -946,7 +947,10 @@ public final class RealJenkinsRule implements TestRule {
                 "--prefix=/jenkins"));
         argv.addAll(getPortOptions());
         if (https) {
-            argv.addAll(List.of("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath(), "--httpsKeyStorePassword=" + token));
+            argv.add("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath());
+            if (keyStoreManager.getPassword() != null) {
+                argv.add("--httpsKeyStorePassword=" + keyStoreManager.getPassword());
+            }
         }
         argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
