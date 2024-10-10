@@ -109,6 +109,8 @@ public final class InboundAgentRule extends ExternalResource {
         private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
         private String label;
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+        private String trustStorePath;
+        private String trustStorePassword;
 
         public String getName() {
             return name;
@@ -136,6 +138,21 @@ public final class InboundAgentRule extends ExternalResource {
 
         public String getLabel() {
             return label;
+        }
+
+        /**
+         * Compute java options requied to connect to the given RealJenkinsRule instance.
+         * @param r The instance to compute Java options for
+         */
+        private void computeJavaOptions(RealJenkinsRule r) {
+            if (trustStorePath != null && trustStorePassword != null) {
+                javaOptions.addAll(List.of(
+                        "-Djavax.net.ssl.trustStore=" + trustStorePath,
+                        "-Djavax.net.ssl.trustStorePassword=" + trustStorePassword
+                ));
+            } else {
+                javaOptions.addAll(List.of(r.getTruststoreJavaOptions()));
+            }
         }
 
         /**
@@ -216,6 +233,18 @@ public final class InboundAgentRule extends ExternalResource {
 
             public Builder javaOptions(String... opts) {
                 options.javaOptions.addAll(List.of(opts));
+                return this;
+            }
+
+            /**
+             * Provide a custom truststore for the agent JVM. Can be useful when using a setup with a reverse proxy.
+             * @param path the path to the truststore
+             * @param password the password for the truststore
+             * @return this builder
+             */
+            public Builder trustStore(String path, String password) {
+                options.trustStorePath = path;
+                options.trustStorePassword = password;
                 return this;
             }
 
@@ -333,7 +362,7 @@ public final class InboundAgentRule extends ExternalResource {
         stop(r, name);
         var args = r.runRemotely(InboundAgentRule::getAgentArguments, name);
         jars.add(args.agentJar);
-        options.javaOptions.addAll(List.of(r.getTruststoreJavaOptions()));
+        options.computeJavaOptions(r);
         start(args, options);
         r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }
