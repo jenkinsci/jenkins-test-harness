@@ -24,7 +24,7 @@ public class RealJenkinsRuleHttpsTest {
     public void runningStepAndUsingHtmlUnit() throws Throwable {
         // We can run steps
         rr.runRemotely(RealJenkinsRuleHttpsTest::log);
-        // replica1 directly
+        // web client trusts the cert
         try (var wc = rr.createWebClient()) {
             wc.getPage(rr.getUrl());
         }
