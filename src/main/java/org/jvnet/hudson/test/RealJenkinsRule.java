@@ -887,7 +887,7 @@ public final class RealJenkinsRule implements TestRule {
     public WebClient createWebClient() {
         var wc = new WebClient();
         if (keyStoreManager != null) {
-            wc.getOptions().setSSLTrustStore(keyStoreManager.getURL(), keyStoreManager.getPassword(), keyStoreManager.getType());
+            keyStoreManager.configureWebClient(wc);
         }
         return wc;
     }

@@ -48,6 +48,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import org.htmlunit.WebClient;
 
 /**
  * Allows to manage a java keystore file more easily than base JDK.
@@ -231,6 +232,10 @@ public class KeyStoreManager {
             list.add("-Djavax.net.ssl.trustStorePassword=" + new String(password));
         }
         return list.toArray(new String[0]);
+    }
+
+    public void configureWebClient(WebClient wc) {
+        wc.getOptions().setSSLTrustStore(getURL(), getPassword(), getType());
     }
 
     private static class MergedTrustManager implements X509TrustManager {
