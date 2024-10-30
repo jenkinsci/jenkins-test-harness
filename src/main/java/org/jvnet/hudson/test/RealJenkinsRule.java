@@ -25,6 +25,8 @@
 package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
@@ -47,24 +49,35 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -86,16 +99,26 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.test.https.KeyStoreManager;
 import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.htmlunit.WebClient;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
@@ -190,7 +213,7 @@ public final class RealJenkinsRule implements TestRule {
 
     Process proc;
 
-    private File portFile;
+    private Path portFile;
 
     private Map<String, Level> loggers = new HashMap<>();
 
@@ -200,11 +223,16 @@ public final class RealJenkinsRule implements TestRule {
 
     private boolean prepareHomeLazily;
     private boolean provisioned;
+    private final List<File> bootClasspathFiles = new ArrayList<>();
 
     // TODO may need to be relaxed for Gradle-based plugins
     private static final Pattern SNAPSHOT_INDEX_JELLY = Pattern.compile("(file:/.+/target)/classes/index.jelly");
 
     private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+    private boolean https;
+    private KeyStoreManager keyStoreManager;
+    private SSLSocketFactory sslSocketFactory;
+    private X509Certificate rootCA;
 
     public RealJenkinsRule() {
         home = new AtomicReference<>();
@@ -301,8 +329,13 @@ public final class RealJenkinsRule implements TestRule {
      * might accidentally be shared across otherwise distinct services.
      * <p>Calling this method does <em>not</em> change the fact that Jenkins will be configured to listen only on localhost for security reasons
      * (so others in the same network cannot access your system under test, especially if it lacks authentication).
+     * <p>
+     * When using HTTPS, use {@link #https(String,KeyStoreManager, X509Certificate)} instead.
      */
     public RealJenkinsRule withHost(String host) {
+        if (https) {
+            throw new IllegalStateException("Don't call this method when using HTTPS");
+        }
         this.host = host;
         return this;
     }
@@ -457,6 +490,36 @@ public final class RealJenkinsRule implements TestRule {
         return this;
     }
 
+    /**
+     * Use {@link #withFIPSEnabled(FIPSTestBundleProvider)}  with default value of {@link FIPSTestBundleProvider#get()}
+     */
+    public RealJenkinsRule withFIPSEnabled() {
+        return withFIPSEnabled(FIPSTestBundleProvider.get());
+    }
+
+    /**
+     +
+     * @param fipsTestBundleProvider the {@link FIPSTestBundleProvider} to use for testing
+     */
+    public RealJenkinsRule withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
+        Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
+        try {
+            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+                    .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     *
+     * @param files add some {@link File} to bootclasspath
+     */
+    public RealJenkinsRule withBootClasspath(File...files) {
+        this.bootClasspathFiles.addAll(List.of(files));
+        return this;
+    }
+
     public static List<String> getJacocoAgentOptions() {
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         List<String> arguments = runtimeMxBean.getInputArguments();
@@ -470,27 +533,31 @@ public final class RealJenkinsRule implements TestRule {
         return new Statement() {
             @Override public void evaluate() throws Throwable {
                 System.out.println("=== Starting " + description);
-                if (war == null) {
-                    war = findJenkinsWar();
-                }
-                if (home.get() != null) {
+                try {
+                    jenkinsOptions("--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
+                    if (war == null) {
+                        war = findJenkinsWar();
+                    }
+                    if (home.get() != null) {
+                        try {
+                            base.evaluate();
+                        } finally {
+                            stopJenkins();
+                        }
+                        return;
+                    }
                     try {
+                        home.set(tmp.allocate());
+                        if (!prepareHomeLazily) {
+                            provision();
+                        }
                         base.evaluate();
                     } finally {
                         stopJenkins();
                     }
-                    return;
-                }
-                try {
-                    home.set(tmp.allocate());
-                    if (!prepareHomeLazily) {
-                        provision();
-                    }
-                    base.evaluate();
                 } finally {
-                    stopJenkins();
                     try {
-                        deprovision();
+                        tmp.dispose();
                     } catch (Exception x) {
                         LOGGER.log(Level.WARNING, null, x);
                     }
@@ -619,10 +686,25 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
+     * Creates a temporary directory.
+     * Unlike {@link Files#createTempDirectory(String, FileAttribute...)}
+     * this will be cleaned up after the test exits (like {@link TemporaryFolder}),
+     * and will honor {@code java.io.tmpdir} set by Surefire
+     * after {@code StaticProperty.JAVA_IO_TMPDIR} has been initialized.
+     */
+    public Path createTempDirectory(String prefix) throws IOException {
+        return tmp.allocate(prefix).toPath();
+    }
+
+    /**
      * Returns true if the Jenkins process is alive.
      */
     public boolean isAlive() {
         return proc != null && proc.isAlive();
+    }
+
+    public String[] getTruststoreJavaOptions() {
+        return keyStoreManager != null ? keyStoreManager.getTruststoreJavaOptions() : new String[0];
     }
 
     /**
@@ -677,7 +759,86 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL("http", host, port, "/jenkins/");
+        return new URL(https ? "https" : "http", host, port, "/jenkins/");
+    }
+
+    /**
+     * Sets up HTTPS for the current instance, and disables plain HTTP.
+     * This generates a self-signed certificate for <em>localhost</em>. The corresponding root CA that needs to be trusted by HTTP client can be obtained using {@link #getRootCA()}.
+     *
+     * @return the current instance
+     * @see #createWebClient()
+     */
+    public RealJenkinsRule https() {
+        try {
+            var keyStorePath = tmp.allocate().toPath().resolve("test-keystore.p12");
+            IOUtils.copy(getClass().getResource("/https/test-keystore.p12"), keyStorePath.toFile());
+            var keyStoreManager = new KeyStoreManager(keyStorePath, "changeit");
+            try (var is = getClass().getResourceAsStream("/https/test-cert.pem")) {
+                var cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(is);
+                https("localhost", keyStoreManager, cert);
+            }
+        } catch (CertificateException | KeyStoreException | NoSuchAlgorithmException | IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    /**
+     * Sets up HTTPS for the current instance, and disables plain HTTP.
+     * <p>
+     * You don't need to call {@link #withHost(String)} when calling this method.
+     *
+     * @param host the host name to use in the certificate
+     * @param keyStoreManager a key store manager containing the key and certificate to use for HTTPS. It needs to be valid for the given host
+     * @param rootCA the certificate that needs to be trusted by callers.
+     * @return the current instance
+     * @see #createWebClient()
+     * @see #withHost(String)
+     */
+    public RealJenkinsRule https(@NonNull String host, @NonNull KeyStoreManager keyStoreManager, @NonNull X509Certificate rootCA) {
+        this.host = host;
+        this.https = true;
+        this.keyStoreManager = keyStoreManager;
+        try {
+            this.sslSocketFactory = keyStoreManager.buildClientSSLContext().getSocketFactory();
+        } catch (NoSuchAlgorithmException | KeyManagementException | CertificateException | KeyStoreException |
+                 IOException e) {
+            throw new RuntimeException(e);
+        }
+        this.rootCA = rootCA;
+        return this;
+    }
+
+    /**
+     * @return the current autogenerated root CA or null if {@link #https()} has not been called.
+     */
+    @Nullable
+    public X509Certificate getRootCA() {
+        return rootCA;
+    }
+
+    /**
+     * Builds a {@link SSLContext} trusting the current instance.
+     */
+    @NonNull
+    public SSLContext buildSSLContext() throws NoSuchAlgorithmException {
+        if (rootCA != null) {
+            try {
+                var myTrustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                myTrustStore.load(null, null);
+                myTrustStore.setCertificateEntry(getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
+                var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init(myTrustStore);
+                var context = SSLContext.getInstance("TLS");
+                context.init(null, trustManagerFactory.getTrustManagers(), null);
+                return context;
+            } catch (CertificateException | KeyManagementException | IOException | KeyStoreException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return SSLContext.getDefault();
+        }
     }
 
     private URL endpoint(String method) throws MalformedURLException {
@@ -690,6 +851,16 @@ public final class RealJenkinsRule implements TestRule {
      */
     public File getHome() {
         return home.get();
+    }
+
+    /**
+     * Switch the Jenkins home directory.
+     * Will affect subsequent startups of this rule,
+     * but not other copies linked via {@link RealJenkinsRule#RealJenkinsRule(RealJenkinsRule)}.
+     * Normally unnecessary but could be used to simulate running on the wrong home.
+     */
+    public void setHome(File newHome) {
+        home = new AtomicReference<>(newHome);
     }
 
     private static File findJenkinsWar() throws Exception {
@@ -710,6 +881,17 @@ public final class RealJenkinsRule implements TestRule {
         return WarExploder.findJenkinsWar();
     }
 
+    /**
+     * Create a client configured to trust any self-signed certificate used by this instance.
+     */
+    public WebClient createWebClient() {
+        var wc = new WebClient();
+        if (keyStoreManager != null) {
+            keyStoreManager.configureWebClient(wc);
+        }
+        return wc;
+    }
+
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
     public void startJenkins() throws Throwable {
         if (proc != null) {
@@ -718,15 +900,18 @@ public final class RealJenkinsRule implements TestRule {
         if (prepareHomeLazily && !provisioned) {
             provision();
         }
+        var metadata = createTempDirectory("RealJenkinsRule");
+        var cpFile = metadata.resolve("cp.txt");
         String cp = System.getProperty("java.class.path");
         Files.writeString(
-                getHome().toPath().resolve("RealJenkinsRule-cp.txt"),
+                cpFile,
                 Stream.of(cp.split(File.pathSeparator)).collect(Collectors.joining(System.lineSeparator())),
                 StandardCharsets.UTF_8);
         List<String> argv = new ArrayList<>(List.of(
                 new File(javaHome != null ? javaHome : System.getProperty("java.home"), "bin/java").getAbsolutePath(),
                 "-ea",
                 "-Dhudson.Main.development=true",
+                "-DRealJenkinsRule.classpath=" + cpFile,
                 "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
@@ -734,9 +919,12 @@ public final class RealJenkinsRule implements TestRule {
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
             argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
         }
-        portFile = File.createTempFile("jenkins-port", ".txt", getHome());
-        Files.delete(portFile.toPath());
+        portFile = metadata.resolve("jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
+        var tmp = System.getProperty("java.io.tmpdir");
+        if (tmp != null) {
+            argv.add("-Djava.io.tmpdir=" + tmp);
+        }
         boolean debugging = new DisableOnDebug(null).isDebugging();
         if (debugging) {
             argv.add("-agentlib:jdwp=transport=dt_socket"
@@ -744,15 +932,25 @@ public final class RealJenkinsRule implements TestRule {
                     + ",suspend=" + (debugSuspend ? "y" : "n")
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
-        argv.addAll(javaOptions);
+        if(!bootClasspathFiles.isEmpty()) {
+            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+            argv.add("-Xbootclasspath/a:" + fileList);
 
+        }
+        argv.addAll(javaOptions);
 
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
-                "--httpPort=" + port, // initially port=0. On subsequent runs, the port is set to the port used allocated randomly on the first run.
                 "--httpListenAddress=" + httpListenAddress,
                 "--prefix=/jenkins"));
+        argv.addAll(getPortOptions());
+        if (https) {
+            argv.add("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath());
+            if (keyStoreManager.getPassword() != null) {
+                argv.add("--httpsKeyStorePassword=" + keyStoreManager.getPassword());
+            }
+        }
         argv.addAll(jenkinsOptions);
         Map<String, String> env = new TreeMap<>();
         env.put("JENKINS_HOME", getHome().getAbsolutePath());
@@ -783,13 +981,13 @@ public final class RealJenkinsRule implements TestRule {
                 proc = null;
                 throw new IOException("Jenkins process terminated prematurely with exit code " + exitValue);
             }
-            if (port == 0 && portFile != null && portFile.exists()) {
+            if (port == 0 && portFile != null && Files.isRegularFile(portFile)) {
                 port = readPort(portFile);
             }
             if (port != 0) {
                 try {
                     URL status = endpoint("status");
-                    HttpURLConnection conn = (HttpURLConnection) status.openConnection();
+                    HttpURLConnection conn = decorateConnection(status.openConnection());
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
@@ -820,6 +1018,15 @@ public final class RealJenkinsRule implements TestRule {
         addTimeout();
     }
 
+    private Collection<String> getPortOptions() {
+        // Initially port=0. On subsequent runs, this is set to the port allocated randomly on the first run.
+        if (https) {
+            return List.of("--httpPort=-1", "--httpsPort=" + port);
+        } else {
+            return List.of("--httpPort=" + port);
+        }
+    }
+
     @CheckForNull
     public static String checkResult(HttpURLConnection conn) throws IOException {
         int code = conn.getResponseCode();
@@ -848,7 +1055,7 @@ public final class RealJenkinsRule implements TestRule {
                 if (proc != null) {
                     LOGGER.warning("Test timeout expired, stopping steps…");
                     try {
-                        endpoint("timeout").openStream().close();
+                        decorateConnection(endpoint("timeout").openConnection()).getInputStream().close();
                     } catch (IOException x) {
                         x.printStackTrace();
                     }
@@ -866,13 +1073,13 @@ public final class RealJenkinsRule implements TestRule {
         }
     }
 
-    private static int readPort(File portFile) throws IOException {
-        String s = Files.readString(portFile.toPath(), StandardCharsets.UTF_8);
+    private static int readPort(Path portFile) throws IOException {
+        String s = Files.readString(portFile, StandardCharsets.UTF_8);
 
         // Work around to non-atomic write of port value in Winstone releases prior to 6.1.
         // TODO When Winstone 6.2 has been widely adopted, this can be deleted.
         if (s.isEmpty()) {
-            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile.getAbsolutePath()));
+            LOGGER.warning(() -> String.format("PortFile: %s exists, but value is still not written", portFile));
             return 0;
         }
 
@@ -894,9 +1101,9 @@ public final class RealJenkinsRule implements TestRule {
             proc = null;
             if (_proc.isAlive()) {
                 try {
-                    endpoint("exit").openStream().close();
-                } catch (ConnectException e) {
-                    System.err.println("Unable to connect to the Jenkins process to stop it.");
+                    decorateConnection(endpoint("exit").openConnection()).getInputStream().close();
+                } catch (SocketException e) {
+                    System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {
                 System.err.println("Jenkins process was already terminated.");
@@ -924,7 +1131,7 @@ public final class RealJenkinsRule implements TestRule {
 
     @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
-        HttpURLConnection conn = (HttpURLConnection) endpoint("step").openConnection();
+        HttpURLConnection conn = decorateConnection(endpoint("step").openConnection());
         conn.setRequestProperty("Content-Type", "application/octet-stream");
         conn.setDoOutput(true);
 
@@ -948,6 +1155,13 @@ public final class RealJenkinsRule implements TestRule {
             }
             throw e;
         }
+    }
+
+    private HttpURLConnection decorateConnection(@NonNull URLConnection urlConnection) {
+        if (sslSocketFactory != null) {
+            ((HttpsURLConnection) urlConnection).setSSLSocketFactory(sslSocketFactory);
+        }
+        return (HttpURLConnection) urlConnection;
     }
 
     @FunctionalInterface
@@ -1132,7 +1346,7 @@ public final class RealJenkinsRule implements TestRule {
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getenv("JENKINS_HOME"), "RealJenkinsRule-cp.txt"), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
+            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getProperty("RealJenkinsRule.classpath")), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
             tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
         }
 
@@ -1281,11 +1495,17 @@ public final class RealJenkinsRule implements TestRule {
             }
             Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err));
         }
-        public HttpResponse doExit(@QueryParameter String token) throws IOException {
+        public HttpResponse doExit(@QueryParameter String token) throws IOException, InterruptedException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                return Jenkins.get().doSafeExit((StaplerRequest) null);
+                Jenkins j = Jenkins.get();
+                j.doQuietDown(true, 30_000, null, false); // 30s < 60s timeout of stopJenkins
+                // Cannot use doExit since it requires StaplerRequest2, so would throw an error on older cores:
+                j.getLifecycle().onStop("RealJenkinsRule", null);
+                j.cleanUp();
+                new Thread(() -> System.exit(0), "exiting").start();
             }
+            return HttpResponses.ok();
         }
         public void doTimeout(@QueryParameter String token) {
             checkToken(token);
@@ -1307,7 +1527,9 @@ public final class RealJenkinsRule implements TestRule {
         public CustomJenkinsRule(URL url) throws Exception {
             this.jenkins = Jenkins.get();
             this.url = url;
-            jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+            if (jenkins.isUsageStatisticsCollected()) {
+                jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+            }
             if (JenkinsLocationConfiguration.get().getUrl() == null) {
                 JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
             }
