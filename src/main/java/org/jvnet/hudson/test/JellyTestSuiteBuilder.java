@@ -96,6 +96,7 @@ public class JellyTestSuiteBuilder {
         private final JellyClassLoaderTearOff jct;
         private final boolean requirePI;
         private List<String> errors = new ArrayList<>();
+        private boolean inlineJs = false;
 
         JellyCheck(URL jelly, String name, JellyClassLoaderTearOff jct, boolean requirePI) {
             super(name);
@@ -118,6 +119,9 @@ public class JellyTestSuiteBuilder {
             checkScriptElement(dom);
             checkJavaScriptAttributes(dom);
             if (!errors.isEmpty()) {
+                if (inlineJs) {
+                    errors.add("Please visit https://www.jenkins.io/doc/developer/security/csp/ for more details.");
+                }
                 String message = String.join("\n", errors);
                 throw new AssertionError(message);
             }
@@ -132,15 +136,18 @@ public class JellyTestSuiteBuilder {
                 Attribute checkDependsOn = element.attribute("checkDependsOn");
                 if (checkUrl != null  && checkDependsOn == null) {
                     errors.add("Usage of 'checkUrl' without 'checkDependsOn' in "+jelly);
+                    inlineJs = true;
                 }
                 if (onclick != null && element.getNamespace() != Namespace.NO_NAMESPACE) {
                     errors.add("Usage of 'onclick' from a taglib in "+jelly);
+                    inlineJs = true;
                 }
                 List<Attribute> attributes = element.attributes();
                 if (element.getNamespace() == Namespace.NO_NAMESPACE && !attributes.isEmpty()) {
                     attributes.forEach(a -> {
                         if (a.getName().startsWith("on")) {
                             errors.add("Usage of inline event handler '" + a.getName() + "' in "+jelly);
+                            inlineJs = true;
                         }
                     });
                 }
@@ -155,6 +162,7 @@ public class JellyTestSuiteBuilder {
                 if (element.attributeValue("src") == null && (typeAttribute == null ||
                         !"application/json".equals(typeAttribute.toLowerCase(Locale.US)))) {
                     errors.add("inline <script> element in "+jelly);
+                    inlineJs = true;
                 }
             });
         }
