@@ -1853,7 +1853,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
     static {
-        Functions.DEBUG_YUI = true;
+        try {
+            Functions.class.getDeclaredField("DEBUG_YUI").setBoolean(null, true);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError();
+            x.initCause(e);
+            throw x;
+        } catch (NoSuchFieldException e) {
+            // No YUI, no problem
+        }
 
         if (Functions.isGlibcSupported()) {
             try {
