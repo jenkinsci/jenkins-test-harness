@@ -288,8 +288,8 @@ public final class RealJenkinsRule implements TestRule {
      * @param pkg the Java package containing any classes and resources you want included
      * @return a builder
      */
-    public SyntheticPlugin addSyntheticPlugin(String pkg) {
-        SyntheticPlugin p = new SyntheticPlugin(pkg);
+    public SyntheticPlugin addSyntheticPlugin(Package pkg) {
+        SyntheticPlugin p = new SyntheticPlugin(pkg.getName());
         syntheticPlugins.add(p);
         return p;
     }
