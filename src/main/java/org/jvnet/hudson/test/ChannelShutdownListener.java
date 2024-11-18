@@ -8,6 +8,7 @@ import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
 import hudson.slaves.ComputerListener;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -22,7 +23,7 @@ public class ChannelShutdownListener extends ComputerListener implements EndOfTe
     /**
      * Remember channels that are created, to release them at the end.
      */
-    private List<Channel> channels = new ArrayList<>();
+    private List<WeakReference<Channel>> channels = new ArrayList<>();
 
     public ChannelShutdownListener() {
         if (!Main.isUnitTest) {
@@ -34,17 +35,23 @@ public class ChannelShutdownListener extends ComputerListener implements EndOfTe
     public synchronized void onOnline(Computer c, TaskListener listener) throws IOException, InterruptedException {
         VirtualChannel ch = c.getChannel();
         if (ch instanceof Channel) {
-            channels.add((Channel)ch);
+            channels.add(new WeakReference<>((Channel) ch));
         }
     }
 
     @Override
     public synchronized void onTearDown() throws Exception {
-        for (Channel c : channels) {
-            c.close();
+        for (WeakReference<Channel> cr : channels) {
+            Channel c = cr.get();
+            if (c != null) {
+                c.close();
+            }
         }
-        for (Channel c : channels) {
-            c.join();
+        for (WeakReference<Channel> cr : channels) {
+            Channel c = cr.get();
+            if (c != null) {
+                c.join();
+            }
         }
         channels.clear();
     }

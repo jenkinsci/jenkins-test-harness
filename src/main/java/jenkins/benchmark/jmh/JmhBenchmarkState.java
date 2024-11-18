@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
+import jakarta.servlet.ServletContext;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -11,12 +12,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.jvnet.hudson.test.JavaNetReverseProxy;
+import org.jvnet.hudson.test.JavaNetReverseProxy2;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
 import org.jvnet.hudson.test.TestPluginManager;
@@ -62,7 +62,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         // security setup as in a default installation.
         System.setProperty("jenkins.install.state", "TEST");
         launchInstance();
-        ACL.impersonate(ACL.SYSTEM);
+        ACL.impersonate2(ACL.SYSTEM2);
         setup();
     }
 
@@ -79,7 +79,7 @@ public abstract class JmhBenchmarkState implements RootAction {
         } finally {
             JenkinsRule._stopJenkins(server, null, jenkins);
             try {
-                JavaNetReverseProxy.getInstance().stop();
+                JavaNetReverseProxy2.getInstance().stop();
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Unable to stop JavaNetReverseProxy server", e);
             }
@@ -93,15 +93,15 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        server = JenkinsRule._createWebServer(
+        WebAppContext context = JenkinsRule._createWebAppContext2(
                 contextPath,
                 localPort::set,
                 getClass().getClassLoader(),
                 localPort.get(),
                 JenkinsRule::_configureUserRealm);
+        server = context.getServer();
 
-        ServletContext webServer =
-                server.getChildHandlerByClass(ContextHandler.class).getServletContext();
+        ServletContext webServer = context.getServletContext();
 
         jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);

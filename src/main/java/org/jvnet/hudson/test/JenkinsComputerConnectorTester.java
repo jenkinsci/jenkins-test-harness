@@ -28,10 +28,10 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.slaves.ComputerConnector;
 import hudson.slaves.ComputerConnectorDescriptor;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;
-import javax.servlet.ServletException;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Test bed to verify the configuration roundtripness of the {@link ComputerConnector}.
@@ -48,7 +48,7 @@ public class JenkinsComputerConnectorTester extends AbstractDescribableImpl<Jenk
         this.jenkinsRule = testCase;
     }
 
-    public void doConfigSubmit(StaplerRequest req) throws IOException, ServletException {
+    public void doConfigSubmit(StaplerRequest2 req) throws IOException, ServletException {
         connector = req.bindJSON(ComputerConnector.class, req.getSubmittedForm().getJSONObject("connector"));
     }
 

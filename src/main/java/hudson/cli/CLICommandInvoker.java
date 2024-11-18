@@ -46,12 +46,12 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Helper class to invoke {@link CLICommand} and check the response.
@@ -111,7 +111,7 @@ public class CLICommandInvoker {
      * @see MockAuthorizationStrategy
      */
     public CLICommandInvoker asUser(String user) {
-        command.setTransportAuth(User.get(user).impersonate());
+        command.setTransportAuth2(User.getById(user, true).impersonate2());
         return this;
     }
 
@@ -201,6 +201,7 @@ public class CLICommandInvoker {
         }
     }
 
+    @Deprecated
     private void setAuth() {
 
         if (permissions.isEmpty()) {
@@ -216,11 +217,12 @@ public class CLICommandInvoker {
         originalAuthorizationStrategy = rule.jenkins.getAuthorizationStrategy();
         rule.jenkins.setAuthorizationStrategy(new GrantPermissions(username, permissions));
 
-        command.setTransportAuth(user().impersonate());
+        command.setTransportAuth2(user().impersonate2());
         // Otherwise it is SYSTEM, which would be relevant for a command overriding main:
-        originalSecurityContext = ACL.impersonate(Jenkins.ANONYMOUS);
+        originalSecurityContext = ACL.impersonate2(Jenkins.ANONYMOUS2);
     }
 
+    @Deprecated
     private void restoreAuth() {
         if (originalSecurityRealm != null) {
             rule.jenkins.setSecurityRealm(originalSecurityRealm);

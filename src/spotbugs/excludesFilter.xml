@@ -4,10 +4,74 @@
     Exclusions in this section have been triaged and determined to be false positives.
   -->
   <Match>
-    <Or>
-      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
-      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
-    </Or>
+    <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
+    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="hudson.slaves.DummyCloudImpl"/>
+    <Field name="numProvisioned"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.ComputerConnectorTester"/>
+    <Field name="connector"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="hudson"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="jenkins"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
+    <Field name="useLocalPluginManager"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsComputerConnectorTester"/>
+    <Field name="connector"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="hudson"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="jenkins"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.JenkinsRule"/>
+    <Field name="useLocalPluginManager"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
+    <Field name="home"/>
+  </Match>
+  <Match>
+    <!-- Retain API compatibility -->
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
+    <Field name="j"/>
   </Match>
   <!--
     Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
@@ -118,7 +182,7 @@
           <Class name="org.jvnet.hudson.test.ExtractResourceSCM"/>
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
           <Class name="org.jvnet.hudson.test.HudsonTestCase"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$Jpl"/>
           <Class name="org.jvnet.hudson.test.MockFolder"/>
@@ -148,7 +212,7 @@
         <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonHomeLoader$CopyExisting"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule"/>
           <Class name="org.jvnet.hudson.test.RealJenkinsRule$1"/>
           <Class name="org.jvnet.hudson.test.TemporaryDirectoryAllocator"/>
@@ -166,7 +230,7 @@
         <Bug pattern="SE_BAD_FIELD"/>
         <Or>
           <Class name="org.jvnet.hudson.test.HudsonTestCase$WebClient$1"/>
-          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy"/>
+          <Class name="org.jvnet.hudson.test.JavaNetReverseProxy2"/>
           <Class name="org.jvnet.hudson.test.JenkinsRule$WebClient$1"/>
         </Or>
       </And>

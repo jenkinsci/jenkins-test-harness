@@ -6,8 +6,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.Builder;
 import java.io.IOException;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 /**
  * {@link HudsonTestCase} with more convenience methods for Groovy.
@@ -19,7 +19,7 @@ import org.kohsuke.stapler.StaplerResponse;
 public abstract class GroovyHudsonTestCase extends HudsonTestCase {
     /**
      * Executes the given closure on the server, in the context of an HTTP request.
-     * This is useful for testing some methods that require {@link StaplerRequest} and {@link StaplerResponse}.
+     * This is useful for testing some methods that require {@link StaplerRequest2} and {@link StaplerResponse2}.
      * <p>
      * The closure will get the request and response as parameters.
      */

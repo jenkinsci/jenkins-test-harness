@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -42,6 +44,7 @@ import static org.mockito.Mockito.when;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
+import hudson.PluginWrapper;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
@@ -53,8 +56,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.servlet.Filter;
@@ -65,6 +71,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import static org.junit.Assume.assumeThat;
+import org.junit.AssumptionViolatedException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -72,11 +80,10 @@ import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
-    // TODO addPlugins does not currently take effect when used inside test method
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addPlugins("plugins/structs.hpi").withDebugPort(4001).withDebugServer(false);
-    @Rule public RealJenkinsRule rrWithFailure = new RealJenkinsRule().addPlugins("plugins/failure.hpi");
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true).withDebugPort(4001).withDebugServer(false);
 
     @Test public void smokes() throws Throwable {
+        rr.addPlugins("plugins/structs.hpi");
         rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
     }
     private static void _smokes(JenkinsRule r) throws Throwable {
@@ -89,6 +96,14 @@ public class RealJenkinsRuleTest {
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+    }
+
+    @Test public void ipv6() throws Throwable {
+        // Use -Djava.net.preferIPv6Addresses=true if dualstack
+        assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
+        rr.withHost("::1").startJenkins();
+        var externalForm = rr.getUrl().toExternalForm();
+        assertEquals(externalForm, rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     @Test public void testThrowsException() {
@@ -299,12 +314,79 @@ public class RealJenkinsRuleTest {
     @Test
     public void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsRule.JenkinsStartupException jse = assertThrows(
-                RealJenkinsRule.JenkinsStartupException.class, () -> rrWithFailure.startJenkins());
+                RealJenkinsRule.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi").startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
-    // TODO interesting scenarios to test:
-    // · throw an exception of a type defined in Jenkins code
-    // · run with optional dependencies disabled
+    @Test
+    public void whenUsingWrongJavaHome() throws Throwable {
+        IOException ex = assertThrows(
+                IOException.class, () -> rr.withJavaHome("/noexists").startJenkins());
+        assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
+    }
+
+    @Test 
+    public void smokesJavaHome() throws Throwable {
+        String altJavaHome = System.getProperty("java.home");
+        rr.addPlugins("plugins/structs.hpi");
+        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+    }
+
+    @Issue("https://github.com/jenkinsci/jenkins-test-harness/issues/359")
+    @Test
+    public void assumptions() throws Throwable {
+        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions1)).getMessage(), is("got: <4>, expected: is <5>"));
+        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions2)).getMessage(), is("oops: got: <4>, expected: is <5>"));
+    }
+
+    private static void _assumptions1(JenkinsRule r) throws Throwable {
+        assumeThat(2 + 2, is(5));
+    }
+
+    private static void _assumptions2(JenkinsRule r) throws Throwable {
+        assumeThat("oops", 2 + 2, is(5));
+    }
+
+    @Test
+    public void timeoutDuringStep() throws Throwable {
+        rr.withTimeout(10);
+        assertThat(Functions.printThrowable(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
+            containsString("\tat " + RealJenkinsRuleTest.class.getName() + ".hangs(RealJenkinsRuleTest.java:"));
+    }
+
+    private static void hangs(JenkinsRule r) throws Throwable {
+        System.err.println("Hanging step…");
+        Thread.sleep(Long.MAX_VALUE);
+    }
+
+    @Test
+    public void noDetachedPlugins() throws Throwable {
+        // we should be the only plugin in Jenkins.
+        rr.then(RealJenkinsRuleTest::_noDetachedPlugins);
+    }
+
+    private static void _noDetachedPlugins(JenkinsRule r) throws Throwable {
+        // only RealJenkinsRuleInit should be present
+        List<PluginWrapper> plugins = r.jenkins.getPluginManager().getPlugins();
+        assertThat(plugins, hasSize(1));
+        assertThat(plugins.get(0).getShortName(), is("RealJenkinsRuleInit"));
+    }
+
+    @Test
+    public void safeExit() throws Throwable {
+        rr.then(RealJenkinsRuleTest::_safeExit);
+    }
+
+    private static void _safeExit(JenkinsRule r) throws Throwable {
+        var p = r.createFreeStyleProject();
+        p.getBuildersList().add(new TestBuilder() {
+            @Override
+            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                Thread.sleep(Long.MAX_VALUE);
+                return false;
+            }
+        });
+        p.scheduleBuild2(0).waitForStart();
+    }
 
 }

@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Allocates temporary directories and cleans it up at the end.
@@ -80,9 +81,13 @@ public class TemporaryDirectoryAllocator {
      * This directory will be wiped out when {@link TemporaryDirectoryAllocator} gets disposed.
      * When this method returns, the directory already exists. 
      */
-    public synchronized File allocate() throws IOException {
+    public File allocate() throws IOException {
+        return allocate(withoutSpace ? "jkh" : "j h");
+    }
+
+    synchronized File allocate(String name) throws IOException {
         try {
-            File f = Files.createTempDirectory(base.toPath(), (withoutSpace ? "jkh" : "j h")).toFile();
+            File f = Files.createTempDirectory(base.toPath(), name).toFile();
             tmpDirectories.add(f);
             return f;
         } catch (IOException e) {
@@ -140,9 +145,11 @@ public class TemporaryDirectoryAllocator {
             }
             Files.deleteIfExists(p);
         } catch (DirectoryNotEmptyException x) {
+            String pathString = p.toString();
             try (Stream<Path> children = Files.list(p)) {
-                throw new IOException(children.map(Path::toString).collect(Collectors.joining(" ")), x);
+                x.addSuppressed(new IOException("These files still exist : " + children.map(Path::toString).map(s -> StringUtils.removeStart(s, pathString + File.separator)).collect(Collectors.joining(", "))));
             }
+            throw x;
         }
     }
 

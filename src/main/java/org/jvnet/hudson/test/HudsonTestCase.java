@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilElementIsPresent;
+import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -88,6 +90,9 @@ import hudson.util.PersistedList;
 import hudson.util.ReflectionUtils;
 import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletRequest;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -124,8 +129,6 @@ import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -137,8 +140,11 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.eclipse.jetty.ee9.webapp.Configuration;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
+import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
+import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -147,13 +153,9 @@ import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.Configuration;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.eclipse.jetty.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.htmlunit.AjaxController;
 import org.htmlunit.AlertHandler;
 import org.htmlunit.BrowserVersion;
@@ -169,6 +171,7 @@ import org.htmlunit.cssparser.parser.CSSException;
 import org.htmlunit.cssparser.parser.CSSParseException;
 import org.htmlunit.html.DomNode;
 import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
@@ -193,8 +196,8 @@ import org.kohsuke.stapler.Dispatcher;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.springframework.dao.DataAccessException;
 import org.xml.sax.SAXException;
 
@@ -353,9 +356,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         
         jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
-        jenkins.servletContext.setAttribute("app", jenkins);
-        jenkins.servletContext.setAttribute("version","?");
-        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.servletContext));
+        jenkins.getServletContext().setAttribute("app", jenkins);
+        jenkins.getServletContext().setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.getServletContext()));
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
 
         // set a default JDK to be the one that the harness is using.
@@ -404,7 +407,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
-        final String updateCenterUrl = "http://localhost:"+ JavaNetReverseProxy.getInstance().localPort+"/update-center.json";
+        final String updateCenterUrl =
+                "http://localhost:" + JavaNetReverseProxy2.getInstance().localPort + "/update-center.json";
 
         // don't waste bandwidth talking to the update center
         DownloadService.neverUpdate = true;
@@ -520,9 +524,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     protected Hudson newHudson() throws Exception {
         File home = homeLoader.allocate();
         for (Runner r : recipes) {
-            r.decorateHome(this,home);
+            r.decorateHome(this, home);
         }
-        return new Hudson(home, createWebServer(), useLocalPluginManager ? null : pluginManager);
+        return new Hudson(home, createWebServer2(), useLocalPluginManager ? null : pluginManager);
     }
 
     /**
@@ -543,20 +547,35 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Prepares a webapp hosting environment to get {@link ServletContext} implementation
      * that we need for testing.
      */
-    protected ServletContext createWebServer() throws Exception {
+    protected ServletContext createWebServer2() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (HudsonTestCase)");
         server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
-        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath);
+        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
         context.setResourceBase(explodedWarDir.getPath());
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
-        server.setHandler(context);
+        context.addBean(new NoListenerConfiguration2(context));
+        context.setServer(server);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
         ServerConnector connector = new ServerConnector(server);
@@ -787,7 +806,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Performs a search from the search box.
      */
     protected Page search(String q) throws Exception {
-        return new WebClient().search(q);
+        return createWebClient().search(q);
     }
 
     /**
@@ -1409,7 +1428,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *
      * <p>
      * This method allows you to do just that. It is useful for testing some methods that
-     * require {@link StaplerRequest} and {@link StaplerResponse}, or getting the credential
+     * require {@link StaplerRequest2} and {@link StaplerResponse2}, or getting the credential
      * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
      *
      * @param c
@@ -1556,7 +1575,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          *
          * <p>
          * This method allows you to do just that. It is useful for testing some methods that
-         * require {@link StaplerRequest} and {@link StaplerResponse}, or getting the credential
+         * require {@link StaplerRequest2} and {@link StaplerResponse2}, or getting the credential
          * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
          *
          * @param c
@@ -1576,7 +1595,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 @Override
                 public void run() {
                     try {
-                        StaplerResponse rsp = Stapler.getCurrentResponse();
+                        StaplerResponse2 rsp = Stapler.getCurrentResponse2();
                         rsp.setStatus(200);
                         rsp.setContentType("text/html");
                         r.add(c.call());
@@ -1595,9 +1614,30 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlForm search = top.getFormByName("search");
-            search.getInputByName("q").setValue(q);
-            return (HtmlPage)HtmlFormUtil.submit(search, null);
+            HtmlButton button = top.querySelector("#button-open-command-palette");
+
+            // Legacy versions of Jenkins
+            if (button == null) {
+                HtmlForm search = top.getFormByName("search");
+                search.getInputByName("q").setValue(q);
+                return (HtmlPage) HtmlFormUtil.submit(search, null);
+            }
+
+            button.click();
+            HtmlInput search = top.querySelector("#command-bar");
+            search.setValue(q);
+            top.executeJavaScript("document.querySelector('#command-bar').dispatchEvent(new Event(\"input\"))");
+
+            // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
+            waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
+            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+
+            if (firstResult == null) {
+                System.out.println("Couldn't find result for query '" + q + "'");
+                return null;
+            }
+
+            return firstResult.click();
         }
 
         /**
@@ -1735,7 +1775,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public WebRequest addCrumb(WebRequest req) {
             NameValuePair crumb = new NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                    jenkins.getCrumbIssuer().getCrumb( null ));
+                    jenkins.getCrumbIssuer().getCrumb((ServletRequest) null));
             req.setRequestParameters(List.of(crumb));
             return req;
         }
@@ -1746,7 +1786,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public URL createCrumbedUrl(String relativePath) throws IOException {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
-            String crumb = issuer.getCrumb(null);
+            String crumb = issuer.getCrumb((ServletRequest) null);
             
             return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
         }
@@ -1800,7 +1840,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         });
 
         // remove the upper bound of the POST data size in Jetty.
-        System.setProperty(ContextHandler.MAX_FORM_CONTENT_SIZE_KEY, "-1");
+        System.setProperty("org.eclipse.jetty.server.Request.maxFormContentSize", "-1");
     }
 
     private static final Logger LOGGER = Logger.getLogger(HudsonTestCase.class.getName());
@@ -1812,10 +1852,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
-    public static final MimeTypes MIME_TYPES = new MimeTypes();
     static {
-        MIME_TYPES.addMimeMapping("js","application/javascript");
-        Functions.DEBUG_YUI = true;
+        try {
+            Functions.class.getDeclaredField("DEBUG_YUI").setBoolean(null, true);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError();
+            x.initCause(e);
+            throw x;
+        } catch (NoSuchFieldException e) {
+            // No YUI, no problem
+        }
 
         if (Functions.isGlibcSupported()) {
             try {
@@ -1849,7 +1895,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest2 req, @NonNull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
         }

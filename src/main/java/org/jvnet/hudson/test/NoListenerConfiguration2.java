@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2021 CloudBees, Inc.
+ * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,25 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package org.jvnet.hudson.test;
 
-import hudson.Plugin;
-import java.net.URL;
-import java.net.URLClassLoader;
-import jenkins.model.Jenkins;
+import hudson.WebAppMain;
+import jakarta.servlet.ServletContextListener;
+import java.util.EventListener;
+import org.eclipse.jetty.ee9.webapp.WebAppContext;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
 
-public class RealJenkinsRuleInit extends Plugin {
+/**
+ * Kills off the {@link WebAppMain} {@link ServletContextListener}.
+ *
+ * <p>
+ * This is so that the harness can create the {@link jenkins.model.Jenkins} object.
+ * with the home directory of our choice.
+ *
+ * @author Kohsuke Kawaguchi
+ */
+public class NoListenerConfiguration2 extends AbstractLifeCycle {
+    private final WebAppContext context;
 
-    @SuppressWarnings("deprecation") // @Initializer just gets run too late, even with before = InitMilestone.PLUGINS_PREPARED
-    public RealJenkinsRuleInit() {}
-
-    @Override
-    public void start() throws Exception {
-        new URLClassLoader(new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))}, ClassLoader.getSystemClassLoader().getParent()).
-                loadClass("org.jvnet.hudson.test.RealJenkinsRule$Init2").
-                getMethod("run", Object.class).
-                invoke(null, Jenkins.get());
+    public NoListenerConfiguration2(WebAppContext context) {
+        this.context = context;
     }
 
+    @Override
+    protected void doStart() {
+        for (EventListener eventListener : context.getEventListeners()) {
+            if (eventListener instanceof WebAppMain) {
+                context.removeEventListener(eventListener);
+            }
+        }
+    }
 }
