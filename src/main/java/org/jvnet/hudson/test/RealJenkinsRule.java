@@ -285,6 +285,14 @@ public final class RealJenkinsRule implements TestRule {
      * Useful when you wish to define some types, register some {@link Extension}s, etc.
      * and there is no existing plugin that does quite what you want
      * (that you are comfortable adding to the test classpath and maintaining the version of).
+     * <p>If you also have some test suites based on {@link JenkinsRule},
+     * you may not want to use {@link Extension} since (unlike {@link TestExtension})
+     * it would be loaded in all such tests.
+     * Instead create a {@code package-info.java} specifying an {@code @OptionalPackage}
+     * whose {@code requirePlugins} lists the same {@link SyntheticPlugin#shortName(String)}.
+     * (You will need to {@code .header("Plugin-Dependencies", "variant:0")} to use this API.)
+     * Then use {@code @OptionalExtension} on all your test extensions.
+     * These will then be loaded only in {@link RealJenkinsRule}-based tests requesting this plugin.
      * @param pkg the Java package containing any classes and resources you want included
      * @return a builder
      */
