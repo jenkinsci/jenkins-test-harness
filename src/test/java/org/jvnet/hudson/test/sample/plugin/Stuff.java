@@ -27,7 +27,7 @@ package org.jvnet.hudson.test.sample.plugin;
 import hudson.Extension;
 import hudson.model.InvisibleAction;
 import hudson.model.UnprotectedRootAction;
-import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
+import jenkins.model.Jenkins;
 import org.jvnet.hudson.test.RealJenkinsRuleSyntheticPluginTest;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
@@ -44,7 +44,7 @@ public final class Stuff extends InvisibleAction implements UnprotectedRootActio
     }
 
     public HttpResponse doIndex() {
-        return HttpResponses.text(InstanceIdentity.get().getEncodedPublicKey());
+        return HttpResponses.text(Jenkins.get().getLegacyInstanceId());
     }
 
 }

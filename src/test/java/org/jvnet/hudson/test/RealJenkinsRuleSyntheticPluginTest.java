@@ -24,9 +24,9 @@
 
 package org.jvnet.hudson.test;
 
+import jenkins.model.Jenkins;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.sample.plugin.Stuff;
@@ -42,7 +42,7 @@ public final class RealJenkinsRuleSyntheticPluginTest {
 
     private static void _smokes(JenkinsRule r) throws Throwable {
         assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
-            is(InstanceIdentity.get().getEncodedPublicKey()));
+            is(Jenkins.get().getLegacyInstanceId()));
     }
 
 }
