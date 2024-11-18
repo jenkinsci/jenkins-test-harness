@@ -606,9 +606,10 @@ public final class RealJenkinsRule implements TestRule {
 
         File plugins = new File(getHome(), "plugins");
         Files.createDirectories(plugins.toPath());
+        // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
+        String targetJenkinsVersion;
         try (JarFile jf = new JarFile(war)) {
-            // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
-            String targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
             PluginUtils.createRealJenkinsRulePlugin(plugins, targetJenkinsVersion);
         }
 
@@ -695,7 +696,7 @@ public final class RealJenkinsRule implements TestRule {
             FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
         }
         for (SyntheticPlugin syntheticPlugin : syntheticPlugins) {
-            syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"));
+            syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"), targetJenkinsVersion);
         }
         System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
     }
@@ -1698,7 +1699,7 @@ public final class RealJenkinsRule implements TestRule {
             return RealJenkinsRule.this;
         }
 
-        void writeTo(File jpi) throws IOException, URISyntaxException {
+        void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (ZipOutputStream zos = new ZipOutputStream(baos)) {
                 String pkgSlash = pkg.replace('.', '/');
@@ -1721,6 +1722,7 @@ public final class RealJenkinsRule implements TestRule {
             attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
             attr.putValue("Short-Name", shortName);
             attr.putValue("Plugin-Version", version);
+            attr.putValue("Jenkins-Version", defaultJenkinsVersion);
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 attr.putValue(entry.getKey(), entry.getValue());
             }
