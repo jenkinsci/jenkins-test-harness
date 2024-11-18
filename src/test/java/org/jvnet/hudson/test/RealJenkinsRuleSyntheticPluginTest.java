@@ -33,10 +33,10 @@ import org.jvnet.hudson.test.sample.plugin.Stuff;
 
 public final class RealJenkinsRuleSyntheticPluginTest {
 
-    // TODO addSyntheticPlugin does not currently take effect when used inside test method
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().addSyntheticPlugin(Stuff.class.getPackage()).done();
+    @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true);
 
     @Test public void smokes() throws Throwable {
+        rr.addSyntheticPlugin(Stuff.class.getPackage()).done();
         rr.then(RealJenkinsRuleSyntheticPluginTest::_smokes);
     }
 
