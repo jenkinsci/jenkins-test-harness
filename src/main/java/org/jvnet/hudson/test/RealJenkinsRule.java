@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
@@ -36,6 +37,7 @@ import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -54,6 +56,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
@@ -88,8 +91,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
+import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -99,6 +105,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -160,7 +168,6 @@ import org.kohsuke.stapler.verb.POST;
  * <p>Systems not yet tested:
  * <ul>
  * <li>Possibly {@link Timeout} can be used.
- * <li>Possibly {@link ExtensionList#add(Object)} can be used as an alternative to {@link TestExtension}.
  * </ul>
  */
 public final class RealJenkinsRule implements TestRule {
@@ -198,6 +205,8 @@ public final class RealJenkinsRule implements TestRule {
     private final String token = UUID.randomUUID().toString();
 
     private final Set<String> extraPlugins = new TreeSet<>();
+
+    private final List<SyntheticPlugin> syntheticPlugins = new ArrayList<>();
 
     private final Set<String> skippedPlugins = new TreeSet<>();
 
@@ -241,13 +250,14 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Links this rule to another, with {@link #getHome} to be initialized by whichever copy starts first.
      * Also copies configuration related to the setup of that directory:
-     * {@link #includeTestClasspathPlugins(boolean)}, {@link #addPlugins}, and {@link #omitPlugins}.
+     * {@link #includeTestClasspathPlugins(boolean)}, {@link #addPlugins}, {@link #addSyntheticPlugin}, and {@link #omitPlugins}.
      * Other configuration such as {@link #javaOptions(String...)} may be applied to both, but that is your choice.
      */
     public RealJenkinsRule(RealJenkinsRule source) {
         this.home = source.home;
         this.includeTestClasspathPlugins = source.includeTestClasspathPlugins;
         this.extraPlugins.addAll(source.extraPlugins);
+        this.syntheticPlugins.addAll(source.syntheticPlugins);
         this.skippedPlugins.addAll(source.skippedPlugins);
     }
 
@@ -256,8 +266,7 @@ public final class RealJenkinsRule implements TestRule {
      *
      * @param plugins Filenames of the plugins to install. These are expected to be absolute test classpath resources,
      *     such as {@code plugins/workflow-job.hpi} for example.
-     *     <p>Committing that file to SCM (say, {@code src/test/resources/sample.jpi}) is
-     *     reasonable for small fake plugins built for this purpose and exercising some bit of code.
+     *     <p>For small fake plugins built for this purpose and exercising some bit of code, use {@link #addSyntheticPlugin}.
      *     If you wish to test with larger archives of real plugins, this is possible for example by
      *     binding {@code dependency:copy} to the {@code process-test-resources} phase.
      *     <p>In most cases you do not need this method. Simply add whatever plugins you are
@@ -269,6 +278,28 @@ public final class RealJenkinsRule implements TestRule {
     public RealJenkinsRule addPlugins(String... plugins) {
         extraPlugins.addAll(List.of(plugins));
         return this;
+    }
+
+    /**
+     * Adds a test-only plugin to the controller based on sources defined in this module.
+     * Useful when you wish to define some types, register some {@link Extension}s, etc.
+     * and there is no existing plugin that does quite what you want
+     * (that you are comfortable adding to the test classpath and maintaining the version of).
+     * <p>If you also have some test suites based on {@link JenkinsRule},
+     * you may not want to use {@link Extension} since (unlike {@link TestExtension})
+     * it would be loaded in all such tests.
+     * Instead create a {@code package-info.java} specifying an {@code @OptionalPackage}
+     * whose {@code requirePlugins} lists the same {@link SyntheticPlugin#shortName(String)}.
+     * (You will need to {@code .header("Plugin-Dependencies", "variant:0")} to use this API.)
+     * Then use {@code @OptionalExtension} on all your test extensions.
+     * These will then be loaded only in {@link RealJenkinsRule}-based tests requesting this plugin.
+     * @param pkg the Java package containing any classes and resources you want included
+     * @return a builder
+     */
+    public SyntheticPlugin addSyntheticPlugin(Package pkg) {
+        SyntheticPlugin p = new SyntheticPlugin(pkg.getName());
+        syntheticPlugins.add(p);
+        return p;
     }
 
     /**
@@ -583,9 +614,10 @@ public final class RealJenkinsRule implements TestRule {
 
         File plugins = new File(getHome(), "plugins");
         Files.createDirectories(plugins.toPath());
+        // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
+        String targetJenkinsVersion;
         try (JarFile jf = new JarFile(war)) {
-            // set the version to the version of jenkins used for testing to avoid dragging in detached plugins
-            String targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            targetJenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
             PluginUtils.createRealJenkinsRulePlugin(plugins, targetJenkinsVersion);
         }
 
@@ -670,6 +702,9 @@ public final class RealJenkinsRule implements TestRule {
                 }
             }
             FileUtils.copyURLToFile(url, new File(plugins, name + ".jpi"));
+        }
+        for (SyntheticPlugin syntheticPlugin : syntheticPlugins) {
+            syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"), targetJenkinsVersion);
         }
         System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
     }
@@ -1617,4 +1652,122 @@ public final class RealJenkinsRule implements TestRule {
             assumptionFailure = error instanceof AssumptionViolatedException ? error.getMessage() : null;
         }
     }
+
+    /**
+     * Alternative to {@link #addPlugins} or {@link TestExtension} that lets you build a test-only plugin on the fly.
+     * ({@link ExtensionList#add(Object)} can also be used for certain cases, but not if you need to define new types.)
+     */
+    public final class SyntheticPlugin {
+        private final String pkg;
+        private String shortName;
+        private String version = "1-SNAPSHOT";
+        private Map<String, String> headers = new HashMap<>();
+
+        SyntheticPlugin(String pkg) {
+            this.pkg = pkg;
+            shortName = "synthetic-" + pkg.replace('.', '-');
+        }
+
+        /**
+         * Plugin identifier ({@code Short-Name} manifest header).
+         * Defaults to being calculated from the package name,
+         * replacing {@code .} with {@code -} and prefixed by {@code synthetic-}.
+         */
+        public SyntheticPlugin shortName(String shortName) {
+            this.shortName = shortName;
+            return this;
+        }
+
+        /**
+         * Plugin version string ({@code Plugin-Version} manifest header).
+         * Defaults to an arbitrary snapshot version.
+         */
+        public SyntheticPlugin version(String version) {
+            this.version = version;
+            return this;
+        }
+
+        /**
+         * Add an extra plugin manifest header.
+         * Examples:
+         * <ul>
+         * <li>{@code Jenkins-Version: 2.387.3}
+         * <li>{@code Plugin-Dependencies: structs:325.vcb_307d2a_2782,support-core:1356.vd0f980edfa_46;resolution:=optional}
+         * <li>{@code Long-Name: My Plugin}
+         * </ul>
+         */
+        public SyntheticPlugin header(String key, String value) {
+            headers.put(key, value);
+            return this;
+        }
+
+        /**
+         * @return back to the rule builder
+         */
+        public RealJenkinsRule done() {
+            return RealJenkinsRule.this;
+        }
+
+        void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+                String pkgSlash = pkg.replace('.', '/');
+                URL mainU = RealJenkinsRule.class.getClassLoader().getResource(pkgSlash);
+                if (mainU == null) {
+                    throw new IOException("Cannot find " + pkgSlash + " in classpath");
+                }
+                Path main = Path.of(mainU.toURI());
+                if (!Files.isDirectory(main)) {
+                    throw new IOException(main + " does not exist");
+                }
+                Path metaInf = Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
+                if (Files.isDirectory(metaInf)) {
+                    zip(zos, metaInf, "META-INF/", pkg);
+                }
+                zip(zos, main, pkgSlash + "/", null);
+            }
+            Manifest mani = new Manifest();
+            Attributes attr = mani.getMainAttributes();
+            attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+            attr.putValue("Short-Name", shortName);
+            attr.putValue("Plugin-Version", version);
+            attr.putValue("Jenkins-Version", defaultJenkinsVersion);
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                attr.putValue(entry.getKey(), entry.getValue());
+            }
+            try (OutputStream os = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(os, mani)) {
+                jos.putNextEntry(new JarEntry("WEB-INF/lib/" + shortName + ".jar"));
+                jos.write(baos.toByteArray());
+            }
+            LOGGER.info(() -> "Generated " + jpi);
+        }
+
+        private void zip(ZipOutputStream zos, Path dir, String prefix, @CheckForNull String filter) throws IOException {
+            try (Stream<Path> stream = Files.list(dir)) {
+                Iterable<Path> iterable = stream::iterator;
+                for (Path child : iterable) {
+                    Path nameP = child.getFileName();
+                    assert nameP != null;
+                    String name = nameP.toString();
+                    if (Files.isDirectory(child)) {
+                        zip(zos, child, prefix + name + "/", filter);
+                    } else {
+                        if (filter != null) {
+                            // Deliberately not using UTF-8 since the file could be binary.
+                            // If the package name happened to be non-ASCII, 🤷 this could be improved.
+                            if (!Files.readString(child, StandardCharsets.ISO_8859_1).contains(filter)) {
+                                LOGGER.info(() -> "Skipping " + child + " since it makes no mention of " + filter);
+                                continue;
+                            }
+                        }
+                        LOGGER.info(() -> "Packing " + child);
+                        zos.putNextEntry(new ZipEntry(prefix + name));
+                        Files.copy(child, zos);
+                    }
+                }
+            }
+        }
+
+    }
+
 }
