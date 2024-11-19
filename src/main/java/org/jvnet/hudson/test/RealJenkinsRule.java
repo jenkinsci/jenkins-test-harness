@@ -1665,12 +1665,13 @@ public final class RealJenkinsRule implements TestRule {
 
         SyntheticPlugin(String pkg) {
             this.pkg = pkg;
-            shortName = pkg.replace('.', '-');
+            shortName = "synthetic-" + pkg.replace('.', '-');
         }
 
         /**
          * Plugin identifier ({@code Short-Name} manifest header).
-         * Defaults to being calculated from the package name, replacing {@code .} with {@code -}.
+         * Defaults to being calculated from the package name,
+         * replacing {@code .} with {@code -} and prefixed by {@code synthetic-}.
          */
         public SyntheticPlugin shortName(String shortName) {
             this.shortName = shortName;
