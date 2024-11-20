@@ -1156,6 +1156,19 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
+     * Stops Jenkins abruptly, without giving it a chance to shut down cleanly.
+     * If Jenkins is already stopped then invoking this method has no effect.
+     */
+    public void stopJenkinsForcibly() {
+        if (proc != null) {
+            var _proc = proc;
+            proc = null;
+            System.err.println("Killing the Jenkins process as requested");
+            _proc.destroyForcibly();
+        }
+    }
+
+    /**
      * Runs one or more steps on the remote system.
      * (Compared to multiple calls, passing a series of steps is slightly more efficient
      * as only one network call is made.)
