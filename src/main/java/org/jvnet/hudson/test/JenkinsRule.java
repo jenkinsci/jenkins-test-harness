@@ -1509,6 +1509,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the outcome of the build is a specific outcome.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#hasStatus(Result)} as an alternative.
      */
     public <R extends Run> R assertBuildStatus(Result status, R r) throws Exception {
         if (status == r.getResult()) {
@@ -1583,6 +1585,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build contains the given substring.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), containsString(substring));
@@ -1590,6 +1594,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
+     * <p>
+     * Consider {@link org.hamcrest.Matchers#not} and {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogNotContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), not(containsString(substring)));
