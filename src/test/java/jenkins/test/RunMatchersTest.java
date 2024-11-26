@@ -23,6 +23,7 @@
  */
 package jenkins.test;
 
+import static jenkins.test.RunMatchers.completed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
@@ -49,7 +50,7 @@ public class RunMatchersTest {
         var p = j.createFreeStyleProject();
         p.getBuildersList().add(new SleepBuilder(1000));
         var b = p.scheduleBuild2(0).waitForStart();
-        assertThat(j.waitForCompletion(b), isSuccessful());
+        assertThat(j.waitForCompletion(b), allOf(completed(), isSuccessful()));
     }
 
     @Test

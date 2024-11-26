@@ -60,6 +60,13 @@ public final class RunMatchers {
         return new RunLogMatcher(message);
     }
 
+    /**
+     * Creates a matcher checking whether a build has completed.
+     */
+    public static Matcher<Run<?,?>> completed() {
+        return new CompletedRunMatcher();
+    }
+
     private static class RunResultMatcher extends TypeSafeMatcher<Run<?,?>> {
         @NonNull
         private final Result expectedResult;
@@ -114,6 +121,18 @@ public final class RunMatchers {
         @Override
         public void describeTo(Description description) {
             description.appendText("log containing ").appendValue(message);
+        }
+    }
+
+    private static class CompletedRunMatcher extends TypeSafeMatcher<Run<?, ?>> {
+        @Override
+        protected boolean matchesSafely(Run<?, ?> run) {
+            return !run.isLogUpdated();
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText("a completed build");
         }
     }
 }
