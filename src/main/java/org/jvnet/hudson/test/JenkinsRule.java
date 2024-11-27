@@ -1619,6 +1619,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Waits for a build to complete.
      * Useful in conjunction with {@link BuildWatcher}.
+     * <p>
+     * As an alternative, if using <a href="https://github.com/awaitility/awaitility">Awaitibility</a>, you can use {@code await().until(() -> r, RunMatchers.completed());}
+     *
      * @return the same build, once done
      * @since 1.607
      */
@@ -1635,7 +1638,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
         while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
