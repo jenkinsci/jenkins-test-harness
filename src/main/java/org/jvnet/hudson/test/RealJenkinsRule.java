@@ -745,7 +745,8 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * One step to run.
      * <p>Since this thunk will be sent to a different JVM, it must be serializable.
-     * The test class will certainly not be serializable, so you cannot use an anonymous inner class.
+     * The test class will certainly not be serializable, so you cannot use an anonymous inner class,
+     * and regular lambdas also risk accidentally capturing non-serializable objects from scope.
      * The friendliest idiom is a static method reference:
      * <pre>
      * &#64;Test public void stuff() throws Throwable {
