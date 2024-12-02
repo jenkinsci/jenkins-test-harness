@@ -25,13 +25,23 @@
 package org.jvnet.hudson.test;
 
 import hudson.util.XStream2;
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
  * Holder for an object which is not {@link Serializable} but can be serialized safely using XStream.
  * Useful for arguments and return values of {@link RealJenkinsRule#runRemotely(RealJenkinsRule.StepWithReturnAndOneArg, Serializable)} etc.
  */
-public record XStreamSerializable<T>(String xml) implements Serializable {
+public final class XStreamSerializable<T> implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1;
+
+    private final String xml;
+
+    private XStreamSerializable(String xml) {
+        this.xml = xml;
+    }
 
     // TODO as needed, add an optional enum for choice of Jenkins.XSTREAM2, Items.XSTREAM2, etc.
     // (cannot safely use a Supplier<XStream>: https://stackoverflow.com/a/27472025/12916)
