@@ -49,6 +49,10 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.model.JobProperty;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.StringParameterDefinition;
 import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
 import java.io.ByteArrayInputStream;
@@ -387,6 +391,19 @@ public class RealJenkinsRuleTest {
             }
         });
         p.scheduleBuild2(0).waitForStart();
+    }
+
+    @Test public void xStreamSerializable() throws Throwable {
+        rr.startJenkins();
+        var a = rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, new XStreamSerializable<>(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt"))));
+        assertThat(a.object().getAllParameters(), hasSize(1));
+    }
+
+    private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<JobProperty<? super FreeStyleProject>> prop) throws Throwable {
+        var p = r.createFreeStyleProject();
+        p.addProperty(prop.object());
+        var b = r.buildAndAssertSuccess(p);
+        return new XStreamSerializable<>(b.getAction(ParametersAction.class));
     }
 
 }
