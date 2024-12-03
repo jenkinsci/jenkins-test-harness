@@ -158,10 +158,10 @@ import org.kohsuke.stapler.verb.POST;
  * <p>Known limitations:
  * <ul>
  * <li>Execution is a bit slower due to the overhead of launching a new JVM; and class loading overhead cannot be shared between test cases. More memory is needed.
- * <li>Remote thunks must be serializable. If they need data from the test JVM, you will need to create a {@code static} nested class to package that.
+ * <li>Remote calls must be serializable. Use methods like {@link #runRemotely(RealJenkinsRule.StepWithReturnAndOneArg, Serializable)} and/or {@link XStreamSerializable} as needed.
  * <li>{@code static} state cannot be shared between the top-level test code and test bodies (though the compiler will not catch this mistake).
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
- * <li>{@link TestExtension} is not available.
+ * <li>{@link TestExtension} is not available (but try {@link #addSyntheticPlugin}).
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
  * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
  * </ul>
@@ -745,7 +745,8 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * One step to run.
      * <p>Since this thunk will be sent to a different JVM, it must be serializable.
-     * The test class will certainly not be serializable, so you cannot use an anonymous inner class.
+     * The test class will certainly not be serializable, so you cannot use an anonymous inner class,
+     * and regular lambdas also risk accidentally capturing non-serializable objects from scope.
      * The friendliest idiom is a static method reference:
      * <pre>
      * &#64;Test public void stuff() throws Throwable {
@@ -757,6 +758,7 @@ public final class RealJenkinsRule implements TestRule {
      * </pre>
      * If you need to pass and/or return values, you can still use a static method reference:
      * try {@link #runRemotely(Step2)} or {@link #runRemotely(StepWithReturnAndOneArg, Serializable)} etc.
+     * (using {@link XStreamSerializable} as needed).
      */
     @FunctionalInterface
     public interface Step extends Serializable {

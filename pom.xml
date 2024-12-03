@@ -293,7 +293,8 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook}</argLine>
+          <!-- add-opens copied from plugin-pom to let RealJenkinsRuleTest better simulate tests in plugin repos: -->
+          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
           <systemPropertyVariables>
             <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
             <buildDirectory>${project.build.directory}</buildDirectory>
