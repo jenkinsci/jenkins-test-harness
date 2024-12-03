@@ -50,8 +50,8 @@ public final class XStreamSerializable<T> implements Serializable {
     /**
      * Serializes an object to XML.
      */
-    public XStreamSerializable(T o) {
-        this(XSTREAM2.toXML(o));
+    public static <T> XStreamSerializable<T> of(T o) {
+        return new XStreamSerializable<>(XSTREAM2.toXML(o));
     }
 
     /**

@@ -398,21 +398,25 @@ public class RealJenkinsRuleTest {
         // Neither ParametersDefinitionProperty nor ParametersAction could be passed directly.
         // (In this case, ParameterDefinition and ParameterValue could have been used raw.
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
-        assertThat(rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, new XStreamSerializable<>(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")))).object().getAllParameters(), hasSize(1));
-        var prop = new XStreamSerializable<>(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")));
-        assertThat(rr.runRemotely(r -> {
-            var p = r.createFreeStyleProject();
-            p.addProperty(prop.object());
-            var b = r.buildAndAssertSuccess(p);
-            return new XStreamSerializable<>(b.getAction(ParametersAction.class));
-        }).object().getAllParameters(), hasSize(1));
+        { // static method handle idiom
+            assertThat(rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")))).object().getAllParameters(), hasSize(1));
+        }
+        { // lambda idiom
+            var prop = XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")));
+            assertThat(rr.runRemotely(r -> {
+                var p = r.createFreeStyleProject();
+                p.addProperty(prop.object());
+                var b = r.buildAndAssertSuccess(p);
+                return XStreamSerializable.of(b.getAction(ParametersAction.class));
+            }).object().getAllParameters(), hasSize(1));
+        }
     }
 
     private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<JobProperty<? super FreeStyleProject>> prop) throws Throwable {
         var p = r.createFreeStyleProject();
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
-        return new XStreamSerializable<>(b.getAction(ParametersAction.class));
+        return XStreamSerializable.of(b.getAction(ParametersAction.class));
     }
 
 }
