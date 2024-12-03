@@ -398,7 +398,7 @@ public class RealJenkinsRuleTest {
         // Neither ParametersDefinitionProperty nor ParametersAction could be passed directly.
         // (In this case, ParameterDefinition and ParameterValue could have been used raw.
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
-        var a = rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, new XStreamSerializable<>(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt"))));
+        var a = rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt"))));
         assertThat(a.object().getAllParameters(), hasSize(1));
     }
 
@@ -406,7 +406,7 @@ public class RealJenkinsRuleTest {
         var p = r.createFreeStyleProject();
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
-        return new XStreamSerializable<>(b.getAction(ParametersAction.class));
+        return XStreamSerializable.of(b.getAction(ParametersAction.class));
     }
 
 }
