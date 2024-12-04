@@ -254,15 +254,13 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1);
-        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2);
-    }
-    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1(JenkinsRule r) throws Throwable {
-        assertNotNull(JenkinsLocationConfiguration.get().getUrl());
-        JenkinsLocationConfiguration.get().setUrl("https://example.com/");
-    }
-    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2(JenkinsRule r) throws Throwable {
-        assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+        rr.then(r -> {
+            assertNotNull(JenkinsLocationConfiguration.get().getUrl());
+            JenkinsLocationConfiguration.get().setUrl("https://example.com/");
+        });
+        rr.then(r -> {
+            assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+        });
     }
 
     @Test
