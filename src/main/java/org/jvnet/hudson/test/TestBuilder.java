@@ -58,4 +58,23 @@ public abstract class TestBuilder extends Builder {
     }
 
     protected Object writeReplace() { return new Object(); }
+
+    @FunctionalInterface
+    public interface Body {
+        void perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException;
+    }
+
+    /**
+     * More convenient form that can be used with a lambda.
+     */
+    public static Builder of(Body body) {
+        return new TestBuilder() {
+            @Override
+            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                body.perform(build, launcher, listener);
+                return true;
+            }
+        };
+    }
+
 }
