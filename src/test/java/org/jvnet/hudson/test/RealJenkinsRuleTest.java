@@ -77,6 +77,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assume.assumeThat;
 import org.junit.AssumptionViolatedException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -181,22 +182,16 @@ public class RealJenkinsRuleTest {
 
     @Test public void agentBuild() throws Throwable {
         try (TailLog tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
-            rr.then(RealJenkinsRuleTest::_agentBuild);
+            rr.then(r -> {
+                FreeStyleProject p = r.createFreeStyleProject("p");
+                AtomicReference<Boolean> ran = new AtomicReference<>(false);
+                p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> ran.set(true)));
+                p.setAssignedNode(r.createOnlineSlave());
+                r.buildAndAssertSuccess(p);
+                assertTrue(ran.get());
+            });
             tailLog.waitForCompletion();
         }
-    }
-    private static void _agentBuild(JenkinsRule r) throws Throwable {
-        FreeStyleProject p = r.createFreeStyleProject("p");
-        AtomicReference<Boolean> ran = new AtomicReference<>(false);
-        p.getBuildersList().add(new TestBuilder() {
-            @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-                ran.set(true);
-                return true;
-            }
-        });
-        p.setAssignedNode(r.createOnlineSlave());
-        r.buildAndAssertSuccess(p);
-        assertTrue(ran.get());
     }
 
     @Test public void htmlUnit() throws Throwable {
@@ -415,6 +410,17 @@ public class RealJenkinsRuleTest {
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
         return XStreamSerializable.of(b.getAction(ParametersAction.class));
+    }
+
+    @Ignore("inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsRuleTest; use TestBuilder.of instead")
+    @Test public void lambduh() throws Throwable {
+        rr.then(r -> {
+            r.createFreeStyleProject().getBuildersList().add(new TestBuilder() {
+                @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                    return true;
+                }
+            });
+        });
     }
 
 }
