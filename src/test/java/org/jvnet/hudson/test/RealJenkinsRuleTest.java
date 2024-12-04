@@ -65,7 +65,7 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -181,10 +181,10 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void agentBuild() throws Throwable {
-        try (TailLog tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
+        try (var tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
             rr.then(r -> {
-                FreeStyleProject p = r.createFreeStyleProject("p");
-                AtomicReference<Boolean> ran = new AtomicReference<>(false);
+                var p = r.createFreeStyleProject("p");
+                var ran = new AtomicBoolean();
                 p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> ran.set(true)));
                 p.setAssignedNode(r.createOnlineSlave());
                 r.buildAndAssertSuccess(p);
