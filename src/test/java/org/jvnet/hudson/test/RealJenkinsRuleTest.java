@@ -367,19 +367,11 @@ public class RealJenkinsRuleTest {
 
     @Test
     public void safeExit() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_safeExit);
-    }
-
-    private static void _safeExit(JenkinsRule r) throws Throwable {
-        var p = r.createFreeStyleProject();
-        p.getBuildersList().add(new TestBuilder() {
-            @Override
-            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-                Thread.sleep(Long.MAX_VALUE);
-                return false;
-            }
+        rr.then(r -> {
+            var p = r.createFreeStyleProject();
+            p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> Thread.sleep(Long.MAX_VALUE)));
+            p.scheduleBuild2(0).waitForStart();
         });
-        p.scheduleBuild2(0).waitForStart();
     }
 
     @Test public void xStreamSerializable() throws Throwable {
