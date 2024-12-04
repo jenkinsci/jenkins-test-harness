@@ -196,20 +196,18 @@ public class RealJenkinsRuleTest {
 
     @Test public void htmlUnit() throws Throwable {
         rr.startJenkins();
-        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+        rr.runRemotely(r -> {
+            r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+            var p = r.createFreeStyleProject("p");
+            p.setDescription("hello");
+        });
         System.err.println("running against " + rr.getUrl());
-        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit2);
-    }
-    private static void _htmlUnit1(JenkinsRule r) throws Throwable {
-        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
-        FreeStyleProject p = r.createFreeStyleProject("p");
-        p.setDescription("hello");
-    }
-    private static void _htmlUnit2(JenkinsRule r) throws Throwable {
-        FreeStyleProject p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
-        r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
-        assertEquals("hello", p.getDescription());
+        rr.runRemotely(r -> {
+            var p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
+            r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
+            assertEquals("hello", p.getDescription());
+        });
     }
 
     private static String _getJenkinsUrlFromRemote(JenkinsRule r) {
