@@ -223,18 +223,16 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void restart() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_restart1);
-        rr.then(RealJenkinsRuleTest::_restart2);
-    }
-    private static void _restart1(JenkinsRule r) throws Throwable {
-        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
-        r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
-    }
-    private static void _restart2(JenkinsRule r) throws Throwable {
-        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
-        assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
+        rr.then(r -> {
+            assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+            Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+            r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
+        });
+        rr.then(r -> {
+            assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+            assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
+            assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
+        });
     }
     private static class ShutdownListener extends ItemListener {
         private final String fileName = "RealJenkinsRule-ran-cleanUp";
