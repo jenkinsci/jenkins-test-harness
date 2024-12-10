@@ -745,9 +745,8 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * One step to run.
      * <p>Since this thunk will be sent to a different JVM, it must be serializable.
-     * The test class will certainly not be serializable, so you cannot use an anonymous inner class,
-     * and regular lambdas also risk accidentally capturing non-serializable objects from scope.
-     * The friendliest idiom is a static method reference:
+     * The test class will certainly not be serializable, so you cannot use an anonymous inner class.
+     * One idiom is a static method reference:
      * <pre>
      * &#64;Test public void stuff() throws Throwable {
      *     rr.then(YourTest::_stuff);
@@ -759,6 +758,17 @@ public final class RealJenkinsRule implements TestRule {
      * If you need to pass and/or return values, you can still use a static method reference:
      * try {@link #runRemotely(Step2)} or {@link #runRemotely(StepWithReturnAndOneArg, Serializable)} etc.
      * (using {@link XStreamSerializable} as needed).
+     * <p>
+     * Alternately, you could use a lambda:
+     * <pre>
+     * &#64;Test public void stuff() throws Throwable {
+     *     rr.then(r -> {
+     *         // as needed
+     *     });
+     * }
+     * </pre>
+     * In this case you must take care not to capture non-serializable objects from scope;
+     * in particular, the body must not use (named or anonymous) inner classes.
      */
     @FunctionalInterface
     public interface Step extends Serializable {
