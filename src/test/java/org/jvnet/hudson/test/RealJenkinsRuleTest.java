@@ -65,7 +65,7 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -77,6 +77,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assume.assumeThat;
 import org.junit.AssumptionViolatedException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.recipes.LocalData;
@@ -180,41 +181,33 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void agentBuild() throws Throwable {
-        try (TailLog tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
-            rr.then(RealJenkinsRuleTest::_agentBuild);
+        try (var tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
+            rr.then(r -> {
+                var p = r.createFreeStyleProject("p");
+                var ran = new AtomicBoolean();
+                p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> ran.set(true)));
+                p.setAssignedNode(r.createOnlineSlave());
+                r.buildAndAssertSuccess(p);
+                assertTrue(ran.get());
+            });
             tailLog.waitForCompletion();
         }
-    }
-    private static void _agentBuild(JenkinsRule r) throws Throwable {
-        FreeStyleProject p = r.createFreeStyleProject("p");
-        AtomicReference<Boolean> ran = new AtomicReference<>(false);
-        p.getBuildersList().add(new TestBuilder() {
-            @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-                ran.set(true);
-                return true;
-            }
-        });
-        p.setAssignedNode(r.createOnlineSlave());
-        r.buildAndAssertSuccess(p);
-        assertTrue(ran.get());
     }
 
     @Test public void htmlUnit() throws Throwable {
         rr.startJenkins();
-        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit1);
+        rr.runRemotely(r -> {
+            r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+            var p = r.createFreeStyleProject("p");
+            p.setDescription("hello");
+        });
         System.err.println("running against " + rr.getUrl());
-        rr.runRemotely(RealJenkinsRuleTest::_htmlUnit2);
-    }
-    private static void _htmlUnit1(JenkinsRule r) throws Throwable {
-        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
-        FreeStyleProject p = r.createFreeStyleProject("p");
-        p.setDescription("hello");
-    }
-    private static void _htmlUnit2(JenkinsRule r) throws Throwable {
-        FreeStyleProject p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
-        r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
-        assertEquals("hello", p.getDescription());
+        rr.runRemotely(r -> {
+            var p = r.jenkins.getItemByFullName("p", FreeStyleProject.class);
+            r.submit(r.createWebClient().login("admin").getPage(p, "configure").getFormByName("config"));
+            assertEquals("hello", p.getDescription());
+        });
     }
 
     private static String _getJenkinsUrlFromRemote(JenkinsRule r) {
@@ -230,18 +223,16 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void restart() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_restart1);
-        rr.then(RealJenkinsRuleTest::_restart2);
-    }
-    private static void _restart1(JenkinsRule r) throws Throwable {
-        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
-        r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
-    }
-    private static void _restart2(JenkinsRule r) throws Throwable {
-        assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-        assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
-        assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
+        rr.then(r -> {
+            assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+            Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+            r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
+        });
+        rr.then(r -> {
+            assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
+            assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
+            assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
+        });
     }
     private static class ShutdownListener extends ItemListener {
         private final String fileName = "RealJenkinsRule-ran-cleanUp";
@@ -263,15 +254,13 @@ public class RealJenkinsRuleTest {
     }
 
     @Test public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1);
-        rr.then(RealJenkinsRuleTest::_stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2);
-    }
-    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet1(JenkinsRule r) throws Throwable {
-        assertNotNull(JenkinsLocationConfiguration.get().getUrl());
-        JenkinsLocationConfiguration.get().setUrl("https://example.com/");
-    }
-    private static void _stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet2(JenkinsRule r) throws Throwable {
-        assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+        rr.then(r -> {
+            assertNotNull(JenkinsLocationConfiguration.get().getUrl());
+            JenkinsLocationConfiguration.get().setUrl("https://example.com/");
+        });
+        rr.then(r -> {
+            assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+        });
     }
 
     @Test
@@ -378,19 +367,11 @@ public class RealJenkinsRuleTest {
 
     @Test
     public void safeExit() throws Throwable {
-        rr.then(RealJenkinsRuleTest::_safeExit);
-    }
-
-    private static void _safeExit(JenkinsRule r) throws Throwable {
-        var p = r.createFreeStyleProject();
-        p.getBuildersList().add(new TestBuilder() {
-            @Override
-            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-                Thread.sleep(Long.MAX_VALUE);
-                return false;
-            }
+        rr.then(r -> {
+            var p = r.createFreeStyleProject();
+            p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> Thread.sleep(Long.MAX_VALUE)));
+            p.scheduleBuild2(0).waitForStart();
         });
-        p.scheduleBuild2(0).waitForStart();
     }
 
     @Test public void xStreamSerializable() throws Throwable {
@@ -398,15 +379,34 @@ public class RealJenkinsRuleTest {
         // Neither ParametersDefinitionProperty nor ParametersAction could be passed directly.
         // (In this case, ParameterDefinition and ParameterValue could have been used raw.
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
-        var a = rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt"))));
-        assertThat(a.object().getAllParameters(), hasSize(1));
+        var prop = XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")));
+        // Static method handle idiom:
+        assertThat(rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, prop).object().getAllParameters(), hasSize(1));
+        // Lambda idiom:
+        assertThat(rr.runRemotely(r -> {
+            var p = r.createFreeStyleProject();
+            p.addProperty(prop.object());
+            var b = r.buildAndAssertSuccess(p);
+            return XStreamSerializable.of(b.getAction(ParametersAction.class));
+        }).object().getAllParameters(), hasSize(1));
     }
 
-    private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<JobProperty<? super FreeStyleProject>> prop) throws Throwable {
+    private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<? extends JobProperty<? super FreeStyleProject>> prop) throws Throwable {
         var p = r.createFreeStyleProject();
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
         return XStreamSerializable.of(b.getAction(ParametersAction.class));
+    }
+
+    @Ignore("inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsRuleTest; use TestBuilder.of instead")
+    @Test public void lambduh() throws Throwable {
+        rr.then(r -> {
+            r.createFreeStyleProject().getBuildersList().add(new TestBuilder() {
+                @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                    return true;
+                }
+            });
+        });
     }
 
 }
