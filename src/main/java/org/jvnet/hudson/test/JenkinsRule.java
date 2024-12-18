@@ -1888,6 +1888,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * @deprecated use {@link Jenkins#setQuietPeriod}
+     */
+    @Deprecated
     public void setQuietPeriod(int qp) {
         JenkinsAdaptor.setQuietPeriod(jenkins, qp);
     }
