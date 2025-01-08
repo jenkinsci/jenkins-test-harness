@@ -1734,8 +1734,17 @@ public final class RealJenkinsRule implements TestRule {
         }
 
         void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            var mani = new Manifest();
+            var attr = mani.getMainAttributes();
+            attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
+            attr.putValue("Short-Name", shortName);
+            attr.putValue("Plugin-Version", version);
+            attr.putValue("Jenkins-Version", defaultJenkinsVersion);
+            for (var entry : headers.entrySet()) {
+                attr.putValue(entry.getKey(), entry.getValue());
+            }
+            var jar = new ByteArrayOutputStream();
+            try (var jos = new JarOutputStream(jar, mani)) {
                 String pkgSlash = pkg.replace('.', '/');
                 URL mainU = RealJenkinsRule.class.getClassLoader().getResource(pkgSlash);
                 if (mainU == null) {
@@ -1747,22 +1756,13 @@ public final class RealJenkinsRule implements TestRule {
                 }
                 Path metaInf = Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
                 if (Files.isDirectory(metaInf)) {
-                    zip(zos, metaInf, "META-INF/", pkg);
+                    zip(jos, metaInf, "META-INF/", pkg);
                 }
-                zip(zos, main, pkgSlash + "/", null);
+                zip(jos, main, pkgSlash + "/", null);
             }
-            Manifest mani = new Manifest();
-            Attributes attr = mani.getMainAttributes();
-            attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-            attr.putValue("Short-Name", shortName);
-            attr.putValue("Plugin-Version", version);
-            attr.putValue("Jenkins-Version", defaultJenkinsVersion);
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                attr.putValue(entry.getKey(), entry.getValue());
-            }
-            try (OutputStream os = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(os, mani)) {
+            try (var os = new FileOutputStream(jpi); var jos = new JarOutputStream(os, mani)) {
                 jos.putNextEntry(new JarEntry("WEB-INF/lib/" + shortName + ".jar"));
-                jos.write(baos.toByteArray());
+                jos.write(jar.toByteArray());
             }
             LOGGER.info(() -> "Generated " + jpi);
         }
