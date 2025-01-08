@@ -103,6 +103,7 @@ import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletRequest;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
@@ -247,8 +248,8 @@ import org.kohsuke.stapler.Dispatcher;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -290,7 +291,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Where in the {@link Server} is Jenkins deployed?
      * <p>
-     * Just like {@link javax.servlet.ServletContext#getContextPath()}, starts with '/' but doesn't end with '/'.
+     * Just like {@link jakarta.servlet.ServletContext#getContextPath()}, starts with '/' but doesn't end with '/'.
      * Unlike {@link WebClient#getContextPath} this is not a complete URL.
      */
     public String contextPath = "/jenkins";
@@ -434,15 +435,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
     }
 
-    private static boolean _isEE9Plus() {
-        try {
-            Jenkins.class.getDeclaredMethod("getServletContext");
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
-    }
-
     /**
      * Configures a Jenkins instance for test.
      *
@@ -452,47 +444,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static void _configureJenkinsForTest(Jenkins jenkins) throws Exception {
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests is pointless.
-        if (_isEE9Plus()) {
-            ServletContext servletContext;
-            try {
-                servletContext = (ServletContext)
-                        Jenkins.class.getDeclaredMethod("getServletContext").invoke(jenkins);
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            }
-            servletContext.setAttribute("app", jenkins);
-            servletContext.setAttribute("version", "?");
-            try {
-                WebAppMain.class
-                        .getDeclaredMethod("installExpressionFactory", ServletContextEvent.class)
-                        .invoke(null, new ServletContextEvent(servletContext));
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            }
-        } else {
-            javax.servlet.ServletContext servletContext = jenkins.servletContext;
-            servletContext.setAttribute("app", jenkins);
-            servletContext.setAttribute("version", "?");
-            WebAppMain.installExpressionFactory(new javax.servlet.ServletContextEvent(servletContext));
-        }
+        jenkins.getServletContext().setAttribute("app", jenkins);
+        jenkins.getServletContext().setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.getServletContext()));
 
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
@@ -523,10 +477,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         final String updateCenterUrl;
         jettyLevel(Level.WARNING);
         try {
-            int localPort = _isEE9Plus()
-                    ? JavaNetReverseProxy2.getInstance().localPort
-                    : JavaNetReverseProxy.getInstance().localPort;
-            updateCenterUrl = "http://localhost:" + localPort + "/update-center.json";
+            updateCenterUrl =
+                    "http://localhost:" + JavaNetReverseProxy2.getInstance().localPort + "/update-center.json";
         } finally {
             jettyLevel(Level.INFO);
         }
@@ -789,45 +741,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     protected Hudson newHudson() throws Exception {
         jettyLevel(Level.WARNING);
-        if (_isEE9Plus()) {
-            ServletContext webServer = createWebServer2();
-            File home = homeLoader.allocate();
-            for (JenkinsRecipe.Runner r : recipes) {
-                r.decorateHome(this, home);
-            }
-            try {
-                return Hudson.class
-                        .getDeclaredConstructor(File.class, ServletContext.class, PluginManager.class)
-                        .newInstance(home, webServer, getPluginManager());
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof InterruptedException) {
-                    throw new AssumptionViolatedException("Jenkins startup interrupted", t);
-                } else if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            } finally {
-                jettyLevel(Level.INFO);
-            }
-        } else {
-            javax.servlet.ServletContext webServer = createWebServer();
-            File home = homeLoader.allocate();
-            for (JenkinsRecipe.Runner r : recipes) {
-                r.decorateHome(this, home);
-            }
-            try {
-                return new Hudson(home, webServer, getPluginManager());
-            } catch (InterruptedException e) {
-                throw new AssumptionViolatedException("Jenkins startup interrupted", e);
-            } finally {
-                jettyLevel(Level.INFO);
-            }
+        ServletContext webServer = createWebServer2();
+        File home = homeLoader.allocate();
+        for (JenkinsRecipe.Runner r : recipes) {
+            r.decorateHome(this, home);
+        }
+        try {
+            return new Hudson(home, webServer, getPluginManager());
+        } catch (InterruptedException e) {
+            throw new AssumptionViolatedException("Jenkins startup interrupted", e);
+        } finally {
+            jettyLevel(Level.INFO);
         }
     }
 
@@ -957,139 +881,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
         }
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
-        context.setResourceBase(WarExploder.getExplodedDir().getPath());
-
-        ServerConnector connector = new ServerConnector(server);
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
-        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-        config.setRequestHeaderSize(12 * 1024);
-        config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
-        connector.setHost("localhost");
-        if (System.getProperty("port") != null) {
-            connector.setPort(Integer.parseInt(System.getProperty("port")));
-        } else if (localPort != 0) {
-            connector.setPort(localPort);
-        }
-
-        server.addConnector(connector);
-        if (contextAndServerConsumer != null) {
-            contextAndServerConsumer.accept(context, server);
-        }
-        server.start();
-
-        portSetter.accept(connector.getLocalPort());
-
-        return context;
-    }
-
-    /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
-     * that we need for testing.
-     *
-     * @deprecated {use {@link #createWebServer2()}}
-     */
-    @Deprecated
-    protected javax.servlet.ServletContext createWebServer() throws Exception {
-        return createWebServer(null);
-    }
-
-    /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
-     * that we need for testing.
-     *
-     * @deprecated use {@link #createWebServer2(BiConsumer)}
-     * @param contextAndServerConsumer configures the {@link org.eclipse.jetty.ee8.webapp.WebAppContext} and the {@link Server} for the instance, before they are started
-     * @since 2.63
-     */
-    @Deprecated
-    protected javax.servlet.ServletContext createWebServer(
-            @CheckForNull BiConsumer<org.eclipse.jetty.ee8.webapp.WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        org.eclipse.jetty.ee8.webapp.WebAppContext context = _createWebAppContext(
-                contextPath,
-                (x) -> localPort = x,
-                getClass().getClassLoader(),
-                localPort,
-                this::configureUserRealm,
-                contextAndServerConsumer);
-        server = context.getServer();
-        LOGGER.log(Level.INFO, "Running on {0}", getURL());
-        return context.getServletContext();
-    }
-
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath          the context path at which to put Jenkins
-     * @param portSetter           the port on which the server runs will be set using this function
-     * @param classLoader          the class loader for the {@link org.eclipse.jetty.ee8.webapp.WebAppContext}
-     * @param localPort            port on which the server runs
-     * @param loginServiceSupplier configures the {@link LoginService} for the instance
-     * @return                     the {@link Server}
-     * @deprecated                 use {@link #_createWebAppContext2(String, Consumer, ClassLoader, int, Supplier)}
-     * @since 2.50
-     */
-    @Deprecated
-    public static org.eclipse.jetty.ee8.webapp.WebAppContext _createWebAppContext(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier)
-            throws Exception {
-        return _createWebAppContext(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
-    }
-
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath              the context path at which to put Jenkins
-     * @param portSetter               the port on which the server runs will be set using this function
-     * @param classLoader              the class loader for the {@link org.eclipse.jetty.ee8.webapp.WebAppContext}
-     * @param localPort                port on which the server runs
-     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
-     * @param contextAndServerConsumer configures the {@link org.eclipse.jetty.ee8.webapp.WebAppContext} and the {@link Server} for the instance, before they are started
-     * @return                         the {@link Server}
-     * @deprecated                     use {@link #_createWebAppContext2(String, Consumer, ClassLoader, int, Supplier, BiConsumer)}
-     * @since 2.50
-     */
-    @Deprecated
-    public static org.eclipse.jetty.ee8.webapp.WebAppContext _createWebAppContext(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier,
-            @CheckForNull BiConsumer<org.eclipse.jetty.ee8.webapp.WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (JenkinsRule)");
-        Server server = new Server(qtp);
-
-        org.eclipse.jetty.ee8.webapp.WebAppContext context = new org.eclipse.jetty.ee8.webapp.WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
-            @Override
-            protected ClassLoader configureClassLoader(ClassLoader loader) {
-                // Use flat classpath in tests
-                return loader;
-            }
-        };
-        context.setClassLoader(classLoader);
-        context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
-        context.setServer(server);
-        String compression = System.getProperty("jth.compression", "gzip");
-        if (compression.equals("gzip")) {
-            GzipHandler gzipHandler = new GzipHandler();
-            gzipHandler.setHandler(context);
-            server.setHandler(gzipHandler);
-        } else if (compression.equals("none")) {
-            server.setHandler(context);
-        } else {
-            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
-        }
-        org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
@@ -1719,6 +1510,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the outcome of the build is a specific outcome.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#hasStatus(Result)} as an alternative.
      */
     public <R extends Run> R assertBuildStatus(Result status, R r) throws Exception {
         if (status == r.getResult()) {
@@ -1793,6 +1586,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build contains the given substring.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), containsString(substring));
@@ -1800,6 +1595,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
+     * <p>
+     * Consider {@link org.hamcrest.Matchers#not} and {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogNotContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), not(containsString(substring)));
@@ -1823,6 +1620,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Waits for a build to complete.
      * Useful in conjunction with {@link BuildWatcher}.
+     * <p>
+     * As an alternative, if using <a href="https://github.com/awaitility/awaitility">Awaitibility</a>, you can use {@code await().until(() -> r, RunMatchers.completed());}
+     *
      * @return the same build, once done
      * @since 1.607
      */
@@ -1839,7 +1639,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
         while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
@@ -2090,6 +1889,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * @deprecated use {@link Jenkins#setQuietPeriod}
+     */
+    @Deprecated
     public void setQuietPeriod(int qp) {
         JenkinsAdaptor.setQuietPeriod(jenkins, qp);
     }
@@ -2528,7 +2331,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *
      * <p>
      * This method allows you to do just that. It is useful for testing some methods that
-     * require {@link org.kohsuke.stapler.StaplerRequest} and {@link org.kohsuke.stapler.StaplerResponse}, or getting the credential
+     * require {@link org.kohsuke.stapler.StaplerRequest2} and {@link org.kohsuke.stapler.StaplerResponse2}, or getting the credential
      * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
      *
      * @param c
@@ -2816,7 +2619,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *
          * <p>
          * This method allows you to do just that. It is useful for testing some methods that
-         * require {@link org.kohsuke.stapler.StaplerRequest} and {@link org.kohsuke.stapler.StaplerResponse}, or getting the credential
+         * require {@link org.kohsuke.stapler.StaplerRequest2} and {@link org.kohsuke.stapler.StaplerResponse2}, or getting the credential
          * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
          *
          * @param c
@@ -2836,7 +2639,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 @Override
                 public void run() {
                     try {
-                        StaplerResponse rsp = Stapler.getCurrentResponse();
+                        StaplerResponse2 rsp = Stapler.getCurrentResponse2();
                         rsp.setStatus(200);
                         rsp.setContentType("text/html");
                         r.set(c.call());
@@ -3049,7 +2852,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public URL createCrumbedUrl(String relativePath) throws IOException {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
-            String crumb = issuer.getCrumb((javax.servlet.ServletRequest) null);
+            String crumb = issuer.getCrumb((ServletRequest) null);
             if (relativePath.indexOf('?') == -1) {
                 return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
             }
@@ -3232,7 +3035,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     static {
         jettyLevel(Level.INFO);
-        Functions.DEBUG_YUI = true;
+        try {
+            Functions.class.getDeclaredField("DEBUG_YUI").setBoolean(null, true);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError();
+            x.initCause(e);
+            throw x;
+        } catch (NoSuchFieldException e) {
+            // No YUI, no problem
+        }
 
         if (Functions.isGlibcSupported()) {
             try {
@@ -3266,7 +3077,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest2 req, @NonNull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
 
@@ -3319,6 +3130,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private NameValuePair getCrumbHeaderNVP() {
         return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                        jenkins.getCrumbIssuer().getCrumb((javax.servlet.ServletRequest) null));
+                        jenkins.getCrumbIssuer().getCrumb((ServletRequest) null));
     }
 }

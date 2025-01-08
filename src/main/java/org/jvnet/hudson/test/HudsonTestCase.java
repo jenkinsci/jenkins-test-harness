@@ -92,6 +92,7 @@ import hudson.util.StreamTaskListener;
 import hudson.util.jna.GNUCLibrary;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletRequest;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -102,7 +103,6 @@ import java.lang.management.ThreadInfo;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -196,8 +196,8 @@ import org.kohsuke.stapler.Dispatcher;
 import org.kohsuke.stapler.MetaClass;
 import org.kohsuke.stapler.MetaClassLoader;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.springframework.dao.DataAccessException;
 import org.xml.sax.SAXException;
 
@@ -356,47 +356,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         
         jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
-        if (_isEE9Plus()) {
-            ServletContext servletContext;
-            try {
-                servletContext = (ServletContext)
-                        Jenkins.class.getDeclaredMethod("getServletContext").invoke(jenkins);
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            }
-            servletContext.setAttribute("app", jenkins);
-            servletContext.setAttribute("version", "?");
-            try {
-                WebAppMain.class
-                        .getDeclaredMethod("installExpressionFactory", ServletContextEvent.class)
-                        .invoke(null, new ServletContextEvent(servletContext));
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            }
-        } else {
-            javax.servlet.ServletContext servletContext = jenkins.servletContext;
-            servletContext.setAttribute("app", jenkins);
-            servletContext.setAttribute("version", "?");
-            WebAppMain.installExpressionFactory(new javax.servlet.ServletContextEvent(servletContext));
-        }
+        jenkins.getServletContext().setAttribute("app", jenkins);
+        jenkins.getServletContext().setAttribute("version", "?");
+        WebAppMain.installExpressionFactory(new ServletContextEvent(jenkins.getServletContext()));
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
 
         // set a default JDK to be the one that the harness is using.
@@ -418,15 +380,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         Jenkins.lookup(Injector.class).injectMembers(this);
 
         setUpTimeout();
-    }
-
-    private static boolean _isEE9Plus() {
-        try {
-            Jenkins.class.getDeclaredMethod("getServletContext");
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
     }
 
     protected void setUpTimeout() {
@@ -454,10 +407,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * By default, we load updates from local proxy to avoid network traffic as much as possible.
      */
     protected void configureUpdateCenter() throws Exception {
-        int localPort = _isEE9Plus()
-                ? JavaNetReverseProxy2.getInstance().localPort
-                : JavaNetReverseProxy.getInstance().localPort;
-        final String updateCenterUrl = "http://localhost:" + localPort + "/update-center.json";
+        final String updateCenterUrl =
+                "http://localhost:" + JavaNetReverseProxy2.getInstance().localPort + "/update-center.json";
 
         // don't waste bandwidth talking to the update center
         DownloadService.neverUpdate = true;
@@ -571,34 +522,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * you can override it.
      */
     protected Hudson newHudson() throws Exception {
-        if (_isEE9Plus()) {
-            File home = homeLoader.allocate();
-            for (Runner r : recipes) {
-                r.decorateHome(this,home);
-            }
-            try {
-                return Hudson.class
-                        .getDeclaredConstructor(File.class, ServletContext.class, PluginManager.class)
-                        .newInstance(home, createWebServer2(), useLocalPluginManager ? null : pluginManager);
-            } catch (NoSuchMethodException e) {
-                throw new AssertionError(e);
-            } catch (InvocationTargetException e) {
-                Throwable t = e.getCause();
-                if (t instanceof Exception) {
-                    throw (Exception) t;
-                } else if (t instanceof Error) {
-                    throw (Error) t;
-                } else {
-                    throw e;
-                }
-            }
-        } else {
-            File home = homeLoader.allocate();
-            for (Runner r : recipes) {
-                r.decorateHome(this,home);
-            }
-            return new Hudson(home, createWebServer(), useLocalPluginManager ? null : pluginManager);
+        File home = homeLoader.allocate();
+        for (Runner r : recipes) {
+            r.decorateHome(this, home);
         }
+        return new Hudson(home, createWebServer2(), useLocalPluginManager ? null : pluginManager);
     }
 
     /**
@@ -648,61 +576,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
         }
         JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.getSecurityHandler().setLoginService(configureUserRealm());
-
-        ServerConnector connector = new ServerConnector(server);
-
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
-        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-        config.setRequestHeaderSize(12 * 1024);
-        config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
-        connector.setHost("localhost");
-
-        server.addConnector(connector);
-        server.start();
-
-        localPort = connector.getLocalPort();
-
-        return context.getServletContext();
-    }
-
-    /**
-     * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
-     * that we need for testing.
-     *
-     * @deprecated use {@link #createWebServer2()}
-     */
-    @Deprecated
-    protected javax.servlet.ServletContext createWebServer() throws Exception {
-        QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (HudsonTestCase)");
-        server = new Server(qtp);
-
-        explodedWarDir = WarExploder.getExplodedDir();
-        org.eclipse.jetty.ee8.webapp.WebAppContext context = new org.eclipse.jetty.ee8.webapp.WebAppContext(explodedWarDir.getPath(), contextPath) {
-            @Override
-            protected ClassLoader configureClassLoader(ClassLoader loader) {
-                // Use flat classpath in tests
-                return loader;
-            }
-        };
-        context.setResourceBase(explodedWarDir.getPath());
-        context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration(context));
-        context.setServer(server);
-        String compression = System.getProperty("jth.compression", "gzip");
-        if (compression.equals("gzip")) {
-            GzipHandler gzipHandler = new GzipHandler();
-            gzipHandler.setHandler(context);
-            server.setHandler(gzipHandler);
-        } else if (compression.equals("none")) {
-            server.setHandler(context);
-        } else {
-            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
-        }
-        org.eclipse.jetty.ee8.websocket.server.config.JettyWebSocketServletContainerInitializer.configure(context, null);
         context.getSecurityHandler().setLoginService(configureUserRealm());
 
         ServerConnector connector = new ServerConnector(server);
@@ -1555,7 +1428,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *
      * <p>
      * This method allows you to do just that. It is useful for testing some methods that
-     * require {@link StaplerRequest} and {@link StaplerResponse}, or getting the credential
+     * require {@link StaplerRequest2} and {@link StaplerResponse2}, or getting the credential
      * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
      *
      * @param c
@@ -1702,7 +1575,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          *
          * <p>
          * This method allows you to do just that. It is useful for testing some methods that
-         * require {@link StaplerRequest} and {@link StaplerResponse}, or getting the credential
+         * require {@link StaplerRequest2} and {@link StaplerResponse2}, or getting the credential
          * of the current user (via {@link jenkins.model.Jenkins#getAuthentication()}, and so on.
          *
          * @param c
@@ -1722,7 +1595,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 @Override
                 public void run() {
                     try {
-                        StaplerResponse rsp = Stapler.getCurrentResponse();
+                        StaplerResponse2 rsp = Stapler.getCurrentResponse2();
                         rsp.setStatus(200);
                         rsp.setContentType("text/html");
                         r.add(c.call());
@@ -1902,7 +1775,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public WebRequest addCrumb(WebRequest req) {
             NameValuePair crumb = new NameValuePair(
                     jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                    jenkins.getCrumbIssuer().getCrumb((javax.servlet.ServletRequest) null));
+                    jenkins.getCrumbIssuer().getCrumb((ServletRequest) null));
             req.setRequestParameters(List.of(crumb));
             return req;
         }
@@ -1913,7 +1786,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public URL createCrumbedUrl(String relativePath) throws IOException {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
-            String crumb = issuer.getCrumb((javax.servlet.ServletRequest) null);
+            String crumb = issuer.getCrumb((ServletRequest) null);
             
             return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
         }
@@ -1980,7 +1853,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
 
     static {
-        Functions.DEBUG_YUI = true;
+        try {
+            Functions.class.getDeclaredField("DEBUG_YUI").setBoolean(null, true);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError();
+            x.initCause(e);
+            throw x;
+        } catch (NoSuchFieldException e) {
+            // No YUI, no problem
+        }
 
         if (Functions.isGlibcSupported()) {
             try {
@@ -2014,7 +1895,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
 
             @Override
-            public BuildWrapper newInstance(StaplerRequest req, @NonNull JSONObject formData) {
+            public BuildWrapper newInstance(StaplerRequest2 req, @NonNull JSONObject formData) {
                 throw new UnsupportedOperationException();
             }
         }
