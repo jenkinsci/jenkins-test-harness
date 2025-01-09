@@ -54,7 +54,6 @@ public final class RealJenkinsRuleSyntheticPluginTest {
         rr.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
-            p.save();
             assertThat(p.getConfigFile().asString(), containsString("expected in XML"));
         });
     }
