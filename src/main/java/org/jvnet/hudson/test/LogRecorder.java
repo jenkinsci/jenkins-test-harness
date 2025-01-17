@@ -46,8 +46,17 @@ import org.hamcrest.TypeSafeMatcher;
 /**
  * A test utility which allows you to easily enable one or more loggers for the duration of a test.
  * Call {@link #record(Class, Level)} or another overload for the recording to take effect.
- * <p>By default, messages are merely printed to test output.
+ * <p>
+ * By default, messages are merely printed to test output.
  * If you also want to examine them, call {@link #capture}.
+ * <p>
+ * See the following example:
+ * <pre><code>
+ * try (LogRecorder recorder = new LogRecorder().record("Foo", Level.INFO).capture(100)) {
+ *     LOGGER.log(Level.INFO, "Log Message");
+ *     assertThat(recorder, LogRecorder.recorded(equalTo("Log Message")));
+ * }
+ * </code></pre>
  */
 public class LogRecorder implements AutoCloseable {
 
