@@ -634,7 +634,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         };
         context.setResourceBase(explodedWarDir.getPath());
         context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
+        context.setConfigurationDiscovered(true);
         context.addBean(new NoListenerConfiguration2(context));
         context.setServer(server);
         String compression = System.getProperty("jth.compression", "gzip");
