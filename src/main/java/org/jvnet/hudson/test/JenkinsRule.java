@@ -942,7 +942,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
         };
         context.setClassLoader(classLoader);
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
+        context.setConfigurationDiscovered(true);
         context.addBean(new NoListenerConfiguration2(context));
         context.setServer(server);
         String compression = System.getProperty("jth.compression", "gzip");
@@ -1075,7 +1075,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
         };
         context.setClassLoader(classLoader);
-        context.setConfigurations(new org.eclipse.jetty.ee8.webapp.Configuration[]{new org.eclipse.jetty.ee8.webapp.WebXmlConfiguration()});
+        context.setConfigurationDiscovered(true);
         context.addBean(new NoListenerConfiguration(context));
         context.setServer(server);
         String compression = System.getProperty("jth.compression", "gzip");
