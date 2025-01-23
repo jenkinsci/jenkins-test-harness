@@ -102,7 +102,7 @@ public @interface LocalData {
             Method testMethod;
 
             try {
-                testMethod = desc.getTestClass().getDeclaredMethod(desc.getMethodName());
+                testMethod = desc.getTestClass().getMethod(desc.getMethodName());
             } catch (NoSuchMethodException ex) {
                 testMethod = desc.getTestClass().getDeclaredMethod(desc.getMethodName(), JenkinsRule.class);
             }
