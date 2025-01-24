@@ -29,6 +29,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.logging.Logger;
 import org.junit.runner.Description;
 import org.jvnet.hudson.test.HudsonHomeLoader.Local;
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -86,6 +87,7 @@ import org.jvnet.hudson.test.TailLog;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LocalData {
     String value() default "";
+    Logger LOGGER = Logger.getLogger(LocalData.class.getName());
 
     class RunnerImpl extends Recipe.Runner<LocalData> {
         @Override
@@ -99,14 +101,21 @@ public @interface LocalData {
         public void setup(JenkinsRule jenkinsRule, LocalData recipe) throws Exception {
             Description desc = jenkinsRule.getTestDescription();
 
-            Method testMethod;
-
-            try {
-                testMethod = desc.getTestClass().getMethod(desc.getMethodName());
-            } catch (NoSuchMethodException ex) {
-                testMethod = desc.getTestClass().getDeclaredMethod(desc.getMethodName(), JenkinsRule.class);
+            Method testMethod = null;
+            for (var cls = desc.getTestClass(); testMethod == null && cls != null; cls = cls.getSuperclass()) {
+                try {
+                    testMethod = cls.getDeclaredMethod(desc.getMethodName());
+                } catch (NoSuchMethodException ex) {
+                    try {
+                        testMethod = cls.getDeclaredMethod(desc.getMethodName(), JenkinsRule.class);
+                    } catch (NoSuchMethodException ex2) {
+                        LOGGER.fine("No method " + desc.getMethodName() + " in " + cls);
+                    }
+                }
             }
-
+            if (testMethod == null) {
+                throw new NoSuchMethodException("Could not look up any test method for " + desc);
+            }
             jenkinsRule.with(new Local(testMethod, recipe.value()));
         }
     }
