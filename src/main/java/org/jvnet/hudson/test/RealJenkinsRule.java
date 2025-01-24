@@ -563,7 +563,7 @@ public final class RealJenkinsRule implements TestRule {
         this.description = description;
         return new Statement() {
             @Override public void evaluate() throws Throwable {
-                System.out.println("=== Starting " + description);
+                System.err.println("=== Starting " + description);
                 try {
                     jenkinsOptions("--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
                     if (war == null) {
@@ -649,7 +649,7 @@ public final class RealJenkinsRule implements TestRule {
                         Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
                         snapshotPlugins.add(shortName);
                     } else {
-                        System.out.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                        System.err.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
                     }
                 } else {
                     // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
@@ -706,7 +706,7 @@ public final class RealJenkinsRule implements TestRule {
         for (SyntheticPlugin syntheticPlugin : syntheticPlugins) {
             syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"), targetJenkinsVersion);
         }
-        System.out.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
+        System.err.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
     }
 
     /**
@@ -1013,14 +1013,14 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
         // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
-        System.out.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
+        System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
         ProcessBuilder pb = new ProcessBuilder(argv);
         pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         pb.redirectErrorStream(true);
         proc = pb.start();
-        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.out)).start();
+        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.err)).start();
         int tries = 0;
         while (true) {
             if (!proc.isAlive()) {
@@ -1038,7 +1038,7 @@ public final class RealJenkinsRule implements TestRule {
 
                     String checkResult = checkResult(conn);
                     if (checkResult == null) {
-                        System.out.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
+                        System.err.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
                         break;
                     }else {
                         throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
