@@ -2,6 +2,8 @@ package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.lang.reflect.Method;
+
+import hudson.security.ACL;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.runner.Description;
@@ -26,6 +28,9 @@ class JUnit5JenkinsRule extends JenkinsRule {
 
     @Override
     public void recipe() throws Exception {
+        // so that test code has all the access to the system
+        ACL.as2(ACL.SYSTEM2);
+
         JenkinsRecipe jenkinsRecipe =
                 context.findAnnotation(JenkinsRecipe.class).orElse(null);
         if (jenkinsRecipe != null) {
