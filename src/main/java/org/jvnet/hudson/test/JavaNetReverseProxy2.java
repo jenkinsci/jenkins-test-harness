@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.file.Files;
 import org.apache.commons.io.FileUtils;
@@ -67,20 +68,30 @@ public class JavaNetReverseProxy2 extends HttpServlet {
     }
 
     @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void service(HttpServletRequest req, HttpServletResponse resp) {
         String path = req.getServletPath();
         String d = Util.getDigestOf(path);
 
         File cache = new File(cacheFolder, d);
         synchronized (this) {
             if (!cache.exists()) {
-                URL url = new URL("https://updates.jenkins.io/" + path);
-                FileUtils.copyURLToFile(url, cache);
+                try {
+                    URL url = new URL("https://updates.jenkins.io/" + path);
+                    FileUtils.copyURLToFile(url, cache);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new UncheckedIOException(e);
+                }
             }
         }
 
         resp.setContentType(getMimeType(path));
-        Files.copy(cache.toPath(), resp.getOutputStream());
+        try {
+            Files.copy(cache.toPath(), resp.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new UncheckedIOException(e);
+        }
     }
 
     private String getMimeType(String path) {
