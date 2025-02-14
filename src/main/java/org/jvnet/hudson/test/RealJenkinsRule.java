@@ -1189,6 +1189,15 @@ public final class RealJenkinsRule implements TestRule {
         runRemotely(new StepsToStep2(steps));
     }
 
+    /**
+     * Run a step on the remote system.
+     * Alias for {@link #runRemotely(RealJenkinsRule.Step...)} (with one step)
+     * that is easier to resolve for lambdas.
+     */
+    public void run(Step step) throws Throwable {
+        runRemotely(step);
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = decorateConnection(endpoint("step").openConnection());
@@ -1215,6 +1224,15 @@ public final class RealJenkinsRule implements TestRule {
             }
             throw e;
         }
+    }
+
+    /**
+     * Run a step with a return value on the remote system.
+     * Alias for {@link #runRemotely(RealJenkinsRule.Step2)}
+     * that is easier to resolve for lambdas.
+     */
+    public <T extends Serializable> T call(Step2<T> s) throws Throwable {
+        return runRemotely(s);
     }
 
     private HttpURLConnection decorateConnection(@NonNull URLConnection urlConnection) {
