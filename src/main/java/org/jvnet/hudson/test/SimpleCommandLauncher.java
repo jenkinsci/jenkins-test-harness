@@ -27,18 +27,26 @@ package org.jvnet.hudson.test;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.Util;
+import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Slave;
 import hudson.model.TaskListener;
 import hudson.remoting.Channel;
 import hudson.slaves.ComputerLauncher;
+import hudson.slaves.ComputerListener;
+import hudson.slaves.OfflineCause;
 import hudson.slaves.SlaveComputer;
 import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -78,6 +86,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
             	pb.environment().putAll(env);
             }
             final Process proc = pb.start();
+            ExtensionList.lookupSingleton(FasterKill.class).procs.put(computer, new WeakReference<>(proc));
             new StreamCopyThread("stderr copier for remote agent on " + computer.getDisplayName(), proc.getErrorStream(), listener.getLogger()).start();
             computer.setChannel(proc.getInputStream(), proc.getOutputStream(), listener.getLogger(), new Channel.Listener() {
                 @Override
@@ -92,6 +101,30 @@ public class SimpleCommandLauncher extends ComputerLauncher {
             LOGGER.log(Level.INFO, "agent launched for {0}", computer.getName());
         } catch (Exception x) {
             LOGGER.log(Level.WARNING, null, x);
+        }
+    }
+
+    @Extension public static final class FasterKill extends ComputerListener {
+        Map<Computer, WeakReference<Process>> procs = Collections.synchronizedMap(new WeakHashMap<>());
+        @Override
+        public void onOffline(Computer c, OfflineCause cause) {
+            var ref = procs.remove(c);
+            if (ref != null) {
+                var proc = ref.get();
+                if (proc != null) {
+                    try {
+                        proc.destroy();
+                        proc.onExit().get(15, TimeUnit.SECONDS);
+                    } catch (Exception x) {
+                        LOGGER.log(Level.WARNING, "failed to kill " + proc + " for " + c.getName(), x);
+                    }
+                    LOGGER.info(() -> "killed " + proc + " for " + c.getName());
+                } else {
+                    LOGGER.warning(() -> "proc collected for " + c.getName());
+                }
+            } else {
+                LOGGER.warning(() -> "no proc ever registered for " + c.getName());
+            }
         }
     }
 
