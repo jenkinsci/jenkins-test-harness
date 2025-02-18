@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.PluginManager;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -297,9 +298,22 @@ public final class RealJenkinsRule implements TestRule {
      * @return a builder
      */
     public SyntheticPlugin addSyntheticPlugin(Package pkg) {
-        SyntheticPlugin p = new SyntheticPlugin(pkg.getName());
+        SyntheticPlugin p = new SyntheticPlugin(pkg.getName(), this);
         syntheticPlugins.add(p);
         return p;
+    }
+
+    /**
+     * Creates a test-only plugin based on sources defined in this module, but does not install it.
+     * See {@link #addSyntheticPlugin} for more details. Prefer that method if you simply want the
+     * plugin to be installed automatically. Use {@link SyntheticPlugin#writeTo} to package the
+     * plugin, which can then be used as needed, for example by {@link PluginManager#dynamicLoad}.
+     * @see #addSyntheticPlugin
+     * @param pkg the Java package containing any classes and resources you want included
+     * @return a builder
+     */
+    public static SyntheticPlugin createSyntheticPlugin(Package pkg) {
+        return new SyntheticPlugin(pkg.getName(), null);
     }
 
     /**
@@ -1700,14 +1714,16 @@ public final class RealJenkinsRule implements TestRule {
      * Alternative to {@link #addPlugins} or {@link TestExtension} that lets you build a test-only plugin on the fly.
      * ({@link ExtensionList#add(Object)} can also be used for certain cases, but not if you need to define new types.)
      */
-    public final class SyntheticPlugin {
+    public static final class SyntheticPlugin {
         private final String pkg;
+        private final RealJenkinsRule rjr;
         private String shortName;
         private String version = "1-SNAPSHOT";
         private Map<String, String> headers = new HashMap<>();
 
-        SyntheticPlugin(String pkg) {
+        SyntheticPlugin(String pkg, RealJenkinsRule rjr) {
             this.pkg = pkg;
+            this.rjr = rjr;
             shortName = "synthetic-" + pkg.replace('.', '-');
         }
 
@@ -1748,10 +1764,13 @@ public final class RealJenkinsRule implements TestRule {
          * @return back to the rule builder
          */
         public RealJenkinsRule done() {
-            return RealJenkinsRule.this;
+            if (rjr == null) {
+                throw new IllegalStateException("May only be called after RealJenkinsRule.addSyntheticPlugin");
+            }
+            return rjr;
         }
 
-        void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
+        public void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
             var mani = new Manifest();
             var attr = mani.getMainAttributes();
             attr.put(Attributes.Name.MANIFEST_VERSION, "1.0");
