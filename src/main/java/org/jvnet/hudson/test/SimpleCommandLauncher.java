@@ -86,7 +86,10 @@ public class SimpleCommandLauncher extends ComputerLauncher {
             	pb.environment().putAll(env);
             }
             final Process proc = pb.start();
-            ExtensionList.lookupSingleton(FasterKill.class).procs.put(computer, new WeakReference<>(proc));
+            var impls = ExtensionList.lookup(FasterKill.class);
+            if (!impls.isEmpty()) { // not available in RJR
+                impls.get(0).procs.put(computer, new WeakReference<>(proc));
+            }
             new StreamCopyThread("stderr copier for remote agent on " + computer.getDisplayName(), proc.getErrorStream(), listener.getLogger()).start();
             computer.setChannel(proc.getInputStream(), proc.getOutputStream(), listener.getLogger(), new Channel.Listener() {
                 @Override
