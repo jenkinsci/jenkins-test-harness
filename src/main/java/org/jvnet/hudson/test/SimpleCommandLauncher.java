@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -64,7 +65,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
     }
 
     @Override
-    public synchronized void launch(SlaveComputer computer, final TaskListener listener) {
+    public void launch(SlaveComputer computer, final TaskListener listener) {
         try {
             Slave node = computer.getNode();
             if (node == null) {
@@ -86,6 +87,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
         }
     }
 
+    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "test code, close enough")
     @Override
     public synchronized void afterDisconnect(SlaveComputer computer, TaskListener listener) {
         if (proc != null) {
