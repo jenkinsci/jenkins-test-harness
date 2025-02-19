@@ -27,16 +27,15 @@ package org.jvnet.hudson.test;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Slave;
 import hudson.model.TaskListener;
-import hudson.remoting.Channel;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.SlaveComputer;
 import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -52,6 +51,8 @@ public class SimpleCommandLauncher extends ComputerLauncher {
 
     public final String cmd;
     private final Map<String, String> env;
+    private transient Process proc;
+    private transient EnvVars cookie;
 
     @DataBoundConstructor // in case anyone needs to configRoundtrip such a node
     public SimpleCommandLauncher(String cmd) {
@@ -72,26 +73,30 @@ public class SimpleCommandLauncher extends ComputerLauncher {
             }
             listener.getLogger().println("$ " + cmd);
             ProcessBuilder pb = new ProcessBuilder(Util.tokenize(cmd));
-            final EnvVars cookie = EnvVars.createCookie();
+            cookie = EnvVars.createCookie();
             pb.environment().putAll(cookie);
             if (env != null) {
             	pb.environment().putAll(env);
             }
-            final Process proc = pb.start();
+            proc = pb.start();
             new StreamCopyThread("stderr copier for remote agent on " + computer.getDisplayName(), proc.getErrorStream(), listener.getLogger()).start();
-            computer.setChannel(proc.getInputStream(), proc.getOutputStream(), listener.getLogger(), new Channel.Listener() {
-                @Override
-                public void onClosed(Channel channel, IOException cause) {
-                    try {
-                        ProcessTree.get().killAll(proc, cookie);
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, null, x);
-                    }
-                }
-            });
+            computer.setChannel(proc.getInputStream(), proc.getOutputStream(), listener, null);
             LOGGER.log(Level.INFO, "agent launched for {0}", computer.getName());
         } catch (Exception x) {
             LOGGER.log(Level.WARNING, null, x);
+        }
+    }
+
+    @Override
+    public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
+        if (proc != null) {
+            try {
+                ProcessTree.get().killAll(proc, cookie);
+            } catch (Exception x) {
+                Functions.printStackTrace(x, listener.error("Failed to terminate process"));
+            }
+            proc = null;
+            cookie = null;
         }
     }
 
