@@ -308,6 +308,7 @@ public final class RealJenkinsRule implements TestRule {
      * @param plugin the configured {@link SyntheticPlugin}
      * @return the JPI file for the plugin
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant, this is test code")
     public File createSyntheticPlugin(SyntheticPlugin plugin) throws IOException, URISyntaxException {
         File pluginJpi = new File(tmp.allocate("synthetic-plugin"), plugin.shortName + ".jpi");
         if (war == null) {
