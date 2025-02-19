@@ -32,17 +32,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.RealJenkinsRule.SyntheticPlugin;
 import org.jvnet.hudson.test.sample.plugin.CustomJobProperty;
 import org.jvnet.hudson.test.sample.plugin.Stuff;
 
 public final class RealJenkinsRuleSyntheticPluginTest {
 
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true);
-    @Rule public TemporaryFolder temp = new TemporaryFolder();
 
     @Test public void smokes() throws Throwable {
-        rr.addSyntheticPlugin(Stuff.class.getPackage()).done();
+        rr.addSyntheticPlugin(new SyntheticPlugin(Stuff.class.getPackage()));
         rr.then(RealJenkinsRuleSyntheticPluginTest::_smokes);
     }
 
@@ -52,7 +51,7 @@ public final class RealJenkinsRuleSyntheticPluginTest {
     }
 
     @Test public void classFilter() throws Throwable {
-        rr.addSyntheticPlugin(CustomJobProperty.class.getPackage()).done().withLogger(ClassFilterImpl.class, Level.FINE);
+        rr.addSyntheticPlugin(new SyntheticPlugin(CustomJobProperty.class.getPackage())).withLogger(ClassFilterImpl.class, Level.FINE);
         rr.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
@@ -61,14 +60,11 @@ public final class RealJenkinsRuleSyntheticPluginTest {
     }
 
     @Test public void dynamicLoad() throws Throwable {
-        var file = temp.newFile("synthetic-stuff.jpi");
+        var pluginJpi = rr.createSyntheticPlugin(new SyntheticPlugin(Stuff.class.getPackage()));
         rr.then(r -> {
-            RealJenkinsRule.createSyntheticPlugin(Stuff.class.getPackage())
-                    .shortName("synthetic-stuff")
-                    .writeTo(file, Jenkins.getVersion().toString());
-            r.jenkins.pluginManager.dynamicLoad(file);
+            r.jenkins.pluginManager.dynamicLoad(pluginJpi);
             assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
-            is(Jenkins.get().getLegacyInstanceId()));
+                is(Jenkins.get().getLegacyInstanceId()));
         });
     }
 }
