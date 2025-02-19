@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
-import hudson.Functions;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Slave;
@@ -88,15 +87,18 @@ public class SimpleCommandLauncher extends ComputerLauncher {
     }
 
     @Override
-    public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
+    public synchronized void afterDisconnect(SlaveComputer computer, TaskListener listener) {
         if (proc != null) {
             try {
                 ProcessTree.get().killAll(proc, cookie);
+                LOGGER.info(() -> "killed " + proc + " with " + cookie + " for " + computer.getName());
             } catch (Exception x) {
-                Functions.printStackTrace(x, listener.error("Failed to terminate process"));
+                LOGGER.log(Level.WARNING, "failed to kill " + proc + " with " + cookie + " for " + computer.getName(), x);
             }
             proc = null;
             cookie = null;
+        } else {
+            LOGGER.info(() -> "no process for " + computer.getName());
         }
     }
 
