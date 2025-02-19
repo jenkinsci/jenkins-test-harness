@@ -293,13 +293,32 @@ public final class RealJenkinsRule implements TestRule {
      * (You will need to {@code .header("Plugin-Dependencies", "variant:0")} to use this API.)
      * Then use {@code @OptionalExtension} on all your test extensions.
      * These will then be loaded only in {@link RealJenkinsRule}-based tests requesting this plugin.
-     * @param pkg the Java package containing any classes and resources you want included
-     * @return a builder
+     * @param plugin the configured {@link SyntheticPlugin}
      */
-    public SyntheticPlugin addSyntheticPlugin(Package pkg) {
-        SyntheticPlugin p = new SyntheticPlugin(pkg.getName());
-        syntheticPlugins.add(p);
-        return p;
+    public RealJenkinsRule addSyntheticPlugin(SyntheticPlugin plugin) {
+        syntheticPlugins.add(plugin);
+        return this;
+    }
+
+    /**
+     * Creates a test-only plugin based on sources defined in this module, but does not install it.
+     * <p>See {@link #addSyntheticPlugin} for more details. Prefer that method if you simply want the
+     * plugin to be installed automatically.
+     * @see #addSyntheticPlugin
+     * @param plugin the configured {@link SyntheticPlugin}
+     * @return the JPI file for the plugin
+     */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant, this is test code")
+    public File createSyntheticPlugin(SyntheticPlugin plugin) throws IOException, URISyntaxException {
+        File pluginJpi = new File(tmp.allocate("synthetic-plugin"), plugin.shortName + ".jpi");
+        if (war == null) {
+            throw new IllegalStateException("createSyntheticPlugin may only be invoked from within a test method");
+        }
+        try (JarFile jf = new JarFile(war)) {
+            String jenkinsVersion = jf.getManifest().getMainAttributes().getValue("Jenkins-Version");
+            plugin.writeTo(pluginJpi, jenkinsVersion);
+        }
+        return pluginJpi;
     }
 
     /**
@@ -1700,15 +1719,21 @@ public final class RealJenkinsRule implements TestRule {
      * Alternative to {@link #addPlugins} or {@link TestExtension} that lets you build a test-only plugin on the fly.
      * ({@link ExtensionList#add(Object)} can also be used for certain cases, but not if you need to define new types.)
      */
-    public final class SyntheticPlugin {
+    public static final class SyntheticPlugin {
         private final String pkg;
         private String shortName;
         private String version = "1-SNAPSHOT";
         private Map<String, String> headers = new HashMap<>();
 
-        SyntheticPlugin(String pkg) {
-            this.pkg = pkg;
-            shortName = "synthetic-" + pkg.replace('.', '-');
+        /**
+         * Creates a new synthetic plugin builder.
+         * @see RealJenkinsRule#addSyntheticPlugin
+         * @see RealJenkinsRule#createSyntheticPlugin
+         * @param pkg the Java package containing any classes and resources you want included
+         */
+        public SyntheticPlugin(Package pkg) {
+            this.pkg = pkg.getName();
+            shortName = "synthetic-" + this.pkg.replace('.', '-');
         }
 
         /**
@@ -1742,13 +1767,6 @@ public final class RealJenkinsRule implements TestRule {
         public SyntheticPlugin header(String key, String value) {
             headers.put(key, value);
             return this;
-        }
-
-        /**
-         * @return back to the rule builder
-         */
-        public RealJenkinsRule done() {
-            return RealJenkinsRule.this;
         }
 
         void writeTo(File jpi, String defaultJenkinsVersion) throws IOException, URISyntaxException {
