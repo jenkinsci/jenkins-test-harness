@@ -64,7 +64,7 @@ public class SimpleCommandLauncher extends ComputerLauncher {
     }
 
     @Override
-    public void launch(SlaveComputer computer, final TaskListener listener) {
+    public synchronized void launch(SlaveComputer computer, final TaskListener listener) {
         try {
             Slave node = computer.getNode();
             if (node == null) {
