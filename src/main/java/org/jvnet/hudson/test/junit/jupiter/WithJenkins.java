@@ -55,6 +55,33 @@ import org.jvnet.hudson.test.JenkinsRule;
  *
  * </blockquote>
  *
+ * <p>Parameterized tests need to accept {@link JenkinsRule JenkinsRule} parameter in a
+ * {@link org.junit.jupiter.api.BeforeEach BeforeEach} or
+ * {@link org.junit.jupiter.api.BeforeAll BeforeAll} annotated method. </p>
+ *
+ * <blockquote>
+ *
+ * <pre>
+ * &#64;WithJenkins
+ * class ExampleJUnit5Test {
+ * 
+ *     private JenkinsRule r;
+ * 
+ *     &#64;BeforeEach
+ *     public void setUp(JenkinsRule r) {
+ *         this.r = r;
+ *     }
+ * 
+ *     &#64;@ParameterizedTest
+ *     &#64;@ValueSource(strings = { "one", "two", "three" })
+ *     public void example(String param) {
+ *         // use 'r' ...
+ *     }
+ * }
+ * </pre>
+ *
+ * </blockquote
+ *
  * @see JenkinsExtension
  * @see org.junit.jupiter.api.extension.ExtendWith
  */
