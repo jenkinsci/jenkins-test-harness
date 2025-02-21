@@ -80,7 +80,7 @@ import org.jvnet.hudson.test.JenkinsRule;
  * }
  * </pre>
  *
- * </blockquote
+ * </blockquote>
  *
  * @see JenkinsExtension
  * @see org.junit.jupiter.api.extension.ExtendWith
