@@ -72,8 +72,8 @@ import org.jvnet.hudson.test.JenkinsRule;
  *         this.r = r;
  *     }
  * 
- *     &#64;@ParameterizedTest
- *     &#64;@ValueSource(strings = { "one", "two", "three" })
+ *     &#64;ParameterizedTest
+ *     &#64;ValueSource(strings = { "one", "two", "three" })
  *     public void example(String param) {
  *         // use 'r' ...
  *     }
