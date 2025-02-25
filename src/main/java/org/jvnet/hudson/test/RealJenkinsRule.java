@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.Util;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -243,6 +244,8 @@ public final class RealJenkinsRule implements TestRule {
     private SSLSocketFactory sslSocketFactory;
     private X509Certificate rootCA;
 
+    private String prefix = "/jenkins";
+
     public RealJenkinsRule() {
         home = new AtomicReference<>();
     }
@@ -387,6 +390,37 @@ public final class RealJenkinsRule implements TestRule {
             throw new IllegalStateException("Don't call this method when using HTTPS");
         }
         this.host = host;
+        return this;
+    }
+
+    /**
+     * Removes the prefix from the Jenkins root URL.
+     * @see #withPrefix(String)
+     */
+    public RealJenkinsRule noPrefix() {
+        this.prefix = null;
+        return this;
+    }
+
+    /**
+     * Sets a custom prefix for the Jenkins root URL.
+     * <p>
+     * By default, the prefix defaults to {@code /jenkins}.
+     * <p>
+     * Use {@link #noPrefix()} to remove the prefix, or provide another prefix of your choice as long as it starts with / and doesn't end with /.
+     */
+    public RealJenkinsRule withPrefix(@NonNull String prefix) {
+        var sanitized = Util.fixEmpty(prefix);
+        if (sanitized == null) {
+            throw new IllegalStateException("Use noPrefix() to remove the prefix.");
+        }
+        if (!sanitized.startsWith("/")) {
+            throw new IllegalStateException("Prefix must start with a leading slash.");
+        }
+        if (sanitized.endsWith("/")) {
+            throw new IllegalStateException("Prefix must not end with a trailing slash.");
+        }
+        this.prefix = sanitized;
         return this;
     }
 
@@ -825,7 +859,7 @@ public final class RealJenkinsRule implements TestRule {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(https ? "https" : "http", host, port, "/jenkins/");
+        return new URL(https ? "https" : "http", host, port, prefix == null ? "" : prefix + "/");
     }
 
     /**
@@ -1008,8 +1042,10 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
-                "--httpListenAddress=" + httpListenAddress,
-                "--prefix=/jenkins"));
+                "--httpListenAddress=" + httpListenAddress));
+        if (prefix != null) {
+            argv.add("--prefix=" + prefix);
+        }
         argv.addAll(getPortOptions());
         if (https) {
             argv.add("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath());
