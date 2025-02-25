@@ -33,8 +33,10 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 /**
- * Simpler alternative to {@link RestartableJenkinsRule}.
- * Most critically, {@link #then} runs immediately, so this rule plays nicely with things like {@link After}.
+ * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
+ * It also supports running test code before, between, or after Jenkins sessions,
+ * whereas a test method using {@link JenkinsRule} directly
+ * will only run after Jenkins has started and must complete before Jenkins terminates.
  */
 public class JenkinsSessionRule implements TestRule {
 
