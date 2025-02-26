@@ -889,7 +889,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
         config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
+        config.setUriCompliance(UriCompliance.LEGACY.with("jenkins", UriCompliance.Violation.SUSPICIOUS_PATH_CHARACTERS));
         connector.setHost("localhost");
         if (System.getProperty("port") != null) {
             connector.setPort(Integer.parseInt(System.getProperty("port")));
