@@ -584,7 +584,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
         config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY.with("winstone", UriCompliance.Violation.SUSPICIOUS_PATH_CHARACTERS));
+        UriCompliance compliance = UriCompliance.LEGACY;
+        if (!Boolean.getBoolean("winstone.DENY_SUSPICIOUS_PATH_CHARACTERS")) {
+            compliance = compliance.with("jenkins", UriCompliance.Violation.SUSPICIOUS_PATH_CHARACTERS);
+        }
+        config.setUriCompliance(compliance);
         connector.setHost("localhost");
 
         server.addConnector(connector);
