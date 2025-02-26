@@ -1,7 +1,6 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
-import hudson.PluginManager;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.runner.Description;
@@ -28,27 +28,18 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 /**
- * Provides a pattern for executing a sequence of steps.
- * In between steps, Jenkins gets restarted.
- *
- * <p>
- * To use this, add this rule instead of {@link JenkinsRule} to the test,
- * then from your test method, call {@link #then} repeatedly.
- * You may test scenarios related to abrupt shutdowns or failures to start using {@link #thenWithHardShutdown} and
- * {@link #thenDoesNotStart}.
- * <p>
- * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
- * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
- * {@link #then} is called.
- * <p>
- * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
- * will need to be changed to {@link UnitTestSupportingPluginManager}.
- * This can be accomplished by annotating the test with {@code @WithPluginManager(UnitTestSupportingPluginManager.class)}.
- * 
  * @author Kohsuke Kawaguchi
- * @see JenkinsRule
  * @since 1.567
+ * @deprecated New code should use {@link JenkinsSessionRule}.
+ *             {@link RestartableJenkinsRule} will evaluate your test method to collect all steps,
+ *             then execute them in turn and restart Jenkins in between each step,
+ *             <em>after</em> the test method has exited.
+ *             That is probably not what you would expect from looking at sources,
+ *             and it will not work naturally with {@link After} etc.
+ *             Tests needing to dynamically disable plugins, simulate crashes, etc.
+ *             are better written using {@link RealJenkinsRule}.
  */
+@Deprecated
 public class RestartableJenkinsRule implements MethodRule {
     public JenkinsRule j;
     private Description description;
