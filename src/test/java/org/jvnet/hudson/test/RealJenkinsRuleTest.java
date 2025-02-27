@@ -102,25 +102,41 @@ public class RealJenkinsRuleTest {
 
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
-        assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+        assertThatLocalAndRemoteUrlEquals();
     }
 
     @Test public void customPrefix() throws Throwable {
         rr.withPrefix("/foo").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/foo/"));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void complexPrefix() throws Throwable {
+        rr.withPrefix("/foo/bar").startJenkins();
+        assertThat(rr.getUrl().getPath(), equalTo("/foo/bar/"));
+        assertThatLocalAndRemoteUrlEquals();
     }
 
     @Test public void noPrefix() throws Throwable {
-        rr.noPrefix().startJenkins();
-        assertThat(rr.getUrl().getPath(), emptyString());
+        rr.withPrefix("").startJenkins();
+        assertThat(rr.getUrl().getPath(), equalTo("/"));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void invalidPrefixes() {
+        assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("foo"));
+        assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("/foo/"));
     }
 
     @Test public void ipv6() throws Throwable {
         // Use -Djava.net.preferIPv6Addresses=true if dualstack
         assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
         rr.withHost("::1").startJenkins();
-        var externalForm = rr.getUrl().toExternalForm();
-        assertEquals(externalForm, rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    private void assertThatLocalAndRemoteUrlEquals() throws Throwable {
+        assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     @Test public void testThrowsException() {

@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
-import hudson.Util;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
@@ -244,6 +243,7 @@ public final class RealJenkinsRule implements TestRule {
     private SSLSocketFactory sslSocketFactory;
     private X509Certificate rootCA;
 
+    @NonNull
     private String prefix = "/jenkins";
 
     public RealJenkinsRule() {
@@ -394,33 +394,22 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     * Removes the prefix from the Jenkins root URL.
-     * @see #withPrefix(String)
-     */
-    public RealJenkinsRule noPrefix() {
-        this.prefix = null;
-        return this;
-    }
-
-    /**
      * Sets a custom prefix for the Jenkins root URL.
      * <p>
      * By default, the prefix defaults to {@code /jenkins}.
      * <p>
-     * Use {@link #noPrefix()} to remove the prefix, or provide another prefix of your choice as long as it starts with / and doesn't end with /.
+     * If not empty, must start with '/' and not end with '/'.
      */
     public RealJenkinsRule withPrefix(@NonNull String prefix) {
-        var sanitized = Util.fixEmpty(prefix);
-        if (sanitized == null) {
-            throw new IllegalStateException("Use noPrefix() to remove the prefix.");
+        if (!prefix.isEmpty()) {
+            if (!prefix.startsWith("/")) {
+                throw new IllegalArgumentException("Prefix must start with a leading slash.");
+            }
+            if (prefix.endsWith("/")) {
+                throw new IllegalArgumentException("Prefix must not end with a trailing slash.");
+            }
         }
-        if (!sanitized.startsWith("/")) {
-            throw new IllegalStateException("Prefix must start with a leading slash.");
-        }
-        if (sanitized.endsWith("/")) {
-            throw new IllegalStateException("Prefix must not end with a trailing slash.");
-        }
-        this.prefix = sanitized;
+        this.prefix = prefix;
         return this;
     }
 
@@ -854,12 +843,14 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins()}.
+     * <p>
+     * Always ends with a '/'.
      */
     public URL getUrl() throws MalformedURLException {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(https ? "https" : "http", host, port, prefix == null ? "" : prefix + "/");
+        return new URL(https ? "https" : "http", host, port, prefix + "/");
     }
 
     /**
@@ -1043,7 +1034,7 @@ public final class RealJenkinsRule implements TestRule {
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
                 "--httpListenAddress=" + httpListenAddress));
-        if (prefix != null) {
+        if (!prefix.isEmpty()) {
             argv.add("--prefix=" + prefix);
         }
         argv.addAll(getPortOptions());
