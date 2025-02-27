@@ -243,6 +243,9 @@ public final class RealJenkinsRule implements TestRule {
     private SSLSocketFactory sslSocketFactory;
     private X509Certificate rootCA;
 
+    @NonNull
+    private String prefix = "/jenkins";
+
     public RealJenkinsRule() {
         home = new AtomicReference<>();
     }
@@ -387,6 +390,26 @@ public final class RealJenkinsRule implements TestRule {
             throw new IllegalStateException("Don't call this method when using HTTPS");
         }
         this.host = host;
+        return this;
+    }
+
+    /**
+     * Sets a custom prefix for the Jenkins root URL.
+     * <p>
+     * By default, the prefix defaults to {@code /jenkins}.
+     * <p>
+     * If not empty, must start with '/' and not end with '/'.
+     */
+    public RealJenkinsRule withPrefix(@NonNull String prefix) {
+        if (!prefix.isEmpty()) {
+            if (!prefix.startsWith("/")) {
+                throw new IllegalArgumentException("Prefix must start with a leading slash.");
+            }
+            if (prefix.endsWith("/")) {
+                throw new IllegalArgumentException("Prefix must not end with a trailing slash.");
+            }
+        }
+        this.prefix = prefix;
         return this;
     }
 
@@ -820,12 +843,14 @@ public final class RealJenkinsRule implements TestRule {
 
     /**
      * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins()}.
+     * <p>
+     * Always ends with a '/'.
      */
     public URL getUrl() throws MalformedURLException {
         if (port == 0) {
             throw new IllegalStateException("This method must be called after calling #startJenkins.");
         }
-        return new URL(https ? "https" : "http", host, port, "/jenkins/");
+        return new URL(https ? "https" : "http", host, port, prefix + "/");
     }
 
     /**
@@ -1008,8 +1033,10 @@ public final class RealJenkinsRule implements TestRule {
         argv.addAll(List.of(
                 "-jar", war.getAbsolutePath(),
                 "--enable-future-java",
-                "--httpListenAddress=" + httpListenAddress,
-                "--prefix=/jenkins"));
+                "--httpListenAddress=" + httpListenAddress));
+        if (!prefix.isEmpty()) {
+            argv.add("--prefix=" + prefix);
+        }
         argv.addAll(getPortOptions());
         if (https) {
             argv.add("--httpsKeyStore=" + keyStoreManager.getPath().toAbsolutePath());
