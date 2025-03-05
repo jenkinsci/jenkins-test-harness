@@ -367,7 +367,7 @@ public final class InboundAgentRule extends ExternalResource {
         r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }
 
-    @SuppressFBWarnings(value = {"COMMAND_INJECTION", "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = "just for test code")
+    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
     public void start(AgentArguments agentArguments, Options options) throws Exception {
         Objects.requireNonNull(options.getName());
         stop(options.getName());
