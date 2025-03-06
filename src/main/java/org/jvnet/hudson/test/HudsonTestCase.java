@@ -140,9 +140,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.eclipse.jetty.ee9.webapp.Configuration;
 import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
 import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
@@ -584,11 +582,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
         config.setHttpCompliance(HttpCompliance.RFC7230);
-        UriCompliance compliance = UriCompliance.LEGACY;
-        if (!Boolean.getBoolean("winstone.DENY_SUSPICIOUS_PATH_CHARACTERS")) {
-            compliance = compliance.with("jenkins", UriCompliance.Violation.SUSPICIOUS_PATH_CHARACTERS);
-        }
-        config.setUriCompliance(compliance);
+        config.setUriCompliance(UriCompliance.LEGACY);
         connector.setHost("localhost");
 
         server.addConnector(connector);
