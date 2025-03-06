@@ -2658,7 +2658,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlButton button = top.querySelector("#button-open-command-palette");
+            HtmlButton button = top.querySelector("#button-open-command-palette, #root-action-SearchAction");
 
             // Legacy versions of Jenkins
             if (button == null) {
