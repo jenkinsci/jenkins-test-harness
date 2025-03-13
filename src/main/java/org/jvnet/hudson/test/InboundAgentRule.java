@@ -111,6 +111,8 @@ public final class InboundAgentRule extends ExternalResource {
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
         private String trustStorePath;
         private String trustStorePassword;
+        private String cert;
+        private boolean noCertificateCheck;
 
         public String getName() {
             return name;
@@ -145,6 +147,9 @@ public final class InboundAgentRule extends ExternalResource {
          * @param r The instance to compute Java options for
          */
         private void computeJavaOptions(RealJenkinsRule r) {
+            if (cert != null || noCertificateCheck) {
+                return;
+            }
             if (trustStorePath != null && trustStorePassword != null) {
                 javaOptions.addAll(List.of(
                         "-Djavax.net.ssl.trustStore=" + trustStorePath,
@@ -245,6 +250,29 @@ public final class InboundAgentRule extends ExternalResource {
             public Builder trustStore(String path, String password) {
                 options.trustStorePath = path;
                 options.trustStorePassword = password;
+                return this;
+            }
+
+            /**
+             * Provide a custom certificate for the agent JVM.
+             * @param cert the certificate to use
+             * @return this builder
+             */
+            public Builder cert(String cert) {
+                // TODO: check if the cert file path will actually work or not
+                if (cert.startsWith("@")) {
+                    throw new RuntimeException("as of now cert file path are not supported due to JENKINS-75005");
+                }
+                options.cert = cert;
+                return this;
+            }
+
+            /**
+             * Disable certificate check for the agent JVM.
+             * @return this builder
+             */
+            public Builder noCertificateCheck() {
+                options.noCertificateCheck = true;
                 return this;
             }
 
@@ -399,6 +427,13 @@ public final class InboundAgentRule extends ExternalResource {
                 cmd.addAll(List.of("-secret", agentArguments.secret));
             }
         }
+
+        if (options.noCertificateCheck) {
+            cmd.add("-noCertificateCheck");
+        } else if (options.cert != null) {
+            cmd.addAll(List.of("-cert", options.cert));
+        }
+
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
