@@ -259,10 +259,6 @@ public final class InboundAgentRule extends ExternalResource {
              * @return this builder
              */
             public Builder cert(String cert) {
-                // TODO: check if the cert file path will actually work or not
-                if (cert.startsWith("@")) {
-                    throw new RuntimeException("as of now cert file path are not supported due to JENKINS-75005");
-                }
                 options.cert = cert;
                 return this;
             }
