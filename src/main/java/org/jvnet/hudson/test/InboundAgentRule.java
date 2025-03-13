@@ -254,7 +254,7 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             /**
-             * Provide a custom certificate for the agent JVM.
+             * Provide a custom certificate for the agent JVM. Usage as per the Remoting `-cert` option.
              * @param cert the certificate to use
              * @return this builder
              */
@@ -264,7 +264,7 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             /**
-             * Disable certificate check for the agent JVM.
+             * Disable certificate check for the agent JVM. Usage as per the Remoting `-noCertificateCheck` option.
              * @return this builder
              */
             public Builder noCertificateCheck() {
