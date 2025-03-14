@@ -254,7 +254,8 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             /**
-             * Provide a custom certificate for the agent JVM. Usage as per the Remoting `-cert` option.
+             * Sets a custom certificate for the agent JVM, passed as the Remoting `-cert` CLI argument.
+             * When using {@code RealJenkinsRule}, use {@link RealJenkinsRule#getRootCAPem()} to obtain the required value to pass to this method.
              * @param cert the certificate to use
              * @return this builder
              */
@@ -264,7 +265,7 @@ public final class InboundAgentRule extends ExternalResource {
             }
 
             /**
-             * Disable certificate check for the agent JVM. Usage as per the Remoting `-noCertificateCheck` option.
+             * Disables certificate verification for the agent JVM, passed as the Remoting `-noCertificateCheck` CLI argument.
              * @return this builder
              */
             public Builder noCertificateCheck() {
