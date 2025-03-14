@@ -143,7 +143,9 @@ public final class InboundAgentRule extends ExternalResource {
         }
 
         /**
-         * Compute java options requied to connect to the given RealJenkinsRule instance.
+         * Compute java options required to connect to the given RealJenkinsRule instance.
+         * If {@link #cert} or {@link #noCertificateCheck} is set, trustStore options are not computed.
+         * This prevents Remoting from implicitly bypassing failures related to {@code -cert} or {@code -noCertificateCheck}.
          * @param r The instance to compute Java options for
          */
         private void computeJavaOptions(RealJenkinsRule r) {
