@@ -27,6 +27,8 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -36,6 +38,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -75,7 +78,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import static org.junit.Assume.assumeThat;
 import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -100,15 +102,41 @@ public class RealJenkinsRuleTest {
 
     @Test public void testReturnObject() throws Throwable {
         rr.startJenkins();
-        assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void customPrefix() throws Throwable {
+        rr.withPrefix("/foo").startJenkins();
+        assertThat(rr.getUrl().getPath(), equalTo("/foo/"));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void complexPrefix() throws Throwable {
+        rr.withPrefix("/foo/bar").startJenkins();
+        assertThat(rr.getUrl().getPath(), equalTo("/foo/bar/"));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void noPrefix() throws Throwable {
+        rr.withPrefix("").startJenkins();
+        assertThat(rr.getUrl().getPath(), equalTo("/"));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    @Test public void invalidPrefixes() {
+        assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("foo"));
+        assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("/foo/"));
     }
 
     @Test public void ipv6() throws Throwable {
         // Use -Djava.net.preferIPv6Addresses=true if dualstack
         assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
         rr.withHost("::1").startJenkins();
-        var externalForm = rr.getUrl().toExternalForm();
-        assertEquals(externalForm, rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
+        assertThatLocalAndRemoteUrlEquals();
+    }
+
+    private void assertThatLocalAndRemoteUrlEquals() throws Throwable {
+        assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
     @Test public void testThrowsException() {
