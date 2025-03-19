@@ -1651,6 +1651,8 @@ public final class RealJenkinsRule implements TestRule {
         public CustomJenkinsRule(URL url) throws Exception {
             this.jenkins = Jenkins.get();
             this.url = url;
+            // Set the contextPath to match the URL path
+            this.contextPath = url.getPath().replaceAll("/$", "");
             if (jenkins.isUsageStatisticsCollected()) {
                 jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
             }
