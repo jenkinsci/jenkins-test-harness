@@ -599,7 +599,6 @@ public final class InboundAgentRule extends ExternalResource {
             options.name = "agent" + r.jenkins.getNodes().size();
         }
         JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
-        launcher.setWebSocket(options.isWebSocket());
         DumbSlave s = new DumbSlave(options.getName(), Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work").toString(), launcher);
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
