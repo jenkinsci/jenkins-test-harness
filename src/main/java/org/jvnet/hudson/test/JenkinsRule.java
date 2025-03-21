@@ -3097,35 +3097,26 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Restart the current instance with the same port and a copy of its {@code JENKINS_HOME}.
      */
     public void restart() throws Throwable {
-        // create backup of current instance in new home
-        URL source = jenkins.getRootDir().toURI().toURL();
-        File copy = new TemporaryDirectoryAllocator().allocate();
+        // create backup of current instance as zip
+        File source = jenkins.getRootDir();
+        File backup = File.createTempFile("jenkins",".zip");
 
-        if(source.getProtocol().equals("file")) {
-            File src = new File(source.toURI());
-            if (src.isDirectory()) {
-                new FilePath(src).copyRecursiveTo("**/*",new FilePath(copy));
-            } else if (src.getName().endsWith(".zip")) {
-                new FilePath(src).unzip(new FilePath(copy));
-            }
-        } else {
-            File tmp = File.createTempFile("hudson","zip");
-            try {
-                FileUtils.copyURLToFile(source,tmp);
-                new FilePath(tmp).unzip(new FilePath(copy));
-            } finally {
-                FileUtils.deleteQuietly(tmp);
-            }
-        }
+        new FilePath(source).zip(new FilePath(backup));
 
         // shutdown and cleanup current instance
         after();
 
-        // init new instance with backup
-        withExistingHome(copy);
+        // unzip the backup to the old location
+        new FilePath(backup).unzip(new FilePath(source.getParentFile()));
+
+        // init new instance from backup
+        with(() -> source);
 
         // startup new instance
         before();
+
+        // delete backup
+        FileUtils.deleteQuietly(backup);
     }
 
     private NameValuePair getCrumbHeaderNVP() {
