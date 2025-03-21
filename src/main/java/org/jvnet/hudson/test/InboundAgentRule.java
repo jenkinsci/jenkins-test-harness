@@ -111,6 +111,8 @@ public final class InboundAgentRule extends ExternalResource {
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
         private String trustStorePath;
         private String trustStorePassword;
+        private String cert;
+        private boolean noCertificateCheck;
 
         public String getName() {
             return name;
@@ -141,10 +143,15 @@ public final class InboundAgentRule extends ExternalResource {
         }
 
         /**
-         * Compute java options requied to connect to the given RealJenkinsRule instance.
+         * Compute java options required to connect to the given RealJenkinsRule instance.
+         * If {@link #cert} or {@link #noCertificateCheck} is set, trustStore options are not computed.
+         * This prevents Remoting from implicitly bypassing failures related to {@code -cert} or {@code -noCertificateCheck}.
          * @param r The instance to compute Java options for
          */
         private void computeJavaOptions(RealJenkinsRule r) {
+            if (cert != null || noCertificateCheck) {
+                return;
+            }
             if (trustStorePath != null && trustStorePassword != null) {
                 javaOptions.addAll(List.of(
                         "-Djavax.net.ssl.trustStore=" + trustStorePath,
@@ -245,6 +252,26 @@ public final class InboundAgentRule extends ExternalResource {
             public Builder trustStore(String path, String password) {
                 options.trustStorePath = path;
                 options.trustStorePassword = password;
+                return this;
+            }
+
+            /**
+             * Sets a custom certificate for the agent JVM, passed as the Remoting `-cert` CLI argument.
+             * When using {@code RealJenkinsRule}, use {@link RealJenkinsRule#getRootCAPem()} to obtain the required value to pass to this method.
+             * @param cert the certificate to use
+             * @return this builder
+             */
+            public Builder cert(String cert) {
+                options.cert = cert;
+                return this;
+            }
+
+            /**
+             * Disables certificate verification for the agent JVM, passed as the Remoting `-noCertificateCheck` CLI argument.
+             * @return this builder
+             */
+            public Builder noCertificateCheck() {
+                options.noCertificateCheck = true;
                 return this;
             }
 
@@ -399,6 +426,13 @@ public final class InboundAgentRule extends ExternalResource {
                 cmd.addAll(List.of("-secret", agentArguments.secret));
             }
         }
+
+        if (options.noCertificateCheck) {
+            cmd.add("-noCertificateCheck");
+        } else if (options.cert != null) {
+            cmd.addAll(List.of("-cert", options.cert));
+        }
+
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
