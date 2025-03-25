@@ -3,7 +3,6 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -446,7 +445,7 @@ public class JenkinsRuleTest {
         // validate properties and configuration were preserved
         assertThat(j.getURL(), equalTo(previousUrl));
         assertThat(j.testDescription, equalTo(previousTestDescription));
-        assertThat(j.jenkins.getRootDir(), not(previousRoot));
+        assertThat(j.jenkins.getRootDir(), equalTo(previousRoot));
         assertThat(j.jenkins.getJobNames(), hasSize(1));
 
         // validate restarted instance is working
