@@ -25,6 +25,8 @@ package org.htmlunit;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.logging.Logger;
+
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.javascript.JavaScriptErrorListener;
 import org.junit.Assert;
@@ -34,6 +36,8 @@ import org.junit.Assert;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class WebClientUtil {
+
+    public static final Logger LOGGER = Logger.getLogger(WebClientUtil.class.getName());
 
     /**
      * Wait for all async JavaScript tasks associated with the supplied {@link WebClient} instance
@@ -53,8 +57,12 @@ public class WebClientUtil {
      * @param timeout The timeout in milliseconds.
      */
     public static void waitForJSExec(WebClient webClient, long timeout) {
+        LOGGER.info("entering waitForJSExec, processing PostponedActions");
         webClient.getJavaScriptEngine().processPostponedActions();
-        webClient.waitForBackgroundJavaScript(timeout);
+        LOGGER.info("completed processPostponedActions");
+        LOGGER.info("waiting for background JavaScript to complete");
+        int x = webClient.waitForBackgroundJavaScript(timeout);
+        LOGGER.info("completed waitForBackgroundJavaScript. Remaining tasks=" + x);
     }
 
     /**
