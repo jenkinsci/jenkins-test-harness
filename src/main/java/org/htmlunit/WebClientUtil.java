@@ -50,6 +50,10 @@ public class WebClientUtil {
         waitForJSExec(webClient, 10000);
     }
 
+    public static void waitForJsExec(WebClient webClient, int timeout) {
+        waitForJSExec(webClient, timeout);
+    }
+
     /**
      * Wait for all async JavaScript tasks associated with the supplied {@link WebClient} instance
      * to complete.

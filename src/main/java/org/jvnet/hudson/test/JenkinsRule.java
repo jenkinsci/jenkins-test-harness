@@ -2743,6 +2743,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
         }
 
+        public HtmlPage goTo(String relative) throws IOException, SAXException {
+            return goTo(relative, -1);
+        }
+
         /**
          * Requests an HTML page within Jenkins.
          *
@@ -2750,13 +2754,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *      Relative path within Jenkins. Starts without '/'.
          *      For example, "job/test/" to go to a job top page.
          */
-        public HtmlPage goTo(String relative) throws IOException, SAXException {
-            Page p = goTo(relative, "text/html");
+        public HtmlPage goTo(String relative, int jsExecTimeout) throws IOException, SAXException {
+            Page p = goTo(relative, "text/html", jsExecTimeout);
             if (p instanceof HtmlPage) {
                 return (HtmlPage) p;
             } else {
                 throw new AssertionError("Expected text/html but instead the content type was "+p.getWebResponse().getContentType());
             }
+        }
+
+        public Page goTo(String relative, @CheckForNull String expectedContentType) throws IOException, SAXException {
+            return goTo(relative, expectedContentType, -1);
         }
 
         /**
@@ -2767,12 +2775,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *      For example, "job/test/" to go to a job top page.
          * @param expectedContentType the expected {@link WebResponse#getContentType}, or null to do no such check
          */
-        public Page goTo(String relative, @CheckForNull String expectedContentType) throws IOException, SAXException {
+        public Page goTo(String relative, @CheckForNull String expectedContentType, int jsExecTimeout) throws IOException,
+                                                                                              SAXException {
             assert !relative.startsWith("/");
             Page p;
             try {
                 p = super.getPage(getContextPath() + relative);
-                WebClientUtil.waitForJSExec(this);
+                if (jsExecTimeout >= 0) {
+                    WebClientUtil.waitForJSExec(this, jsExecTimeout);
+                } else {
+                    WebClientUtil.waitForJSExec(this);
+                }
             } catch (IOException x) {
                 Throwable cause = x.getCause();
                 if (cause instanceof SocketTimeoutException) {
