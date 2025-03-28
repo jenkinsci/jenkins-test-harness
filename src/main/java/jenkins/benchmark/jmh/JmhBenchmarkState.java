@@ -5,6 +5,7 @@ import hudson.model.Hudson;
 import hudson.model.RootAction;
 import hudson.security.ACL;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,7 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
+import org.eclipse.jetty.ee10.webapp.WebAppContext;
 import org.eclipse.jetty.server.Server;
 import org.jvnet.hudson.test.JavaNetReverseProxy2;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -93,15 +94,28 @@ public abstract class JmhBenchmarkState implements RootAction {
     }
 
     private void launchInstance() throws Exception {
-        WebAppContext context = JenkinsRule._createWebAppContext2(
-                contextPath,
-                localPort::set,
-                getClass().getClassLoader(),
-                localPort.get(),
-                JenkinsRule::_configureUserRealm);
-        server = context.getServer();
+        ServletContext webServer;
+        if (_isEE10Plus()) {
+            WebAppContext context = JenkinsRule._createWebAppContext3(
+                    contextPath,
+                    localPort::set,
+                    getClass().getClassLoader(),
+                    localPort.get(),
+                    JenkinsRule::_configureUserRealm);
+            server = context.getServer();
 
-        ServletContext webServer = context.getServletContext();
+            webServer = context.getServletContext();
+        } else {
+            org.eclipse.jetty.ee9.webapp.WebAppContext context = JenkinsRule._createWebAppContext2(
+                    contextPath,
+                    localPort::set,
+                    getClass().getClassLoader(),
+                    localPort.get(),
+                    JenkinsRule::_configureUserRealm);
+            server = context.getServer();
+
+            webServer = context.getServletContext();
+        }
 
         jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);
@@ -111,6 +125,15 @@ public abstract class JmhBenchmarkState implements RootAction {
         String url = Objects.requireNonNull(getJenkinsURL()).toString();
         Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(url);
         LOGGER.log(Level.INFO, "Running on {0}", url);
+    }
+
+    private static boolean _isEE10Plus() {
+        try {
+            ServletRequest.class.getDeclaredMethod("getRequestId");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     private URL getJenkinsURL() throws MalformedURLException {
