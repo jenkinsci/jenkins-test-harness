@@ -18,7 +18,6 @@ import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee9.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 /**
@@ -43,11 +42,9 @@ public class JavaNetReverseProxy2 extends HttpServlet {
         qtp.setName("Jetty (JavaNetReverseProxy)");
         server = new Server(qtp);
 
-        ContextHandlerCollection contexts = new ContextHandlerCollection();
-        server.setHandler(contexts);
-
-        ServletContextHandler root = new ServletContextHandler(contexts, "/", ServletContextHandler.SESSIONS);
-        root.addServlet(new ServletHolder(this), "/");
+        ServletContextHandler context = new ServletContextHandler();
+        context.addServlet(new ServletHolder(this), "/");
+        server.setHandler(context);
 
         ServerConnector connector = new ServerConnector(server);
         server.addConnector(connector);

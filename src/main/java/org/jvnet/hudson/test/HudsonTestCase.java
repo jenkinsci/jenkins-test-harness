@@ -152,6 +152,7 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
+import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.htmlunit.AjaxController;
@@ -558,7 +559,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return loader;
             }
         };
-        context.setResourceBase(explodedWarDir.getPath());
+        context.setBaseResource(ResourceFactory.of(context).newResource(explodedWarDir.getPath()));
         context.setClassLoader(getClass().getClassLoader());
         context.setConfigurationDiscovered(true);
         context.addBean(new NoListenerConfiguration2(context));
