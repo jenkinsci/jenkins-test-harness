@@ -1600,12 +1600,13 @@ public final class RealJenkinsRule implements TestRule {
             checkToken(input.token);
             Step2<?> s = input.step;
             URL url = input.url;
+            String contextPath = input.contextPath;
 
             Throwable err = null;
             Object object = null;
             try {
                 object = STEP_RUNNER.submit(() -> {
-                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url); ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
+                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url, contextPath); ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
                         return s.run(rule);
                     } catch (Throwable t) {
                         throw new RuntimeException(t);
@@ -1648,11 +1649,10 @@ public final class RealJenkinsRule implements TestRule {
     public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
         private final URL url;
 
-        public CustomJenkinsRule(URL url) throws Exception {
+        public CustomJenkinsRule(URL url, String contextPath) throws Exception {
             this.jenkins = Jenkins.get();
             this.url = url;
-            // Set the contextPath to match the URL path
-            this.contextPath = url.getPath().replaceAll("/$", "");
+            this.contextPath = contextPath;
             if (jenkins.isUsageStatisticsCollected()) {
                 jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
             }
@@ -1723,11 +1723,13 @@ public final class RealJenkinsRule implements TestRule {
         private final String token;
         private final Step2<?> step;
         private final URL url;
+        private final String contextPath;
 
         InputPayload(String token, Step2<?> step, URL url) {
             this.token = token;
             this.step = step;
             this.url = url;
+            this.contextPath = url.getPath().replaceAll("/$", "");
         }
     }
 
