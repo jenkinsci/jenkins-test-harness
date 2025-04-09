@@ -176,10 +176,8 @@ import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.ee9.webapp.Configuration;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.ee10.webapp.WebAppContext;
+import org.eclipse.jetty.ee10.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
@@ -434,6 +432,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.getActions().add(this);
 
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
+    }
+
+    private static boolean _isEE10Plus() {
+        try {
+            ServletRequest.class.getDeclaredMethod("getRequestId");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     /**
@@ -792,7 +799,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer2() throws Exception {
-        return createWebServer2(null);
+        return _isEE10Plus() ? createWebServer3(null) : createWebServer2(null);
     }
 
     /**
@@ -800,11 +807,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      * 
      * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
-     * @since 2.63
+     * @since TODO
      */
-    protected ServletContext createWebServer2(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
+    protected ServletContext createWebServer3(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
             throws Exception {
-        WebAppContext context = _createWebAppContext2(
+        WebAppContext context = _createWebAppContext3(
                 contextPath,
                 (x) -> localPort = x,
                 getClass().getClassLoader(),
@@ -825,17 +832,18 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param localPort            port on which the server runs
      * @param loginServiceSupplier configures the {@link LoginService} for the instance
      * @return                     the {@link Server}
-     * @since 2.50
+     * @since TODO
      */
-    public static WebAppContext _createWebAppContext2(
+    public static WebAppContext _createWebAppContext3(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
             int localPort,
             Supplier<LoginService> loginServiceSupplier)
             throws Exception {
-        return _createWebAppContext2(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+        return _createWebAppContext3(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
     }
+
     /**
      * Creates a web server on which Jenkins can run
      *
@@ -846,9 +854,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @param loginServiceSupplier     configures the {@link LoginService} for the instance
      * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
      * @return                         the {@link Server}
-     * @since 2.50
+     * @since TODO
      */
-    public static WebAppContext _createWebAppContext2(
+    public static WebAppContext _createWebAppContext3(
             String contextPath,
             Consumer<Integer> portSetter,
             ClassLoader classLoader,
@@ -861,6 +869,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         Server server = new Server(qtp);
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
+            @Override
+            public void preConfigure() throws Exception {
+                super.preConfigure();
+                getServletHandler().setDecodeAmbiguousURIs(true);
+            }
+
             @Override
             protected ClassLoader configureClassLoader(ClassLoader loader) {
                 // Use flat classpath in tests
@@ -902,6 +916,136 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if (contextAndServerConsumer != null) {
             contextAndServerConsumer.accept(context, server);
         }
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee10.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
+        server.start();
+
+        portSetter.accept(connector.getLocalPort());
+
+        return context;
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
+     * that we need for testing.
+     *
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @since TODO
+     * @deprecated use {@link #createWebServer3(BiConsumer)}
+     */
+    @Deprecated
+    protected ServletContext createWebServer2(@CheckForNull BiConsumer<org.eclipse.jetty.ee9.webapp.WebAppContext, Server> contextAndServerConsumer)
+            throws Exception {
+        org.eclipse.jetty.ee9.webapp.WebAppContext context = _createWebAppContext2(
+                contextPath,
+                (x) -> localPort = x,
+                getClass().getClassLoader(),
+                localPort,
+                this::configureUserRealm,
+                contextAndServerConsumer);
+        server = context.getServer();
+        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        return context.getServletContext();
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath          the context path at which to put Jenkins
+     * @param portSetter           the port on which the server runs will be set using this function
+     * @param classLoader          the class loader for the {@link WebAppContext}
+     * @param localPort            port on which the server runs
+     * @param loginServiceSupplier configures the {@link LoginService} for the instance
+     * @return                     the {@link Server}
+     * @since TODO
+     * @deprecated use {@link #_createWebAppContext3(String, Consumer, ClassLoader, int, Supplier)}
+     */
+    @Deprecated
+    public static org.eclipse.jetty.ee9.webapp.WebAppContext _createWebAppContext2(
+            String contextPath,
+            Consumer<Integer> portSetter,
+            ClassLoader classLoader,
+            int localPort,
+            Supplier<LoginService> loginServiceSupplier)
+            throws Exception {
+        return _createWebAppContext2(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
+    }
+
+    /**
+     * Creates a web server on which Jenkins can run
+     *
+     * @param contextPath              the context path at which to put Jenkins
+     * @param portSetter               the port on which the server runs will be set using this function
+     * @param classLoader              the class loader for the {@link WebAppContext}
+     * @param localPort                port on which the server runs
+     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
+     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
+     * @return                         the {@link Server}
+     * @since TODO
+     * @deprecated use {@link #_createWebAppContext3(String, Consumer, ClassLoader, int, Supplier, BiConsumer)}
+     */
+    @Deprecated
+    public static org.eclipse.jetty.ee9.webapp.WebAppContext _createWebAppContext2(
+            String contextPath,
+            Consumer<Integer> portSetter,
+            ClassLoader classLoader,
+            int localPort,
+            Supplier<LoginService> loginServiceSupplier,
+            @CheckForNull BiConsumer<org.eclipse.jetty.ee9.webapp.WebAppContext, Server> contextAndServerConsumer)
+            throws Exception {
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (JenkinsRule)");
+        Server server = new Server(qtp);
+
+        org.eclipse.jetty.ee9.webapp.WebAppContext context = new org.eclipse.jetty.ee9.webapp.WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
+        context.setClassLoader(classLoader);
+        context.setConfigurationDiscovered(true);
+        context.addBean(new NoListenerConfiguration2(context));
+        context.setServer(server);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
+        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
+        context.setBaseResource(ResourceFactory.of(context).newResource(WarExploder.getExplodedDir().getPath()));
+
+        ServerConnector connector = new ServerConnector(server);
+        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
+        config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
+        connector.setHost("localhost");
+        if (System.getProperty("port") != null) {
+            connector.setPort(Integer.parseInt(System.getProperty("port")));
+        } else if (localPort != 0) {
+            connector.setPort(localPort);
+        }
+
+        server.addConnector(connector);
+        if (contextAndServerConsumer != null) {
+            contextAndServerConsumer.accept(context, server);
+        }
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee9.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
         server.start();
 
         portSetter.accept(connector.getLocalPort());

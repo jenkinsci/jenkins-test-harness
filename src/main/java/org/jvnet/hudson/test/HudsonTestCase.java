@@ -32,6 +32,7 @@ import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -140,8 +141,8 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.ee10.webapp.WebAppContext;
+import org.eclipse.jetty.ee10.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
@@ -381,6 +382,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         setUpTimeout();
     }
 
+    private static boolean _isEE10Plus() {
+        try {
+            ServletRequest.class.getDeclaredMethod("getRequestId");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     protected void setUpTimeout() {
         if (timeout <= 0) {
             // no timeout
@@ -525,7 +535,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         for (Runner r : recipes) {
             r.decorateHome(this, home);
         }
-        return new Hudson(home, createWebServer2(), useLocalPluginManager ? null : pluginManager);
+        return new Hudson(home, _isEE10Plus() ? createWebServer3() : createWebServer2(), useLocalPluginManager ? null : pluginManager);
     }
 
     /**
@@ -546,13 +556,20 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Prepares a webapp hosting environment to get {@link ServletContext} implementation
      * that we need for testing.
      */
-    protected ServletContext createWebServer2() throws Exception {
+    @SuppressFBWarnings(value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE", justification = "TODO needs triage")
+    protected ServletContext createWebServer3() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (HudsonTestCase)");
         server = new Server(qtp);
 
         explodedWarDir = WarExploder.getExplodedDir();
         WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath) {
+            @Override
+            public void preConfigure() throws Exception {
+                super.preConfigure();
+                getServletHandler().setDecodeAmbiguousURIs(true);
+            }
+
             @Override
             protected ClassLoader configureClassLoader(ClassLoader loader) {
                 // Use flat classpath in tests
@@ -587,6 +604,71 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         connector.setHost("localhost");
 
         server.addConnector(connector);
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee10.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
+        server.start();
+
+        localPort = connector.getLocalPort();
+
+        return context.getServletContext();
+    }
+
+    /**
+     * Prepares a webapp hosting environment to get {@link ServletContext} implementation
+     * that we need for testing.
+     *
+     * @deprecated use {@link #createWebServer3()}
+     */
+    @Deprecated
+    @SuppressFBWarnings(value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE", justification = "TODO needs triage")
+    protected ServletContext createWebServer2() throws Exception {
+        QueuedThreadPool qtp = new QueuedThreadPool();
+        qtp.setName("Jetty (HudsonTestCase)");
+        server = new Server(qtp);
+
+        explodedWarDir = WarExploder.getExplodedDir();
+        org.eclipse.jetty.ee9.webapp.WebAppContext context = new org.eclipse.jetty.ee9.webapp.WebAppContext(explodedWarDir.getPath(), contextPath) {
+            @Override
+            protected ClassLoader configureClassLoader(ClassLoader loader) {
+                // Use flat classpath in tests
+                return loader;
+            }
+        };
+        context.setBaseResource(ResourceFactory.of(context).newResource(explodedWarDir.getPath()));
+        context.setClassLoader(getClass().getClassLoader());
+        context.setConfigurationDiscovered(true);
+        context.addBean(new NoListenerConfiguration2(context));
+        context.setServer(server);
+        String compression = System.getProperty("jth.compression", "gzip");
+        if (compression.equals("gzip")) {
+            GzipHandler gzipHandler = new GzipHandler();
+            gzipHandler.setHandler(context);
+            server.setHandler(gzipHandler);
+        } else if (compression.equals("none")) {
+            server.setHandler(context);
+        } else {
+            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
+        }
+        context.getSecurityHandler().setLoginService(configureUserRealm());
+
+        ServerConnector connector = new ServerConnector(server);
+
+        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
+        config.setRequestHeaderSize(12 * 1024);
+        config.setHttpCompliance(HttpCompliance.RFC7230);
+        config.setUriCompliance(UriCompliance.LEGACY);
+        connector.setHost("localhost");
+
+        server.addConnector(connector);
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee9.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
         server.start();
 
         localPort = connector.getLocalPort();
