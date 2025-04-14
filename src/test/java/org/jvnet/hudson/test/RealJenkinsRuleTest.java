@@ -58,6 +58,12 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterDefinition;
 import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -70,12 +76,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.junit.AssumptionViolatedException;
@@ -278,7 +278,7 @@ public class RealJenkinsRuleTest {
         rr.then(RealJenkinsRuleTest::_stepsDoNotRunOnHttpWorkerThread);
     }
     private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
-        assertNull(Stapler.getCurrentRequest());
+        assertNull(Stapler.getCurrentRequest2());
     }
 
     @Test public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
