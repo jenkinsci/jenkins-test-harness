@@ -39,6 +39,7 @@ import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -848,6 +849,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return                         the {@link Server}
      * @since 2.50
      */
+    @SuppressFBWarnings(value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE", justification = "TODO needs triage")
     public static WebAppContext _createWebAppContext2(
             String contextPath,
             Consumer<Integer> portSetter,
@@ -902,6 +904,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if (contextAndServerConsumer != null) {
             contextAndServerConsumer.accept(context, server);
         }
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee9.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
         server.start();
 
         portSetter.accept(connector.getLocalPort());

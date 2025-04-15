@@ -32,6 +32,7 @@ import static org.jvnet.hudson.test.QueryUtils.waitUntilStringIsNotPresent;
 
 import com.google.inject.Injector;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
@@ -546,6 +547,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Prepares a webapp hosting environment to get {@link ServletContext} implementation
      * that we need for testing.
      */
+    @SuppressFBWarnings(value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE", justification = "TODO needs triage")
     protected ServletContext createWebServer2() throws Exception {
         QueuedThreadPool qtp = new QueuedThreadPool();
         qtp.setName("Jetty (HudsonTestCase)");
@@ -587,6 +589,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         connector.setHost("localhost");
 
         server.addConnector(connector);
+
+        // JENKINS-73616: Turn down log level of annotation parser
+        Logger logger = Logger.getLogger("org.eclipse.jetty.ee9.annotations.AnnotationParser");
+        logger.setLevel(Level.SEVERE);
+
         server.start();
 
         localPort = connector.getLocalPort();
