@@ -650,45 +650,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     	return createSlave(l, null);
     }
 
-    /**
-     * Creates a test {@link SecurityRealm} that recognizes username==password as valid.
-     */
-    public SecurityRealm createDummySecurityRealm() {
-        return new AbstractPasswordBasedSecurityRealm() {
-            @Override
-            protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-                if (username.equals(password)) {
-                    return loadUserByUsername(username);
-                }
-                throw new BadCredentialsException(username);
-            }
-
-            @Override
-            public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-                return new org.acegisecurity.userdetails.User(username,"",true,true,true,true,new GrantedAuthority[]{AUTHENTICATED_AUTHORITY});
-            }
-
-            @Override
-            public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
-                throw new UsernameNotFoundException(groupname);
-            }
-        };
-    }
-
-    /**
-     * Returns the URL of the webapp top page.
-     * URL ends with '/'.
-     */
-    public URL getURL() throws IOException {
-        return new URL("http://localhost:"+localPort+contextPath+"/");
-    }
-
     public DumbSlave createSlave(EnvVars env) throws Exception {
-        return createSlave("",env);
+        return createSlave("", env);
     }
 
     public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
-        return createSlave(l==null ? null : l.getExpression(), env);
+        return createSlave(l == null ? null : l.getExpression(), env);
     }
 
     /**
@@ -697,7 +664,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            return createSlave("slave" + sz,labels,env);
+            return createSlave("slave" + sz, labels, env);
     	}
     }
 
@@ -774,7 +741,114 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         return s;
     }
-    
+
+    public DumbAgent createAgent() throws Exception {
+        return createAgent("", null);
+    }
+
+    /**
+     * Creates and launches a new agent on the local host.
+     */
+    public DumbAgent createAgent(Label l) throws Exception {
+        return createAgent(l, null);
+    }
+
+    public DumbAgent createAgent(EnvVars env) throws Exception {
+        return createAgent("", env);
+    }
+
+    public DumbAgent createAgent(Label l, EnvVars env) throws Exception {
+        return createAgent(l == null ? null : l.getExpression(), env);
+    }
+
+    /**
+     * Creates an agent with certain additional environment variables.
+     */
+    public DumbAgent createAgent(String labels, EnvVars env) throws Exception {
+        synchronized (jenkins) {
+            int sz = jenkins.getNodes().size();
+            return createAgent("agent" + sz, labels, env);
+        }
+    }
+
+    public DumbAgent createAgent(String nodeName, String labels, EnvVars env) throws Exception {
+        synchronized (jenkins) {
+            DumbAgent agent = new DumbAgent(nodeName, "dummy",
+                createTmpDir().getPath(), "1", Mode.NORMAL, labels == null ? "" : labels, createComputerLauncher(env),
+                RetentionStrategy.NOOP, List.of());
+            jenkins.addNode(agent);
+            return agent;
+        }
+    }
+
+    public PretendAgent createPretendAgent(FakeLauncher faker) throws Exception {
+        synchronized (jenkins) {
+            int sz = jenkins.getNodes().size();
+            PretendAgent agent = new PretendAgent("agent" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
+            jenkins.addNode(agent);
+            return agent;
+        }
+    }
+
+    /**
+     * Creates a {@link ComputerLauncher} for launching an agent locally.
+     *
+     * @param env
+     *      Environment variables to add to the agent process. Can be null.
+     */
+    public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
+        int sz = jenkins.getNodes().size();
+        return new SimpleCommandLauncher(
+            String.format("\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
+                System.getProperty("java.home"),
+                AGENT_DEBUG_PORT > 0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=" + (AGENT_DEBUG_PORT + sz) : "",
+                "-Djava.awt.headless=true",
+                new File(jenkins.getJnlpJars("agent.jar").getURL().toURI()).getAbsolutePath()),
+            env);
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning.
+     */
+    public DumbAgent createOnlineAgent() throws Exception {
+        return createOnlineAgent(null);
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning.
+     */
+    public DumbAgent createOnlineAgent(Label l) throws Exception {
+        return createOnlineAgent(l, null);
+    }
+
+    /**
+     * Create a new agent on the local host and wait for it to come online
+     * before returning.
+     */
+    public DumbAgent createOnlineAgent(Label l, EnvVars env) throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        ComputerListener waiter = new ComputerListener() {
+            @Override
+            public void onOnline(Computer C, TaskListener t) {
+                latch.countDown();
+                unregister();
+            }
+        };
+        waiter.register();
+
+        DumbAgent a = createAgent(l, env);
+        latch.await();
+
+        return a;
+    }
+
+    /**
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
+     */
+    public static int AGENT_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName() + ".agentDebugPort", -1);
+
     /**
      * Blocks until the ENTER key is hit.
      * This is useful during debugging a test so that one can inspect the state of Jenkins through the web browser.
