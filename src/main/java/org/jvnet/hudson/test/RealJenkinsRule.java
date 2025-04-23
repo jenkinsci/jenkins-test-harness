@@ -1774,10 +1774,30 @@ public final class RealJenkinsRule implements TestRule {
          * Creates a new synthetic plugin builder.
          * @see RealJenkinsRule#addSyntheticPlugin
          * @see RealJenkinsRule#createSyntheticPlugin
+         * @param exampleClass an example of a class from the Java package containing any classes and resources you want included
+         */
+        public SyntheticPlugin(Class<?> exampleClass) {
+            this(exampleClass.getPackage());
+        }
+
+        /**
+         * Creates a new synthetic plugin builder.
+         * @see RealJenkinsRule#addSyntheticPlugin
+         * @see RealJenkinsRule#createSyntheticPlugin
          * @param pkg the Java package containing any classes and resources you want included
          */
         public SyntheticPlugin(Package pkg) {
-            this.pkg = pkg.getName();
+            this(pkg.getName());
+        }
+
+        /**
+         * Creates a new synthetic plugin builder.
+         * @see RealJenkinsRule#addSyntheticPlugin
+         * @see RealJenkinsRule#createSyntheticPlugin
+         * @param pkg the name of a Java package containing any classes and resources you want included
+         */
+        public SyntheticPlugin(String pkg) {
+            this.pkg = pkg;
             shortName = "synthetic-" + this.pkg.replace('.', '-');
         }
 
