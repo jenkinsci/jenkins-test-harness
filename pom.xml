@@ -74,9 +74,24 @@ THE SOFTWARE.
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.eclipse.jetty.ee9</groupId>
         <artifactId>jetty-ee9-bom</artifactId>
         <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- Pull in servlet API based on Jenkins core in use -->
+        <groupId>org.jenkins-ci.main</groupId>
+        <artifactId>jenkins-bom</artifactId>
+        <version>${jenkins.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -126,9 +141,70 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-webapp</artifactId>
+      <exclusions>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+      <artifactId>jetty-ee10-websocket-jetty-server</artifactId>
+      <!-- or jetty-ee10-websocket-javax-server -->
+      <exclusions>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>jakarta.annotation</groupId>
+          <artifactId>jakarta.annotation-api</artifactId>
+        </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <!-- Not shipped in Winstone either and causes unnecessary log spam -->
+        <exclusion>
+          <groupId>org.eclipse.jetty.ee10</groupId>
+          <artifactId>jetty-ee10-annotations</artifactId>
+        </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty.ee9</groupId>
       <artifactId>jetty-ee9-webapp</artifactId>
       <exclusions>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -146,6 +222,16 @@ THE SOFTWARE.
           <groupId>jakarta.annotation</groupId>
           <artifactId>jakarta.annotation-api</artifactId>
         </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-api</artifactId>
@@ -198,6 +284,11 @@ THE SOFTWARE.
       <artifactId>junit-jupiter-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.kohsuke.metainf-services</groupId>
+      <artifactId>metainf-services</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.netbeans.modules</groupId>
       <artifactId>org-netbeans-insane</artifactId>
       <version>RELEASE200</version>
@@ -211,6 +302,11 @@ THE SOFTWARE.
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>${jmh.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>

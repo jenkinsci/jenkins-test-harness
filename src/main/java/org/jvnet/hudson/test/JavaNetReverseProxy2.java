@@ -3,6 +3,7 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,8 +15,8 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import org.eclipse.jetty.ee9.servlet.ServletContextHandler;
-import org.eclipse.jetty.ee9.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -42,9 +43,15 @@ public class JavaNetReverseProxy2 extends HttpServlet {
         qtp.setName("Jetty (JavaNetReverseProxy)");
         server = new Server(qtp);
 
-        ServletContextHandler context = new ServletContextHandler();
-        context.addServlet(new ServletHolder(this), "/");
-        server.setHandler(context);
+        if (_isEE10Plus()) {
+            ServletContextHandler context = new ServletContextHandler();
+            context.addServlet(new ServletHolder(this), "/");
+            server.setHandler(context);
+        } else {
+            org.eclipse.jetty.ee9.servlet.ServletContextHandler context = new org.eclipse.jetty.ee9.servlet.ServletContextHandler();
+            context.addServlet(new org.eclipse.jetty.ee9.servlet.ServletHolder(this), "/");
+            server.setHandler(context);
+        }
 
         ServerConnector connector = new ServerConnector(server);
         server.addConnector(connector);
@@ -115,5 +122,14 @@ public class JavaNetReverseProxy2 extends HttpServlet {
                     new File(new File(System.getProperty("java.io.tmpdir")), "jenkins.io-cache2"));
         }
         return INSTANCE;
+    }
+
+    private static boolean _isEE10Plus() {
+        try {
+            ServletRequest.class.getDeclaredMethod("getRequestId");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 }
