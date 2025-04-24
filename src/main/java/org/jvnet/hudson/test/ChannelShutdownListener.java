@@ -6,7 +6,7 @@ import hudson.model.Computer;
 import hudson.model.TaskListener;
 import hudson.remoting.Channel;
 import hudson.remoting.VirtualChannel;
-import hudson.slaves.ComputerListener;
+import hudson.agents.ComputerListener; // Updated package name
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -16,8 +16,8 @@ import java.util.logging.Logger;
 /**
  * Runs at the end of the test to cleanup any live channels.
  *
-* @author Kohsuke Kawaguchi
-*/
+ * @author Kohsuke Kawaguchi
+ */
 @Extension
 public class ChannelShutdownListener extends ComputerListener implements EndOfTestListener {
     /**

@@ -39,7 +39,7 @@ import org.jvnet.hudson.test.JenkinsRule;
  * {@link Cloud} implementation useful for testing.
  *
  * <p>
- * This implementation launches "java -jar slave.jar" on the localhost when provisioning a new slave.
+ * This implementation launches "java -jar agent.jar" on the localhost when provisioning a new agent.
  *
  * @author Kohsuke Kawaguchi
 */
@@ -47,7 +47,7 @@ public class DummyCloudImpl extends Cloud {
     private final transient JenkinsRule rule;
 
     /**
-     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of a slave,
+     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of an agent,
      * to emulate a real cloud that takes some time for provisioning a new system.
      *
      * <p>
@@ -119,22 +119,22 @@ public class DummyCloudImpl extends Cloud {
 
         @Override
         public Node call() throws Exception {
-            // simulate the delay in provisioning a new slave,
+            // simulate the delay in provisioning a new agent,
             // since it's normally some async operation.
             Thread.sleep(time);
             
-            System.out.println("launching slave");
-            final DumbSlave slave = rule.createSlave(label);
+            System.out.println("launching agent");
+            final DumbSlave agent = rule.createSlave(label);
             for (NodeProperty nodeProperty : nodeProperties) {
-                slave.getNodeProperties().add(updateWithNode(nodeProperty, slave));
+                agent.getNodeProperties().add(updateWithNode(nodeProperty, agent));
             }
-            computer = slave.toComputer();
+            computer = agent.toComputer();
             computer.connect(false).get();
             synchronized (DummyCloudImpl.this) {
                 System.out.println(computer.getName()+" launch"+(computer.isOnline()?"ed successfully":" failed"));
                 System.out.println(computer.getLog());
             }
-            return slave;
+            return agent;
         }
     }
 
