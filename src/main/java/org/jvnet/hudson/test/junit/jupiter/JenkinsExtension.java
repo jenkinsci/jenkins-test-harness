@@ -5,7 +5,10 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.jvnet.hudson.test.HudsonHomeLoader.Local;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.lang.reflect.Method;
 
 /**
  * JUnit 5 extension providing {@link JenkinsRule} integration.
@@ -40,6 +43,20 @@ class JenkinsExtension implements ParameterResolver, AfterEachCallback {
                                 KEY,
                                 key -> new JUnit5JenkinsRule(parameterContext, extensionContext),
                                 JenkinsRule.class);
+
+        if(extensionContext.getTestMethod().isPresent()) {
+            // check for a WithLocalData annotation to set up JENKINS_HOME
+            Method testMethod = extensionContext.getTestMethod().get();
+            WithLocalData localData = testMethod.getAnnotation(WithLocalData.class);
+            if(localData == null && extensionContext.getTestClass().isPresent()) {
+                Class<?> testClass = extensionContext.getTestClass().get();
+                localData = testClass.getAnnotation(WithLocalData.class);
+            }
+
+            if(localData != null) {
+                rule.with(new Local(testMethod, localData.value()));
+            }
+        }
 
         try {
             rule.before();
