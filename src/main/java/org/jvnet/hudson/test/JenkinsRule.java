@@ -155,6 +155,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Manifest;
@@ -903,7 +904,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
+        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate"))).get(10, TimeUnit.SECONDS);
         long start = System.currentTimeMillis();
         while (slave.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
