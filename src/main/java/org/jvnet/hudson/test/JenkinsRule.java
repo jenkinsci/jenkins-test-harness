@@ -507,7 +507,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
                     if (client.getCurrentWindow() != null) {
                         client.getPage("about:blank");
-                        client.close();
                     }
                 } catch (Exception x) {
                     LOGGER.log(Level.WARNING, "failure to clean up", x);
