@@ -41,7 +41,7 @@ public final class RealJenkinsRuleSyntheticPluginTest {
     @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true);
 
     @Test public void smokes() throws Throwable {
-        rr.addSyntheticPlugin(new SyntheticPlugin(Stuff.class.getPackage()));
+        rr.addSyntheticPlugin(new SyntheticPlugin(Stuff.class));
         rr.then(RealJenkinsRuleSyntheticPluginTest::_smokes);
     }
 
@@ -51,7 +51,7 @@ public final class RealJenkinsRuleSyntheticPluginTest {
     }
 
     @Test public void classFilter() throws Throwable {
-        rr.addSyntheticPlugin(new SyntheticPlugin(CustomJobProperty.class.getPackage())).withLogger(ClassFilterImpl.class, Level.FINE);
+        rr.addSyntheticPlugin(new SyntheticPlugin(CustomJobProperty.class)).withLogger(ClassFilterImpl.class, Level.FINE);
         rr.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
@@ -60,7 +60,7 @@ public final class RealJenkinsRuleSyntheticPluginTest {
     }
 
     @Test public void dynamicLoad() throws Throwable {
-        var pluginJpi = rr.createSyntheticPlugin(new SyntheticPlugin(Stuff.class.getPackage()));
+        var pluginJpi = rr.createSyntheticPlugin(new SyntheticPlugin(Stuff.class));
         rr.then(r -> {
             r.jenkins.pluginManager.dynamicLoad(pluginJpi);
             assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),

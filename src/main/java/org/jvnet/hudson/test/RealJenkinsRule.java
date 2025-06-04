@@ -126,6 +126,7 @@ import org.apache.commons.io.IOUtils;
 import org.htmlunit.WebClient;
 import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
+import org.junit.rules.ErrorCollector;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
@@ -1262,6 +1263,23 @@ public final class RealJenkinsRule implements TestRule {
         runRemotely(step);
     }
 
+    /**
+     * Run a step on the remote system, but do not immediately fail, just record any error.
+     * Same as {@link ErrorCollector#checkSucceeds} but more concise to call.
+     */
+    public void run(ErrorCollector errors, Step step) {
+        errors.checkSucceeds(() -> {
+            try {
+                run(step);
+                return null;
+            } catch (Exception x) {
+                throw x;
+            } catch (Throwable x) {
+                throw new Exception(x);
+            }
+        });
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends Serializable> T runRemotely(Step2<T> s) throws Throwable {
         HttpURLConnection conn = decorateConnection(endpoint("step").openConnection());
@@ -1778,10 +1796,30 @@ public final class RealJenkinsRule implements TestRule {
          * Creates a new synthetic plugin builder.
          * @see RealJenkinsRule#addSyntheticPlugin
          * @see RealJenkinsRule#createSyntheticPlugin
+         * @param exampleClass an example of a class from the Java package containing any classes and resources you want included
+         */
+        public SyntheticPlugin(Class<?> exampleClass) {
+            this(exampleClass.getPackage());
+        }
+
+        /**
+         * Creates a new synthetic plugin builder.
+         * @see RealJenkinsRule#addSyntheticPlugin
+         * @see RealJenkinsRule#createSyntheticPlugin
          * @param pkg the Java package containing any classes and resources you want included
          */
         public SyntheticPlugin(Package pkg) {
-            this.pkg = pkg.getName();
+            this(pkg.getName());
+        }
+
+        /**
+         * Creates a new synthetic plugin builder.
+         * @see RealJenkinsRule#addSyntheticPlugin
+         * @see RealJenkinsRule#createSyntheticPlugin
+         * @param pkg the name of a Java package containing any classes and resources you want included
+         */
+        public SyntheticPlugin(String pkg) {
+            this.pkg = pkg;
             shortName = "synthetic-" + this.pkg.replace('.', '-');
         }
 

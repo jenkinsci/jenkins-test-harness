@@ -146,6 +146,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -153,11 +155,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Filter;
@@ -176,23 +176,11 @@ import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.ee9.webapp.Configuration;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
-import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.security.Password;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.htmlunit.AjaxController;
 import org.htmlunit.BrowserVersion;
 import org.htmlunit.DefaultCssErrorHandler;
@@ -239,6 +227,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestTimedOutException;
+import org.jvnet.hudson.test.jetty.JettyProvider;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
@@ -506,22 +495,21 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             // cancel asynchronous operations as best as we can
             for (WebClient client : clients) {
-                // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
-                // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
-                if (client.getJavaScriptEngine() != null) {
-                    // wait until current asynchronous operations have finished executing
-                    WebClientUtil.waitForJSExec(client);
-                }
-                // unload the page to prevent new asynchronous operations from being scheduled
                 try (client) {
+                    // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
+                    // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
+                    if (client.getJavaScriptEngine() != null) {
+                        // wait until current asynchronous operations have finished executing
+                        WebClientUtil.waitForJSExec(client);
+                    }
+                    // unload the page to prevent new asynchronous operations from being scheduled
                     // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
                     // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
                     if (client.getCurrentWindow() != null) {
                         client.getPage("about:blank");
                     }
-                } catch (IOException e) {
-                    // should never happen when loading "about:blank"
-                    throw new UncheckedIOException(e);
+                } catch (Exception x) {
+                    LOGGER.log(Level.WARNING, "failure to clean up", x);
                 }
             }
             clients.clear();
@@ -792,121 +780,24 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer2() throws Exception {
-        return createWebServer2(null);
-    }
-
-    /**
-     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
-     * that we need for testing.
-     * 
-     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
-     * @since 2.63
-     */
-    protected ServletContext createWebServer2(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        WebAppContext context = _createWebAppContext2(
-                contextPath,
-                (x) -> localPort = x,
-                getClass().getClassLoader(),
-                localPort,
-                this::configureUserRealm,
-                contextAndServerConsumer);
-        server = context.getServer();
+        JettyProvider jp = findJettyProvider();
+        JettyProvider.Context jpc = jp.createWebServer(localPort, contextPath, this::configureUserRealm);
+        localPort = jpc.localPort();
+        server = jpc.server();
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
-        return context.getServletContext();
+        return jpc.servletContext();
     }
 
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath          the context path at which to put Jenkins
-     * @param portSetter           the port on which the server runs will be set using this function
-     * @param classLoader          the class loader for the {@link WebAppContext}
-     * @param localPort            port on which the server runs
-     * @param loginServiceSupplier configures the {@link LoginService} for the instance
-     * @return                     the {@link Server}
-     * @since 2.50
-     */
-    public static WebAppContext _createWebAppContext2(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier)
-            throws Exception {
-        return _createWebAppContext2(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
-    }
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath              the context path at which to put Jenkins
-     * @param portSetter               the port on which the server runs will be set using this function
-     * @param classLoader              the class loader for the {@link WebAppContext}
-     * @param localPort                port on which the server runs
-     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
-     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
-     * @return                         the {@link Server}
-     * @since 2.50
-     */
-    public static WebAppContext _createWebAppContext2(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier,
-            @CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (JenkinsRule)");
-        Server server = new Server(qtp);
-
-        WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
-            @Override
-            protected ClassLoader configureClassLoader(ClassLoader loader) {
-                // Use flat classpath in tests
-                return loader;
+    private static JettyProvider findJettyProvider() {
+        Iterator<JettyProvider> it = ServiceLoader.load(JettyProvider.class).iterator();
+        while (it.hasNext()) {
+            try {
+                return it.next();
+            } catch (ServiceConfigurationError e) {
+                LOGGER.log(Level.FINE, null, e);
             }
-        };
-        context.setClassLoader(classLoader);
-        context.setConfigurationDiscovered(true);
-        context.addBean(new NoListenerConfiguration2(context));
-        context.setServer(server);
-        String compression = System.getProperty("jth.compression", "gzip");
-        if (compression.equals("gzip")) {
-            GzipHandler gzipHandler = new GzipHandler();
-            gzipHandler.setHandler(context);
-            server.setHandler(gzipHandler);
-        } else if (compression.equals("none")) {
-            server.setHandler(context);
-        } else {
-            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
         }
-        JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
-        context.setBaseResource(ResourceFactory.of(context).newResource(WarExploder.getExplodedDir().getPath()));
-
-        ServerConnector connector = new ServerConnector(server);
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
-        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-        config.setRequestHeaderSize(12 * 1024);
-        config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
-        connector.setHost("localhost");
-        if (System.getProperty("port") != null) {
-            connector.setPort(Integer.parseInt(System.getProperty("port")));
-        } else if (localPort != 0) {
-            connector.setPort(localPort);
-        }
-
-        server.addConnector(connector);
-        if (contextAndServerConsumer != null) {
-            contextAndServerConsumer.accept(context, server);
-        }
-        server.start();
-
-        portSetter.accept(connector.getLocalPort());
-
-        return context;
+        return null;
     }
 
     /**
@@ -1012,7 +903,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
+        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate"))).get(10, TimeUnit.SECONDS);
         long start = System.currentTimeMillis();
         while (slave.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {

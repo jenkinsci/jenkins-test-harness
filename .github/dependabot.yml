@@ -10,6 +10,7 @@ updates:
       - jglick
     ignore:
       - dependency-name: io.jenkins.plugins*
+      - dependency-name: org.jenkins-ci.main:jenkins-bom
       - dependency-name: org.jenkins-ci.main:jenkins-core
       - dependency-name: org.jenkins-ci.main:jenkins-war
       - dependency-name: org.jenkins-ci.plugins*

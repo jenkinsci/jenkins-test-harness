@@ -10,6 +10,8 @@ import org.junit.runner.Description;
 import org.jvnet.hudson.test.JenkinsRecipe;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
+import org.jvnet.hudson.test.recipes.WithPlugin;
+import org.jvnet.hudson.test.recipes.WithPluginManager;
 
 /**
  * Provides JUnit 5 compatibility for {@link JenkinsRule}.
@@ -49,6 +51,22 @@ class JUnit5JenkinsRule extends JenkinsRule {
                 recipes.add(runner);
                 runner.setup(this, localData);
                 tearDowns.add(() -> runner.tearDown(this, localData));
+            }
+
+            WithPlugin withPlugin = testMethod.getAnnotation(WithPlugin.class);
+            if (withPlugin != null) {
+                final JenkinsRecipe.Runner<WithPlugin> runner = new WithPlugin.RuleRunnerImpl();
+                recipes.add(runner);
+                runner.setup(this, withPlugin);
+                tearDowns.add(() -> runner.tearDown(this, withPlugin));
+            }
+
+            WithPluginManager withPluginManager = testMethod.getAnnotation(WithPluginManager.class);
+            if (withPluginManager != null) {
+                final JenkinsRecipe.Runner<WithPluginManager> runner = new WithPluginManager.RuleRunnerImpl();
+                recipes.add(runner);
+                runner.setup(this, withPluginManager);
+                tearDowns.add(() -> runner.tearDown(this, withPluginManager));
             }
         }
     }
