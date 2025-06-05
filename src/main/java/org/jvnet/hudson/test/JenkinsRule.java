@@ -323,12 +323,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Number of seconds until the test times out.
-     * 
+     *
      * The {@link WithTimeout} rule can be used to specify this value per test.
-     * 
-     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes. 
+     *
+     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes.
      */
-    public int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 180);
+    public int timeout = Integer.getInteger("jenkins.test.timeout", /*new DisableOnDebug(null).isDebugging() ? 0 : */ 180);
 
     /**
      * Set the plugin manager to be passed to {@link Jenkins} constructor.
@@ -371,7 +371,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             origDefaultUseCache = aConnection.getDefaultUseCaches();
             aConnection.setDefaultUseCaches(false);
         }
-        
+
         // Not ideal (https://github.com/junit-team/junit/issues/116) but basically works.
         if (Boolean.getBoolean("ignore.random.failures")) {
             RandomlyFails rf = testDescription.getAnnotation(RandomlyFails.class);
@@ -441,7 +441,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
     }
-    
+
     static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
@@ -1107,7 +1107,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             throw new UncheckedIOException(e);
         }
     }
-    
+
     /**
      * Waits for a newly created slave to come online.
      * @see #createSlave()
@@ -1691,7 +1691,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
         for( HtmlElement e : form.getElementsByTagName("button")) {
-            HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();                        
+            HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();
             if (p.getAttribute("name").equals(name) && HtmlElementUtil.hasClassName(p, "yui-submit-button")) {
                 // For YUI handled submit buttons, just do a click.
                 return (HtmlPage) HtmlElementUtil.click(e);
@@ -1905,7 +1905,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if (!m.isAnnotationPresent(DataBoundSetter.class)) {
             return null;
         }
-        
+
         // setXyz -> xyz
         return new AbstractMap.SimpleEntry<>(
                 Introspector.decapitalize(m.getName().substring(3)),
@@ -2050,12 +2050,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         final List<URL> all = Collections.list(jpls);
         all.addAll(Collections.list(hpls));
-        
+
         if (all.isEmpty()) {
             // nope
             return;
         }
-        
+
         recipes.add(new JenkinsRecipe.Runner() {
             @Override
             public void decorateHome(JenkinsRule testCase, File home) throws Exception {
@@ -2180,7 +2180,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
                 return null;
             }
-            
+
     }
 
     public JenkinsRule withNewHome() {
@@ -2391,11 +2391,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             setJavaScriptEnabled(enabled);
             return this;
         }
-    
+
         /**
          * Returns true if an exception will be thrown in the event of a failing response code.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @return {@code true} if an exception will be thrown in the event of a failing response code
          * @see WebClientOptions#isThrowExceptionOnFailingStatusCode()
          * @since 2.42
@@ -2419,7 +2419,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Changes the behavior of this webclient when a script error occurs.
          * Fluent method to ease discovery of feature + improve readability
-         * 
+         *
          * @param enabled {@code true} to enable this feature
          * @return self for fluent method chaining
          * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
@@ -2429,11 +2429,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             setThrowExceptionOnFailingStatusCode(enabled);
             return this;
         }
-        
+
         /**
          * Returns whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @return {@code true} if automatic redirection is enabled
          * @see WebClientOptions#isRedirectEnabled()
          * @since 2.42
@@ -2445,7 +2445,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @param enabled {@code true} to enable automatic redirection
          * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
