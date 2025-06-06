@@ -408,11 +408,12 @@ public final class InboundAgentRule extends ExternalResource {
         return args;
     }
 
-    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
+
     public void start(AgentArguments agentArguments, Options options) throws Exception {
         start(agentArguments, options, true);
     }
 
+    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
     private void start(AgentArguments agentArguments, Options options, boolean stop) throws InterruptedException, IOException {
         Objects.requireNonNull(options.getName());
         if (stop) {
