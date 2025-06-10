@@ -460,14 +460,11 @@ public final class InboundAgentRule extends ExternalResource {
         pb.environment().put("INBOUND_AGENT_RULE_NAME", options.getName());
         LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
-        procs.compute(options.getName(), (k, v) -> {
-            if (v != null) {
-                // Duplicate agent name, but this can be a valid test case.
-                var result = new ArrayList<>(v);
-                result.add(proc);
-                return result;
-            }
-            return List.of(proc);
+        procs.merge(options.getName(), List.of(proc), (oldValue, newValue) -> {
+            // Duplicate agent name, but this can be a valid test case.
+            List<Process> result = new ArrayList<>(oldValue);
+            result.addAll(newValue);
+            return result;
         });
         new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
     }
@@ -506,7 +503,7 @@ public final class InboundAgentRule extends ExternalResource {
      * Stops an existing inbound agent.
      * You need only call this to simulate an agent crash, followed by {@link #start}.
      */
-    public void stop(@NonNull String name) throws InterruptedException {
+    public void stop(@NonNull String name) {
         procs.computeIfPresent(name, (k, v) -> {
             stop(name, v);
             return null;
