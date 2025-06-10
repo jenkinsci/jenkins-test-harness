@@ -528,7 +528,7 @@ public final class InboundAgentRule extends ExternalResource {
      * (This is distinct from whether Jenkins considers the computer to be connected.)
      */
     public boolean isAlive(String name) {
-        return procs.get(name).stream().filter(Objects::nonNull).anyMatch(Process::isAlive);
+        return procs.get(name).stream().anyMatch(Process::isAlive);
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test code")
