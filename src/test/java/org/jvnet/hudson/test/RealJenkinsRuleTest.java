@@ -109,18 +109,27 @@ public class RealJenkinsRuleTest {
         rr.withPrefix("/foo").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/foo/"));
         assertThatLocalAndRemoteUrlEquals();
+        rr.runRemotely(r -> {
+            assertThat(r.contextPath, equalTo("/foo"));
+        });
     }
 
     @Test public void complexPrefix() throws Throwable {
         rr.withPrefix("/foo/bar").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/foo/bar/"));
         assertThatLocalAndRemoteUrlEquals();
+        rr.runRemotely(r -> {
+            assertThat(r.contextPath, equalTo("/foo/bar"));
+        });
     }
 
     @Test public void noPrefix() throws Throwable {
         rr.withPrefix("").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/"));
         assertThatLocalAndRemoteUrlEquals();
+        rr.runRemotely(r -> {
+            assertThat(r.contextPath, equalTo(""));
+        });
     }
 
     @Test public void invalidPrefixes() {
