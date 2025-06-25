@@ -43,18 +43,8 @@ public class WebClientUtil {
      * @param webClient The {@link WebClient} instance.
      */
     public static void waitForJSExec(WebClient webClient) {
-        waitForJSExec(webClient, 10000);
-    }
-
-    /**
-     * Wait for all async JavaScript tasks associated with the supplied {@link WebClient} instance
-     * to complete.
-     * @param webClient The {@link WebClient} instance.
-     * @param timeout The timeout in milliseconds.
-     */
-    public static void waitForJSExec(WebClient webClient, long timeout) {
         webClient.getJavaScriptEngine().processPostponedActions();
-        webClient.waitForBackgroundJavaScript(timeout);
+        webClient.waitForBackgroundJavaScriptStartingBefore(0);
     }
 
     /**
