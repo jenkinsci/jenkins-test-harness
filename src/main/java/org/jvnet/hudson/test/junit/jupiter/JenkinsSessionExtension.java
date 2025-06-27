@@ -22,28 +22,35 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.junit.jupiter;
 
-import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
  * It also supports running test code before, between, or after Jenkins sessions,
- * whereas a test method using {@link JenkinsRule} directly
- * will only run after Jenkins has started and must complete before Jenkins terminates.
+ * whereas a test method using {@link JenkinsRule} directly will only run after Jenkins has started and must complete before Jenkins terminates.
  */
-public class JenkinsSessionRule implements TestRule {
+public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
 
-    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
-
-    private Description description;
+    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionExtension.class.getName());
 
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
+
+    private ExtensionContext extensionContext;
+
+    private Description description;
 
     /**
      * JENKINS_HOME needs to survive restarts, so we allocate our own.
@@ -66,22 +73,28 @@ public class JenkinsSessionRule implements TestRule {
         return home;
     }
 
-    @Override public Statement apply(final Statement base, Description description) {
-        this.description = description;
-        return new Statement() {
-            @Override public void evaluate() throws Throwable {
-                try {
-                    home = tmp.allocate();
-                    base.evaluate();
-                } finally {
-                    try {
-                        tmp.dispose();
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, null, x);
-                    }
-                }
-            }
-        };
+    @Override
+    public void beforeEach(ExtensionContext context) {
+        extensionContext = context;
+
+        description = Description.createTestDescription(
+                extensionContext.getTestClass().map(Class::getName).orElse(null),
+                extensionContext.getTestMethod().map(Method::getName).orElse(null));
+
+        try {
+            home = tmp.allocate();
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) {
+        try {
+            tmp.dispose();
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
     }
 
     /**
@@ -98,7 +111,8 @@ public class JenkinsSessionRule implements TestRule {
     public void then(Step s) throws Throwable {
         CustomJenkinsRule r = new CustomJenkinsRule(home, port);
         r.apply(new Statement() {
-            @Override public void evaluate() throws Throwable {
+            @Override
+            public void evaluate() throws Throwable {
                 port = r.getPort();
                 s.run(r);
             }
@@ -110,9 +124,9 @@ public class JenkinsSessionRule implements TestRule {
             with(() -> home);
             localPort = port;
         }
+
         int getPort() {
             return localPort;
         }
     }
-
 }
