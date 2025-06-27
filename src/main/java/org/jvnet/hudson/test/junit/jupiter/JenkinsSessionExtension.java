@@ -24,8 +24,8 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
-import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
-import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -42,11 +42,13 @@ import java.util.logging.Logger;
  * It also supports running test code before, between, or after Jenkins sessions,
  * whereas a test method using {@link JenkinsRule} directly will only run after Jenkins has started and must complete before Jenkins terminates.
  */
-public class JenkinsSessionExtension implements BeforeTestExecutionCallback, AfterTestExecutionCallback {
+public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
 
     private static final Logger LOGGER = Logger.getLogger(JenkinsSessionExtension.class.getName());
 
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
+
+    private ExtensionContext extensionContext;
 
     private Description description;
 
@@ -72,10 +74,12 @@ public class JenkinsSessionExtension implements BeforeTestExecutionCallback, Aft
     }
 
     @Override
-    public void beforeTestExecution(ExtensionContext context) {
+    public void beforeEach(ExtensionContext context) {
+        extensionContext = context;
+
         description = Description.createTestDescription(
-                context.getTestClass().map(Class::getName).orElse(null),
-                context.getTestMethod().map(Method::getName).orElse(null));
+                extensionContext.getTestClass().map(Class::getName).orElse(null),
+                extensionContext.getTestMethod().map(Method::getName).orElse(null));
 
         try {
             home = tmp.allocate();
@@ -85,7 +89,7 @@ public class JenkinsSessionExtension implements BeforeTestExecutionCallback, Aft
     }
 
     @Override
-    public void afterTestExecution(ExtensionContext context) {
+    public void afterEach(ExtensionContext context) {
         try {
             tmp.dispose();
         } catch (Exception x) {
