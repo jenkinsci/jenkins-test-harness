@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2025 Jenkins project contributors
+ * Copyright 2023 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,56 +21,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.jvnet.hudson.test.junit.jupiter;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.PrefixedOutputStream;
 
-import java.io.File;
-import java.net.URL;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Test basic behavior of {@link JenkinsSessionExtension}
- */
-class JenkinsSessionExtensionTest {
+@WithJenkins
+class InboundAgentExtensionTest {
 
     @RegisterExtension
-    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
+    private final InboundAgentExtension inboundAgents = new InboundAgentExtension();
+
+    private JenkinsRule r;
 
     @BeforeEach
-    void beforeEach() {
-        assertNotNull(extension.getHome());
-        assertTrue(extension.getHome().exists());
-    }
-
-    @AfterEach
-    void afterEach() {
-        assertTrue(extension.getHome().exists());
+    void setUp(JenkinsRule rule) {
+        r = rule;
     }
 
     @Test
-    void testRestart() throws Throwable {
-        assertNotNull(extension.getHome());
-        assertTrue(extension.getHome().exists());
-
-        File[] homes = new File[2];
-        URL[] urls = new URL[2];
-
-        extension.then(r -> {
-            homes[0] = r.jenkins.getRootDir();
-            urls[0] = r.getURL();
-        });
-
-        extension.then(r -> {
-            homes[1] = r.jenkins.getRootDir();
-            urls[1] = r.getURL();
-        });
-
-        assertEquals(homes[0], homes[1]);
-        assertEquals(urls[0], urls[1]);
+    void waitOnline() throws Exception {
+        assertTrue(inboundAgents.createAgent(r, InboundAgentExtension.Options.newBuilder().
+                        color(PrefixedOutputStream.Color.MAGENTA.bold()).
+                        name("remote").
+                        build()).
+                toComputer().isOnline());
     }
+
 }

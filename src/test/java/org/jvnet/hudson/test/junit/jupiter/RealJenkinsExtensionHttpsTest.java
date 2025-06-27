@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2025 Jenkins project contributors
+ * Copyright 2024 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,56 +21,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.jvnet.hudson.test.junit.jupiter;
 
-import org.junit.jupiter.api.AfterEach;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.PrefixedOutputStream;
 
-import java.io.File;
-import java.net.URL;
+import java.io.IOException;
+import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Test basic behavior of {@link JenkinsSessionExtension}
- */
-class JenkinsSessionExtensionTest {
+class RealJenkinsExtensionHttpsTest {
+    private static final Logger LOGGER = Logger.getLogger(RealJenkinsExtensionHttpsTest.class.getName());
 
     @RegisterExtension
-    private final JenkinsSessionExtension extension = new JenkinsSessionExtension();
+    private final RealJenkinsExtension extension = new RealJenkinsExtension().https();
+
+    @RegisterExtension
+    private final InboundAgentExtension iae = new InboundAgentExtension();
 
     @BeforeEach
-    void beforeEach() {
-        assertNotNull(extension.getHome());
-        assertTrue(extension.getHome().exists());
-    }
-
-    @AfterEach
-    void afterEach() {
-        assertTrue(extension.getHome().exists());
+    void setUp() throws Throwable {
+        extension.startJenkins();
     }
 
     @Test
-    void testRestart() throws Throwable {
-        assertNotNull(extension.getHome());
-        assertTrue(extension.getHome().exists());
+    void runningStepAndUsingHtmlUnit() throws Throwable {
+        // We can run steps
+        extension.runRemotely(RealJenkinsExtensionHttpsTest::log);
+        // web client trusts the cert
+        try (var wc = extension.createWebClient()) {
+            wc.getPage(extension.getUrl());
+        }
+    }
 
-        File[] homes = new File[2];
-        URL[] urls = new URL[2];
+    @Test
+    void inboundAgent() throws Throwable {
+        var options = InboundAgentExtension.Options
+                .newBuilder()
+                .name("remote")
+                .webSocket()
+                .color(PrefixedOutputStream.Color.YELLOW);
+        iae.createAgent(extension, options.build());
+    }
 
-        extension.then(r -> {
-            homes[0] = r.jenkins.getRootDir();
-            urls[0] = r.getURL();
-        });
-
-        extension.then(r -> {
-            homes[1] = r.jenkins.getRootDir();
-            urls[1] = r.getURL();
-        });
-
-        assertEquals(homes[0], homes[1]);
-        assertEquals(urls[0], urls[1]);
+    private static void log(JenkinsRule r) throws IOException {
+        LOGGER.info("Running on " + r.getURL().toExternalForm());
     }
 }

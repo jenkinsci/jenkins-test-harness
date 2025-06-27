@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Martin Eigenbrodt
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -70,7 +70,7 @@ public final class WarExploder {
 
     private static File EXPLODE_DIR;
 
-    static File findJenkinsWar() throws Exception {
+    public static File findJenkinsWar() throws Exception {
         File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
@@ -189,7 +189,7 @@ public final class WarExploder {
             } catch (OverlappingFileLockException ignored) {
                 // should only occur when we have multiple threads in this JVM attempting to lock this file
                 // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
-                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
+                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a
                 // generic failure
             }
             if (++iteration % 50 == 0) {
