@@ -1649,6 +1649,14 @@ public final class RealJenkinsRule implements TestRule {
     public static final class CustomJenkinsRule extends JenkinsRule implements AutoCloseable {
         private final URL url;
 
+        /**
+         * @deprecated Use {@link #CustomJenkinsRule(URL, String)} instead.
+         */
+        @Deprecated
+        public CustomJenkinsRule(URL url) throws Exception {
+            this(url, url.getPath().replaceAll("/$", ""));
+        }
+
         public CustomJenkinsRule(URL url, String contextPath) throws Exception {
             this.jenkins = Jenkins.get();
             this.url = url;
