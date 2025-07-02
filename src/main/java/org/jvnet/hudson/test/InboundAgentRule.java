@@ -87,7 +87,7 @@ public final class InboundAgentRule extends ExternalResource {
     private static final Logger LOGGER = Logger.getLogger(InboundAgentRule.class.getName());
 
     private final String id = UUID.randomUUID().toString();
-    private final Map<String, Process> procs = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, List<Process>> procs = Collections.synchronizedMap(new HashMap<>());
     private final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
     private final Set<File> jars = Collections.synchronizedSet(new HashSet<>());
 
@@ -388,17 +388,37 @@ public final class InboundAgentRule extends ExternalResource {
         String name = options.getName();
         Objects.requireNonNull(name);
         stop(r, name);
-        var args = r.runRemotely(InboundAgentRule::getAgentArguments, name);
-        jars.add(args.agentJar);
-        options.computeJavaOptions(r);
-        start(args, options);
+        startOnly(r, options);
         r.runRemotely(InboundAgentRule::waitForAgentOnline, name, options.loggers);
     }
 
-    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
-    public void start(AgentArguments agentArguments, Options options) throws Exception {
+    /**
+     * Starts an existing inbound agent without waiting for it to go online.
+     */
+    public void startOnly(@NonNull RealJenkinsRule r, Options options) throws Throwable {
         Objects.requireNonNull(options.getName());
-        stop(options.getName());
+        var args = agentArguments(r, options);
+        options.computeJavaOptions(r);
+        start(args, options, false);
+    }
+
+    private AgentArguments agentArguments(RealJenkinsRule r, Options options) throws Throwable {
+        var args = r.runRemotely(InboundAgentRule::getAgentArguments, options.getName());
+        jars.add(args.agentJar);
+        return args;
+    }
+
+
+    public void start(AgentArguments agentArguments, Options options) throws Exception {
+        start(agentArguments, options, true);
+    }
+
+    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
+    private void start(AgentArguments agentArguments, Options options, boolean stop) throws InterruptedException, IOException {
+        Objects.requireNonNull(options.getName());
+        if (stop) {
+            stop(options.getName());
+        }
         List<String> cmd = new ArrayList<>(List.of(JavaEnvUtils.getJreExecutable("java"),
             "-Xmx512m",
             "-XX:+PrintCommandLineFlags",
@@ -440,7 +460,12 @@ public final class InboundAgentRule extends ExternalResource {
         pb.environment().put("INBOUND_AGENT_RULE_NAME", options.getName());
         LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
-        procs.put(options.getName(), proc);
+        procs.merge(options.getName(), List.of(proc), (oldValue, newValue) -> {
+            // Duplicate agent name, but this can be a valid test case.
+            List<Process> result = new ArrayList<>(oldValue);
+            result.addAll(newValue);
+            return result;
+        });
         new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
     }
 
@@ -478,15 +503,23 @@ public final class InboundAgentRule extends ExternalResource {
      * Stops an existing inbound agent.
      * You need only call this to simulate an agent crash, followed by {@link #start}.
      */
-    public void stop(@NonNull String name) throws InterruptedException {
-        Process proc = procs.put(name, null);
-        if (proc != null) {
+    public void stop(@NonNull String name) {
+        procs.computeIfPresent(name, (k, v) -> {
+            stop(name, v);
+            return null;
+        });
+    }
+
+    private static void stop(String name, List<Process> v) {
+        for (Process proc : v) {
             LOGGER.info(() -> "Killing " + name + " agent JVM (but not subprocesses)");
             proc.destroyForcibly();
-            proc.waitFor();
-        } else {
-            // (normal when called from #start)
-            LOGGER.fine(() -> "No " + name + " agent JVM found to kill");
+            try {
+                proc.waitFor();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for process to terminate", e);
+            }
         }
     }
 
@@ -495,22 +528,17 @@ public final class InboundAgentRule extends ExternalResource {
      * (This is distinct from whether Jenkins considers the computer to be connected.)
      */
     public boolean isAlive(String name) {
-        Process proc = procs.get(name);
-        return proc != null && proc.isAlive();
+        return procs.get(name).stream().anyMatch(Process::isAlive);
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test code")
     @Override protected void after() {
         for (var entry : procs.entrySet()) {
             String name = entry.getKey();
-            Process proc = entry.getValue();
+            stop(name, entry.getValue());
             try {
                 LOGGER.info(() -> "Cleaning up " + name + " agent JVM and/or any subprocesses");
-                ProcessTree.get().killAll(proc, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
-                if (proc != null) {
-                    proc.destroyForcibly();
-                    proc.waitFor();
-                }
+                ProcessTree.get().killAll(null, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
