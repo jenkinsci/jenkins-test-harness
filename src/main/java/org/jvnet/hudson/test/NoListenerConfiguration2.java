@@ -26,7 +26,6 @@ package org.jvnet.hudson.test;
 import hudson.WebAppMain;
 import jakarta.servlet.ServletContextListener;
 import java.util.EventListener;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 
 /**
@@ -39,9 +38,9 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
  * @author Kohsuke Kawaguchi
  */
 public class NoListenerConfiguration2 extends AbstractLifeCycle {
-    private final WebAppContext context;
+    private final AbstractLifeCycle context;
 
-    public NoListenerConfiguration2(WebAppContext context) {
+    public NoListenerConfiguration2(AbstractLifeCycle context) {
         this.context = context;
     }
 

@@ -8,7 +8,6 @@ import java.net.URL;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
 /**
@@ -34,7 +33,7 @@ class JUnit5JenkinsRuleTest {
         // validate properties and configuration were preserved
         assertThat(rule.getURL(), equalTo(previousUrl));
         assertThat(rule.getTestDescription(), equalTo(previousTestDescription));
-        assertThat(rule.jenkins.getRootDir(), not(previousRoot));
+        assertThat(rule.jenkins.getRootDir(), equalTo(previousRoot));
         assertThat(rule.jenkins.getJobNames(), hasSize(1));
 
         // validate restarted instance is working

@@ -117,6 +117,8 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -140,20 +142,11 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
-import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.security.Password;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.htmlunit.AjaxController;
 import org.htmlunit.AlertHandler;
 import org.htmlunit.BrowserVersion;
@@ -184,6 +177,7 @@ import org.htmlunit.javascript.host.xml.XMLHttpRequest;
 import org.htmlunit.util.NameValuePair;
 import org.htmlunit.xml.XmlPage;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
+import org.jvnet.hudson.test.jetty.JettyProvider;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.Recipe.Runner;
 import org.jvnet.hudson.test.recipes.WithPlugin;
@@ -546,51 +540,25 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer2() throws Exception {
-        QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (HudsonTestCase)");
-        server = new Server(qtp);
+        JettyProvider jp = findJettyProvider();
+        JettyProvider.Context jpc = jp.createWebServer(localPort, contextPath, this::configureUserRealm);
+        localPort = jpc.localPort();
+        server = jpc.server();
+        explodedWarDir = jpc.explodedWarDir();
+        LOGGER.log(Level.INFO, "Running on {0}", getURL());
+        return jpc.servletContext();
+    }
 
-        explodedWarDir = WarExploder.getExplodedDir();
-        WebAppContext context = new WebAppContext(explodedWarDir.getPath(), contextPath) {
-            @Override
-            protected ClassLoader configureClassLoader(ClassLoader loader) {
-                // Use flat classpath in tests
-                return loader;
+    private static JettyProvider findJettyProvider() {
+        Iterator<JettyProvider> it = ServiceLoader.load(JettyProvider.class).iterator();
+        while (it.hasNext()) {
+            try {
+                return it.next();
+            } catch (ServiceConfigurationError e) {
+                LOGGER.log(Level.FINE, null, e);
             }
-        };
-        context.setResourceBase(explodedWarDir.getPath());
-        context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurationDiscovered(true);
-        context.addBean(new NoListenerConfiguration2(context));
-        context.setServer(server);
-        String compression = System.getProperty("jth.compression", "gzip");
-        if (compression.equals("gzip")) {
-            GzipHandler gzipHandler = new GzipHandler();
-            gzipHandler.setHandler(context);
-            server.setHandler(gzipHandler);
-        } else if (compression.equals("none")) {
-            server.setHandler(context);
-        } else {
-            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
         }
-        JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.getSecurityHandler().setLoginService(configureUserRealm());
-
-        ServerConnector connector = new ServerConnector(server);
-
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
-        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-        config.setRequestHeaderSize(12 * 1024);
-        config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
-        connector.setHost("localhost");
-
-        server.addConnector(connector);
-        server.start();
-
-        localPort = connector.getLocalPort();
-
-        return context.getServletContext();
+        return null;
     }
 
     /**

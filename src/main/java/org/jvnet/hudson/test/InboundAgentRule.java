@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -111,6 +112,8 @@ public final class InboundAgentRule extends ExternalResource {
         private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
         private String trustStorePath;
         private String trustStorePassword;
+        private String cert;
+        private boolean noCertificateCheck;
 
         public String getName() {
             return name;
@@ -141,10 +144,15 @@ public final class InboundAgentRule extends ExternalResource {
         }
 
         /**
-         * Compute java options requied to connect to the given RealJenkinsRule instance.
+         * Compute java options required to connect to the given RealJenkinsRule instance.
+         * If {@link #cert} or {@link #noCertificateCheck} is set, trustStore options are not computed.
+         * This prevents Remoting from implicitly bypassing failures related to {@code -cert} or {@code -noCertificateCheck}.
          * @param r The instance to compute Java options for
          */
         private void computeJavaOptions(RealJenkinsRule r) {
+            if (cert != null || noCertificateCheck) {
+                return;
+            }
             if (trustStorePath != null && trustStorePassword != null) {
                 javaOptions.addAll(List.of(
                         "-Djavax.net.ssl.trustStore=" + trustStorePath,
@@ -245,6 +253,26 @@ public final class InboundAgentRule extends ExternalResource {
             public Builder trustStore(String path, String password) {
                 options.trustStorePath = path;
                 options.trustStorePassword = password;
+                return this;
+            }
+
+            /**
+             * Sets a custom certificate for the agent JVM, passed as the Remoting `-cert` CLI argument.
+             * When using {@code RealJenkinsRule}, use {@link RealJenkinsRule#getRootCAPem()} to obtain the required value to pass to this method.
+             * @param cert the certificate to use
+             * @return this builder
+             */
+            public Builder cert(String cert) {
+                options.cert = cert;
+                return this;
+            }
+
+            /**
+             * Disables certificate verification for the agent JVM, passed as the Remoting `-noCertificateCheck` CLI argument.
+             * @return this builder
+             */
+            public Builder noCertificateCheck() {
+                options.noCertificateCheck = true;
                 return this;
             }
 
@@ -381,11 +409,10 @@ public final class InboundAgentRule extends ExternalResource {
         }
         cmd.addAll(options.javaOptions);
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
-        var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentArguments.agentJnlpUrl);
-        if (m.matches() && remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
-            cmd.addAll(List.of("-url", m.group(1)));
+        if (remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
+            cmd.addAll(List.of("-url", agentArguments.url));
+            cmd.addAll(List.of("-name", agentArguments.name));
             cmd.addAll(List.of("-secret", agentArguments.secret));
-            cmd.addAll(List.of("-name", URI.create(m.group(2)).getPath()));
             if (options.isWebSocket()) {
                 cmd.add("-webSocket");
             }
@@ -393,12 +420,19 @@ public final class InboundAgentRule extends ExternalResource {
                 cmd.addAll(List.of("-tunnel", options.getTunnel()));
             }
         } else {
-            cmd.addAll(List.of("-jnlpUrl", agentArguments.agentJnlpUrl));
+            cmd.addAll(List.of("-jnlpUrl", agentArguments.agentJnlpUrl()));
             if (options.isSecret()) {
                 // To watch it fail: secret = secret.replace('1', '2');
                 cmd.addAll(List.of("-secret", agentArguments.secret));
             }
         }
+
+        if (options.noCertificateCheck) {
+            cmd.add("-noCertificateCheck");
+        } else if (options.cert != null) {
+            cmd.addAll(List.of("-cert", options.cert));
+        }
+
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
@@ -502,13 +536,40 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     /**
-     * @param agentJnlpUrl URL to the agent JNLP file.
      * @param agentJar A reference to the agent jar
+     * @param url the controller root URL
+     * @param name the agent name
      * @param secret The secret the agent should use to connect.
      * @param numberOfNodes The number of nodes in the Jenkins instance where the agent is running.
      * @param commandLineArgs Additional command line arguments to pass to the agent.
      */
-    public record AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) implements Serializable {}
+    public record AgentArguments(@NonNull File agentJar, @NonNull String url, @NonNull String name, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) implements Serializable {
+        @Deprecated
+        public AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
+            this(agentJar, parseUrlAndName(agentJnlpUrl), secret, numberOfNodes, commandLineArgs);
+        }
+        @Deprecated
+        private static String[] parseUrlAndName(@NonNull String agentJnlpUrl) {
+            // TODO separate method pending JEP-447
+            var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentJnlpUrl);
+            if (!m.matches()) {
+                throw new IllegalArgumentException(agentJnlpUrl);
+            }
+            return new String[] {m.group(1), URI.create(m.group(2)).getPath()};
+        }
+        @Deprecated
+        private AgentArguments(@NonNull File agentJar, @NonNull String[] urlAndName, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
+            this(agentJar, urlAndName[0], urlAndName[1], secret, numberOfNodes, commandLineArgs);
+        }
+        @Deprecated
+        public String agentJnlpUrl() {
+            try {
+                return url + "computer/" + new URI(null, name, null).toString() + "/slave-agent.jnlp";
+            } catch (URISyntaxException x) {
+                throw new RuntimeException(x);
+            }
+        }
+    }
 
     private static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
         Node node = r.jenkins.getNode(name);
@@ -526,7 +587,7 @@ public final class InboundAgentRule extends ExternalResource {
         }
         File agentJar = Files.createTempFile(Path.of(System.getProperty("java.io.tmpdir")), "agent", ".jar").toFile();
         FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
-        return new AgentArguments(r.jenkins.getRootUrl() + "computer/" + name + "/slave-agent.jnlp", agentJar, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+        return new AgentArguments(agentJar, r.jenkins.getRootUrl(), name, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
     }
 
     private static void waitForAgentOnline(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
