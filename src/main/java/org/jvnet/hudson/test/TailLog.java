@@ -24,6 +24,8 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertTrue;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.console.PlainTextConsoleOutputStream;
 import hudson.model.Job;
@@ -40,7 +42,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
-import static org.junit.Assert.assertTrue;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
@@ -102,62 +103,87 @@ public final class TailLog implements AutoCloseable {
      */
     public TailLog(File buildDirectory, String job, int number) {
         var log = buildDirectory.toPath().resolve("log");
-        tailer = Tailer.builder().setDelayDuration(Duration.ofMillis(50)).setTailable(new Tailer.Tailable() {
-            // like TailablePath
-            @Override public long size() throws IOException {
-                return Files.size(log);
-            }
-            @Override public FileTime lastModifiedFileTime() throws IOException {
-                return Files.getLastModifiedTime(log);
-            }
-            @Override public boolean isNewer(FileTime fileTime) throws IOException {
-                return Files.getLastModifiedTime(log).compareTo(fileTime) > 0;
-            }
-            @Override public Tailer.RandomAccessResourceBridge getRandomAccess(String mode) throws FileNotFoundException {
-                if (!Files.isRegularFile(log)) {
-                    throw new FileNotFoundException(log.toString());
-                }
-                return new Tailer.RandomAccessResourceBridge() {
-                    long ptr;
-                    @Override public long getPointer() throws IOException {
-                        return ptr;
+        tailer = Tailer.builder()
+                .setDelayDuration(Duration.ofMillis(50))
+                .setTailable(new Tailer.Tailable() {
+                    // like TailablePath
+                    @Override
+                    public long size() throws IOException {
+                        return Files.size(log);
                     }
-                    @Override public void seek(long pos) throws IOException {
-                        ptr = pos;
+
+                    @Override
+                    public FileTime lastModifiedFileTime() throws IOException {
+                        return Files.getLastModifiedTime(log);
                     }
-                    @Override public int read(byte[] b) throws IOException {
-                        // Unlike RandomAccessFileBridge, not sensitive to file handle:
-                        try (var is = Files.newInputStream(log)) {
-                            is.skipNBytes(ptr);
-                            int r = is.read(b);
-                            if (r > 0) {
-                                ptr += r;
+
+                    @Override
+                    public boolean isNewer(FileTime fileTime) throws IOException {
+                        return Files.getLastModifiedTime(log).compareTo(fileTime) > 0;
+                    }
+
+                    @Override
+                    public Tailer.RandomAccessResourceBridge getRandomAccess(String mode) throws FileNotFoundException {
+                        if (!Files.isRegularFile(log)) {
+                            throw new FileNotFoundException(log.toString());
+                        }
+                        return new Tailer.RandomAccessResourceBridge() {
+                            long ptr;
+
+                            @Override
+                            public long getPointer() throws IOException {
+                                return ptr;
                             }
-                            return r;
+
+                            @Override
+                            public void seek(long pos) throws IOException {
+                                ptr = pos;
+                            }
+
+                            @Override
+                            public int read(byte[] b) throws IOException {
+                                // Unlike RandomAccessFileBridge, not sensitive to file handle:
+                                try (var is = Files.newInputStream(log)) {
+                                    is.skipNBytes(ptr);
+                                    int r = is.read(b);
+                                    if (r > 0) {
+                                        ptr += r;
+                                    }
+                                    return r;
+                                }
+                            }
+
+                            @Override
+                            public void close() throws IOException {}
+                        };
+                    }
+                })
+                .setTailerListener(new TailerListenerAdapter() {
+                    PrintStream ps;
+
+                    @Override
+                    public void handle(String line) {
+                        if (ps == null) {
+                            ps = new PrintStream(
+                                    new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder
+                                            .withName(job + '#' + number)
+                                            .build(System.err)),
+                                    false,
+                                    StandardCharsets.UTF_8);
+                        }
+                        synchronized (System.err) {
+                            ps.append(DeltaSupportLogFormatter.elapsedTime());
+                            ps.print(' ');
+                            ps.print(line);
+                            ps.println();
+                            ps.flush();
+                        }
+                        if (line.startsWith("Finished: ")) {
+                            finished.release();
                         }
                     }
-                    @Override public void close() throws IOException {}
-                };
-            }
-        }).setTailerListener(new TailerListenerAdapter() {
-            PrintStream ps;
-            @Override
-            public void handle(String line) {
-                if (ps == null) {
-                    ps = new PrintStream(new PlainTextConsoleOutputStream(prefixedOutputStreamBuilder.withName(job + '#' + number).build(System.err)), false, StandardCharsets.UTF_8);
-                }
-                synchronized (System.err) {
-                    ps.append(DeltaSupportLogFormatter.elapsedTime());
-                    ps.print(' ');
-                    ps.print(line);
-                    ps.println();
-                    ps.flush();
-                }
-                if (line.startsWith("Finished: ")) {
-                    finished.release();
-                }
-            }
-        }).get();
+                })
+                .get();
     }
 
     public void waitForCompletion() throws InterruptedException {
@@ -168,5 +194,4 @@ public final class TailLog implements AutoCloseable {
     public void close() {
         tailer.close();
     }
-
 }

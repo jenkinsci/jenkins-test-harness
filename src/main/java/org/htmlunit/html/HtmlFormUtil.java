@@ -35,7 +35,7 @@ import org.htmlunit.WebClientUtil;
  * <p>
  * In many cases, the methods defined here replace methods of the same name that were
  * added to the {@link HtmlForm} class on the old forked version of HtmlUnit.
- * 
+ *
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class HtmlFormUtil {
@@ -107,7 +107,7 @@ public class HtmlFormUtil {
             return submitButton;
         }
         for (HtmlElement element : htmlForm.getElementsByAttribute("button", "name", "Submit")) {
-            if(element instanceof HtmlButton) {
+            if (element instanceof HtmlButton) {
                 return element;
             }
         }
@@ -133,9 +133,10 @@ public class HtmlFormUtil {
      * @return The button if found.
      * @throws ElementNotFoundException Failed to find the button on the form.
      */
-    public static HtmlButton getButtonByCaption(final HtmlForm htmlForm, final String caption) throws ElementNotFoundException {
+    public static HtmlButton getButtonByCaption(final HtmlForm htmlForm, final String caption)
+            throws ElementNotFoundException {
         for (HtmlElement b : htmlForm.getElementsByTagName("button")) {
-            if(b instanceof HtmlButton && b.getTextContent().trim().equals(caption)) {
+            if (b instanceof HtmlButton && b.getTextContent().trim().equals(caption)) {
                 return (HtmlButton) b;
             }
         }
@@ -143,5 +144,4 @@ public class HtmlFormUtil {
     }
 
     private HtmlFormUtil() {}
-
 }

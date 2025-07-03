@@ -46,5 +46,4 @@ public class JenkinsRuleTimeout3Test extends JenkinsRuleTimeoutTestBase {
             }
         }
     }
-
 }

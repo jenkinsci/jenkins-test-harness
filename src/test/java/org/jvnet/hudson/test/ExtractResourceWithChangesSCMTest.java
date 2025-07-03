@@ -34,15 +34,21 @@ import org.junit.Test;
 
 public class ExtractResourceWithChangesSCMTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
 
-    @Test public void smokes() throws Exception {
+    @Test
+    public void smokes() throws Exception {
         FreeStyleProject p = r.createFreeStyleProject();
         p.setScm(new ExtractResourceWithChangesSCM(
-            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/initial.zip"),
-            ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/patch.zip")));
+                ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/initial.zip"),
+                ExtractResourceWithChangesSCMTest.class.getResource("ExtractResourceWithChangesSCMTest/patch.zip")));
         r.buildAndAssertSuccess(p);
-        assertEquals("[[dir/subdir/bottom, top]]", StreamSupport.stream(r.buildAndAssertSuccess(p).getChangeSet().spliterator(), false).map(entry -> entry.getAffectedPaths().stream().sorted().collect(Collectors.toList())).collect(Collectors.toList()).toString());
+        assertEquals(
+                "[[dir/subdir/bottom, top]]",
+                StreamSupport.stream(r.buildAndAssertSuccess(p).getChangeSet().spliterator(), false)
+                        .map(entry -> entry.getAffectedPaths().stream().sorted().collect(Collectors.toList()))
+                        .collect(Collectors.toList())
+                        .toString());
     }
-
 }

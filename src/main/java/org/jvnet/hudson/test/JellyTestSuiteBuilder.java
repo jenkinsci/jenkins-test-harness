@@ -50,11 +50,13 @@ import org.kohsuke.stapler.jelly.JellyClassLoaderTearOff;
  */
 public class JellyTestSuiteBuilder {
 
-    static Map<URL,String> scan(File resources, String extension) throws IOException {
-        Map<URL,String> result = new HashMap<>();
+    static Map<URL, String> scan(File resources, String extension) throws IOException {
+        Map<URL, String> result = new HashMap<>();
         if (resources.isDirectory()) {
             for (File f : FileUtils.listFiles(resources, new String[] {extension}, true)) {
-                result.put(f.toURI().toURL(), f.getAbsolutePath().substring((resources.getAbsolutePath() + File.separator).length()));
+                result.put(
+                        f.toURI().toURL(),
+                        f.getAbsolutePath().substring((resources.getAbsolutePath() + File.separator).length()));
             }
         } else if (resources.getName().endsWith(".jar")) {
             String jarUrl = resources.toURI().toURL().toExternalForm();
@@ -77,8 +79,9 @@ public class JellyTestSuiteBuilder {
      */
     public static TestSuite build(File res, boolean requirePI) throws Exception {
         TestSuite ts = new JellyTestSuite();
-        final JellyClassLoaderTearOff jct = new MetaClassLoader(JellyTestSuiteBuilder.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
-        for (Map.Entry<URL,String> entry : scan(res, "jelly").entrySet()) {
+        final JellyClassLoaderTearOff jct = new MetaClassLoader(JellyTestSuiteBuilder.class.getClassLoader())
+                .loadTearOff(JellyClassLoaderTearOff.class);
+        for (Map.Entry<URL, String> entry : scan(res, "jelly").entrySet()) {
             ts.addTest(new JellyCheck(entry.getKey(), entry.getValue(), jct, requirePI));
         }
         return ts;
@@ -103,9 +106,8 @@ public class JellyTestSuiteBuilder {
             if (requirePI) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
                 if (pi == null || !pi.getText().contains("escape-by-default")) {
-                    throw new AssertionError("<?jelly escape-by-default='true'?> is missing in "+jelly);
+                    throw new AssertionError("<?jelly escape-by-default='true'?> is missing in " + jelly);
                 }
-
             }
             // TODO: what else can we check statically? use of taglibs?
         }

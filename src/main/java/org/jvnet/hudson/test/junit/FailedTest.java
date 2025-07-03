@@ -43,7 +43,7 @@ public class FailedTest extends TestCase {
     }
 
     public FailedTest(Class<?> name, Throwable problem) {
-        this(name.getName(),problem);
+        this(name.getName(), problem);
     }
 
     @Override

@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -87,12 +86,19 @@ import org.kohsuke.stapler.Stapler;
 
 public class RealJenkinsRuleTest {
 
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true).withDebugPort(4001).withDebugServer(false);
+    @Rule
+    public RealJenkinsRule rr =
+            new RealJenkinsRule().prepareHomeLazily(true).withDebugPort(4001).withDebugServer(false);
 
-    @Test public void smokes() throws Throwable {
+    @Test
+    public void smokes() throws Throwable {
         rr.addPlugins("plugins/structs.hpi");
-        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+        rr.extraEnv("SOME_ENV_VAR", "value")
+                .extraEnv("NOT_SET", null)
+                .withLogger(Jenkins.class, Level.FINEST)
+                .then(RealJenkinsRuleTest::_smokes);
     }
+
     private static void _smokes(JenkinsRule r) throws Throwable {
         System.err.println("running in: " + r.jenkins.getRootUrl());
         assertTrue(Main.isUnitTest);
@@ -100,12 +106,14 @@ public class RealJenkinsRuleTest {
         assertEquals("value", System.getenv("SOME_ENV_VAR"));
     }
 
-    @Test public void testReturnObject() throws Throwable {
+    @Test
+    public void testReturnObject() throws Throwable {
         rr.startJenkins();
         assertThatLocalAndRemoteUrlEquals();
     }
 
-    @Test public void customPrefix() throws Throwable {
+    @Test
+    public void customPrefix() throws Throwable {
         rr.withPrefix("/foo").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/foo/"));
         assertThatLocalAndRemoteUrlEquals();
@@ -114,7 +122,8 @@ public class RealJenkinsRuleTest {
         });
     }
 
-    @Test public void complexPrefix() throws Throwable {
+    @Test
+    public void complexPrefix() throws Throwable {
         rr.withPrefix("/foo/bar").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/foo/bar/"));
         assertThatLocalAndRemoteUrlEquals();
@@ -123,7 +132,8 @@ public class RealJenkinsRuleTest {
         });
     }
 
-    @Test public void noPrefix() throws Throwable {
+    @Test
+    public void noPrefix() throws Throwable {
         rr.withPrefix("").startJenkins();
         assertThat(rr.getUrl().getPath(), equalTo("/"));
         assertThatLocalAndRemoteUrlEquals();
@@ -132,12 +142,14 @@ public class RealJenkinsRuleTest {
         });
     }
 
-    @Test public void invalidPrefixes() {
+    @Test
+    public void invalidPrefixes() {
         assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("foo"));
         assertThrows(IllegalArgumentException.class, () -> rr.withPrefix("/foo/"));
     }
 
-    @Test public void ipv6() throws Throwable {
+    @Test
+    public void ipv6() throws Throwable {
         // Use -Djava.net.preferIPv6Addresses=true if dualstack
         assumeThat(InetAddress.getLoopbackAddress(), instanceOf(Inet6Address.class));
         rr.withHost("::1").startJenkins();
@@ -148,12 +160,16 @@ public class RealJenkinsRuleTest {
         assertEquals(rr.getUrl().toExternalForm(), rr.runRemotely(RealJenkinsRuleTest::_getJenkinsUrlFromRemote));
     }
 
-    @Test public void testThrowsException() {
-        assertThat(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException)).getMessage(),
-            containsString("IllegalStateException: something is wrong"));
+    @Test
+    public void testThrowsException() {
+        assertThat(
+                assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException))
+                        .getMessage(),
+                containsString("IllegalStateException: something is wrong"));
     }
 
-    @Test public void killedExternally() throws Throwable {
+    @Test
+    public void killedExternally() throws Throwable {
         rr.startJenkins();
         try {
             rr.proc.destroy();
@@ -166,18 +182,21 @@ public class RealJenkinsRuleTest {
         throw new IllegalStateException("something is wrong");
     }
 
-    @Test public void testFilter() throws Throwable{
+    @Test
+    public void testFilter() throws Throwable {
         rr.startJenkins();
         rr.runRemotely(RealJenkinsRuleTest::_testFilter1);
         // Now run another step, body irrelevant just making sure it is not broken
         // (do *not* combine into one runRemotely call):
         rr.runRemotely(RealJenkinsRuleTest::_testFilter2);
     }
+
     private static void _testFilter1(JenkinsRule jenkinsRule) throws Throwable {
         PluginServletFilter.addFilter(new Filter() {
 
             @Override
-            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
                 String fake = request.getParameter("fake");
                 chain.doFilter(request, response);
             }
@@ -189,20 +208,25 @@ public class RealJenkinsRuleTest {
             public void init(FilterConfig filterConfig) throws ServletException {}
         });
     }
+
     private static void _testFilter2(JenkinsRule jenkinsRule) throws Throwable {}
 
-    @Test public void chainedSteps() throws Throwable {
+    @Test
+    public void chainedSteps() throws Throwable {
         rr.startJenkins();
         rr.runRemotely(RealJenkinsRuleTest::chainedSteps1, RealJenkinsRuleTest::chainedSteps2);
     }
+
     private static void chainedSteps1(JenkinsRule jenkinsRule) throws Throwable {
         System.setProperty("key", "xxx");
     }
+
     private static void chainedSteps2(JenkinsRule jenkinsRule) throws Throwable {
         assertEquals("xxx", System.getProperty("key"));
     }
 
-    @Test public void error() {
+    @Test
+    public void error() {
         boolean erred = false;
         try {
             rr.then(RealJenkinsRuleTest::_error);
@@ -213,11 +237,13 @@ public class RealJenkinsRuleTest {
         }
         assertTrue(erred);
     }
+
     private static void _error(JenkinsRule r) throws Throwable {
-        assert false: "oops";
+        assert false : "oops";
     }
 
-    @Test public void agentBuild() throws Throwable {
+    @Test
+    public void agentBuild() throws Throwable {
         try (var tailLog = new TailLog(rr, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
             rr.then(r -> {
                 var p = r.createFreeStyleProject("p");
@@ -231,11 +257,15 @@ public class RealJenkinsRuleTest {
         }
     }
 
-    @Test public void htmlUnit() throws Throwable {
+    @Test
+    public void htmlUnit() throws Throwable {
         rr.startJenkins();
         rr.runRemotely(r -> {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                    .grant(Jenkins.ADMINISTER)
+                    .everywhere()
+                    .to("admin"));
             var p = r.createFreeStyleProject("p");
             p.setDescription("hello");
         });
@@ -252,27 +282,37 @@ public class RealJenkinsRuleTest {
     }
 
     @LocalData
-    @Test public void localData() throws Throwable {
+    @Test
+    public void localData() throws Throwable {
         rr.then(RealJenkinsRuleTest::_localData);
     }
+
     private static void _localData(JenkinsRule r) throws Throwable {
         assertThat(r.jenkins.getItems().stream().map(Item::getName).toArray(), arrayContainingInAnyOrder("x"));
     }
 
-    @Test public void restart() throws Throwable {
+    @Test
+    public void restart() throws Throwable {
         rr.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-            Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+            Files.writeString(
+                    r.jenkins.getRootDir().toPath().resolve("url.txt"),
+                    r.getURL().toString(),
+                    StandardCharsets.UTF_8);
             r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
         });
         rr.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-            assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
+            assertEquals(
+                    r.jenkins.getRootUrl(),
+                    Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
             assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsRule-ran-cleanUp").exists());
         });
     }
+
     private static class ShutdownListener extends ItemListener {
         private final String fileName = "RealJenkinsRule-ran-cleanUp";
+
         @Override
         public void onBeforeShutdown() {
             try {
@@ -283,20 +323,24 @@ public class RealJenkinsRuleTest {
         }
     }
 
-    @Test public void stepsDoNotRunOnHttpWorkerThread() throws Throwable {
+    @Test
+    public void stepsDoNotRunOnHttpWorkerThread() throws Throwable {
         rr.then(RealJenkinsRuleTest::_stepsDoNotRunOnHttpWorkerThread);
     }
+
     private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
         assertNull(Stapler.getCurrentRequest());
     }
 
-    @Test public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
+    @Test
+    public void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
         rr.then(r -> {
             assertNotNull(JenkinsLocationConfiguration.get().getUrl());
             JenkinsLocationConfiguration.get().setUrl("https://example.com/");
         });
         rr.then(r -> {
-            assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+            assertEquals(
+                    "https://example.com/", JenkinsLocationConfiguration.get().getUrl());
         });
     }
 
@@ -304,14 +348,15 @@ public class RealJenkinsRuleTest {
     public void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        assertThrows(RealJenkinsRule.JenkinsStartupException.class,
-                     () -> RealJenkinsRule.checkResult(conn));
+        assertThrows(RealJenkinsRule.JenkinsStartupException.class, () -> RealJenkinsRule.checkResult(conn));
     }
+
     @Test
     public void test503Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(503);
-        when(conn.getErrorStream()).thenReturn(new ByteArrayInputStream("Jenkins Custom Error".getBytes(StandardCharsets.UTF_8)));
+        when(conn.getErrorStream())
+                .thenReturn(new ByteArrayInputStream("Jenkins Custom Error".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsRule.checkResult(conn);
 
@@ -323,7 +368,8 @@ public class RealJenkinsRuleTest {
 
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(200);
-        when(conn.getInputStream()).thenReturn(new ByteArrayInputStream("blah blah blah".getBytes(StandardCharsets.UTF_8)));
+        when(conn.getInputStream())
+                .thenReturn(new ByteArrayInputStream("blah blah blah".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsRule.checkResult(conn);
 
@@ -343,8 +389,9 @@ public class RealJenkinsRuleTest {
      */
     @Test
     public void whenUsingFailurePlugin() throws Throwable {
-        RealJenkinsRule.JenkinsStartupException jse = assertThrows(
-                RealJenkinsRule.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi").startJenkins());
+        RealJenkinsRule.JenkinsStartupException jse =
+                assertThrows(RealJenkinsRule.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi")
+                        .startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
@@ -352,21 +399,33 @@ public class RealJenkinsRuleTest {
     public void whenUsingWrongJavaHome() throws Throwable {
         IOException ex = assertThrows(
                 IOException.class, () -> rr.withJavaHome("/noexists").startJenkins());
-        assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
+        assertThat(
+                ex.getMessage(),
+                containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
-    @Test 
+    @Test
     public void smokesJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
         rr.addPlugins("plugins/structs.hpi");
-        rr.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsRuleTest::_smokes);
+        rr.extraEnv("SOME_ENV_VAR", "value")
+                .extraEnv("NOT_SET", null)
+                .withJavaHome(altJavaHome)
+                .withLogger(Jenkins.class, Level.FINEST)
+                .then(RealJenkinsRuleTest::_smokes);
     }
 
     @Issue("https://github.com/jenkinsci/jenkins-test-harness/issues/359")
     @Test
     public void assumptions() throws Throwable {
-        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions1)).getMessage(), is("got: <4>, expected: is <5>"));
-        assertThat(assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions2)).getMessage(), is("oops: got: <4>, expected: is <5>"));
+        assertThat(
+                assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions1))
+                        .getMessage(),
+                is("got: <4>, expected: is <5>"));
+        assertThat(
+                assertThrows(AssumptionViolatedException.class, () -> rr.then(RealJenkinsRuleTest::_assumptions2))
+                        .getMessage(),
+                is("oops: got: <4>, expected: is <5>"));
     }
 
     private static void _assumptions1(JenkinsRule r) throws Throwable {
@@ -380,8 +439,10 @@ public class RealJenkinsRuleTest {
     @Test
     public void timeoutDuringStep() throws Throwable {
         rr.withTimeout(10);
-        assertThat(Functions.printThrowable(assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
-            containsString("\tat " + RealJenkinsRuleTest.class.getName() + ".hangs(RealJenkinsRuleTest.java:"));
+        assertThat(
+                Functions.printThrowable(
+                        assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
+                containsString("\tat " + RealJenkinsRuleTest.class.getName() + ".hangs(RealJenkinsRuleTest.java:"));
     }
 
     private static void hangs(JenkinsRule r) throws Throwable {
@@ -411,39 +472,52 @@ public class RealJenkinsRuleTest {
         });
     }
 
-    @Test public void xStreamSerializable() throws Throwable {
+    @Test
+    public void xStreamSerializable() throws Throwable {
         rr.startJenkins();
         // Neither ParametersDefinitionProperty nor ParametersAction could be passed directly.
         // (In this case, ParameterDefinition and ParameterValue could have been used raw.
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
         var prop = XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")));
         // Static method handle idiom:
-        assertThat(rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, prop).object().getAllParameters(), hasSize(1));
+        assertThat(
+                rr.runRemotely(RealJenkinsRuleTest::_xStreamSerializable, prop)
+                        .object()
+                        .getAllParameters(),
+                hasSize(1));
         // Lambda idiom:
-        assertThat(rr.runRemotely(r -> {
-            var p = r.createFreeStyleProject();
-            p.addProperty(prop.object());
-            var b = r.buildAndAssertSuccess(p);
-            return XStreamSerializable.of(b.getAction(ParametersAction.class));
-        }).object().getAllParameters(), hasSize(1));
+        assertThat(
+                rr.runRemotely(r -> {
+                            var p = r.createFreeStyleProject();
+                            p.addProperty(prop.object());
+                            var b = r.buildAndAssertSuccess(p);
+                            return XStreamSerializable.of(b.getAction(ParametersAction.class));
+                        })
+                        .object()
+                        .getAllParameters(),
+                hasSize(1));
     }
 
-    private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<? extends JobProperty<? super FreeStyleProject>> prop) throws Throwable {
+    private static XStreamSerializable<ParametersAction> _xStreamSerializable(
+            JenkinsRule r, XStreamSerializable<? extends JobProperty<? super FreeStyleProject>> prop) throws Throwable {
         var p = r.createFreeStyleProject();
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
         return XStreamSerializable.of(b.getAction(ParametersAction.class));
     }
 
-    @Ignore("inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsRuleTest; use TestBuilder.of instead")
-    @Test public void lambduh() throws Throwable {
+    @Ignore(
+            "inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsRuleTest; use TestBuilder.of instead")
+    @Test
+    public void lambduh() throws Throwable {
         rr.then(r -> {
             r.createFreeStyleProject().getBuildersList().add(new TestBuilder() {
-                @Override public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                @Override
+                public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+                        throws InterruptedException, IOException {
                     return true;
                 }
             });
         });
     }
-
 }

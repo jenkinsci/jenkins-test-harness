@@ -49,14 +49,14 @@ import org.junit.Assert;
 /**
  * {@link PluginManager} that can work with unit tests where dependencies are just jars.
  * {@link PluginManager} to speed up unit tests.
- * 
+ *
  *
  * <p>
  * Instead of loading every plugin for every test case, this allows them to reuse a single plugin manager.
  *
  * <p>
  * TODO: {@link Plugin} start/stop/postInitialize invocation semantics gets different. Perhaps
- * 
+ *
  * @author Kohsuke Kawaguchi
  * @see HudsonTestCase#useLocalPluginManager
  */
@@ -86,14 +86,14 @@ public class UnitTestSupportingPluginManager extends PluginManager {
         Set<String> names = new HashSet<>();
 
         File[] children = fromDir.listFiles();
-        if (children!=null) {
+        if (children != null) {
             for (File child : children) {
                 try {
                     names.add(child.getName());
 
                     copyBundledPlugin(child.toURI().toURL(), child.getName());
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin "+child,e);
+                    LOGGER.log(Level.SEVERE, "Failed to extract the bundled plugin " + child, e);
                 }
             }
         } else {
@@ -101,34 +101,35 @@ public class UnitTestSupportingPluginManager extends PluginManager {
         }
         // If running tests for a plugin, include the plugin being tested
         URL u = getClass().getClassLoader().getResource("the.jpl");
-        if(u==null){
-        	u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible 
+        if (u == null) {
+            u = getClass().getClassLoader().getResource("the.hpl"); // keep backward compatible
         }
         if (u != null) {
-          try {
-            String thisPlugin;
-            try (InputStream is = u.openStream()) {
-                thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+            try {
+                String thisPlugin;
+                try (InputStream is = u.openStream()) {
+                    thisPlugin = new Manifest(is).getMainAttributes().getValue("Short-Name");
+                }
+                if (thisPlugin == null) {
+                    throw new IOException("malformed " + u);
+                }
+                names.add(thisPlugin + ".jpl");
+                copyBundledPlugin(u, thisPlugin + ".jpl");
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Failed to copy the.jpl", e);
             }
-            if (thisPlugin == null) {
-                throw new IOException("malformed " + u);
-            }
-            names.add(thisPlugin + ".jpl");
-            copyBundledPlugin(u, thisPlugin + ".jpl");
-          } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to copy the.jpl",e);
-          }
         }
 
         // and pick up test dependency *.jpi that are placed by maven-hpi-plugin TestDependencyMojo.
         // and copy them into $JENKINS_HOME/plugins.
         URL index = getClass().getResource("/test-dependencies/index");
-        if (index!=null) {// if built with maven-hpi-plugin < 1.52 this file won't exist.
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+        if (index != null) { // if built with maven-hpi-plugin < 1.52 this file won't exist.
+            try (BufferedReader r =
+                    new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                 String line;
-                while ((line=r.readLine())!=null) {
-                	final URL url = new URL(index, line + ".jpi");
-					File f;
+                while ((line = r.readLine()) != null) {
+                    final URL url = new URL(index, line + ".jpi");
+                    File f;
                     try {
                         f = new File(url.toURI());
                     } catch (IllegalArgumentException x) {
@@ -138,24 +139,26 @@ public class UnitTestSupportingPluginManager extends PluginManager {
                                             + " you are running this in your IDE and see this message, it is likely"
                                             + " that you have a clean target directory. Try running 'mvn test-compile' "
                                             + "from the command line (once only), which will copy the required plugins "
-                                            + "into target/test-classes/test-dependencies - then retry your test", x);
+                                            + "into target/test-classes/test-dependencies - then retry your test",
+                                    x);
                         } else {
                             throw new IOException(index + " contains bogus line " + line, x);
                         }
                     }
-                    // TODO should this be running names.add(line + ".jpi")? Affects PluginWrapper.isBundled & .*Dependents
-                	if(f.exists()){
-                		copyBundledPlugin(url, line + ".jpi");
-                	}else{
-                		copyBundledPlugin(new URL(index, line + ".hpi"), line + ".jpi"); // fallback to hpi
-                	}
+                    // TODO should this be running names.add(line + ".jpi")? Affects PluginWrapper.isBundled &
+                    // .*Dependents
+                    if (f.exists()) {
+                        copyBundledPlugin(url, line + ".jpi");
+                    } else {
+                        copyBundledPlugin(new URL(index, line + ".hpi"), line + ".jpi"); // fallback to hpi
+                    }
                 }
             }
         }
 
         return names;
     }
-    
+
     /**
      * Dynamically load a detached plugin that would not otherwise get loaded.
      * Will only work in Jenkins 2.x.
@@ -164,7 +167,9 @@ public class UnitTestSupportingPluginManager extends PluginManager {
      * @param shortName {@code cvs} for example
      */
     public void installDetachedPlugin(String shortName) throws Exception {
-        URL r = UnitTestSupportingPluginManager.class.getClassLoader().getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
+        URL r = UnitTestSupportingPluginManager.class
+                .getClassLoader()
+                .getResource("WEB-INF/detached-plugins/" + shortName + ".hpi");
         Assert.assertNotNull("could not find " + shortName, r);
         File f = new File(rootDir, shortName + ".hpi");
         FileUtils.copyURLToFile(r, f);
@@ -172,5 +177,4 @@ public class UnitTestSupportingPluginManager extends PluginManager {
     }
 
     private static final Logger LOGGER = Logger.getLogger(UnitTestSupportingPluginManager.class.getName());
-
 }

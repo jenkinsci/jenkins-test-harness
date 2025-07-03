@@ -31,7 +31,7 @@ package hudson.util;
 public final class EchoCommand {
     public static void main(String[] args) {
         StringBuilder sb = new StringBuilder();
-        for (String a: args) {
+        for (String a : args) {
             if (sb.length() != 0) {
                 sb.append(' ');
             }

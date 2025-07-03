@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -71,13 +71,16 @@ public @interface PresetData {
     class RunnerImpl extends Recipe.Runner<PresetData> {
         @Override
         public void setup(HudsonTestCase testCase, PresetData recipe) {
-            testCase.withPresetData(recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_','-'));
+            testCase.withPresetData(
+                    recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_', '-'));
         }
     }
+
     class RuleRunnerImpl extends JenkinsRecipe.Runner<PresetData> {
         @Override
         public void setup(JenkinsRule jenkinsRule, PresetData recipe) {
-            jenkinsRule.withPresetData(recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_','-'));
+            jenkinsRule.withPresetData(
+                    recipe.value().name().toLowerCase(Locale.ENGLISH).replace('_', '-'));
         }
     }
 }

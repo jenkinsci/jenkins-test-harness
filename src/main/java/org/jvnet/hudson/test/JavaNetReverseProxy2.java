@@ -48,7 +48,8 @@ public class JavaNetReverseProxy2 extends HttpServlet {
             context.addServlet(new ServletHolder(this), "/");
             server.setHandler(context);
         } else {
-            org.eclipse.jetty.ee9.servlet.ServletContextHandler context = new org.eclipse.jetty.ee9.servlet.ServletContextHandler();
+            org.eclipse.jetty.ee9.servlet.ServletContextHandler context =
+                    new org.eclipse.jetty.ee9.servlet.ServletContextHandler();
             context.addServlet(new org.eclipse.jetty.ee9.servlet.ServletHolder(this), "/");
             server.setHandler(context);
         }

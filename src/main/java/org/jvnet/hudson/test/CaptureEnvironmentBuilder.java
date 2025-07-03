@@ -41,16 +41,17 @@ import org.kohsuke.stapler.StaplerRequest2;
  * @author Kohsuke Kawaguchi
  */
 public class CaptureEnvironmentBuilder extends Builder {
-	
+
     private EnvVars envVars;
 
-	public EnvVars getEnvVars() {
-		return envVars;
-	}
+    public EnvVars getEnvVars() {
+        return envVars;
+    }
 
-	@Override
-	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-    	envVars = build.getEnvironment(listener);
+    @Override
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
+        envVars = build.getEnvironment(listener);
         return true;
     }
 

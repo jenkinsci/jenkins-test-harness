@@ -10,8 +10,7 @@ import org.openjdk.jmh.annotations.Benchmark;
  */
 @JmhBenchmark
 public class JmhStateBenchmark {
-    public static class MyState extends JmhBenchmarkState {
-    }
+    public static class MyState extends JmhBenchmarkState {}
 
     @Benchmark
     public void benchmark(MyState state) {

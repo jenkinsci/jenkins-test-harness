@@ -35,16 +35,19 @@ import org.junit.Rule;
 import org.junit.Test;
 
 public class MockFolderTest {
-    
-    @Rule public JenkinsRule j = new JenkinsRule();
 
-    @Test public void basics() throws Exception {
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
+
+    @Test
+    public void basics() throws Exception {
         MockFolder dir = j.createFolder("dir");
         FreeStyleProject p = dir.createProject(FreeStyleProject.class, "p");
         assertEquals("dir/p", p.getFullName());
     }
 
-    @Test public void moving() throws Exception {
+    @Test
+    public void moving() throws Exception {
         MockFolder top = j.createFolder("top");
         FreeStyleProject p = top.createProject(FreeStyleProject.class, "p");
         MockFolder sub = top.createProject(MockFolder.class, "sub");
@@ -72,40 +75,53 @@ public class MockFolderTest {
         sub.renameTo("lower");
         assertNews("renamed=top/lower;from=sub moved=top/lower;from=top/sub moved=top/lower/p;from=top/sub/p");
         top.renameTo("upper");
-        assertNews("renamed=upper;from=top moved=upper;from=top moved=upper/lower;from=top/lower moved=upper/lower/p;from=top/lower/p");
+        assertNews(
+                "renamed=upper;from=top moved=upper;from=top moved=upper/lower;from=top/lower moved=upper/lower/p;from=top/lower/p");
         assertEquals(p, sub.getItem("p"));
         p.renameTo("j");
         assertNews("renamed=upper/lower/j;from=p moved=upper/lower/j;from=upper/lower/p");
         top.renameTo("upperz");
-        assertNews("renamed=upperz;from=upper moved=upperz;from=upper moved=upperz/lower;from=upper/lower moved=upperz/lower/j;from=upper/lower/j");
+        assertNews(
+                "renamed=upperz;from=upper moved=upperz;from=upper moved=upperz/lower;from=upper/lower moved=upperz/lower/j;from=upper/lower/j");
         assertEquals(sub, top.getItem("lower"));
         sub.renameTo("upperzee");
-        assertNews("renamed=upperz/upperzee;from=lower moved=upperz/upperzee;from=upperz/lower moved=upperz/upperzee/j;from=upperz/lower/j");
+        assertNews(
+                "renamed=upperz/upperzee;from=lower moved=upperz/upperzee;from=upperz/lower moved=upperz/upperzee/j;from=upperz/lower/j");
         Items.move(sub, j.jenkins);
         assertNews("moved=upperzee;from=upperz/upperzee moved=upperzee/j;from=upperz/upperzee/j");
         assertEquals(p, j.jenkins.getItemByFullName("upperzee/j"));
     }
+
     private void assertNews(String expected) {
         L l = j.jenkins.getExtensionList(ItemListener.class).get(L.class);
         assertEquals(expected, l.b.toString().trim());
         l.b.delete(0, l.b.length());
     }
-    @TestExtension("moving") public static class L extends ItemListener {
+
+    @TestExtension("moving")
+    public static class L extends ItemListener {
         final StringBuilder b = new StringBuilder();
-        @Override public void onCreated(Item item) {
+
+        @Override
+        public void onCreated(Item item) {
             b.append(" created=").append(item.getFullName());
         }
-        @Override public void onDeleted(Item item) {
+
+        @Override
+        public void onDeleted(Item item) {
             b.append(" deleted=").append(item.getFullName());
         }
-        @Override public void onRenamed(Item item, String oldName, String newName) {
+
+        @Override
+        public void onRenamed(Item item, String oldName, String newName) {
             assertEquals(item.getName(), newName);
             b.append(" renamed=").append(item.getFullName()).append(";from=").append(oldName);
         }
-        @Override public void onLocationChanged(Item item, String oldFullName, String newFullName) {
+
+        @Override
+        public void onLocationChanged(Item item, String oldFullName, String newFullName) {
             assertEquals(item.getFullName(), newFullName);
             b.append(" moved=").append(newFullName).append(";from=").append(oldFullName);
         }
     }
-
 }

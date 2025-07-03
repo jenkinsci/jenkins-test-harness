@@ -35,29 +35,41 @@ import org.junit.Test;
 
 public class PrefixedOutputStreamTest {
 
-    @Rule public FlagRule<Boolean> skipCheckForCI = new FlagRule<>(() -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI, x -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI = x, true);
+    @Rule
+    public FlagRule<Boolean> skipCheckForCI = new FlagRule<>(
+            () -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI,
+            x -> PrefixedOutputStream.Builder.SKIP_CHECK_FOR_CI = x,
+            true);
 
-    @Test public void name() throws Exception {
-        assertOutput(PrefixedOutputStream.builder().withName("xxx"),
-            "[xxx] regular line\n[xxx] \n[xxx] split across\n[xxx] two lines\n[xxx] missing trailing newline");
+    @Test
+    public void name() throws Exception {
+        assertOutput(
+                PrefixedOutputStream.builder().withName("xxx"),
+                "[xxx] regular line\n[xxx] \n[xxx] split across\n[xxx] two lines\n[xxx] missing trailing newline");
     }
 
-    @Test public void color() throws Exception {
-        assertOutput(PrefixedOutputStream.builder().withColor(PrefixedOutputStream.Color.RED),
-            "\u001b[31mregular line\u001b[0m\n\u001b[31m\u001b[0m\n\u001b[31msplit across\u001b[0m\n\u001b[31mtwo lines\u001b[0m\n\u001b[31mmissing trailing newline\u001b[0m");
+    @Test
+    public void color() throws Exception {
+        assertOutput(
+                PrefixedOutputStream.builder().withColor(PrefixedOutputStream.Color.RED),
+                "\u001b[31mregular line\u001b[0m\n\u001b[31m\u001b[0m\n\u001b[31msplit across\u001b[0m\n\u001b[31mtwo lines\u001b[0m\n\u001b[31mmissing trailing newline\u001b[0m");
     }
 
-    @Test public void nameAndColor() throws Exception {
-        assertOutput(PrefixedOutputStream.builder().withName("xxx").withColor(PrefixedOutputStream.Color.RED),
-            "[xxx] \u001b[31mregular line\u001b[0m\n[xxx] \u001b[31m\u001b[0m\n[xxx] \u001b[31msplit across\u001b[0m\n[xxx] \u001b[31mtwo lines\u001b[0m\n[xxx] \u001b[31mmissing trailing newline\u001b[0m");
+    @Test
+    public void nameAndColor() throws Exception {
+        assertOutput(
+                PrefixedOutputStream.builder().withName("xxx").withColor(PrefixedOutputStream.Color.RED),
+                "[xxx] \u001b[31mregular line\u001b[0m\n[xxx] \u001b[31m\u001b[0m\n[xxx] \u001b[31msplit across\u001b[0m\n[xxx] \u001b[31mtwo lines\u001b[0m\n[xxx] \u001b[31mmissing trailing newline\u001b[0m");
     }
 
-    @Test public void neither() throws Exception {
-        assertOutput(PrefixedOutputStream.builder(),
-            "regular line\n\nsplit across\ntwo lines\nmissing trailing newline");
+    @Test
+    public void neither() throws Exception {
+        assertOutput(
+                PrefixedOutputStream.builder(), "regular line\n\nsplit across\ntwo lines\nmissing trailing newline");
     }
 
-    private static void assertOutput(PrefixedOutputStream.Builder prefixedOutputStreamBuilder, String expected) throws Exception {
+    private static void assertOutput(PrefixedOutputStream.Builder prefixedOutputStreamBuilder, String expected)
+            throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (PrintStream ps = new PrintStream(prefixedOutputStreamBuilder.build(baos))) {
             ps.println("regular line");
@@ -65,8 +77,6 @@ public class PrefixedOutputStreamTest {
             ps.println("split across\ntwo lines");
             ps.print("missing trailing newline");
         }
-        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"),
-            is(expected));
+        assertThat(baos.toString(StandardCharsets.UTF_8).replace("\r\n", "\n"), is(expected));
     }
-
 }

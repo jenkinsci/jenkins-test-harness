@@ -43,7 +43,7 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         return new Builder();
     }
 
-    private static class Color16 implements AnsiColor, Serializable  {
+    private static class Color16 implements AnsiColor, Serializable {
         private final Color color;
         private final boolean bold;
 
@@ -59,8 +59,12 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
     }
 
     public enum Color implements AnsiColor {
-
-        RED("31"), GREEN("32"), YELLOW("33"), BLUE("34"), MAGENTA("35"), CYAN("36");
+        RED("31"),
+        GREEN("32"),
+        YELLOW("33"),
+        BLUE("34"),
+        MAGENTA("35"),
+        CYAN("36");
 
         private final String code;
 
@@ -82,8 +86,11 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         String getCode();
     }
 
-    @CheckForNull private final String name;
-    @CheckForNull private final AnsiColor color;
+    @CheckForNull
+    private final String name;
+
+    @CheckForNull
+    private final AnsiColor color;
 
     private PrefixedOutputStream(OutputStream out, String name, AnsiColor color) {
         super(out);
@@ -91,7 +98,8 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         this.color = color;
     }
 
-    @Override protected void eol(byte[] b, int len) throws IOException {
+    @Override
+    protected void eol(byte[] b, int len) throws IOException {
         synchronized (out) {
             if (name != null) {
                 out.write('[');
@@ -128,8 +136,11 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
 
         static boolean SKIP_CHECK_FOR_CI;
 
-        @CheckForNull private String name;
-        @CheckForNull private AnsiColor color;
+        @CheckForNull
+        private String name;
+
+        @CheckForNull
+        private AnsiColor color;
 
         private Builder() {}
 
@@ -156,7 +167,5 @@ public final class PrefixedOutputStream extends LineTransformationOutputStream.D
         public @NonNull OutputStream build(@NonNull OutputStream delegate) {
             return name != null || color != null ? new PrefixedOutputStream(delegate, name, color) : delegate;
         }
-
     }
-
 }

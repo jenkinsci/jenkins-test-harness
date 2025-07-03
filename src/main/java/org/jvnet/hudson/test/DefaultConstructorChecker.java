@@ -12,7 +12,7 @@ public class DefaultConstructorChecker extends TestCase {
 
     public DefaultConstructorChecker(Class<?> clazz) {
         this.clazz = clazz;
-        setName(clazz.getName()+".verifyDefaultConstructor");
+        setName(clazz.getName() + ".verifyDefaultConstructor");
     }
 
     @Override
@@ -20,7 +20,7 @@ public class DefaultConstructorChecker extends TestCase {
         try {
             clazz.getConstructor();
         } catch (NoSuchMethodException e) {
-            throw new Error(clazz+" must have the default constructor",e);
+            throw new Error(clazz + " must have the default constructor", e);
         }
     }
 }

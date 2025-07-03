@@ -1,9 +1,8 @@
 package org.jvnet.hudson.test;
 
+import java.util.concurrent.TimeUnit;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlPage;
-
-import java.util.concurrent.TimeUnit;
 
 public final class QueryUtils {
 
@@ -21,8 +20,8 @@ public final class QueryUtils {
 
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
             if (page.querySelector("*").getVisibleText().contains(value)) {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " +
-                        "until string '" + value + "' was present");
+                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " + "until string '"
+                        + value + "' was present");
                 return;
             } else {
                 try {
@@ -33,7 +32,8 @@ public final class QueryUtils {
             }
         }
 
-        throw new RuntimeException("String '" + value + "' was not present '" + value + "' after '" + maxWaitTime + "s'");
+        throw new RuntimeException(
+                "String '" + value + "' was not present '" + value + "' after '" + maxWaitTime + "s'");
     }
 
     /**
@@ -54,13 +54,14 @@ public final class QueryUtils {
                     throw new RuntimeException(e);
                 }
             } else {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " +
-                        "until string '" + value + "' was no longer present");
+                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " + "until string '"
+                        + value + "' was no longer present");
                 return;
             }
         }
 
-        throw new RuntimeException("String '" + value + "' is still present '" + value + "' after '" + maxWaitTime + "s'");
+        throw new RuntimeException(
+                "String '" + value + "' is still present '" + value + "' after '" + maxWaitTime + "s'");
     }
 
     /**

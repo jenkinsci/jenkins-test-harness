@@ -36,6 +36,7 @@ import hudson.security.ACLContext;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
+import io.jenkins.test.fips.FIPSTestBundleProvider;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -115,8 +116,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import io.jenkins.test.fips.FIPSTestBundleProvider;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.test.https.KeyStoreManager;
@@ -572,13 +571,14 @@ public final class RealJenkinsRule implements TestRule {
     }
 
     /**
-     +
+     * +
      * @param fipsTestBundleProvider the {@link FIPSTestBundleProvider} to use for testing
      */
     public RealJenkinsRule withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
         Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
         try {
-            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+            return withBootClasspath(
+                            fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
                     .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -589,7 +589,7 @@ public final class RealJenkinsRule implements TestRule {
      *
      * @param files add some {@link File} to bootclasspath
      */
-    public RealJenkinsRule withBootClasspath(File...files) {
+    public RealJenkinsRule withBootClasspath(File... files) {
         this.bootClasspathFiles.addAll(List.of(files));
         return this;
     }
@@ -602,13 +602,17 @@ public final class RealJenkinsRule implements TestRule {
                 .collect(Collectors.toList());
     }
 
-    @Override public Statement apply(final Statement base, Description description) {
+    @Override
+    public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
-            @Override public void evaluate() throws Throwable {
+            @Override
+            public void evaluate() throws Throwable {
                 System.err.println("=== Starting " + description);
                 try {
-                    jenkinsOptions("--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
+                    jenkinsOptions(
+                            "--webroot=" + createTempDirectory("webroot"),
+                            "--pluginroot=" + createTempDirectory("pluginroot"));
                     if (war == null) {
                         war = findJenkinsWar();
                     }
@@ -637,7 +641,6 @@ public final class RealJenkinsRule implements TestRule {
                     }
                 }
             }
-
         };
     }
 
@@ -652,7 +655,9 @@ public final class RealJenkinsRule implements TestRule {
         }
         LocalData localData = description.getAnnotation(LocalData.class);
         if (localData != null) {
-            new HudsonHomeLoader.Local(description.getTestClass().getMethod(description.getMethodName()), localData.value()).copy(getHome());
+            new HudsonHomeLoader.Local(
+                            description.getTestClass().getMethod(description.getMethodName()), localData.value())
+                    .copy(getHome());
         }
 
         File plugins = new File(getHome(), "plugins");
@@ -667,7 +672,8 @@ public final class RealJenkinsRule implements TestRule {
         if (includeTestClasspathPlugins) {
             // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
             Set<String> snapshotPlugins = new TreeSet<>();
-            Enumeration<URL> indexJellies = RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
+            Enumeration<URL> indexJellies =
+                    RealJenkinsRule.class.getClassLoader().getResources("index.jelly");
             while (indexJellies.hasMoreElements()) {
                 String indexJelly = indexJellies.nextElement().toString();
                 Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
@@ -688,11 +694,13 @@ public final class RealJenkinsRule implements TestRule {
                         if (skippedPlugins.contains(shortName)) {
                             continue;
                         }
-                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option
+                        // to run in integration-test phase?
                         Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
                         snapshotPlugins.add(shortName);
                     } else {
-                        System.err.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                        System.err.println("Warning: found " + indexJelly
+                                + " but did not find corresponding ../test-classes/the.[hj]pl");
                     }
                 } else {
                     // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
@@ -700,7 +708,8 @@ public final class RealJenkinsRule implements TestRule {
             }
             URL index = RealJenkinsRule.class.getResource("/test-dependencies/index");
             if (index != null) {
-                try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                try (BufferedReader r =
+                        new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = r.readLine()) != null) {
                         if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
@@ -713,11 +722,12 @@ public final class RealJenkinsRule implements TestRule {
                         } catch (IllegalArgumentException x) {
                             if (x.getMessage().equals("URI is not hierarchical")) {
                                 throw new IOException(
-                                        "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                " you are running this in your IDE and see this message, it is likely" +
-                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                "from the command line (once only), which will copy the required plugins " +
-                                                "into target/test-classes/test-dependencies - then retry your test", x);
+                                        "You are probably trying to load plugins from within a jarfile (not possible). If"
+                                                + " you are running this in your IDE and see this message, it is likely"
+                                                + " that you have a clean target directory. Try running 'mvn test-compile' "
+                                                + "from the command line (once only), which will copy the required plugins "
+                                                + "into target/test-classes/test-dependencies - then retry your test",
+                                        x);
                             } else {
                                 throw new IOException(index + " contains bogus line " + line, x);
                             }
@@ -734,7 +744,8 @@ public final class RealJenkinsRule implements TestRule {
         for (String extraPlugin : extraPlugins) {
             URL url = RealJenkinsRule.class.getClassLoader().getResource(extraPlugin);
             String name;
-            try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+            try (InputStream is = url.openStream();
+                    JarInputStream jis = new JarInputStream(is)) {
                 Manifest man = jis.getManifest();
                 if (man == null) {
                     throw new IOException("No manifest found in " + extraPlugin);
@@ -749,7 +760,11 @@ public final class RealJenkinsRule implements TestRule {
         for (SyntheticPlugin syntheticPlugin : syntheticPlugins) {
             syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"), targetJenkinsVersion);
         }
-        System.err.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
+        System.err.println("Will load plugins: "
+                + Stream.of(plugins.list())
+                        .filter(n -> n.matches(".+[.][hj]p[il]"))
+                        .sorted()
+                        .collect(Collectors.joining(" ")));
     }
 
     /**
@@ -867,7 +882,8 @@ public final class RealJenkinsRule implements TestRule {
             IOUtils.copy(getClass().getResource("/https/test-keystore.p12"), keyStorePath.toFile());
             var keyStoreManager = new KeyStoreManager(keyStorePath, "changeit");
             try (var is = getClass().getResourceAsStream("/https/test-cert.pem")) {
-                var cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(is);
+                var cert = (X509Certificate)
+                        CertificateFactory.getInstance("X.509").generateCertificate(is);
                 https("localhost", keyStoreManager, cert);
             }
         } catch (CertificateException | KeyStoreException | NoSuchAlgorithmException | IOException e) {
@@ -888,14 +904,18 @@ public final class RealJenkinsRule implements TestRule {
      * @see #createWebClient()
      * @see #withHost(String)
      */
-    public RealJenkinsRule https(@NonNull String host, @NonNull KeyStoreManager keyStoreManager, @NonNull X509Certificate rootCA) {
+    public RealJenkinsRule https(
+            @NonNull String host, @NonNull KeyStoreManager keyStoreManager, @NonNull X509Certificate rootCA) {
         this.host = host;
         this.https = true;
         this.keyStoreManager = keyStoreManager;
         try {
             this.sslSocketFactory = keyStoreManager.buildClientSSLContext().getSocketFactory();
-        } catch (NoSuchAlgorithmException | KeyManagementException | CertificateException | KeyStoreException |
-                 IOException e) {
+        } catch (NoSuchAlgorithmException
+                | KeyManagementException
+                | CertificateException
+                | KeyStoreException
+                | IOException e) {
             throw new RuntimeException(e);
         }
         this.rootCA = rootCA;
@@ -937,7 +957,8 @@ public final class RealJenkinsRule implements TestRule {
             try {
                 var myTrustStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 myTrustStore.load(null, null);
-                myTrustStore.setCertificateEntry(getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
+                myTrustStore.setCertificateEntry(
+                        getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
                 var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(myTrustStore);
                 var context = SSLContext.getInstance("TLS");
@@ -1022,12 +1043,17 @@ public final class RealJenkinsRule implements TestRule {
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsRule.classpath=" + cpFile,
-                "-DRealJenkinsRule.location=" + RealJenkinsRule.class.getProtectionDomain().getCodeSource().getLocation(),
+                "-DRealJenkinsRule.location="
+                        + RealJenkinsRule.class
+                                .getProtectionDomain()
+                                .getCodeSource()
+                                .getLocation(),
                 "-DRealJenkinsRule.description=" + description,
                 "-DRealJenkinsRule.token=" + token));
         argv.addAll(getJacocoAgentOptions());
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
-            argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "=" + e.getValue().getName());
+            argv.add("-D" + REAL_JENKINS_RULE_LOGGING + e.getKey() + "="
+                    + e.getValue().getName());
         }
         portFile = metadata.resolve("jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
@@ -1042,17 +1068,16 @@ public final class RealJenkinsRule implements TestRule {
                     + ",suspend=" + (debugSuspend ? "y" : "n")
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
-        if(!bootClasspathFiles.isEmpty()) {
-            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+        if (!bootClasspathFiles.isEmpty()) {
+            String fileList = bootClasspathFiles.stream()
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.joining(File.pathSeparator));
             argv.add("-Xbootclasspath/a:" + fileList);
-
         }
         argv.addAll(javaOptions);
 
         argv.addAll(List.of(
-                "-jar", war.getAbsolutePath(),
-                "--enable-future-java",
-                "--httpListenAddress=" + httpListenAddress));
+                "-jar", war.getAbsolutePath(), "--enable-future-java", "--httpListenAddress=" + httpListenAddress));
         if (!prefix.isEmpty()) {
             argv.add("--prefix=" + prefix);
         }
@@ -1077,15 +1102,19 @@ public final class RealJenkinsRule implements TestRule {
                 env.put(entry.getKey(), entry.getValue());
             }
         }
-        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
-        System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
+        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that
+        // QuotedStringTokenizer.quote(String) Javadoc is untrue):
+        System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " "
+                + String.join(" ", argv));
         ProcessBuilder pb = new ProcessBuilder(argv);
         pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         pb.redirectErrorStream(true);
         proc = pb.start();
-        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.err)).start();
+        new StreamCopyThread(
+                        description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.err))
+                .start();
         int tries = 0;
         while (true) {
             if (!proc.isAlive()) {
@@ -1105,9 +1134,9 @@ public final class RealJenkinsRule implements TestRule {
                     if (checkResult == null) {
                         System.err.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
                         break;
-                    }else {
-                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
-                                                      " " + conn.getHeaderFields());
+                    } else {
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": "
+                                + checkResult + " " + conn.getHeaderFields());
                     }
 
                 } catch (JenkinsStartupException jse) {
@@ -1163,25 +1192,31 @@ public final class RealJenkinsRule implements TestRule {
 
     private void addTimeout() {
         if (timeout > 0) {
-            Timer.get().schedule(() -> {
-                if (proc != null) {
-                    LOGGER.warning("Test timeout expired, stopping steps…");
-                    try {
-                        decorateConnection(endpoint("timeout").openConnection()).getInputStream().close();
-                    } catch (IOException x) {
-                        x.printStackTrace();
-                    }
-                    LOGGER.warning("…and giving steps a chance to fail…");
-                    try {
-                        Thread.sleep(15_000);
-                    } catch (InterruptedException x) {
-                        x.printStackTrace();
-                    }
-                    LOGGER.warning("…and killing Jenkins process.");
-                    proc.destroyForcibly();
-                    proc = null;
-                }
-            }, timeout, TimeUnit.SECONDS);
+            Timer.get()
+                    .schedule(
+                            () -> {
+                                if (proc != null) {
+                                    LOGGER.warning("Test timeout expired, stopping steps…");
+                                    try {
+                                        decorateConnection(endpoint("timeout").openConnection())
+                                                .getInputStream()
+                                                .close();
+                                    } catch (IOException x) {
+                                        x.printStackTrace();
+                                    }
+                                    LOGGER.warning("…and giving steps a chance to fail…");
+                                    try {
+                                        Thread.sleep(15_000);
+                                    } catch (InterruptedException x) {
+                                        x.printStackTrace();
+                                    }
+                                    LOGGER.warning("…and killing Jenkins process.");
+                                    proc.destroyForcibly();
+                                    proc = null;
+                                }
+                            },
+                            timeout,
+                            TimeUnit.SECONDS);
         }
     }
 
@@ -1213,14 +1248,16 @@ public final class RealJenkinsRule implements TestRule {
             proc = null;
             if (_proc.isAlive()) {
                 try {
-                    decorateConnection(endpoint("exit").openConnection()).getInputStream().close();
+                    decorateConnection(endpoint("exit").openConnection())
+                            .getInputStream()
+                            .close();
                 } catch (SocketException e) {
                     System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {
                 System.err.println("Jenkins process was already terminated.");
             }
-            if (!_proc.waitFor(60, TimeUnit.SECONDS) ) {
+            if (!_proc.waitFor(60, TimeUnit.SECONDS)) {
                 System.err.println("Jenkins failed to stop within 60 seconds, attempting to kill the Jenkins process");
                 _proc.destroyForcibly();
                 throw new AssertionError("Jenkins failed to terminate within 60 seconds");
@@ -1326,80 +1363,109 @@ public final class RealJenkinsRule implements TestRule {
 
     @FunctionalInterface
     public interface StepWithOneArg<A1 extends Serializable> extends Serializable {
-       void run(JenkinsRule r, A1 arg1) throws Throwable;
+        void run(JenkinsRule r, A1 arg1) throws Throwable;
     }
+
     public <A1 extends Serializable> void runRemotely(StepWithOneArg<A1> s, A1 arg1) throws Throwable {
         runRemotely(new StepWithOneArgWrapper<>(s, arg1));
     }
+
     private static final class StepWithOneArgWrapper<A1 extends Serializable> implements Step {
         private final StepWithOneArg<A1> delegate;
         private final A1 arg1;
+
         StepWithOneArgWrapper(StepWithOneArg<A1> delegate, A1 arg1) {
             this.delegate = delegate;
             this.arg1 = arg1;
         }
-        @Override public void run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
             delegate.run(r, arg1);
         }
     }
 
     @FunctionalInterface
     public interface StepWithTwoArgs<A1 extends Serializable, A2 extends Serializable> extends Serializable {
-       void run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
+        void run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
     }
-    public <A1 extends Serializable, A2 extends Serializable> void runRemotely(StepWithTwoArgs<A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+
+    public <A1 extends Serializable, A2 extends Serializable> void runRemotely(
+            StepWithTwoArgs<A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
         runRemotely(new StepWithTwoArgsWrapper<>(s, arg1, arg2));
     }
-    private static final class StepWithTwoArgsWrapper<A1 extends Serializable, A2 extends Serializable> implements Step {
+
+    private static final class StepWithTwoArgsWrapper<A1 extends Serializable, A2 extends Serializable>
+            implements Step {
         private final StepWithTwoArgs<A1, A2> delegate;
         private final A1 arg1;
         private final A2 arg2;
+
         StepWithTwoArgsWrapper(StepWithTwoArgs<A1, A2> delegate, A1 arg1, A2 arg2) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
         }
-        @Override public void run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
             delegate.run(r, arg1, arg2);
         }
     }
 
     @FunctionalInterface
-    public interface StepWithThreeArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
-       void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
+    public interface StepWithThreeArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            extends Serializable {
+        void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
     }
-    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> void runRemotely(StepWithThreeArgs<A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> void runRemotely(
+            StepWithThreeArgs<A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
         runRemotely(new StepWithThreeArgsWrapper<>(s, arg1, arg2, arg3));
     }
-    private static final class StepWithThreeArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step {
+
+    private static final class StepWithThreeArgsWrapper<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            implements Step {
         private final StepWithThreeArgs<A1, A2, A3> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
+
         StepWithThreeArgsWrapper(StepWithThreeArgs<A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
             this.arg3 = arg3;
         }
-        @Override public void run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
             delegate.run(r, arg1, arg2, arg3);
         }
     }
 
     @FunctionalInterface
-    public interface StepWithFourArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
-       void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
+    public interface StepWithFourArgs<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            extends Serializable {
+        void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
     }
-    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> void runRemotely(StepWithFourArgs<A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            void runRemotely(StepWithFourArgs<A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
         runRemotely(new StepWithFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
     }
-    private static final class StepWithFourArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step {
+
+    private static final class StepWithFourArgsWrapper<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            implements Step {
         private final StepWithFourArgs<A1, A2, A3, A4> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
         private final A4 arg4;
+
         StepWithFourArgsWrapper(StepWithFourArgs<A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
             this.delegate = delegate;
             this.arg1 = arg1;
@@ -1407,7 +1473,9 @@ public final class RealJenkinsRule implements TestRule {
             this.arg3 = arg3;
             this.arg4 = arg4;
         }
-        @Override public void run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public void run(JenkinsRule r) throws Throwable {
             delegate.run(r, arg1, arg2, arg3, arg4);
         }
     }
@@ -1416,86 +1484,138 @@ public final class RealJenkinsRule implements TestRule {
     public interface StepWithReturnAndOneArg<R extends Serializable, A1 extends Serializable> extends Serializable {
         R run(JenkinsRule r, A1 arg1) throws Throwable;
     }
-    public <R extends Serializable, A1 extends Serializable> R runRemotely(StepWithReturnAndOneArg<R, A1> s, A1 arg1) throws Throwable {
+
+    public <R extends Serializable, A1 extends Serializable> R runRemotely(StepWithReturnAndOneArg<R, A1> s, A1 arg1)
+            throws Throwable {
         return runRemotely(new StepWithReturnAndOneArgWrapper<>(s, arg1));
     }
-    private static final class StepWithReturnAndOneArgWrapper<R extends Serializable, A1 extends Serializable> implements Step2<R> {
+
+    private static final class StepWithReturnAndOneArgWrapper<R extends Serializable, A1 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndOneArg<R, A1> delegate;
         private final A1 arg1;
+
         StepWithReturnAndOneArgWrapper(StepWithReturnAndOneArg<R, A1> delegate, A1 arg1) {
             this.delegate = delegate;
             this.arg1 = arg1;
         }
-        @Override public R run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public R run(JenkinsRule r) throws Throwable {
             return delegate.run(r, arg1);
         }
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndTwoArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndTwoArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
     }
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable> R runRemotely(StepWithReturnAndTwoArgs<R, A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable> R runRemotely(
+            StepWithReturnAndTwoArgs<R, A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
         return runRemotely(new StepWithReturnAndTwoArgsWrapper<>(s, arg1, arg2));
     }
-    private static final class StepWithReturnAndTwoArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable> implements Step2<R> {
+
+    private static final class StepWithReturnAndTwoArgsWrapper<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndTwoArgs<R, A1, A2> delegate;
         private final A1 arg1;
         private final A2 arg2;
+
         StepWithReturnAndTwoArgsWrapper(StepWithReturnAndTwoArgs<R, A1, A2> delegate, A1 arg1, A2 arg2) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
         }
-        @Override public R run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public R run(JenkinsRule r) throws Throwable {
             return delegate.run(r, arg1, arg2);
         }
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndThreeArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndThreeArgs<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
     }
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> R runRemotely(StepWithReturnAndThreeArgs<R, A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            R runRemotely(StepWithReturnAndThreeArgs<R, A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
         return runRemotely(new StepWithReturnAndThreeArgsWrapper<>(s, arg1, arg2, arg3));
     }
-    private static final class StepWithReturnAndThreeArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step2<R> {
+
+    private static final class StepWithReturnAndThreeArgsWrapper<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
-        StepWithReturnAndThreeArgsWrapper(StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
+
+        StepWithReturnAndThreeArgsWrapper(
+                StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
             this.arg3 = arg3;
         }
-        @Override public R run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public R run(JenkinsRule r) throws Throwable {
             return delegate.run(r, arg1, arg2, arg3);
         }
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndFourArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndFourArgs<
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
     }
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> R runRemotely(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+
+    public <
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            R runRemotely(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4)
+                    throws Throwable {
         return runRemotely(new StepWithReturnAndFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
     }
-    private static final class StepWithReturnAndFourArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step2<R> {
+
+    private static final class StepWithReturnAndFourArgsWrapper<
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
         private final A4 arg4;
-        StepWithReturnAndFourArgsWrapper(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+
+        StepWithReturnAndFourArgsWrapper(
+                StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
             this.arg3 = arg3;
             this.arg4 = arg4;
         }
-        @Override public R run(JenkinsRule r) throws Throwable {
+
+        @Override
+        public R run(JenkinsRule r) throws Throwable {
             return delegate.run(r, arg1, arg2, arg3, arg4);
         }
     }
@@ -1505,9 +1625,18 @@ public final class RealJenkinsRule implements TestRule {
 
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
-            ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getProperty("RealJenkinsRule.classpath")), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
-            tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint").getMethod("register").invoke(null);
+            ClassLoader uberClassLoader = (ClassLoader)
+                    pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
+            ClassLoader tests = new URLClassLoader(
+                    Files.readAllLines(
+                                    Paths.get(System.getProperty("RealJenkinsRule.classpath")), StandardCharsets.UTF_8)
+                            .stream()
+                            .map(Init2::pathToURL)
+                            .toArray(URL[]::new),
+                    uberClassLoader);
+            tests.loadClass("org.jvnet.hudson.test.RealJenkinsRule$Endpoint")
+                    .getMethod("register")
+                    .invoke(null);
         }
 
         private static URL pathToURL(String path) {
@@ -1554,7 +1683,6 @@ public final class RealJenkinsRule implements TestRule {
         }
 
         private Init2() {}
-
     }
 
     public static final class Endpoint implements UnprotectedRootAction {
@@ -1564,7 +1692,9 @@ public final class RealJenkinsRule implements TestRule {
             configureLogging();
             j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
-                @Override public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+                @Override
+                public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                        throws IOException, ServletException {
                     if (request.getPathInfo().startsWith("/RealJenkinsRule/")) {
                         chain.doFilter(request, response);
                         return true;
@@ -1592,7 +1722,8 @@ public final class RealJenkinsRule implements TestRule {
                         minLevel = level;
                     }
                     logger.setLevel(level);
-                    loggers.add(logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
+                    loggers.add(
+                            logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
                 }
             }
             // Increase ConsoleHandler level to the finest level we want to log.
@@ -1605,21 +1736,30 @@ public final class RealJenkinsRule implements TestRule {
             }
         }
 
-        @Override public String getUrlName() {
+        @Override
+        public String getUrlName() {
             return "RealJenkinsRule";
         }
-        @Override public String getIconFileName() {
+
+        @Override
+        public String getIconFileName() {
             return null;
         }
-        @Override public String getDisplayName() {
+
+        @Override
+        public String getDisplayName() {
             return null;
         }
-        private final byte[] actualToken = System.getProperty("RealJenkinsRule.token").getBytes(StandardCharsets.US_ASCII);
+
+        private final byte[] actualToken =
+                System.getProperty("RealJenkinsRule.token").getBytes(StandardCharsets.US_ASCII);
+
         private void checkToken(String token) {
             if (!MessageDigest.isEqual(actualToken, token.getBytes(StandardCharsets.US_ASCII))) {
                 throw HttpResponses.forbidden();
             }
         }
+
         public void doStatus(@QueryParameter String token) {
             System.err.println("Checking status");
             checkToken(token);
@@ -1628,8 +1768,9 @@ public final class RealJenkinsRule implements TestRule {
          * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
          * does not inadvertently interact with the request for {@link #doStep} itself.
          */
-        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
-                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(new NamingThreadFactory(
+                Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
+
         @POST
         public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
             InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
@@ -1641,13 +1782,16 @@ public final class RealJenkinsRule implements TestRule {
             Throwable err = null;
             Object object = null;
             try {
-                object = STEP_RUNNER.submit(() -> {
-                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url, contextPath); ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                        return s.run(rule);
-                    } catch (Throwable t) {
-                        throw new RuntimeException(t);
-                    }
-                }).get();
+                object = STEP_RUNNER
+                        .submit(() -> {
+                            try (CustomJenkinsRule rule = new CustomJenkinsRule(url, contextPath);
+                                    ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
+                                return s.run(rule);
+                            } catch (Throwable t) {
+                                throw new RuntimeException(t);
+                            }
+                        })
+                        .get();
             } catch (ExecutionException e) {
                 // Unwrap once for ExecutionException and once for RuntimeException:
                 err = e.getCause().getCause();
@@ -1656,6 +1800,7 @@ public final class RealJenkinsRule implements TestRule {
             }
             Init2.writeSer(rsp.getOutputStream(), new OutputPayload(object, err));
         }
+
         public HttpResponse doExit(@QueryParameter String token) throws IOException, InterruptedException {
             checkToken(token);
             try (ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
@@ -1668,6 +1813,7 @@ public final class RealJenkinsRule implements TestRule {
             }
             return HttpResponses.ok();
         }
+
         public void doTimeout(@QueryParameter String token) {
             checkToken(token);
             LOGGER.warning("Initiating shutdown");
@@ -1698,7 +1844,9 @@ public final class RealJenkinsRule implements TestRule {
             this.url = url;
             this.contextPath = contextPath;
             if (jenkins.isUsageStatisticsCollected()) {
-                jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+                jenkins.setNoUsageStatistics(
+                        true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save
+                // config before loaded
             }
             if (JenkinsLocationConfiguration.get().getUrl() == null) {
                 JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
@@ -1708,14 +1856,15 @@ public final class RealJenkinsRule implements TestRule {
             env.pin();
         }
 
-        @Override public URL getURL() throws IOException {
+        @Override
+        public URL getURL() throws IOException {
             return url;
         }
 
-        @Override public void close() throws Exception {
+        @Override
+        public void close() throws Exception {
             env.dispose();
         }
-
     }
 
     // Copied from hudson.remoting
@@ -1730,7 +1879,9 @@ public final class RealJenkinsRule implements TestRule {
                 addSuppressed(new ProxyException(suppressed));
             }
         }
-        @Override public String toString() {
+
+        @Override
+        public String toString() {
             return getMessage();
         }
     }
@@ -1759,7 +1910,11 @@ public final class RealJenkinsRule implements TestRule {
 
     public static class StepException extends Exception {
         StepException(Throwable cause, @CheckForNull String name) {
-            super(name != null ? "Remote step in " + name + " threw an exception: " + cause : "Remote step threw an exception: " + cause, cause);
+            super(
+                    name != null
+                            ? "Remote step in " + name + " threw an exception: " + cause
+                            : "Remote step threw an exception: " + cause,
+                    cause);
         }
     }
 
@@ -1885,13 +2040,15 @@ public final class RealJenkinsRule implements TestRule {
                 if (!Files.isDirectory(main)) {
                     throw new IOException(main + " does not exist");
                 }
-                Path metaInf = Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
+                Path metaInf =
+                        Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
                 if (Files.isDirectory(metaInf)) {
                     zip(jos, metaInf, "META-INF/", pkg);
                 }
                 zip(jos, main, pkgSlash + "/", null);
             }
-            try (var os = new FileOutputStream(jpi); var jos = new JarOutputStream(os, mani)) {
+            try (var os = new FileOutputStream(jpi);
+                    var jos = new JarOutputStream(os, mani)) {
                 jos.putNextEntry(new JarEntry("WEB-INF/lib/" + shortName + ".jar"));
                 jos.write(jar.toByteArray());
             }
@@ -1911,7 +2068,8 @@ public final class RealJenkinsRule implements TestRule {
                         if (filter != null) {
                             // Deliberately not using UTF-8 since the file could be binary.
                             // If the package name happened to be non-ASCII, 🤷 this could be improved.
-                            if (!Files.readString(child, StandardCharsets.ISO_8859_1).contains(filter)) {
+                            if (!Files.readString(child, StandardCharsets.ISO_8859_1)
+                                    .contains(filter)) {
                                 LOGGER.info(() -> "Skipping " + child + " since it makes no mention of " + filter);
                                 continue;
                             }
@@ -1923,7 +2081,5 @@ public final class RealJenkinsRule implements TestRule {
                 }
             }
         }
-
     }
-
 }

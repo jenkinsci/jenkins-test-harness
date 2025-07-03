@@ -50,6 +50,7 @@ public @interface WithPluginManager {
 
     class RunnerImpl extends Recipe.Runner<WithPluginManager> {
         private WithPluginManager recipe;
+
         @Override
         public void setup(HudsonTestCase testCase, WithPluginManager recipe) throws Exception {
             this.recipe = recipe;
@@ -63,9 +64,9 @@ public @interface WithPluginManager {
             // figure out parameters
             Class<?>[] pt = ctr.getParameterTypes();
             Object[] args = new Object[pt.length];
-            for (int i=0; i<args.length; i++) {
+            for (int i = 0; i < args.length; i++) {
                 Class<?> t = pt[i];
-                if (t==File.class) {
+                if (t == File.class) {
                     args[i] = home;
                     continue;
                 }
@@ -75,12 +76,13 @@ public @interface WithPluginManager {
                 }
             }
 
-            testCase.setPluginManager((PluginManager)ctr.newInstance(args));
+            testCase.setPluginManager((PluginManager) ctr.newInstance(args));
         }
     }
 
     class RuleRunnerImpl extends JenkinsRecipe.Runner<WithPluginManager> {
         private WithPluginManager recipe;
+
         @Override
         public void setup(JenkinsRule jenkinsRule, WithPluginManager recipe) throws Exception {
             this.recipe = recipe;

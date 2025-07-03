@@ -41,10 +41,10 @@ import org.kohsuke.stapler.StaplerRequest2;
  * @author Oleg Nenashev
  */
 public class CreateFileBuilder extends Builder {
-    
+
     @NonNull
     private final String fileName;
-    
+
     @NonNull
     private final String fileContent;
 
@@ -64,18 +64,19 @@ public class CreateFileBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
         listener.getLogger().println("Creating a file " + fileName);
-        
+
         FilePath workspace = build.getWorkspace();
         if (workspace == null) {
             throw new AbortException("Cannot get the workspace of the build");
         }
         workspace.child(fileName).write(fileContent, "UTF-8");
-        
+
         return true;
     }
-    
+
     @Override
     public Descriptor<Builder> getDescriptor() {
         return new DescriptorImpl();
@@ -83,11 +84,11 @@ public class CreateFileBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        
+
         @Override
         public Builder newInstance(StaplerRequest2 req, @NonNull JSONObject data) {
-            throw new UnsupportedOperationException("This is a temporary test class, "
-                    + "which should not be configured from UI");
+            throw new UnsupportedOperationException(
+                    "This is a temporary test class, " + "which should not be configured from UI");
         }
 
         @NonNull

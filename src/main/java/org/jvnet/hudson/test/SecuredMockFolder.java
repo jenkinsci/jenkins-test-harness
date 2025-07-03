@@ -78,7 +78,7 @@ public class SecuredMockFolder extends MockFolder {
     public ACL getACL() {
         return new ACLWrapper();
     }
-    
+
     public void setPermissions(String username, Permission... permissions) {
         this.grantedUser = username;
         if (grantedPermissions == null) {
@@ -105,12 +105,12 @@ public class SecuredMockFolder extends MockFolder {
             return new SecuredMockFolder(parent, name);
         }
     }
-    
+
     private class ACLWrapper extends SidACL {
 
         @Override
         protected Boolean hasPermission(Sid p, Permission permission) {
-            //TODO: Handle globally defined permissions?
+            // TODO: Handle globally defined permissions?
             return SecuredMockFolder.this.hasPermissionInField(toString(p), permission);
         }
     }

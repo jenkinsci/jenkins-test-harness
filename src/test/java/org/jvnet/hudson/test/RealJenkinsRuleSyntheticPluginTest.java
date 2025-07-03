@@ -24,12 +24,13 @@
 
 package org.jvnet.hudson.test;
 
-import java.util.logging.Level;
-import jenkins.model.Jenkins;
-import jenkins.security.ClassFilterImpl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+
+import java.util.logging.Level;
+import jenkins.model.Jenkins;
+import jenkins.security.ClassFilterImpl;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.RealJenkinsRule.SyntheticPlugin;
@@ -38,20 +39,25 @@ import org.jvnet.hudson.test.sample.plugin.Stuff;
 
 public final class RealJenkinsRuleSyntheticPluginTest {
 
-    @Rule public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true);
+    @Rule
+    public RealJenkinsRule rr = new RealJenkinsRule().prepareHomeLazily(true);
 
-    @Test public void smokes() throws Throwable {
+    @Test
+    public void smokes() throws Throwable {
         rr.addSyntheticPlugin(new SyntheticPlugin(Stuff.class));
         rr.then(RealJenkinsRuleSyntheticPluginTest::_smokes);
     }
 
     private static void _smokes(JenkinsRule r) throws Throwable {
-        assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
-            is(Jenkins.get().getLegacyInstanceId()));
+        assertThat(
+                r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
+                is(Jenkins.get().getLegacyInstanceId()));
     }
 
-    @Test public void classFilter() throws Throwable {
-        rr.addSyntheticPlugin(new SyntheticPlugin(CustomJobProperty.class)).withLogger(ClassFilterImpl.class, Level.FINE);
+    @Test
+    public void classFilter() throws Throwable {
+        rr.addSyntheticPlugin(new SyntheticPlugin(CustomJobProperty.class))
+                .withLogger(ClassFilterImpl.class, Level.FINE);
         rr.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
@@ -59,12 +65,17 @@ public final class RealJenkinsRuleSyntheticPluginTest {
         });
     }
 
-    @Test public void dynamicLoad() throws Throwable {
+    @Test
+    public void dynamicLoad() throws Throwable {
         var pluginJpi = rr.createSyntheticPlugin(new SyntheticPlugin(Stuff.class));
         rr.then(r -> {
             r.jenkins.pluginManager.dynamicLoad(pluginJpi);
-            assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
-                is(Jenkins.get().getLegacyInstanceId()));
+            assertThat(
+                    r.createWebClient()
+                            .goTo("stuff", "text/plain")
+                            .getWebResponse()
+                            .getContentAsString(),
+                    is(Jenkins.get().getLegacyInstanceId()));
         });
     }
 }

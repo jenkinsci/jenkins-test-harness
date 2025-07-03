@@ -1,8 +1,5 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.TailLog;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

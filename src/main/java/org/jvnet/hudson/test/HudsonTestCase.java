@@ -1,19 +1,19 @@
 /*
  * The MIT License
- * 
- * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Erik Ramfelt, 
+ *
+ * Copyright (c) 2004-2011, Sun Microsystems, Inc., Kohsuke Kawaguchi, Erik Ramfelt,
  * Yahoo! Inc., Tom Huybrechts, Olivier Lamy
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -216,6 +216,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * TCP/IP port that the server is listening on.
      */
     protected int localPort;
+
     protected Server server;
 
     /**
@@ -287,15 +288,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         super(name);
     }
 
-    protected HudsonTestCase() {
-    }
+    protected HudsonTestCase() {}
 
     @Override
     public void runBare() throws Throwable {
         // override the thread name to make the thread dump more useful.
         Thread t = Thread.currentThread();
-        String o = getClass().getName()+'.'+t.getName();
-        t.setName("Executing "+getName());
+        String o = getClass().getName() + '.' + t.getName();
+        t.setName("Executing " + getName());
         try {
             super.runBare();
         } finally {
@@ -304,12 +304,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     @Override
-    protected void  setUp() throws Exception {
+    protected void setUp() throws Exception {
         if (Thread.interrupted()) { // JENKINS-30395
             LOGGER.warning("was interrupted before start");
         }
 
-        if(Functions.isWindows()) {
+        if (Functions.isWindows()) {
             // JENKINS-4409.
             // URLConnection caches handles to jar files by default,
             // and it prevents delete temporary directories on Windows.
@@ -320,7 +320,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             origDefaultUseCache = aConnection.getDefaultUseCaches();
             aConnection.setDefaultUseCaches(false);
         }
-        
+
         env.pin();
         recipe();
         for (Runner r : recipes) {
@@ -331,21 +331,23 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         AbstractProject.WORKSPACE.toString();
         User.clear();
 
-        // just in case tearDown failed in the middle, make sure to really clean them up so that there's no left-over from earlier tests
+        // just in case tearDown failed in the middle, make sure to really clean them up so that there's no left-over
+        // from earlier tests
         ExtensionList.clearLegacyInstances();
         DescriptorExtensionList.clearLegacyInstances();
 
         try {
             jenkins = hudson = newHudson();
         } catch (Exception e) {
-            // if Jenkins instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
+            // if Jenkins instance fails to initialize, it leaves the instance field non-empty and break all the rest of
+            // the tests, so clean that up.
             Field f = Jenkins.class.getDeclaredField("theInstance");
             f.setAccessible(true);
-            f.set(null,null);
+            f.set(null, null);
             throw e;
         }
         jenkins.setNoUsageStatistics(true); // collecting usage stats from tests are pointless.
-        
+
         jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
         jenkins.getServletContext().setAttribute("app", jenkins);
@@ -354,7 +356,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         JenkinsLocationConfiguration.get().setUrl(getURL().toString());
 
         // set a default JDK to be the one that the harness is using.
-        jenkins.getJDKs().add(new JDK("default",System.getProperty("java.home")));
+        jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
 
         configureUpdateCenter();
 
@@ -382,17 +384,18 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         final Thread testThread = Thread.currentThread();
         timeoutTimer = new Timer();
-        timeoutTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (timeoutTimer!=null) {
-                    LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
-                    testThread.interrupt();
-                }
-            }
-        }, TimeUnit.SECONDS.toMillis(timeout));
+        timeoutTimer.schedule(
+                new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (timeoutTimer != null) {
+                            LOGGER.warning(String.format("Test timed out (after %d seconds).", timeout));
+                            testThread.interrupt();
+                        }
+                    }
+                },
+                TimeUnit.SECONDS.toMillis(timeout));
     }
-
 
     /**
      * Configures the update center setting for the test.
@@ -414,13 +417,13 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     @Override
     protected void tearDown() throws Exception {
         try {
-            if (jenkins!=null) {
+            if (jenkins != null) {
                 for (EndOfTestListener tl : jenkins.getExtensionList(EndOfTestListener.class)) {
                     tl.onTearDown();
                 }
             }
 
-            if (timeoutTimer!=null) {
+            if (timeoutTimer != null) {
                 timeoutTimer.cancel();
                 timeoutTimer = null;
             }
@@ -457,9 +460,9 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             } catch (Exception x) {
                 x.printStackTrace();
             }
-            
+
             // restore defaultUseCache
-            if(Functions.isWindows()) {
+            if (Functions.isWindows()) {
                 URLConnection aConnection = new File(".").toURI().toURL().openConnection();
                 aConnection.setDefaultUseCaches(origDefaultUseCache);
             }
@@ -468,7 +471,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     @Override
     protected void runTest() throws Throwable {
-        System.out.println("=== Starting "+ getClass().getSimpleName() + "." + getName());
+        System.out.println("=== Starting " + getClass().getSimpleName() + "." + getName());
         // so that test code has all the access to the system
         ACL.impersonate(ACL.SYSTEM);
 
@@ -479,7 +482,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             // for diagnosing a rare failure
             try {
                 throw new BreakException();
-            } catch (BreakException e) {}
+            } catch (BreakException e) {
+            }
 
             // dump threads
             ThreadInfo[] threadInfos = Functions.getThreadInfos();
@@ -566,19 +570,19 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      */
     protected LoginService configureUserRealm() {
         HashLoginService realm = new HashLoginService();
-        realm.setName("default");   // this is the magic realm name to make it effective on everywhere
+        realm.setName("default"); // this is the magic realm name to make it effective on everywhere
         UserStore userStore = new UserStore();
-        realm.setUserStore( userStore );
-        userStore.addUser("alice", new Password("alice"), new String[]{"user","female"});
-        userStore.addUser("bob", new Password("bob"), new String[]{"user","male"});
-        userStore.addUser("charlie", new Password("charlie"), new String[]{"user","male"});
+        realm.setUserStore(userStore);
+        userStore.addUser("alice", new Password("alice"), new String[] {"user", "female"});
+        userStore.addUser("bob", new Password("bob"), new String[] {"user", "male"});
+        userStore.addUser("charlie", new Password("charlie"), new String[] {"user", "male"});
 
         return realm;
     }
 
-//
-// Convenience methods
-//
+    //
+    // Convenience methods
+    //
 
     protected FreeStyleProject createFreeStyleProject() throws IOException {
         return createFreeStyleProject(createUniqueProjectName());
@@ -589,7 +593,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     protected String createUniqueProjectName() {
-        return "test"+ jenkins.getItems().size();
+        return "test" + jenkins.getItems().size();
     }
 
     /**
@@ -607,14 +611,14 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     public DumbSlave createSlave() throws Exception {
-        return createSlave("",null);
+        return createSlave("", null);
     }
 
     /**
      * Creates and launches a new slave on the local host.
      */
     public DumbSlave createSlave(Label l) throws Exception {
-    	return createSlave(l, null);
+        return createSlave(l, null);
     }
 
     /**
@@ -631,12 +635,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
 
             @Override
-            public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-                return new org.acegisecurity.userdetails.User(username,"",true,true,true,true,new GrantedAuthority[]{AUTHENTICATED_AUTHORITY});
+            public UserDetails loadUserByUsername(String username)
+                    throws UsernameNotFoundException, DataAccessException {
+                return new org.acegisecurity.userdetails.User(
+                        username, "", true, true, true, true, new GrantedAuthority[] {AUTHENTICATED_AUTHORITY});
             }
 
             @Override
-            public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+            public GroupDetails loadGroupByGroupname(String groupname)
+                    throws UsernameNotFoundException, DataAccessException {
                 throw new UsernameNotFoundException(groupname);
             }
         };
@@ -647,15 +654,15 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * URL ends with '/'.
      */
     public URL getURL() throws IOException {
-        return new URL("http://localhost:"+localPort+contextPath+"/");
+        return new URL("http://localhost:" + localPort + contextPath + "/");
     }
 
     public DumbSlave createSlave(EnvVars env) throws Exception {
-        return createSlave("",env);
+        return createSlave("", env);
     }
 
     public DumbSlave createSlave(Label l, EnvVars env) throws Exception {
-        return createSlave(l==null ? null : l.getExpression(), env);
+        return createSlave(l == null ? null : l.getExpression(), env);
     }
 
     /**
@@ -664,26 +671,34 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            return createSlave("slave" + sz,labels,env);
-    	}
+            return createSlave("slave" + sz, labels, env);
+        }
     }
 
     public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(nodeName, "dummy",
-    				createTmpDir().getPath(), "1", Mode.NORMAL, labels==null?"":labels, createComputerLauncher(env),
-			        RetentionStrategy.NOOP, List.of());
-    		jenkins.addNode(slave);
-    		return slave;
-    	}
+            DumbSlave slave = new DumbSlave(
+                    nodeName,
+                    "dummy",
+                    createTmpDir().getPath(),
+                    "1",
+                    Mode.NORMAL,
+                    labels == null ? "" : labels,
+                    createComputerLauncher(env),
+                    RetentionStrategy.NOOP,
+                    List.of());
+            jenkins.addNode(slave);
+            return slave;
+        }
     }
 
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave = new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
-    		jenkins.addNode(slave);
-    		return slave;
+            PretendSlave slave =
+                    new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
+            jenkins.addNode(slave);
+            return slave;
         }
     }
 
@@ -696,9 +711,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
+                String.format(
+                        "\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
                         System.getProperty("java.home"),
-                        SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        SLAVE_DEBUG_PORT > 0
+                                ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=" + (SLAVE_DEBUG_PORT + sz)
+                                : "",
                         "-Djava.awt.headless=true",
                         new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
                 env);
@@ -711,7 +729,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public DumbSlave createOnlineSlave() throws Exception {
         return createOnlineSlave(null);
     }
-    
+
     /**
      * Create a new slave on the local host and wait for it to come online
      * before returning.
@@ -728,12 +746,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public DumbSlave createOnlineSlave(Label l, EnvVars env) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         ComputerListener waiter = new ComputerListener() {
-                                            @Override
-                                            public void onOnline(Computer C, TaskListener t) {
-                                                latch.countDown();
-                                                unregister();
-                                            }
-                                        };
+            @Override
+            public void onOnline(Computer C, TaskListener t) {
+                latch.countDown();
+                unregister();
+            }
+        };
         waiter.register();
 
         DumbSlave s = createSlave(l, env);
@@ -741,13 +759,13 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         return s;
     }
-    
+
     /**
      * Blocks until the ENTER key is hit.
      * This is useful during debugging a test so that one can inspect the state of Jenkins through the web browser.
      */
     public void interactiveBreak() throws Exception {
-        System.out.println("Jenkins is running at http://localhost:"+localPort+"/");
+        System.out.println("Jenkins is running at http://localhost:" + localPort + "/");
         new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset())).readLine();
     }
 
@@ -755,7 +773,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Returns the last item in the list.
      */
     protected <T> T last(List<T> items) {
-        return items.get(items.size()-1);
+        return items.get(items.size() - 1);
     }
 
     /**
@@ -789,7 +807,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * See <a href="https://www.jenkins.io/doc/developer/testing/#configuration-round-trip-testing">Configuration Round-trip Testing</a>
      */
     protected <P extends Job> P configRoundtrip(P job) throws Exception {
-        submit(createWebClient().getPage(job,"configure").getFormByName("config"));
+        submit(createWebClient().getPage(job, "configure").getFormByName("config"));
         return job;
     }
 
@@ -805,8 +823,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     protected <B extends Builder> B configRoundtrip(B before) throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.getBuildersList().add(before);
-        configRoundtrip((Item)p);
-        return (B)p.getBuildersList().get(before.getClass());
+        configRoundtrip((Item) p);
+        return (B) p.getBuildersList().get(before.getClass());
     }
 
     /**
@@ -817,24 +835,26 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         FreeStyleProject p = createFreeStyleProject();
         p.getPublishersList().add(before);
         configRoundtrip((Item) p);
-        return (P)p.getPublishersList().get(before.getClass());
+        return (P) p.getPublishersList().get(before.getClass());
     }
 
     @SuppressWarnings("unchecked")
     protected <C extends ComputerConnector> C configRoundtrip(C before) throws Exception {
         computerConnectorTester.connector = before;
         submit(createWebClient().goTo("self/computerConnectorTester/configure").getFormByName("config"));
-        return (C)computerConnectorTester.connector;
+        return (C) computerConnectorTester.connector;
     }
 
     protected User configRoundtrip(User u) throws Exception {
-        submit(createWebClient().goTo(u.getUrl()+"/configure").getFormByName("config"));
+        submit(createWebClient().goTo(u.getUrl() + "/configure").getFormByName("config"));
         return u;
     }
-        
+
     @SuppressWarnings("unchecked")
     protected <N extends Node> N configRoundtrip(N node) throws Exception {
-        submit(createWebClient().goTo("/computer/" + node.getNodeName() + "/configure").getFormByName("config"));
+        submit(createWebClient()
+                .goTo("/computer/" + node.getNodeName() + "/configure")
+                .getFormByName("config"));
         return (N) jenkins.getNode(node.getNodeName());
     }
 
@@ -842,7 +862,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         submit(createWebClient().getPage(view, "configure").getFormByName("viewConfig"));
         return view;
     }
-
 
     /**
      * Asserts that the outcome of the build is a specific outcome.
@@ -854,7 +873,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         // dump the build output in failure message
         String msg = "unexpected build status; build log was:\n------\n" + getLog(r) + "\n------\n";
-        assertEquals(msg, status,r.getResult());
+        assertEquals(msg, status, r.getResult());
         return r;
     }
 
@@ -870,12 +889,11 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /** Assert that the specified page can be served with a "good" HTTP status,
-     * eg, the page is not missing and can be served without a server error 
+     * eg, the page is not missing and can be served without a server error
      */
     public void assertGoodStatus(Page page) {
         assertTrue(isGoodHttpStatus(page.getWebResponse().getStatusCode()));
     }
-
 
     public <R extends Run> R assertBuildStatusSuccess(R r) throws Exception {
         assertBuildStatus(Result.SUCCESS, r);
@@ -887,7 +905,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         return assertBuildStatusSuccess(r.get());
     }
 
-    public <J extends AbstractProject<J,R>,R extends AbstractBuild<J,R>> R buildAndAssertSuccess(J job) throws Exception {
+    public <J extends AbstractProject<J, R>, R extends AbstractBuild<J, R>> R buildAndAssertSuccess(J job)
+            throws Exception {
         return assertBuildStatusSuccess(job.scheduleBuild2(0));
     }
 
@@ -924,7 +943,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * Asserts that the XPath matches.
      */
     public void assertXPath(HtmlPage page, String xpath) {
-        assertNotNull("There should be an object that matches XPath:" + xpath,
+        assertNotNull(
+                "There should be an object that matches XPath:" + xpath,
                 DomNodeUtil.selectSingleNode(page.getDocumentElement(), xpath));
     }
 
@@ -971,9 +991,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 }
             }
         }
-        assertTrue("needle found in haystack", found); 
+        assertTrue("needle found in haystack", found);
     }
-
 
     /**
      * Makes sure that all the images in the page loads successfully.
@@ -982,7 +1001,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                assertEquals("Failed to load " + img.getSrcAttribute(),
+                assertEquals(
+                        "Failed to load " + img.getSrcAttribute(),
                         200,
                         img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
@@ -990,7 +1010,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             }
         }
     }
-
 
     public void assertStringContains(String message, String haystack, String needle) {
         assertThat(message, haystack, containsString(needle));
@@ -1016,7 +1035,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 WebClient wc = createWebClient();
                 for (String property : listProperties(properties)) {
                     String url = d.getHelpFile(property);
-                    assertNotNull("Help file for the property "+property+" is missing on "+type, url);
+                    assertNotNull("Help file for the property " + property + " is missing on " + type, url);
                     wc.goTo(url); // make sure it successfully loads
                 }
                 return null;
@@ -1055,23 +1074,23 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getElementsByTagName("button")) {
-            HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();
+        for (HtmlElement e : form.getElementsByTagName("button")) {
+            HtmlElement p = (HtmlElement) e.getParentNode().getParentNode();
             if (e instanceof HtmlButton && p.getAttribute("name").equals(name)) {
-                return (HtmlPage)HtmlFormUtil.submit(form, e);
+                return (HtmlPage) HtmlFormUtil.submit(form, e);
             }
         }
-        throw new AssertionError("No such submit button with the name "+name);
+        throw new AssertionError("No such submit button with the name " + name);
     }
 
     protected HtmlInput findPreviousInputElement(HtmlElement current, String name) {
-        return DomNodeUtil.selectSingleNode(current, "(preceding::input[@name='_."+name+"'])[last()]");
+        return DomNodeUtil.selectSingleNode(current, "(preceding::input[@name='_." + name + "'])[last()]");
     }
 
     protected HtmlButton getButtonByCaption(HtmlForm f, String s) {
         for (HtmlElement b : f.getElementsByTagName("button")) {
             if (b.getTextContent().trim().equals(s)) {
-                return (HtmlButton)b;
+                return (HtmlButton) b;
             }
         }
         return null;
@@ -1108,19 +1127,19 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * @since 1.297
      */
     public void assertEqualBeans(Object lhs, Object rhs, String properties) throws Exception {
-        assertNotNull("lhs is null",lhs);
-        assertNotNull("rhs is null",rhs);
+        assertNotNull("lhs is null", lhs);
+        assertNotNull("rhs is null", rhs);
         for (String p : properties.split(",")) {
             PropertyDescriptor pd = PropertyUtils.getPropertyDescriptor(lhs, p);
-            Object lp,rp;
-            if(pd==null) {
+            Object lp, rp;
+            if (pd == null) {
                 // field?
                 try {
                     Field f = lhs.getClass().getField(p);
                     lp = f.get(lhs);
                     rp = f.get(rhs);
                 } catch (NoSuchFieldException e) {
-                    assertNotNull("No such property "+p+" on "+lhs.getClass(),pd);
+                    assertNotNull("No such property " + p + " on " + lhs.getClass(), pd);
                     return;
                 }
             } else {
@@ -1128,18 +1147,21 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 rp = PropertyUtils.getProperty(rhs, p);
             }
 
-            if (lp!=null && rp!=null && lp.getClass().isArray() && rp.getClass().isArray()) {
+            if (lp != null
+                    && rp != null
+                    && lp.getClass().isArray()
+                    && rp.getClass().isArray()) {
                 // deep array equality comparison
                 int m = Array.getLength(lp);
                 int n = Array.getLength(rp);
-                assertEquals("Array length is different for property "+p, m,n);
+                assertEquals("Array length is different for property " + p, m, n);
                 for (int i = 0; i < m; i++) {
-                    assertEquals(p+"["+i+"] is different", Array.get(lp,i),Array.get(rp,i));
+                    assertEquals(p + "[" + i + "] is different", Array.get(lp, i), Array.get(rp, i));
                 }
                 return;
             }
 
-            assertEquals("Property "+p+" is different",lp,rp);
+            assertEquals("Property " + p + " is different", lp, rp);
         }
     }
 
@@ -1161,39 +1183,40 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         if (rhs == null) {
             fail("rhs is null while lhs=" + lhs);
         }
-        
+
         Constructor<?> lc = findDataBoundConstructor(lhs.getClass());
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
-        assertEquals("Data bound constructor mismatch. Different type?",lc,rc);
+        assertEquals("Data bound constructor mismatch. Different type?", lc, rc);
 
         List<String> primitiveProperties = new ArrayList<>();
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
-        assertEquals(names.length,types.length);
-        for (int i=0; i<types.length; i++) {
+        assertEquals(names.length, types.length);
+        for (int i = 0; i < types.length; i++) {
             Object lv = ReflectionUtils.getPublicProperty(lhs, names[i]);
             Object rv = ReflectionUtils.getPublicProperty(rhs, names[i]);
 
             if (Iterable.class.isAssignableFrom(types[i])) {
                 Iterable lcol = (Iterable) lv;
                 Iterable rcol = (Iterable) rv;
-                Iterator ltr,rtr;
-                for (ltr=lcol.iterator(), rtr=rcol.iterator(); ltr.hasNext() && rtr.hasNext();) {
+                Iterator ltr, rtr;
+                for (ltr = lcol.iterator(), rtr = rcol.iterator(); ltr.hasNext() && rtr.hasNext(); ) {
                     Object litem = ltr.next();
                     Object ritem = rtr.next();
 
-                    if (findDataBoundConstructor(litem.getClass())!=null) {
-                        assertEqualDataBoundBeans(litem,ritem);
+                    if (findDataBoundConstructor(litem.getClass()) != null) {
+                        assertEqualDataBoundBeans(litem, ritem);
                     } else {
-                        assertEquals(litem,ritem);
+                        assertEquals(litem, ritem);
                     }
                 }
-                assertFalse("collection size mismatch between "+lhs+" and "+rhs, ltr.hasNext() ^ rtr.hasNext());
-            } else
-            if (findDataBoundConstructor(types[i])!=null || (lv!=null && findDataBoundConstructor(lv.getClass())!=null) || (rv!=null && findDataBoundConstructor(rv.getClass())!=null)) {
+                assertFalse("collection size mismatch between " + lhs + " and " + rhs, ltr.hasNext() ^ rtr.hasNext());
+            } else if (findDataBoundConstructor(types[i]) != null
+                    || (lv != null && findDataBoundConstructor(lv.getClass()) != null)
+                    || (rv != null && findDataBoundConstructor(rv.getClass()) != null)) {
                 // recurse into nested databound objects
-                assertEqualDataBoundBeans(lv,rv);
+                assertEqualDataBoundBeans(lv, rv);
             } else {
                 primitiveProperties.add(names[i]);
             }
@@ -1201,7 +1224,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
         // compare shallow primitive properties
         if (!primitiveProperties.isEmpty()) {
-            assertEqualBeans(lhs,rhs,Util.join(primitiveProperties,","));
+            assertEqualBeans(lhs, rhs, Util.join(primitiveProperties, ","));
         }
     }
 
@@ -1211,7 +1234,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     public void assertEqualDataBoundBeans(List<?> lhs, List<?> rhs) throws Exception {
         assertEquals(lhs.size(), rhs.size());
         for (int i = 0; i < lhs.size(); i++) {
-            assertEqualDataBoundBeans(lhs.get(i),rhs.get(i));
+            assertEqualDataBoundBeans(lhs.get(i), rhs.get(i));
         }
     }
 
@@ -1230,7 +1253,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     protected <T extends Descriptor<?>> T get(Class<T> d) {
         return jenkins.getDescriptorByType(d);
     }
-
 
     /**
      * Returns true if Hudson is building something or going to build something.
@@ -1253,7 +1275,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * This method uses a default time out to prevent infinite hang in the automated test execution environment.
      */
     protected void waitUntilNoActivity() throws Exception {
-        waitUntilNoActivityUpTo(60*1000);
+        waitUntilNoActivityUpTo(60 * 1000);
     }
 
     /**
@@ -1267,7 +1289,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         while (true) {
             Thread.sleep(100);
             if (isSomethingHappening()) {
-                streak=0;
+                streak = 0;
             } else {
                 streak++;
             }
@@ -1277,7 +1299,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return;
             }
 
-            if (System.currentTimeMillis()-startTime > timeout) {
+            if (System.currentTimeMillis() - startTime > timeout) {
                 List<Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
@@ -1286,17 +1308,16 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                         }
                     }
                 }
-                throw new AssertionError(String.format("Jenkins is still doing something after %dms: queue=%s building=%s",
+                throw new AssertionError(String.format(
+                        "Jenkins is still doing something after %dms: queue=%s building=%s",
                         timeout, List.of(jenkins.getQueue().getItems()), building));
             }
         }
     }
 
-
-
-//
-// recipe methods. Control the test environments.
-//
+    //
+    // recipe methods. Control the test environments.
+    //
 
     /**
      * Called during the {@link #setUp()} to give a test case an opportunity to
@@ -1310,8 +1331,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         recipeLoadCurrentPlugin();
         // look for recipe meta-annotation
         try {
-            Method runMethod= getClass().getMethod(getName());
-            for( final Annotation a : runMethod.getAnnotations() ) {
+            Method runMethod = getClass().getMethod(getName());
+            for (final Annotation a : runMethod.getAnnotations()) {
                 Recipe r = a.annotationType().getAnnotation(Recipe.class);
                 if (r == null) {
                     continue;
@@ -1319,7 +1340,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 final Runner runner = r.value().newInstance();
                 recipes.add(runner);
                 tearDowns.add(() -> runner.tearDown(HudsonTestCase.this, a));
-                runner.setup(this,a);
+                runner.setup(this, a);
             }
         } catch (NoSuchMethodException e) {
             // not a plain JUnit test.
@@ -1335,12 +1356,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
      * packaging is {@code hpi}.
      */
     protected void recipeLoadCurrentPlugin() throws Exception {
-    	final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
+        final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
         final Enumeration<URL> hpls = getClass().getClassLoader().getResources("the.hpl");
 
         final List<URL> all = Collections.list(jpls);
         all.addAll(Collections.list(hpls));
-        
+
         if (all.isEmpty()) {
             // nope
             return;
@@ -1382,7 +1403,6 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         return this;
     }
 
-
     /**
      * Executes the given closure on the server, by the servlet request handling thread,
      * in the context of an HTTP request.
@@ -1410,10 +1430,10 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     /**
      * Sometimes a part of a test case may ends up creeping into the serialization tree of {@link Saveable#save()},
-     * so detect that and flag that as an error. 
+     * so detect that and flag that as an error.
      */
     protected Object writeReplace() {
-        throw new AssertionError("HudsonTestCase "+getName()+" is not supposed to be serialized");
+        throw new AssertionError("HudsonTestCase " + getName() + " is not supposed to be serialized");
     }
 
     /**
@@ -1425,7 +1445,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         webClient.getOptions().setFetchPolyfillEnabled(true);
         return webClient;
     }
-    
+
     /**
      * Extends {@link org.htmlunit.WebClient} and provide convenience methods
      * for accessing Hudson.
@@ -1439,6 +1459,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = 6730107519583349963L;
+
                 @Override
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
@@ -1478,31 +1499,29 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             // so as not to interfere with the 'Dim' class.
             AbstractJavaScriptEngine<?> javaScriptEngine = getJavaScriptEngine();
             if (javaScriptEngine instanceof JavaScriptEngine) {
-                ((JavaScriptEngine) javaScriptEngine).getContextFactory()
-                                                     .addListener(new ContextFactory.Listener() {
-                                                         @Override
-                                                         public void contextCreated(Context cx) {
-                                                             if (cx.getDebugger() == null) {
-                                                                 cx.setDebugger(jsDebugger, null);
-                                                             }
-                                                         }
+                ((JavaScriptEngine) javaScriptEngine).getContextFactory().addListener(new ContextFactory.Listener() {
+                    @Override
+                    public void contextCreated(Context cx) {
+                        if (cx.getDebugger() == null) {
+                            cx.setDebugger(jsDebugger, null);
+                        }
+                    }
 
-                                                         @Override
-                                                         public void contextReleased(Context cx) {
-                                                         }
-                                                     });
+                    @Override
+                    public void contextReleased(Context cx) {}
+                });
             }
 
             setAlertHandler(new AlertHandler() {
                 @Override
                 public void handleAlert(Page page, String message) {
-                    throw new AssertionError("Alert dialog popped up: "+message);
+                    throw new AssertionError("Alert dialog popped up: " + message);
                 }
             });
 
             // avoid a hang by setting a time out. It should be long enough to prevent
             // false-positive timeout on slow systems
-            //setTimeout(60*1000);
+            // setTimeout(60*1000);
         }
 
         /**
@@ -1526,7 +1545,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * and passwords. All the test accounts have the same user name and password.
          */
         public WebClient login(String username) throws Exception {
-            login(username,username);
+            login(username, username);
             return this;
         }
 
@@ -1553,11 +1572,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public <V> V executeOnServer(final Callable<V> c) throws Exception {
             final Exception[] t = new Exception[1];
-            final List<V> r = new ArrayList<>(1);  // size 1 list
+            final List<V> r = new ArrayList<>(1); // size 1 list
 
-            ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
+            ClosureExecuterAction cea =
+                    jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
-            cea.add(id,new Runnable() {
+            cea.add(id, new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -1570,7 +1590,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                     }
                 }
             });
-            goTo("closures/?uuid="+id);
+            goTo("closures/?uuid=" + id);
 
             if (t[0] != null) {
                 throw t[0];
@@ -1596,7 +1616,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
             // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
             waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
-            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+            HtmlAnchor firstResult =
+                    (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
 
             if (firstResult == null) {
                 System.out.println("Couldn't find result for query '" + q + "'");
@@ -1610,7 +1631,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          * Short for {@code getPage(r,"")}, to access the top page of a build.
          */
         public HtmlPage getPage(Run r) throws IOException, SAXException {
-            return getPage(r,"");
+            return getPage(r, "");
         }
 
         /**
@@ -1620,23 +1641,23 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          *      Relative URL within the build URL, like "changes". Doesn't start with '/'. Can be empty.
          */
         public HtmlPage getPage(Run r, String relative) throws IOException, SAXException {
-            return goTo(r.getUrl()+relative);
+            return goTo(r.getUrl() + relative);
         }
 
         public HtmlPage getPage(Item item) throws IOException, SAXException {
-            return getPage(item,"");
+            return getPage(item, "");
         }
 
         public HtmlPage getPage(Item item, String relative) throws IOException, SAXException {
-            return goTo(item.getUrl()+relative);
+            return goTo(item.getUrl() + relative);
         }
 
         public HtmlPage getPage(Node item) throws IOException, SAXException {
-            return getPage(item,"");
+            return getPage(item, "");
         }
 
         public HtmlPage getPage(Node item, String relative) throws IOException, SAXException {
-            return goTo(item.toComputer().getUrl()+relative);
+            return goTo(item.toComputer().getUrl() + relative);
         }
 
         public HtmlPage getPage(View view) throws IOException, SAXException {
@@ -1644,7 +1665,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         }
 
         public HtmlPage getPage(View view, String relative) throws IOException, SAXException {
-            return goTo(view.getUrl()+relative);
+            return goTo(view.getUrl() + relative);
         }
 
         /**
@@ -1677,7 +1698,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             if (p instanceof HtmlPage) {
                 return (HtmlPage) p;
             } else {
-                throw new AssertionError("Expected text/html but instead the content type was "+p.getWebResponse().getContentType());
+                throw new AssertionError("Expected text/html but instead the content type was "
+                        + p.getWebResponse().getContentType());
             }
         }
 
@@ -1695,7 +1717,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 }
                 throw x;
             }
-            assertEquals(expectedContentType,p.getWebResponse().getContentType());
+            assertEquals(expectedContentType, p.getWebResponse().getContentType());
             return p;
         }
 
@@ -1712,7 +1734,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 return null;
             }
         }
-        
+
         /**
          * Verify that the server rejects an attempt to load the given page.
          * @param url a URL path (relative to Jenkins root)
@@ -1721,7 +1743,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
          */
         public void assertFails(String url, int statusCode) throws Exception {
             try {
-                fail(url + " should have been rejected but produced: " + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
+                fail(url + " should have been rejected but produced: "
+                        + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
             } catch (FailingHttpStatusCodeException x) {
                 assertEquals(statusCode, x.getStatusCode());
             }
@@ -1734,7 +1757,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public String getContextPath() throws IOException {
             return getURL().toExternalForm();
         }
-        
+
         /**
          * Adds a security crumb to the request.
          */
@@ -1745,7 +1768,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             req.setRequestParameters(List.of(crumb));
             return req;
         }
-        
+
         /**
          * Creates a URL with crumb parameters relative to {{@link #getContextPath()}
          */
@@ -1753,38 +1776,38 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             CrumbIssuer issuer = jenkins.getCrumbIssuer();
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
             String crumb = issuer.getCrumb((ServletRequest) null);
-            
-            return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+
+            return new URL(getContextPath() + relativePath + "?" + crumbName + "=" + crumb);
         }
 
         /**
          * Makes an HTTP request, process it with the given request handler, and returns the response.
          */
         public HtmlPage eval(final Runnable requestHandler) throws IOException, SAXException {
-            ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
+            ClosureExecuterAction cea =
+                    jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
-            cea.add(id,requestHandler);
-            return goTo("closures/?uuid="+id);
+            cea.add(id, requestHandler);
+            return goTo("closures/?uuid=" + id);
         }
-
     }
 
     // needs to keep reference, or it gets GC-ed.
     private static final Logger XML_HTTP_REQUEST_LOGGER = Logger.getLogger(XMLHttpRequest.class.getName());
-    
+
     static {
         // screen scraping relies on locale being fixed.
         Locale.setDefault(Locale.ENGLISH);
 
-        {// enable debug assistance, since tests are often run from IDE
+        { // enable debug assistance, since tests are often run from IDE
             Dispatcher.TRACE = true;
-            MetaClass.NO_CACHE=true;
+            MetaClass.NO_CACHE = true;
             // load resources from the source dir.
             File dir = new File("src/main/resources");
             if (dir.exists() && MetaClassLoader.debugLoader == null) {
                 try {
                     MetaClassLoader.debugLoader = new MetaClassLoader(
-                        new URLClassLoader(new URL[]{dir.toURI().toURL()}));
+                            new URLClassLoader(new URL[] {dir.toURI().toURL()}));
                 } catch (MalformedURLException e) {
                     throw new AssertionError(e);
                 }
@@ -1801,7 +1824,8 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
             @Override
             public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
+                return !record.getMessage()
+                        .contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
         });
 
@@ -1816,7 +1840,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     /**
      * Specify this to a TCP/IP port number to have slaves started with the debugger.
      */
-    public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
+    public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName() + ".slaveDebugPort", -1);
 
     static {
         try {
@@ -1834,7 +1858,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                 GNUCLibrary.LIBC.unsetenv("MAVEN_OPTS");
                 GNUCLibrary.LIBC.unsetenv("MAVEN_DEBUG_OPTS");
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING,"Failed to cancel out MAVEN_OPTS",e);
+                LOGGER.log(Level.WARNING, "Failed to cancel out MAVEN_OPTS", e);
             }
         }
     }
@@ -1843,10 +1867,12 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
         public Result buildResultInTearDown;
 
         @Override
-        public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+        public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener)
+                throws IOException, InterruptedException {
             return new BuildWrapper.Environment() {
                 @Override
-                public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+                public boolean tearDown(AbstractBuild build, BuildListener listener)
+                        throws IOException, InterruptedException {
                     buildResultInTearDown = build.getResult();
                     return true;
                 }
