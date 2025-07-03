@@ -40,7 +40,7 @@ import org.junit.runner.manipulation.NoTestsRemainException;
 public class GroupedTest extends TestSuite implements Filterable {
     @Override
     public int countTestCases() {
-        return super.countTestCases()+1;
+        return super.countTestCases() + 1;
     }
 
     @Override
@@ -53,10 +53,10 @@ public class GroupedTest extends TestSuite implements Filterable {
                 tearDown();
             }
             // everything went smoothly. report a successful test to make the ends meet
-            runTest(new FailedTest(getClass(),null),result);
+            runTest(new FailedTest(getClass(), null), result);
         } catch (Throwable e) {
             // something went wrong
-            runTest(new FailedTest(getClass(),e),result);
+            runTest(new FailedTest(getClass(), e), result);
         }
     }
 
@@ -67,12 +67,10 @@ public class GroupedTest extends TestSuite implements Filterable {
         super.run(result);
     }
 
-    protected void setUp() throws Exception {
-    }
-    protected void tearDown() throws Exception {
-    }
+    protected void setUp() throws Exception {}
+
+    protected void tearDown() throws Exception {}
 
     @Override
     public void filter(Filter filter) throws NoTestsRemainException {} // SUREFIRE-974
-
 }

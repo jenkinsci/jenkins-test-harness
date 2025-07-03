@@ -30,7 +30,8 @@ public class ResultWriterPublisher extends Recorder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
         FilePath file = build.getWorkspace().child(fileName);
         file.write(build.getResult().toString(), Charset.defaultCharset().name());
         return true;
@@ -39,6 +40,8 @@ public class ResultWriterPublisher extends Recorder {
     @Extension
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         @Override
-        public boolean isApplicable(Class<? extends AbstractProject> jobType) { return true; }
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+            return true;
+        }
     }
 }

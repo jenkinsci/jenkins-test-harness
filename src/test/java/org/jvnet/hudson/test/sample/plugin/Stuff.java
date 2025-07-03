@@ -46,5 +46,4 @@ public final class Stuff extends InvisibleAction implements UnprotectedRootActio
     public HttpResponse doIndex() {
         return HttpResponses.text(Jenkins.get().getLegacyInstanceId());
     }
-
 }

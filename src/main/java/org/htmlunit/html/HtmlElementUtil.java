@@ -39,7 +39,7 @@ public class HtmlElementUtil {
      * Click on the supplied element.
      * <p>
      * Waits for all executing JavaScript tasks to complete before returning.
-     *     
+     *
      * @param element The element to click.
      * @return The page resulting from the click
      * @throws IOException if an IO error occurs
@@ -48,7 +48,7 @@ public class HtmlElementUtil {
         if (element == null) {
             return null;
         }
-        
+
         try {
             return element.click();
         } finally {

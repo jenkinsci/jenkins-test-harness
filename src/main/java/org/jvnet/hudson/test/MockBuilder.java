@@ -25,12 +25,13 @@ public class MockBuilder extends Builder {
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-        listener.getLogger().println("Simulating a specific result code "+result);
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
+        listener.getLogger().println("Simulating a specific result code " + result);
         build.setResult(result);
         return true;
     }
-    
+
     @Override
     public Descriptor<Builder> getDescriptor() {
         return new DescriptorImpl();
@@ -44,4 +45,3 @@ public class MockBuilder extends Builder {
         }
     }
 }
-

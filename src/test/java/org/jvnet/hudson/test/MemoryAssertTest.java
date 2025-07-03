@@ -42,7 +42,8 @@ import org.junit.Test;
 
 public class MemoryAssertTest {
 
-    @Test public void heapUsage() throws Exception {
+    @Test
+    public void heapUsage() throws Exception {
         Object[] biggie = new Object[1000];
         assertHeapUsage(biggie, 4016);
         assertHeapUsage(new WeakReference<Object>(biggie), 56);
@@ -60,9 +61,7 @@ public class MemoryAssertTest {
     @Test
     public void gc() {
         Runtime.Version runtimeVersion = Runtime.version();
-        assumeTrue(
-                "TODO JENKINS-67974 works on Java 17 but not 11",
-                runtimeVersion.feature() >= 17);
+        assumeTrue("TODO JENKINS-67974 works on Java 17 but not 11", runtimeVersion.feature() >= 17);
         List<String> strings = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             strings.add(Integer.toString(i));

@@ -69,9 +69,10 @@ import org.kohsuke.stapler.WebMethod;
  * @since 1.494
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // the usual API mistakes
-public class MockFolder extends AbstractItem implements DirectlyModifiableTopLevelItemGroup, TopLevelItem, ModifiableViewGroup, StaplerFallback {
+public class MockFolder extends AbstractItem
+        implements DirectlyModifiableTopLevelItemGroup, TopLevelItem, ModifiableViewGroup, StaplerFallback {
 
-    private transient Map<String,TopLevelItem> items = new TreeMap<>();
+    private transient Map<String, TopLevelItem> items = new TreeMap<>();
     private final List<View> views = new ArrayList<>(Set.of(new AllView("All", this)));
     private String primaryView;
     private ViewsTabBar viewsTabBar;
@@ -80,40 +81,47 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         super(parent, name);
     }
 
-    @Override public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+    @Override
+    public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
         super.onLoad(parent, name);
         items = ItemGroupMixIn.loadChildren(this, jobs(), Item::getName);
     }
 
-    @Override public Collection<TopLevelItem> getItems() {
+    @Override
+    public Collection<TopLevelItem> getItems() {
         return items.values(); // could be filtered by Item.READ
     }
 
-    @Override public TopLevelItem getItem(String name) {
+    @Override
+    public TopLevelItem getItem(String name) {
         if (items == null) {
             return null; // cf. parent hack in AbstractProject.onLoad
         }
         return items.get(name);
     }
 
-    @Override public Collection<? extends Job> getAllJobs() {
+    @Override
+    public Collection<? extends Job> getAllJobs() {
         Set<Job> jobs = new HashSet<>();
         for (TopLevelItem i : getItems()) {
             jobs.addAll(i.getAllJobs());
         }
         return jobs;
     }
-    
+
     private File jobs() {
         return new File(getRootDir(), "jobs");
     }
 
     private ItemGroupMixIn mixin() {
         return new ItemGroupMixIn(this, this) {
-            @Override protected void add(TopLevelItem item) {
+            @Override
+            protected void add(TopLevelItem item) {
                 items.put(item.getName(), item);
             }
-            @Override protected File getRootDirFor(String name) {
+
+            @Override
+            protected File getRootDirFor(String name) {
                 return new File(jobs(), name);
             }
         };
@@ -122,23 +130,30 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
     private ViewGroupMixIn vgmixin() {
         return new ViewGroupMixIn(this) {
             @NonNull
-            @Override protected List<View> views() {
+            @Override
+            protected List<View> views() {
                 return views;
             }
-            @Override protected String primaryView() {
+
+            @Override
+            protected String primaryView() {
                 return primaryView != null ? primaryView : views.get(0).getViewName();
             }
-            @Override protected void primaryView(String newName) {
+
+            @Override
+            protected void primaryView(String newName) {
                 primaryView = newName;
             }
         };
     }
 
-    @Override public <T extends TopLevelItem> T copy(T src, String name) throws IOException {
+    @Override
+    public <T extends TopLevelItem> T copy(T src, String name) throws IOException {
         return mixin().copy(src, name);
     }
 
-    @Override public void onCopiedFrom(Item src) {
+    @Override
+    public void onCopiedFrom(Item src) {
         super.onCopiedFrom(src);
         for (TopLevelItem item : ((MockFolder) src).getItems()) {
             try {
@@ -149,11 +164,14 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         }
     }
 
-    @Override public TopLevelItem createProjectFromXML(String name, InputStream xml) throws IOException {
+    @Override
+    public TopLevelItem createProjectFromXML(String name, InputStream xml) throws IOException {
         return mixin().createProjectFromXML(name, xml);
     }
 
-    @Override public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify) throws IOException {
+    @Override
+    public TopLevelItem createProject(@NonNull TopLevelItemDescriptor type, @NonNull String name, boolean notify)
+            throws IOException {
         return mixin().createProject(type, name, notify);
     }
 
@@ -162,37 +180,46 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return type.cast(createProject((TopLevelItemDescriptor) Jenkins.get().getDescriptorOrDie(type), name, true));
     }
 
-    @Override public TopLevelItem doCreateItem(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    @Override
+    public TopLevelItem doCreateItem(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
         return mixin().createTopLevelItem(req, rsp);
     }
 
-    @Override public String getUrlChildPrefix() {
+    @Override
+    public String getUrlChildPrefix() {
         return "job";
     }
 
-    @Override public File getRootDirFor(TopLevelItem child) {
+    @Override
+    public File getRootDirFor(TopLevelItem child) {
         return new File(jobs(), child.getName());
     }
 
-    @Override public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
+    @Override
+    public void onRenamed(TopLevelItem item, String oldName, String newName) throws IOException {
         items.remove(oldName);
         items.put(newName, item);
     }
 
-    @Override public void renameTo(String newName) throws IOException {
+    @Override
+    public void renameTo(String newName) throws IOException {
         super.renameTo(newName); // just to make it public
     }
 
-    @Override public void onDeleted(TopLevelItem item) throws IOException {
+    @Override
+    public void onDeleted(TopLevelItem item) throws IOException {
         ItemListener.fireOnDeleted(item);
         items.remove(item.getName());
     }
 
-    @Override public boolean canAdd(TopLevelItem item) {
+    @Override
+    public boolean canAdd(TopLevelItem item) {
         return true;
     }
 
-    @Override synchronized public <I extends TopLevelItem> I add(I item, String name) throws IOException, IllegalArgumentException {
+    @Override
+    public synchronized <I extends TopLevelItem> I add(I item, String name)
+            throws IOException, IllegalArgumentException {
         if (items.containsKey(name)) {
             throw new IllegalArgumentException("already an item '" + name + "'");
         }
@@ -200,60 +227,74 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return item;
     }
 
-    @Override public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
+    @Override
+    public void remove(TopLevelItem item) throws IOException, IllegalArgumentException {
         items.remove(item.getName());
     }
 
-    @Override public TopLevelItemDescriptor getDescriptor() {
+    @Override
+    public TopLevelItemDescriptor getDescriptor() {
         return Jenkins.get().getDescriptorByType(DescriptorImpl.class);
     }
 
-    @Override public void addView(@NonNull View view) throws IOException {
+    @Override
+    public void addView(@NonNull View view) throws IOException {
         vgmixin().addView(view);
     }
 
-    @Override public boolean canDelete(View view) {
+    @Override
+    public boolean canDelete(View view) {
         return vgmixin().canDelete(view);
     }
 
-    @Override public void deleteView(View view) throws IOException {
+    @Override
+    public void deleteView(View view) throws IOException {
         vgmixin().deleteView(view);
     }
 
-    @Override public Collection<View> getViews() {
+    @Override
+    public Collection<View> getViews() {
         return vgmixin().getViews();
     }
 
-    @Override public View getView(String name) {
+    @Override
+    public View getView(String name) {
         return vgmixin().getView(name);
     }
 
-    @Override public View getPrimaryView() {
+    @Override
+    public View getPrimaryView() {
         return vgmixin().getPrimaryView();
     }
 
-    @Override public void onViewRenamed(View view, String oldName, String newName) {
+    @Override
+    public void onViewRenamed(View view, String oldName, String newName) {
         vgmixin().onViewRenamed(view, oldName, newName);
     }
 
-    @Override public ViewsTabBar getViewsTabBar() {
+    @Override
+    public ViewsTabBar getViewsTabBar() {
         if (viewsTabBar == null) {
             viewsTabBar = new DefaultViewsTabBar();
         }
         return viewsTabBar;
     }
 
-    @Override public ItemGroup<? extends TopLevelItem> getItemGroup() {
+    @Override
+    public ItemGroup<? extends TopLevelItem> getItemGroup() {
         return this;
     }
 
-    @Override public List<Action> getViewActions() {
-        // TODO what should the default be? View.getOwnerViewActions uses Jenkins.actions; Jenkins.viewActions would make more sense as a default;
+    @Override
+    public List<Action> getViewActions() {
+        // TODO what should the default be? View.getOwnerViewActions uses Jenkins.actions; Jenkins.viewActions would
+        // make more sense as a default;
         // or should it be empty by default since non-top-level folders probably do not need the same actions as root?
         return List.of();
     }
 
-    @Override public Object getStaplerFallback() {
+    @Override
+    public Object getStaplerFallback() {
         return getPrimaryView();
     }
 
@@ -265,9 +306,11 @@ public class MockFolder extends AbstractItem implements DirectlyModifiableTopLev
         return getItem(name);
     }
 
-    @Extension public static class DescriptorImpl extends TopLevelItemDescriptor {
+    @Extension
+    public static class DescriptorImpl extends TopLevelItemDescriptor {
 
-        @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
+        @Override
+        public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new MockFolder(parent, name);
         }
     }

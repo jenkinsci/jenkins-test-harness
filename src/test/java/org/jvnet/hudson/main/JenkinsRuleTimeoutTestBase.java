@@ -35,9 +35,13 @@ public class JenkinsRuleTimeoutTestBase {
     private final ExpectedException thrown = ExpectedException.none();
 
     private final JenkinsRule r = new JenkinsRule();
+
     {
-        r.timeout = 30; // let us not wait three minutes! but need enough time for Jenkins to start up, and then a few seconds more
-        thrown.expect(TestTimedOutException.class); // for the *InStartup methods, this must happen before test method is called
+        r.timeout = 30; // let us not wait three minutes! but need enough time for Jenkins to start up, and then a few
+        // seconds more
+        thrown.expect(
+                TestTimedOutException
+                        .class); // for the *InStartup methods, this must happen before test method is called
     }
 
     @Rule
@@ -79,5 +83,4 @@ public class JenkinsRuleTimeoutTestBase {
             }
         }
     }
-
 }

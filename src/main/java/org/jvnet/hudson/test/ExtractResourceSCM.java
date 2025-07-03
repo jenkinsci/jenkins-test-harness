@@ -65,15 +65,22 @@ public class ExtractResourceSCM extends NullSCM {
     }
 
     @Override
-    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, @NonNull File changeLogFile) throws IOException, InterruptedException {
-    	if (workspace.exists()) {
+    public boolean checkout(
+            AbstractBuild<?, ?> build,
+            Launcher launcher,
+            FilePath workspace,
+            BuildListener listener,
+            @NonNull File changeLogFile)
+            throws IOException, InterruptedException {
+        if (workspace.exists()) {
             listener.getLogger().println("Deleting existing workspace " + workspace.getRemote());
-    		workspace.deleteRecursive();
-    	}
-        listener.getLogger().println("Staging "+zip);
+            workspace.deleteRecursive();
+        }
+        listener.getLogger().println("Staging " + zip);
         workspace.unzipFrom(zip.openStream());
         if (parentFolder != null) {
-            FileUtils.copyDirectory( new File(workspace.getRemote() + "/" + parentFolder), new File( workspace.getRemote()));
+            FileUtils.copyDirectory(
+                    new File(workspace.getRemote() + "/" + parentFolder), new File(workspace.getRemote()));
         }
         return true;
     }

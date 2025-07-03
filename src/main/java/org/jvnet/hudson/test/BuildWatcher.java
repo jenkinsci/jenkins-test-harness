@@ -51,14 +51,16 @@ import org.junit.rules.ExternalResource;
 public final class BuildWatcher extends ExternalResource {
 
     private static boolean active;
-    private static final Map<File,RunningBuild> builds = new ConcurrentHashMap<>();
+    private static final Map<File, RunningBuild> builds = new ConcurrentHashMap<>();
 
     private Thread thread;
 
-    @Override protected void before() throws Throwable {
+    @Override
+    protected void before() throws Throwable {
         active = true;
         thread = new Thread("watching builds") {
-            @Override public void run() {
+            @Override
+            public void run() {
                 try {
                     while (active) {
                         for (RunningBuild build : builds.values()) {
@@ -79,14 +81,17 @@ public final class BuildWatcher extends ExternalResource {
         thread.start();
     }
 
-    @Override protected void after() {
+    @Override
+    protected void after() {
         active = false;
         thread.interrupt();
     }
 
-    @Extension public static final class Listener extends RunListener<Run<?,?>> {
+    @Extension
+    public static final class Listener extends RunListener<Run<?, ?>> {
 
-        @Override public void onStarted(Run<?,?> r, TaskListener listener) {
+        @Override
+        public void onStarted(Run<?, ?> r, TaskListener listener) {
             if (!active) {
                 return;
             }
@@ -97,7 +102,8 @@ public final class BuildWatcher extends ExternalResource {
             }
         }
 
-        @Override public void onFinalized(Run<?,?> r) {
+        @Override
+        public void onFinalized(Run<?, ?> r) {
             if (!active) {
                 return;
             }
@@ -105,20 +111,20 @@ public final class BuildWatcher extends ExternalResource {
             if (build != null) {
                 build.copy();
             } else {
-                System.err.println(r + " was finalized but never started; assuming it was started earlier using @LocalData");
+                System.err.println(
+                        r + " was finalized but never started; assuming it was started earlier using @LocalData");
                 new RunningBuild(r).copy();
             }
         }
-
     }
 
     private static final class RunningBuild {
 
-        private final Run<?,?> r;
+        private final Run<?, ?> r;
         private final OutputStream sink;
         private long pos;
 
-        RunningBuild(Run<?,?> r) {
+        RunningBuild(Run<?, ?> r) {
             this.r = r;
             sink = new LogLinePrefixOutputFilter(System.err, "[" + r + "] ");
         }
@@ -126,9 +132,11 @@ public final class BuildWatcher extends ExternalResource {
         synchronized void copy() {
             try {
                 pos = r.getLogText().writeLogTo(pos, sink);
-                // Note that !log.isComplete() after the initial call to copy, even if the build is complete, because Run.getLogText never calls markComplete!
+                // Note that !log.isComplete() after the initial call to copy, even if the build is complete, because
+                // Run.getLogText never calls markComplete!
                 // That is why Run.writeWholeLogTo calls getLogText repeatedly.
-                // Even if it did call markComplete this might not work from RestartableJenkinsRule since you would have a different Run object after the restart.
+                // Even if it did call markComplete this might not work from RestartableJenkinsRule since you would have
+                // a different Run object after the restart.
                 // Anyway we can just rely on onFinalized to let us know when to stop.
             } catch (FileNotFoundException x) {
                 // build deleted or not started
@@ -136,11 +144,11 @@ public final class BuildWatcher extends ExternalResource {
                 if (Jenkins.getInstanceOrNull() != null) {
                     x.printStackTrace();
                 } else {
-                    // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is missing its descriptor, etc.
+                    // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is
+                    // missing its descriptor, etc.
                 }
             }
         }
-
     }
 
     // Copied from WorkflowRun.
@@ -154,13 +162,12 @@ public final class BuildWatcher extends ExternalResource {
             this.prefix = prefix;
         }
 
-        @Override protected void eol(byte[] b, int len) throws IOException {
+        @Override
+        protected void eol(byte[] b, int len) throws IOException {
             logger.append(DeltaSupportLogFormatter.elapsedTime());
             logger.write(' ');
             logger.append(prefix);
             logger.write(b, 0, len);
         }
-
     }
-
 }

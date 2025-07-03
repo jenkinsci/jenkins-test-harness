@@ -50,15 +50,15 @@ public class SequenceLock {
      */
     public synchronized void phase(int i) throws InterruptedException {
         done(); // mark the previous phase done
-        while (i!=n) {
+        while (i != n) {
             if (aborted) {
                 throw new IllegalStateException("SequenceLock aborted");
             }
             if (t != null && !t.isAlive()) {
-                throw new IllegalStateException("Owner thread of the current phase has quit"+t);
+                throw new IllegalStateException("Owner thread of the current phase has quit" + t);
             }
             if (i < n) {
-                throw new IllegalStateException("Phase "+i+" is already completed");
+                throw new IllegalStateException("Phase " + i + " is already completed");
             }
             wait();
         }
@@ -74,7 +74,7 @@ public class SequenceLock {
      * {@link #done()} call.
      */
     public synchronized void done() {
-        if (t==Thread.currentThread()) {
+        if (t == Thread.currentThread()) {
             // phase N done
             n++;
             t = null;
@@ -89,7 +89,7 @@ public class SequenceLock {
      * <p>
      * Calling this method from the finally block prevents a dead lock if one of the participating thread
      * aborts with an exception, as without the explicit abort operation, other threads will block forever
-     * for a phase that'll never come. 
+     * for a phase that'll never come.
      */
     public synchronized void abort() {
         aborted = true;

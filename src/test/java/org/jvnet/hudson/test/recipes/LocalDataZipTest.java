@@ -42,5 +42,4 @@ public class LocalDataZipTest {
     public void works() {
         assertNotNull(r.jenkins.getItem("somejob"));
     }
-
 }

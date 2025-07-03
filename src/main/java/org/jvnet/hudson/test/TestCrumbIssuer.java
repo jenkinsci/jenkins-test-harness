@@ -23,7 +23,7 @@ import org.kohsuke.stapler.StaplerRequest2;
 public class TestCrumbIssuer extends CrumbIssuer {
 
     @DataBoundConstructor
-    public TestCrumbIssuer() { }
+    public TestCrumbIssuer() {}
 
     @Override
     protected String issueCrumb(ServletRequest request, String salt) {

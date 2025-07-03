@@ -80,7 +80,9 @@ public class MemoryAssert {
         CountingVisitor v = new CountingVisitor();
         ScannerUtils.scan(ScannerUtils.skipNonStrongReferencesFilter(), v, Set.of(o), false);
         int memoryUsage = v.getTotalSize();
-        assertTrue(o + " consumes " + memoryUsage + " bytes of heap, " + (memoryUsage - max) + " over the limit of " + max, memoryUsage <= max);
+        assertTrue(
+                o + " consumes " + memoryUsage + " bytes of heap, " + (memoryUsage - max) + " over the limit of " + max,
+                memoryUsage <= max);
     }
 
     /**
@@ -91,23 +93,30 @@ public class MemoryAssert {
         public final String className;
         public final int instanceCount;
         public final int byteSize;
+
         HistogramElement(String className, int instanceCount, int byteSize) {
             this.className = className;
             this.instanceCount = instanceCount;
             this.byteSize = byteSize;
         }
-        @Override public int compareTo(HistogramElement o) {
+
+        @Override
+        public int compareTo(HistogramElement o) {
             int r = o.byteSize - byteSize;
             return r != 0 ? r : className.compareTo(o.className);
         }
-        @Override public boolean equals(Object obj) {
+
+        @Override
+        public boolean equals(Object obj) {
             if (!(obj instanceof HistogramElement)) {
                 return false;
             }
             HistogramElement o = (HistogramElement) obj;
             return o.className.equals(className);
         }
-        @Override public int hashCode() {
+
+        @Override
+        public int hashCode() {
             return className.hashCode();
         }
     }
@@ -137,7 +146,8 @@ public class MemoryAssert {
         for (Class<?> c : v2.getClasses()) {
             int delta = v2.getCountForClass(c) - (old.contains(c) ? v1.getCountForClass(c) : 0);
             if (delta > 0) {
-                elements.add(new HistogramElement(c.getName(), delta, v2.getSizeForClass(c) - (old.contains(c) ? v1.getSizeForClass(c) : 0)));
+                elements.add(new HistogramElement(
+                        c.getName(), delta, v2.getSizeForClass(c) - (old.contains(c) ? v1.getSizeForClass(c) : 0)));
             }
         }
         Collections.sort(elements);
@@ -158,10 +168,9 @@ public class MemoryAssert {
     @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE_OF_NULL")
     public static void assertGC(WeakReference<?> reference, boolean allowSoft) {
         Runtime.Version runtimeVersion = Runtime.version();
-        assumeTrue(
-                "TODO JENKINS-67974 works on Java 17 but not 11",
-                runtimeVersion.feature() >= 17);
-        assertTrue(true); reference.get(); // preload any needed classes!
+        assumeTrue("TODO JENKINS-67974 works on Java 17 but not 11", runtimeVersion.feature() >= 17);
+        assertTrue(true);
+        reference.get(); // preload any needed classes!
         System.err.println("Trying to collect " + reference.get() + "…");
         Set<Object[]> objects = new HashSet<>();
         int size = 1024;
@@ -182,19 +191,26 @@ public class MemoryAssert {
             if (!allowSoft) {
                 Object obj = reference.get();
                 if (obj != null) {
-                    softErr = "Apparent soft references to " + obj + ": " + fromRoots(Set.of(obj), null, null, new Filter() {
-                        final Field referent;
-                        {
-                            try {
-                                referent = Reference.class.getDeclaredField("referent");
-                            } catch (NoSuchFieldException x) {
-                                throw new AssertionError(x);
-                            }
-                        }
-                        @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
-                            return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
-                        }
-                    }) + "; apparent weak references: " + fromRoots(Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
+                    softErr = "Apparent soft references to " + obj + ": "
+                            + fromRoots(Set.of(obj), null, null, new Filter() {
+                                final Field referent;
+
+                                {
+                                    try {
+                                        referent = Reference.class.getDeclaredField("referent");
+                                    } catch (NoSuchFieldException x) {
+                                        throw new AssertionError(x);
+                                    }
+                                }
+
+                                @Override
+                                public boolean accept(Object obj, Object referredFrom, Field reference) {
+                                    return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
+                                }
+                            })
+                            + "; apparent weak references: "
+                            + fromRoots(
+                                    Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
                     System.err.println(softErr);
                 }
             }
@@ -206,13 +222,15 @@ public class MemoryAssert {
             System.err.println("Successfully collected.");
         } else {
             System.err.println("Failed to collect " + obj + ", looking for strong references…");
-            Map<Object,Path> rootRefs = fromRoots(Set.of(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
+            Map<Object, Path> rootRefs =
+                    fromRoots(Set.of(obj), null, null, ScannerUtils.skipNonStrongReferencesFilter());
             if (!rootRefs.isEmpty()) {
                 fail(rootRefs.toString());
             } else {
                 System.err.println("Did not find any strong references to " + obj + ", looking for soft references…");
                 rootRefs = fromRoots(Set.of(obj), null, null, new Filter() {
                     final Field referent;
+
                     {
                         try {
                             referent = Reference.class.getDeclaredField("referent");
@@ -220,7 +238,9 @@ public class MemoryAssert {
                             throw new AssertionError(x);
                         }
                     }
-                    @Override public boolean accept(Object obj, Object referredFrom, Field reference) {
+
+                    @Override
+                    public boolean accept(Object obj, Object referredFrom, Field reference) {
                         return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
                     }
                 });
@@ -228,11 +248,13 @@ public class MemoryAssert {
                     fail(rootRefs.toString());
                 } else {
                     System.err.println("Did not find any soft references to " + obj + ", looking for weak references…");
-                    rootRefs = fromRoots(Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
+                    rootRefs =
+                            fromRoots(Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
                     if (!rootRefs.isEmpty()) {
                         fail(rootRefs.toString());
                     } else {
-                        fail("Did not find any root references to " + obj + " whatsoever. Unclear why it is not being collected.");
+                        fail("Did not find any root references to " + obj
+                                + " whatsoever. Unclear why it is not being collected.");
                     }
                 }
             }
@@ -243,16 +265,20 @@ public class MemoryAssert {
      * TODO {@link LiveReferences#fromRoots(Collection, Set, BoundedRangeModel, Filter) logically ANDs the {@link Filter}
      * with {@link ScannerUtils#skipNonStrongReferencesFilter}, making it useless for our purposes.
      */
-    private static Map<Object,Path> fromRoots(Collection<Object> objs, Set<Object> rootsHint, BoundedRangeModel progress, Filter f) {
+    private static Map<Object, Path> fromRoots(
+            Collection<Object> objs, Set<Object> rootsHint, BoundedRangeModel progress, Filter f) {
         LiveEngine engine = new LiveEngine(progress) {
             // TODO InsaneEngine.processClass recognizes Class → ClassLoader but fails to notify the visitor,
             // so LiveEngine will fail to find a ClassLoader held only via one of its loaded classes.
             // The following trick substitutes for adding:
             // * to recognizeClass, before queue.add(cls): objects.getID(cls)
-            // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects, cls, cl, null)
+            // * to processClass, after recognize(cl): if (objects.isKnown(cl)) visitor.visitObjectReference(objects,
+            // cls, cl, null)
             // Also Path.getField confusingly returns "<changed>" when printing the Class → ClassLoader link.
             List<Class<?>> classes = new ArrayList<>();
-            @Override public void visitClass(Class cls) {
+
+            @Override
+            public void visitClass(Class cls) {
                 getID(cls);
                 super.visitClass(cls);
                 ClassLoader loader = cls.getClassLoader();
@@ -260,13 +286,18 @@ public class MemoryAssert {
                     classes.add(cls);
                 }
             }
-            @Override public void visitObject(ObjectMap map, Object object) {
+
+            @Override
+            public void visitObject(ObjectMap map, Object object) {
                 super.visitObject(map, object);
                 if (object instanceof ClassLoader) {
                     if (isKnown(object)) {
                         for (Class<?> c : classes) {
                             if (c.getClassLoader() == object) {
-                                visitObjectReference(this, c, object, /* cannot get a Field for Class.classLoader, but unused here anyway */ null);
+                                visitObjectReference(
+                                        this, c,
+                                        object, /* cannot get a Field for Class.classLoader, but unused here anyway */
+                                        null);
                             }
                         }
                     }
@@ -278,22 +309,28 @@ public class MemoryAssert {
             filter.setAccessible(true);
             filter.set(engine, f);
         } catch (Exception x) {
-            // The test has already failed at this point, so AssumptionViolatedException would inappropriately mark it as a skip.
+            // The test has already failed at this point, so AssumptionViolatedException would inappropriately mark it
+            // as a skip.
             throw new AssertionError("could not patch INSANE", x);
         }
-        
-        // ScannerUtils.interestingRoots includes our own ClassLoader, thus any static fields in any classes loaded in any visible class…but not in the bootstrap classpath, since this has no ClassLoader object to traverse.
+
+        // ScannerUtils.interestingRoots includes our own ClassLoader, thus any static fields in any classes loaded in
+        // any visible class…but not in the bootstrap classpath, since this has no ClassLoader object to traverse.
         Set<Object> rootsHint2 = new HashSet<>();
         if (rootsHint != null) {
             rootsHint2.addAll(rootsHint);
         }
         try {
-            rootsHint2.add(Class.forName("java.io.ObjectStreamClass$Caches")); // http://stackoverflow.com/a/20461446/12916 or JDK-6232010 or http://www.szegedi.org/articles/memleak3.html
+            rootsHint2.add(
+                    Class.forName("java.io.ObjectStreamClass$Caches")); // http://stackoverflow.com/a/20461446/12916 or
+            // JDK-6232010 or
+            // http://www.szegedi.org/articles/memleak3.html
             rootsHint2.add(Class.forName("java.beans.ThreadGroupContext"));
         } catch (ClassNotFoundException x) {
             x.printStackTrace();
         }
-        // TODO consider also: rootsHint2.add(Thread.getAllStackTraces().keySet()); // https://stackoverflow.com/a/3018672/12916
+        // TODO consider also: rootsHint2.add(Thread.getAllStackTraces().keySet()); //
+        // https://stackoverflow.com/a/3018672/12916
 
         try {
             return engine.trace(objs, rootsHint2);
@@ -306,5 +343,4 @@ public class MemoryAssert {
             }
         }
     }
-
 }

@@ -16,8 +16,8 @@ import java.util.logging.Logger;
 /**
  * Runs at the end of the test to cleanup any live channels.
  *
-* @author Kohsuke Kawaguchi
-*/
+ * @author Kohsuke Kawaguchi
+ */
 @Extension
 public class ChannelShutdownListener extends ComputerListener implements EndOfTestListener {
     /**
@@ -27,7 +27,13 @@ public class ChannelShutdownListener extends ComputerListener implements EndOfTe
 
     public ChannelShutdownListener() {
         if (!Main.isUnitTest) {
-            Logger.getLogger(ChannelShutdownListener.class.getName()).severe(() -> "JENKINS-58771: Jenkins test harness code being loaded in what seems to be a production system, perhaps causing critical memory leaks: " + ChannelShutdownListener.class.getProtectionDomain().getCodeSource().getLocation());
+            Logger.getLogger(ChannelShutdownListener.class.getName())
+                    .severe(() ->
+                            "JENKINS-58771: Jenkins test harness code being loaded in what seems to be a production system, perhaps causing critical memory leaks: "
+                                    + ChannelShutdownListener.class
+                                            .getProtectionDomain()
+                                            .getCodeSource()
+                                            .getLocation());
         }
     }
 

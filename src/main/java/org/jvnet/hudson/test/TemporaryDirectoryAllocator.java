@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -79,7 +79,7 @@ public class TemporaryDirectoryAllocator {
      * Allocates a new empty temporary directory and returns it.
      *
      * This directory will be wiped out when {@link TemporaryDirectoryAllocator} gets disposed.
-     * When this method returns, the directory already exists. 
+     * When this method returns, the directory already exists.
      */
     public File allocate() throws IOException {
         return allocate(withoutSpace ? "jkh" : "j h");
@@ -91,7 +91,7 @@ public class TemporaryDirectoryAllocator {
             tmpDirectories.add(f);
             return f;
         } catch (IOException e) {
-            throw new IOException("Failed to create a temporary directory in "+base,e);
+            throw new IOException("Failed to create a temporary directory in " + base, e);
         }
     }
 
@@ -113,7 +113,7 @@ public class TemporaryDirectoryAllocator {
         final Set<File> tbr = new HashSet<>(tmpDirectories);
         tmpDirectories.clear();
 
-        new Thread("Disposing "+base) {
+        new Thread("Disposing " + base) {
             @Override
             public void run() {
                 for (File dir : tbr) {
@@ -147,7 +147,10 @@ public class TemporaryDirectoryAllocator {
         } catch (DirectoryNotEmptyException x) {
             String pathString = p.toString();
             try (Stream<Path> children = Files.list(p)) {
-                x.addSuppressed(new IOException("These files still exist : " + children.map(Path::toString).map(s -> StringUtils.removeStart(s, pathString + File.separator)).collect(Collectors.joining(", "))));
+                x.addSuppressed(new IOException("These files still exist : "
+                        + children.map(Path::toString)
+                                .map(s -> StringUtils.removeStart(s, pathString + File.separator))
+                                .collect(Collectors.joining(", "))));
             }
             throw x;
         }

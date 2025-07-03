@@ -47,7 +47,8 @@ import org.kohsuke.stapler.verb.PUT;
 
 public class JenkinsRuleTest {
 
-    @Rule public JenkinsRule j = new JenkinsRule();
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
 
     @Test
     public void readOnlyFileInJenkinsHomeIsRemovedOnDispose() throws Exception {
@@ -107,7 +108,7 @@ public class JenkinsRuleTest {
         l.setSetterParam("value2");
         l.setterField = "value4";
         SomeClassWithSetters r = new SomeClassWithSetters("value1");
-        r.setSetterParam("value3");     // mismatch!
+        r.setSetterParam("value3"); // mismatch!
         r.setterField = "value4";
         j.assertEqualDataBoundBeans(l, r);
     }
@@ -118,7 +119,7 @@ public class JenkinsRuleTest {
         l.setSetterParam("value2");
         l.setterField = "value3";
         SomeClassWithSetters r = new SomeClassWithSetters("value1");
-        r.setSetterParam("value2");     // mismatch!
+        r.setSetterParam("value2"); // mismatch!
         l.setterField = "value4";
         j.assertEqualDataBoundBeans(l, r);
     }
@@ -154,7 +155,8 @@ public class JenkinsRuleTest {
         makeRequestAndAssertLogin(wc, "anonymous");
 
         // Alice has no legacy API token
-        wc.withBasicCredentials("alice", alice.getProperty(ApiTokenProperty.class).getApiToken());
+        wc.withBasicCredentials(
+                "alice", alice.getProperty(ApiTokenProperty.class).getApiToken());
         makeRequestAndAssertLoginUnauthorized(wc);
 
         wc.withBasicApiToken("alice");
@@ -184,16 +186,18 @@ public class JenkinsRuleTest {
         assertThat(response.getContentAsString(), containsString("I am JenkinsRule whatelse"));
         assertEquals(response.getStatusCode(), 200);
 
-        //Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
+        // Testing with a GET that the test expect to raise an server error: we want to be able to assert the status
         JenkinsRule.WebClient webClientAcceptException = j.createWebClient();
         webClientAcceptException.setThrowExceptionOnFailingStatusCode(false);
         response = webClientAcceptException.getJSON("testing-cli/getError500");
         assertEquals(response.getStatusCode(), 500);
 
-        //Testing a GET that requires the user to be authenticated
+        // Testing a GET that requires the user to be authenticated
         User admin = User.getById("admin", true);
         MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
-                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
+                .grant(Jenkins.ADMINISTER)
+                .everywhere()
+                .to(admin);
 
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         j.jenkins.setAuthorizationStrategy(auth);
@@ -205,7 +209,6 @@ public class JenkinsRuleTest {
         // - same call but authenticated should be fine
         response = webClientAcceptException.withBasicApiToken(admin).getJSON("testing-cli/getMyJsonObject");
         assertEquals(response.getStatusCode(), 200);
-
     }
 
     @Test
@@ -213,7 +216,9 @@ public class JenkinsRuleTest {
 
         User admin = User.getById("admin", true);
         MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
-                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
+                .grant(Jenkins.ADMINISTER)
+                .everywhere()
+                .to(admin);
 
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         j.jenkins.setAuthorizationStrategy(auth);
@@ -223,18 +228,16 @@ public class JenkinsRuleTest {
 
         // Testing an authenticated POST that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Creating a new Object with Json.");
-        response = webClient
-                        .withBasicApiToken(admin)
-                        .postJSON( "testing-cli/create", JSONObject.fromObject(objectToSend));
+        response =
+                webClient.withBasicApiToken(admin).postJSON("testing-cli/create", JSONObject.fromObject(objectToSend));
         assertThat(response.getContentAsString(), containsString("Creating a new Object with Json. - CREATED"));
         assertEquals(response.getStatusCode(), 200);
 
         // Testing an authenticated POST that return error 500
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = webClient.postJSON( "testing-cli/createFailure", JSONObject.fromObject(objectToSend));
+        response = webClient.postJSON("testing-cli/createFailure", JSONObject.fromObject(objectToSend));
         assertThat(response.getContentAsString(), containsString("Creating a new Object with Json. - NOT CREATED"));
         assertEquals(response.getStatusCode(), 500);
-
     }
 
     @Test
@@ -245,19 +248,21 @@ public class JenkinsRuleTest {
 
         // Testing a simple PUT that should answer 200 OK and return same json
         MyJsonObject objectToSend = new MyJsonObject("Jenkins is the way !");
-        response = webClient.putJSON( "testing-cli/update", JSONObject.fromObject(objectToSend));
+        response = webClient.putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - UPDATED"));
 
-        //Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
+        // Testing with a PUT that the test expect to raise an server error: we want to be able to assert the status
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        response = webClient.putJSON( "testing-cli/updateFailure", JSONObject.fromObject(objectToSend));
+        response = webClient.putJSON("testing-cli/updateFailure", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 500);
         assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - NOT UPDATED"));
 
-        //Testing a PUT that requires the user to be authenticated
+        // Testing a PUT that requires the user to be authenticated
         User admin = User.getById("admin", true);
         MockAuthorizationStrategy auth = new MockAuthorizationStrategy()
-                .grant(Jenkins.ADMINISTER).everywhere().to(admin);
+                .grant(Jenkins.ADMINISTER)
+                .everywhere()
+                .to(admin);
 
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         j.jenkins.setAuthorizationStrategy(auth);
@@ -267,11 +272,10 @@ public class JenkinsRuleTest {
         assertEquals(response.getStatusCode(), 403);
 
         // - same call but authenticated should be fine
-        response = webClient.withBasicApiToken(admin)
-                            .putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
+        response =
+                webClient.withBasicApiToken(admin).putJSON("testing-cli/update", JSONObject.fromObject(objectToSend));
         assertEquals(response.getStatusCode(), 200);
         assertThat(response.getContentAsString(), containsString("Jenkins is the way ! - UPDATED"));
-
     }
 
     @TestExtension
@@ -312,15 +316,15 @@ public class JenkinsRuleTest {
         @GET
         @WebMethod(name = "getError500")
         public JsonHttpResponse getError500() {
-            JsonHttpResponse error500 = new JsonHttpResponse(
-                    JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
+            JsonHttpResponse error500 =
+                    new JsonHttpResponse(JSONObject.fromObject(new MyJsonObject("You got an error 500")), 500);
             throw error500;
         }
 
         @PUT
         @WebMethod(name = "update")
         public JsonHttpResponse update(@JsonBody MyJsonObject body) {
-            body.setMessage(body.getMessage()+" - UPDATED");
+            body.setMessage(body.getMessage() + " - UPDATED");
             JSONObject response = JSONObject.fromObject(body);
             return new JsonHttpResponse(response, 200);
         }
@@ -328,7 +332,7 @@ public class JenkinsRuleTest {
         @PUT
         @WebMethod(name = "updateFailure")
         public JsonHttpResponse updateFailure(@JsonBody MyJsonObject body) {
-            body.setMessage(body.getMessage()+" - NOT UPDATED");
+            body.setMessage(body.getMessage() + " - NOT UPDATED");
             JsonHttpResponse error500 = new JsonHttpResponse(JSONObject.fromObject(body), 500);
             throw error500;
         }
@@ -336,7 +340,7 @@ public class JenkinsRuleTest {
         @POST
         @WebMethod(name = "create")
         public JsonHttpResponse create(@JsonBody MyJsonObject body) {
-            body.setMessage(body.getMessage()+" - CREATED");
+            body.setMessage(body.getMessage() + " - CREATED");
             JSONObject response = JSONObject.fromObject(body);
             return new JsonHttpResponse(response, 200);
         }
@@ -344,7 +348,7 @@ public class JenkinsRuleTest {
         @POST
         @WebMethod(name = "createFailure")
         public JsonHttpResponse createFailure(@JsonBody MyJsonObject body) {
-            body.setMessage(body.getMessage()+" - NOT CREATED");
+            body.setMessage(body.getMessage() + " - NOT CREATED");
             JSONObject response = JSONObject.fromObject(body);
             JsonHttpResponse error500 = new JsonHttpResponse(response, 500);
             throw error500;
@@ -354,7 +358,7 @@ public class JenkinsRuleTest {
     public static class MyJsonObject {
         private String message;
 
-        //empty constructor required for JSON parsing.
+        // empty constructor required for JSON parsing.
         public MyJsonObject() {}
 
         public MyJsonObject(String message) {
@@ -371,7 +375,7 @@ public class JenkinsRuleTest {
     }
 
     private void makeRequestAndAssertLogin(JenkinsRule.WebClient wc, String expectedLogin) throws IOException {
-        WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
+        WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
         Page p = wc.getPage(req);
         String pageContent = p.getWebResponse().getContentAsString();
         String loginReceived = (String) JSONObject.fromObject(pageContent).get("name");
@@ -379,12 +383,11 @@ public class JenkinsRuleTest {
     }
 
     private void makeRequestAndAssertLoginUnauthorized(JenkinsRule.WebClient wc) throws IOException {
-        WebRequest req = new WebRequest(new URL(j.getURL(),"whoAmI/api/json"));
+        WebRequest req = new WebRequest(new URL(j.getURL(), "whoAmI/api/json"));
         try {
             wc.getPage(req);
             fail();
-        }
-        catch(FailingHttpStatusCodeException e) {
+        } catch (FailingHttpStatusCodeException e) {
             assertEquals(401, e.getStatusCode());
         }
     }
@@ -392,6 +395,7 @@ public class JenkinsRuleTest {
     public static class SomeClassWithSetters {
         private String ctorParam;
         private String setterParam;
+
         @DataBoundSetter
         public String setterField;
 
@@ -470,5 +474,4 @@ public class JenkinsRuleTest {
         wc.getPage(j.getURL());
         assertEquals("text/javascript", contentType.get());
     }
-
 }

@@ -66,7 +66,14 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     }
 
     @Override
-    public void checkout(Run<?, ?> build, Launcher launcher, FilePath remoteDir, TaskListener listener, File changeLogFile, SCMRevisionState baseline) throws IOException, InterruptedException {
+    public void checkout(
+            Run<?, ?> build,
+            Launcher launcher,
+            FilePath remoteDir,
+            TaskListener listener,
+            File changeLogFile,
+            SCMRevisionState baseline)
+            throws IOException, InterruptedException {
         new FilePath(changeLogFile).touch(0);
         build.addAction(new ChangelogAction(entries, changeLogFile.getName()));
         entries = new ArrayList<>();
@@ -77,7 +84,8 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
         return new FakeChangeLogParser();
     }
 
-    @Override public SCMDescriptor<?> getDescriptor() {
+    @Override
+    public SCMDescriptor<?> getDescriptor() {
         return new SCMDescriptor<>(null) {};
     }
 
@@ -94,7 +102,8 @@ public class FakeChangeLogSCM extends NullSCM implements Serializable {
     public static class FakeChangeLogParser extends ChangeLogParser {
         @SuppressWarnings("rawtypes")
         @Override
-        public FakeChangeLogSet parse(Run build, RepositoryBrowser<?> browser, File changelogFile) throws IOException, SAXException {
+        public FakeChangeLogSet parse(Run build, RepositoryBrowser<?> browser, File changelogFile)
+                throws IOException, SAXException {
             for (ChangelogAction action : build.getActions(ChangelogAction.class)) {
                 if (changelogFile.getName().equals(action.changeLogFile)) {
                     return new FakeChangeLogSet(build, action.entries);

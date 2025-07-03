@@ -49,7 +49,7 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     private final URL firstZip;
     private final URL secondZip;
     private final String moduleRoot;
-    
+
     public ExtractResourceWithChangesSCM(URL firstZip, URL secondZip) {
         if ((firstZip == null) || (secondZip == null)) {
             throw new IllegalArgumentException();
@@ -70,14 +70,20 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
 
     @Override
     public FilePath getModuleRoot(FilePath workspace) {
-        if (moduleRoot!=null) {
+        if (moduleRoot != null) {
             return workspace.child(moduleRoot);
         }
         return workspace;
     }
-    
+
     @Override
-    public boolean checkout(AbstractBuild<?,?> build, Launcher launcher, FilePath workspace, BuildListener listener, @NonNull File changeLogFile) throws IOException, InterruptedException {
+    public boolean checkout(
+            AbstractBuild<?, ?> build,
+            Launcher launcher,
+            FilePath workspace,
+            BuildListener listener,
+            @NonNull File changeLogFile)
+            throws IOException, InterruptedException {
         if (workspace.exists()) {
             listener.getLogger().println("Deleting existing workspace " + workspace.getRemote());
             workspace.deleteRecursive();
@@ -88,7 +94,8 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
         workspace.unzipFrom(secondZip.openStream());
 
         // Get list of files changed in secondZip.
-        ExtractChangeLogParser.ExtractChangeLogEntry changeLog = new ExtractChangeLogParser.ExtractChangeLogEntry(secondZip.toString());
+        ExtractChangeLogParser.ExtractChangeLogEntry changeLog =
+                new ExtractChangeLogParser.ExtractChangeLogEntry(secondZip.toString());
 
         try (ZipInputStream zip = new ZipInputStream(secondZip.openStream())) {
             ZipEntry e;
@@ -112,11 +119,14 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
      * @deprecated use {@link #saveToChangeLog(File, Charset, ExtractChangeLogParser.ExtractChangeLogEntry)}
      */
     @Deprecated
-    public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
+    public void saveToChangeLog(File changeLogFile, ExtractChangeLogParser.ExtractChangeLogEntry changeLog)
+            throws IOException {
         saveToChangeLog(changeLogFile, Charset.defaultCharset(), changeLog);
     }
 
-    public void saveToChangeLog(File changeLogFile, Charset charset, ExtractChangeLogParser.ExtractChangeLogEntry changeLog) throws IOException {
+    public void saveToChangeLog(
+            File changeLogFile, Charset charset, ExtractChangeLogParser.ExtractChangeLogEntry changeLog)
+            throws IOException {
         try (PrintStream ps = new PrintStream(changeLogFile, charset)) {
             ps.println(changeLog.getZipFile());
             for (String fileName : changeLog.getAffectedPaths()) {
@@ -128,9 +138,12 @@ public class ExtractResourceWithChangesSCM extends NullSCM {
     /**
      * Don't write 'this', so that subtypes can be implemented as anonymous class.
      */
-    protected Object writeReplace() { return new Object(); }
+    protected Object writeReplace() {
+        return new Object();
+    }
 
-    @Override public SCMDescriptor<?> getDescriptor() {
+    @Override
+    public SCMDescriptor<?> getDescriptor() {
         return new SCMDescriptor<>(ExtractResourceWithChangesSCM.class, null) {};
     }
 }

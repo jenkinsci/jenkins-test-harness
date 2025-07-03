@@ -1,6 +1,5 @@
 package jenkins.benchmark.jmh;
 
-
 import java.io.IOException;
 import java.lang.reflect.AnnotatedElement;
 import org.jvnet.hudson.annotation_indexer.Index;

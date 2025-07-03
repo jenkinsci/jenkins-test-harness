@@ -34,7 +34,8 @@ import java.util.List;
 public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.ExtractChangeLogEntry> {
     private List<ExtractChangeLogParser.ExtractChangeLogEntry> changeLogs = null;
 
-    public ExtractChangeLogSet(AbstractBuild<?, ?> build, List<ExtractChangeLogParser.ExtractChangeLogEntry> changeLogs) {
+    public ExtractChangeLogSet(
+            AbstractBuild<?, ?> build, List<ExtractChangeLogParser.ExtractChangeLogEntry> changeLogs) {
         super(build);
         for (ExtractChangeLogParser.ExtractChangeLogEntry entry : changeLogs) {
             entry.setParent(this);
@@ -51,5 +52,4 @@ public class ExtractChangeLogSet extends ChangeLogSet<ExtractChangeLogParser.Ext
     public Iterator<ExtractChangeLogParser.ExtractChangeLogEntry> iterator() {
         return changeLogs.iterator();
     }
-
 }

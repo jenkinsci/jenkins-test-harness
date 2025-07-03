@@ -40,15 +40,15 @@ import org.kohsuke.stapler.StaplerResponse2;
  */
 @Extension
 public final class ClosureExecuterAction implements RootAction {
-    private final Map<UUID,Runnable> runnables = Collections.synchronizedMap(new HashMap<>());
+    private final Map<UUID, Runnable> runnables = Collections.synchronizedMap(new HashMap<>());
 
     public void add(UUID uuid, Runnable r) {
-        runnables.put(uuid,r);
+        runnables.put(uuid, r);
     }
 
     public void doIndex(StaplerResponse2 rsp, @QueryParameter("uuid") String uuid) throws IOException {
         Runnable r = runnables.remove(UUID.fromString(uuid));
-        if (r!=null) {
+        if (r != null) {
             r.run();
         } else {
             rsp.sendError(404);

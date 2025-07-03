@@ -62,7 +62,8 @@ public class UseRecipesWithJenkinsRuleTest {
         assertEquals(MyPluginManager.class, rule.jenkins.pluginManager.getClass());
     }
 
-    @Test public void rightURL() throws Exception {
+    @Test
+    public void rightURL() throws Exception {
         assertEquals(rule.getURL(), new URL(JenkinsLocationConfiguration.get().getUrl()));
     }
 

@@ -47,5 +47,4 @@ public @interface RandomlyFails {
 
     /** Observed failure message or other explanation. */
     String value();
-
 }

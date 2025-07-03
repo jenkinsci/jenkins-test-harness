@@ -24,12 +24,12 @@
 package jenkins.test;
 
 import static jenkins.test.RunMatchers.completed;
+import static jenkins.test.RunMatchers.hasStatus;
+import static jenkins.test.RunMatchers.isSuccessful;
+import static jenkins.test.RunMatchers.logContains;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
-import static jenkins.test.RunMatchers.logContains;
-import static jenkins.test.RunMatchers.hasStatus;
-import static jenkins.test.RunMatchers.isSuccessful;
 
 import hudson.Functions;
 import hudson.model.Result;

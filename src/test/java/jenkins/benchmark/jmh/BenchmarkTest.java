@@ -22,16 +22,15 @@ public class BenchmarkTest {
 
         // number of iterations is kept to a minimum just to verify that the benchmarks work without spending extra
         // time during builds.
-        ChainedOptionsBuilder optionsBuilder =
-                new OptionsBuilder()
-                        .forks(1)
-                        .warmupIterations(0)
-                        .measurementIterations(1)
-                        .measurementBatchSize(1)
-                        .shouldFailOnError(true)
-                        .result("target/jmh-reports/jmh-benchmark-report.json")
-                        .timeUnit(TimeUnit.MICROSECONDS)
-                        .resultFormat(ResultFormatType.JSON);
+        ChainedOptionsBuilder optionsBuilder = new OptionsBuilder()
+                .forks(1)
+                .warmupIterations(0)
+                .measurementIterations(1)
+                .measurementBatchSize(1)
+                .shouldFailOnError(true)
+                .result("target/jmh-reports/jmh-benchmark-report.json")
+                .timeUnit(TimeUnit.MICROSECONDS)
+                .resultFormat(ResultFormatType.JSON);
         new BenchmarkFinder(getClass()).findBenchmarks(optionsBuilder);
         new Runner(optionsBuilder.build()).run();
     }

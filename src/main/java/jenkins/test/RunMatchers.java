@@ -41,14 +41,14 @@ public final class RunMatchers {
     /**
      * Creates a matcher checking whether a build is successful.
      */
-    public static Matcher<Run<?,?>> isSuccessful() {
+    public static Matcher<Run<?, ?>> isSuccessful() {
         return new RunResultMatcher(Result.SUCCESS);
     }
 
     /**
      * Creates a matcher checking whether a build has a specific outcome.
      */
-    public static Matcher<Run<?,?>> hasStatus(Result result) {
+    public static Matcher<Run<?, ?>> hasStatus(Result result) {
         return new RunResultMatcher(result);
     }
 
@@ -56,18 +56,18 @@ public final class RunMatchers {
      * Creates a matcher checking whether build logs contain a specific message.
      * @param message the expected message
      */
-    public static Matcher<Run<?,?>> logContains(String message) {
+    public static Matcher<Run<?, ?>> logContains(String message) {
         return new RunLogMatcher(message);
     }
 
     /**
      * Creates a matcher checking whether a build has completed.
      */
-    public static Matcher<Run<?,?>> completed() {
+    public static Matcher<Run<?, ?>> completed() {
         return new CompletedRunMatcher();
     }
 
-    private static class RunResultMatcher extends TypeSafeMatcher<Run<?,?>> {
+    private static class RunResultMatcher extends TypeSafeMatcher<Run<?, ?>> {
         @NonNull
         private final Result expectedResult;
 

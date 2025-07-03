@@ -50,7 +50,8 @@ public class NodeProvisionerRule extends JenkinsRule {
         this.recurrencePeriod = recurrencePeriod;
     }
 
-    @Override public void before() throws Throwable {
+    @Override
+    public void before() throws Throwable {
         clockOrig = LoadStatistics.CLOCK;
         initialDelayOrig = NodeProvisionerInvoker.INITIALDELAY;
         recurrencePeriodOrig = NodeProvisionerInvoker.RECURRENCEPERIOD;
@@ -66,12 +67,13 @@ public class NodeProvisionerRule extends JenkinsRule {
         super.before();
     }
 
-    @Override public void after() throws Exception {
+    @Override
+    public void after() throws Exception {
         super.after();
-        // TODO should we really restore prior values? That makes tests using this rule not safe to run concurrently. Should rather have Configuration be per-Jenkins.
+        // TODO should we really restore prior values? That makes tests using this rule not safe to run concurrently.
+        // Should rather have Configuration be per-Jenkins.
         LoadStatistics.CLOCK = clockOrig;
         NodeProvisionerInvoker.INITIALDELAY = initialDelayOrig;
         NodeProvisionerInvoker.RECURRENCEPERIOD = recurrencePeriodOrig;
     }
-
 }

@@ -81,5 +81,4 @@ public final class FlagRule<T> extends ExternalResource {
             return (String) System.getProperties().remove(key);
         }
     }
-
 }
