@@ -13,8 +13,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class PluginUtils {
 
     /**
@@ -25,7 +23,7 @@ public class PluginUtils {
      * @return File the plugin we just created
      */
     public static File createRealJenkinsExtensionPlugin(File destinationDirectory, String baseline) throws IOException {
-        return createRealJenkinsPlugin("RealJenkinsExtension", destinationDirectory,  baseline);
+        return createRealJenkinsPlugin("RealJenkinsExtension", destinationDirectory, baseline);
     }
 
     /**
@@ -36,10 +34,12 @@ public class PluginUtils {
      * @return File the plugin we just created
      */
     static File createRealJenkinsRulePlugin(File destinationDirectory, String baseline) throws IOException {
-        return createRealJenkinsPlugin("RealJenkinsRule", destinationDirectory,  baseline);
+        return createRealJenkinsPlugin("RealJenkinsRule", destinationDirectory, baseline);
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "jth is a test utility, this is package scope code")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "jth is a test utility, this is package scope code")
     static File createRealJenkinsPlugin(String target, File destinationDirectory, String baseline) throws IOException {
         Class<RealJenkinsRuleInit> pluginClass = RealJenkinsRuleInit.class;
 
@@ -60,7 +60,7 @@ public class PluginUtils {
         Path tmpClassesJar = Files.createTempFile("rjr", "jar");
         try {
             try (FileOutputStream fos = new FileOutputStream(tmpClassesJar.toFile());
-                 JarOutputStream classesJarOS = new JarOutputStream(fos, mf)) {
+                    JarOutputStream classesJarOS = new JarOutputStream(fos, mf)) {
                 // the actual class
                 try (InputStream classIS = pluginClass.getResourceAsStream(pluginClass.getSimpleName() + ".class")) {
                     String path = pluginClass.getPackageName().replace('.', '/');
@@ -70,7 +70,8 @@ public class PluginUtils {
 
             // the actual JPI
             File jpi = new File(destinationDirectory, pluginClass.getSimpleName() + ".jpi");
-            try (FileOutputStream fos = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(fos, mf)) {
+            try (FileOutputStream fos = new FileOutputStream(jpi);
+                    JarOutputStream jos = new JarOutputStream(fos, mf)) {
                 try (FileInputStream fis = new FileInputStream(tmpClassesJar.toFile())) {
                     createJarEntry(jos, "WEB-INF/lib/" + pluginClass.getSimpleName() + ".jar", fis);
                 }

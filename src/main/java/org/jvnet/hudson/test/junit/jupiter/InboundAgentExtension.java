@@ -39,13 +39,6 @@ import hudson.slaves.SlaveComputer;
 import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
 import hudson.util.VersionNumber;
-import org.apache.commons.io.FileUtils;
-import org.apache.tools.ant.util.JavaEnvUtils;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.PrefixedOutputStream;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -58,6 +51,12 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import org.apache.commons.io.FileUtils;
+import org.apache.tools.ant.util.JavaEnvUtils;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.PrefixedOutputStream;
 
 /**
  * Manages inbound agents.
@@ -95,8 +94,10 @@ public class InboundAgentExtension implements AfterEachCallback {
         private String name;
 
         private boolean webSocket;
+
         @CheckForNull
         private String tunnel;
+
         private List<String> javaOptions = new ArrayList<>();
         private boolean start = true;
         private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
@@ -141,8 +142,7 @@ public class InboundAgentExtension implements AfterEachCallback {
             if (trustStorePath != null && trustStorePassword != null) {
                 javaOptions.addAll(List.of(
                         "-Djavax.net.ssl.trustStore=" + trustStorePath,
-                        "-Djavax.net.ssl.trustStorePassword=" + trustStorePassword
-                ));
+                        "-Djavax.net.ssl.trustStorePassword=" + trustStorePassword));
             } else {
                 javaOptions.addAll(List.of(r.getTruststoreJavaOptions()));
             }
@@ -158,8 +158,7 @@ public class InboundAgentExtension implements AfterEachCallback {
 
             private final Options options = new Options();
 
-            private Builder() {
-            }
+            private Builder() {}
 
             /**
              * Set the name of the agent.
@@ -286,7 +285,6 @@ public class InboundAgentExtension implements AfterEachCallback {
                 return this;
             }
 
-
             /**
              * Build and return an {@link Options}.
              *
@@ -385,24 +383,26 @@ public class InboundAgentExtension implements AfterEachCallback {
         return args;
     }
 
-
     public void start(AgentArguments agentArguments, Options options) throws Exception {
         start(agentArguments, options, true);
     }
 
     @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
-    private void start(AgentArguments agentArguments, Options options, boolean stop) throws InterruptedException, IOException {
+    private void start(AgentArguments agentArguments, Options options, boolean stop)
+            throws InterruptedException, IOException {
         Objects.requireNonNull(options.getName());
         if (stop) {
             stop(options.getName());
         }
-        List<String> cmd = new ArrayList<>(List.of(JavaEnvUtils.getJreExecutable("java"),
+        List<String> cmd = new ArrayList<>(List.of(
+                JavaEnvUtils.getJreExecutable("java"),
                 "-Xmx512m",
                 "-XX:+PrintCommandLineFlags",
                 "-Djava.awt.headless=true"));
         if (JenkinsRule.SLAVE_DEBUG_PORT > 0) {
             cmd.add("-Xdebug");
-            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address=" + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
+            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address="
+                    + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
         }
         cmd.addAll(options.javaOptions);
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
@@ -439,7 +439,11 @@ public class InboundAgentExtension implements AfterEachCallback {
             result.addAll(newValue);
             return result;
         });
-        new StreamCopyThread("inbound-agent-" + options.getName(), proc.getInputStream(), options.prefixedOutputStreamBuilder.build(System.err)).start();
+        new StreamCopyThread(
+                        "inbound-agent-" + options.getName(),
+                        proc.getInputStream(),
+                        options.prefixedOutputStreamBuilder.build(System.err))
+                .start();
     }
 
     private static VersionNumber remotingVersion(File agentJar) throws IOException {
@@ -468,7 +472,8 @@ public class InboundAgentExtension implements AfterEachCallback {
         if (rjr.isAlive()) {
             rjr.runRemotely(InboundAgentExtension::waitForAgentOffline, name);
         } else {
-            LOGGER.warning(() -> "Controller seems to have already shut down; not waiting for " + name + " to go offline");
+            LOGGER.warning(
+                    () -> "Controller seems to have already shut down; not waiting for " + name + " to go offline");
         }
     }
 
@@ -545,11 +550,21 @@ public class InboundAgentExtension implements AfterEachCallback {
      * @param numberOfNodes   The number of nodes in the Jenkins instance where the agent is running.
      * @param commandLineArgs Additional command line arguments to pass to the agent.
      */
-    public record AgentArguments(@NonNull File agentJar, @NonNull String url, @NonNull String name,
-                                 @NonNull String secret, int numberOfNodes,
-                                 @NonNull List<String> commandLineArgs) implements Serializable {
+    public record AgentArguments(
+            @NonNull File agentJar,
+            @NonNull String url,
+            @NonNull String name,
+            @NonNull String secret,
+            int numberOfNodes,
+            @NonNull List<String> commandLineArgs)
+            implements Serializable {
         @Deprecated
-        public AgentArguments(@NonNull String agentJnlpUrl, @NonNull File agentJar, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
+        public AgentArguments(
+                @NonNull String agentJnlpUrl,
+                @NonNull File agentJar,
+                @NonNull String secret,
+                int numberOfNodes,
+                @NonNull List<String> commandLineArgs) {
             this(agentJar, parseUrlAndName(agentJnlpUrl), secret, numberOfNodes, commandLineArgs);
         }
 
@@ -560,11 +575,16 @@ public class InboundAgentExtension implements AfterEachCallback {
             if (!m.matches()) {
                 throw new IllegalArgumentException(agentJnlpUrl);
             }
-            return new String[]{m.group(1), URI.create(m.group(2)).getPath()};
+            return new String[] {m.group(1), URI.create(m.group(2)).getPath()};
         }
 
         @Deprecated
-        private AgentArguments(@NonNull File agentJar, @NonNull String[] urlAndName, @NonNull String secret, int numberOfNodes, @NonNull List<String> commandLineArgs) {
+        private AgentArguments(
+                @NonNull File agentJar,
+                @NonNull String[] urlAndName,
+                @NonNull String secret,
+                int numberOfNodes,
+                @NonNull List<String> commandLineArgs) {
             this(agentJar, urlAndName[0], urlAndName[1], secret, numberOfNodes, commandLineArgs);
         }
 
@@ -592,9 +612,16 @@ public class InboundAgentExtension implements AfterEachCallback {
         if (!launcher.getWorkDirSettings().isDisabled()) {
             commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
         }
-        File agentJar = Files.createTempFile(Path.of(System.getProperty("java.io.tmpdir")), "agent", ".jar").toFile();
+        File agentJar = Files.createTempFile(Path.of(System.getProperty("java.io.tmpdir")), "agent", ".jar")
+                .toFile();
         FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
-        return new AgentArguments(agentJar, r.jenkins.getRootUrl(), name, c.getJnlpMac(), r.jenkins.getNodes().size(), commandLineArgs);
+        return new AgentArguments(
+                agentJar,
+                r.jenkins.getRootUrl(),
+                name,
+                c.getJnlpMac(),
+                r.jenkins.getNodes().size(),
+                commandLineArgs);
     }
 
     private static void waitForAgentOnline(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
@@ -624,16 +651,21 @@ public class InboundAgentExtension implements AfterEachCallback {
 
     private static String[] createAgentRJR(JenkinsRule r, Options options) throws Throwable {
         var agent = createAgentJR(r, options);
-        return new String[]{options.getName(), agent.getRemoteFS()};
+        return new String[] {options.getName(), agent.getRemoteFS()};
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
-    private static Slave createAgentJR(JenkinsRule r, Options options) throws Descriptor.FormException, IOException, InterruptedException {
+    private static Slave createAgentJR(JenkinsRule r, Options options)
+            throws Descriptor.FormException, IOException, InterruptedException {
         if (options.getName() == null) {
             options.name = "agent" + r.jenkins.getNodes().size();
         }
         JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
-        DumbSlave s = new DumbSlave(options.getName(), Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work").toString(), launcher);
+        DumbSlave s = new DumbSlave(
+                options.getName(),
+                Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work")
+                        .toString(),
+                launcher);
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);

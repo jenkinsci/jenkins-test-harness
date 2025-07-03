@@ -37,35 +37,6 @@ import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import io.jenkins.test.fips.FIPSTestBundleProvider;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-import jenkins.test.https.KeyStoreManager;
-import jenkins.util.Timer;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.htmlunit.WebClient;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.rules.DisableOnDebug;
-import org.junit.rules.ErrorCollector;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
-import org.junit.runner.Description;
-import org.jvnet.hudson.test.*;
-import org.jvnet.hudson.test.recipes.LocalData;
-import org.kohsuke.stapler.*;
-import org.kohsuke.stapler.verb.POST;
-import org.opentest4j.TestAbortedException;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
@@ -94,6 +65,34 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.test.https.KeyStoreManager;
+import jenkins.util.Timer;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.htmlunit.WebClient;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.rules.DisableOnDebug;
+import org.junit.rules.ErrorCollector;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
+import org.junit.runner.Description;
+import org.jvnet.hudson.test.*;
+import org.jvnet.hudson.test.recipes.LocalData;
+import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.verb.POST;
+import org.opentest4j.TestAbortedException;
 
 /**
  * Like {@link JenkinsSessionExtension} but running Jenkins in a more realistic environment.
@@ -545,7 +544,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     public RealJenkinsExtension withFIPSEnabled(FIPSTestBundleProvider fipsTestBundleProvider) {
         Objects.requireNonNull(fipsTestBundleProvider, "fipsTestBundleProvider must not be null");
         try {
-            return withBootClasspath(fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
+            return withBootClasspath(
+                            fipsTestBundleProvider.getBootClasspathFiles().toArray(new File[0]))
                     .javaOptions(fipsTestBundleProvider.getJavaOptions().toArray(new String[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -578,7 +578,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
 
         System.err.println("=== Starting " + description);
 
-        jenkinsOptions("--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
+        jenkinsOptions(
+                "--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
         if (war == null) {
             war = findJenkinsWar();
         }
@@ -614,7 +615,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         }
         LocalData localData = extensionContext.getTestMethod().orElseThrow().getAnnotation(LocalData.class);
         if (localData != null) {
-            new HudsonHomeLoader.Local(extensionContext.getTestMethod().orElseThrow(), localData.value()).copy(getHome());
+            new HudsonHomeLoader.Local(extensionContext.getTestMethod().orElseThrow(), localData.value())
+                    .copy(getHome());
         }
 
         File plugins = new File(getHome(), "plugins");
@@ -629,7 +631,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         if (includeTestClasspathPlugins) {
             // Adapted from UnitTestSupportingPluginManager & JenkinsRule.recipeLoadCurrentPlugin:
             Set<String> snapshotPlugins = new TreeSet<>();
-            Enumeration<URL> indexJellies = RealJenkinsExtension.class.getClassLoader().getResources("index.jelly");
+            Enumeration<URL> indexJellies =
+                    RealJenkinsExtension.class.getClassLoader().getResources("index.jelly");
             while (indexJellies.hasMoreElements()) {
                 String indexJelly = indexJellies.nextElement().toString();
                 Matcher m = SNAPSHOT_INDEX_JELLY.matcher(indexJelly);
@@ -650,11 +653,13 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                         if (skippedPlugins.contains(shortName)) {
                             continue;
                         }
-                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option to run in integration-test phase?
+                        // Not totally realistic, but test phase is run before package phase. TODO can we add an option
+                        // to run in integration-test phase?
                         Files.copy(snapshotManifest, plugins.toPath().resolve(shortName + ".jpl"));
                         snapshotPlugins.add(shortName);
                     } else {
-                        System.err.println("Warning: found " + indexJelly + " but did not find corresponding ../test-classes/the.[hj]pl");
+                        System.err.println("Warning: found " + indexJelly
+                                + " but did not find corresponding ../test-classes/the.[hj]pl");
                     }
                 } else {
                     // Do not warn about the common case of jar:file:/**/.m2/repository/**/*.jar!/index.jelly
@@ -662,7 +667,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             }
             URL index = RealJenkinsExtension.class.getResource("/test-dependencies/index");
             if (index != null) {
-                try (BufferedReader r = new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
+                try (BufferedReader r =
+                        new BufferedReader(new InputStreamReader(index.openStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = r.readLine()) != null) {
                         if (snapshotPlugins.contains(line) || skippedPlugins.contains(line)) {
@@ -675,11 +681,12 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                         } catch (IllegalArgumentException x) {
                             if (x.getMessage().equals("URI is not hierarchical")) {
                                 throw new IOException(
-                                        "You are probably trying to load plugins from within a jarfile (not possible). If" +
-                                                " you are running this in your IDE and see this message, it is likely" +
-                                                " that you have a clean target directory. Try running 'mvn test-compile' " +
-                                                "from the command line (once only), which will copy the required plugins " +
-                                                "into target/test-classes/test-dependencies - then retry your test", x);
+                                        "You are probably trying to load plugins from within a jarfile (not possible). If"
+                                                + " you are running this in your IDE and see this message, it is likely"
+                                                + " that you have a clean target directory. Try running 'mvn test-compile' "
+                                                + "from the command line (once only), which will copy the required plugins "
+                                                + "into target/test-classes/test-dependencies - then retry your test",
+                                        x);
                             } else {
                                 throw new IOException(index + " contains bogus line " + line, x);
                             }
@@ -696,7 +703,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         for (String extraPlugin : extraPlugins) {
             URL url = RealJenkinsExtension.class.getClassLoader().getResource(extraPlugin);
             String name;
-            try (InputStream is = url.openStream(); JarInputStream jis = new JarInputStream(is)) {
+            try (InputStream is = url.openStream();
+                    JarInputStream jis = new JarInputStream(is)) {
                 Manifest man = jis.getManifest();
                 if (man == null) {
                     throw new IOException("No manifest found in " + extraPlugin);
@@ -711,7 +719,11 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         for (SyntheticPlugin syntheticPlugin : syntheticPlugins) {
             syntheticPlugin.writeTo(new File(plugins, syntheticPlugin.shortName + ".jpi"), targetJenkinsVersion);
         }
-        System.err.println("Will load plugins: " + Stream.of(plugins.list()).filter(n -> n.matches(".+[.][hj]p[il]")).sorted().collect(Collectors.joining(" ")));
+        System.err.println("Will load plugins: "
+                + Stream.of(plugins.list())
+                        .filter(n -> n.matches(".+[.][hj]p[il]"))
+                        .sorted()
+                        .collect(Collectors.joining(" ")));
     }
 
     /**
@@ -829,7 +841,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             IOUtils.copy(getClass().getResource("/https/test-keystore.p12"), keyStorePath.toFile());
             var keyStoreManager = new KeyStoreManager(keyStorePath, "changeit");
             try (var is = getClass().getResourceAsStream("/https/test-cert.pem")) {
-                var cert = (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(is);
+                var cert = (X509Certificate)
+                        CertificateFactory.getInstance("X.509").generateCertificate(is);
                 https("localhost", keyStoreManager, cert);
             }
         } catch (CertificateException | KeyStoreException | NoSuchAlgorithmException | IOException e) {
@@ -850,14 +863,18 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
      * @see #createWebClient()
      * @see #withHost(String)
      */
-    public RealJenkinsExtension https(@NonNull String host, @NonNull KeyStoreManager keyStoreManager, @NonNull X509Certificate rootCA) {
+    public RealJenkinsExtension https(
+            @NonNull String host, @NonNull KeyStoreManager keyStoreManager, @NonNull X509Certificate rootCA) {
         this.host = host;
         this.https = true;
         this.keyStoreManager = keyStoreManager;
         try {
             this.sslSocketFactory = keyStoreManager.buildClientSSLContext().getSocketFactory();
-        } catch (NoSuchAlgorithmException | KeyManagementException | CertificateException | KeyStoreException |
-                 IOException e) {
+        } catch (NoSuchAlgorithmException
+                | KeyManagementException
+                | CertificateException
+                | KeyStoreException
+                | IOException e) {
             throw new RuntimeException(e);
         }
         this.rootCA = rootCA;
@@ -900,7 +917,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             try {
                 var myTrustStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 myTrustStore.load(null, null);
-                myTrustStore.setCertificateEntry(getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
+                myTrustStore.setCertificateEntry(
+                        getName() != null ? getName() : UUID.randomUUID().toString(), rootCA);
                 var trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(myTrustStore);
                 var context = SSLContext.getInstance("TLS");
@@ -965,7 +983,9 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         return wc;
     }
 
-    @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD", "COMMAND_INJECTION"}, justification = "irrelevant")
+    @SuppressFBWarnings(
+            value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD", "COMMAND_INJECTION"},
+            justification = "irrelevant")
     public void startJenkins() throws Exception {
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
@@ -985,12 +1005,17 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                 "-ea",
                 "-Dhudson.Main.development=true",
                 "-DRealJenkinsExtension.classpath=" + cpFile,
-                "-DRealJenkinsExtension.location=" + RealJenkinsExtension.class.getProtectionDomain().getCodeSource().getLocation(),
+                "-DRealJenkinsExtension.location="
+                        + RealJenkinsExtension.class
+                                .getProtectionDomain()
+                                .getCodeSource()
+                                .getLocation(),
                 "-DRealJenkinsExtension.description=" + description,
                 "-DRealJenkinsExtension.token=" + token));
         argv.addAll(getJacocoAgentOptions());
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
-            argv.add("-D" + REAL_JENKINS_EXTENSION_LOGGING + e.getKey() + "=" + e.getValue().getName());
+            argv.add("-D" + REAL_JENKINS_EXTENSION_LOGGING + e.getKey() + "="
+                    + e.getValue().getName());
         }
         portFile = metadata.resolve("jenkins-port.txt");
         argv.add("-Dwinstone.portFileName=" + portFile);
@@ -1006,16 +1031,15 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                     + (debugPort > 0 ? ",address=" + httpListenAddress + ":" + debugPort : ""));
         }
         if (!bootClasspathFiles.isEmpty()) {
-            String fileList = bootClasspathFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+            String fileList = bootClasspathFiles.stream()
+                    .map(File::getAbsolutePath)
+                    .collect(Collectors.joining(File.pathSeparator));
             argv.add("-Xbootclasspath/a:" + fileList);
-
         }
         argv.addAll(javaOptions);
 
         argv.addAll(List.of(
-                "-jar", war.getAbsolutePath(),
-                "--enable-future-java",
-                "--httpListenAddress=" + httpListenAddress));
+                "-jar", war.getAbsolutePath(), "--enable-future-java", "--httpListenAddress=" + httpListenAddress));
         if (!prefix.isEmpty()) {
             argv.add("--prefix=" + prefix);
         }
@@ -1040,15 +1064,19 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                 env.put(entry.getKey(), entry.getValue());
             }
         }
-        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that QuotedStringTokenizer.quote(String) Javadoc is untrue):
-        System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " " + String.join(" ", argv));
+        // TODO escape spaces like Launcher.printCommandLine, or LabelAtom.escape (beware that
+        // QuotedStringTokenizer.quote(String) Javadoc is untrue):
+        System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " "
+                + String.join(" ", argv));
         ProcessBuilder pb = new ProcessBuilder(argv);
         pb.environment().putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         pb.redirectErrorStream(true);
         proc = pb.start();
-        new StreamCopyThread(description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.err)).start();
+        new StreamCopyThread(
+                        description.toString(), proc.getInputStream(), prefixedOutputStreamBuilder.build(System.err))
+                .start();
         int tries = 0;
         while (true) {
             if (!proc.isAlive()) {
@@ -1069,8 +1097,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                         System.err.println((getName() != null ? getName() : "Jenkins") + " is running at " + getUrl());
                         break;
                     } else {
-                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": " + checkResult +
-                                " " + conn.getHeaderFields());
+                        throw new IOException("Response code " + conn.getResponseCode() + " for " + status + ": "
+                                + checkResult + " " + conn.getHeaderFields());
                     }
 
                 } catch (JenkinsStartupException jse) {
@@ -1126,25 +1154,31 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
 
     private void addTimeout() {
         if (timeout > 0) {
-            Timer.get().schedule(() -> {
-                if (proc != null) {
-                    LOGGER.warning("Test timeout expired, stopping steps…");
-                    try {
-                        decorateConnection(endpoint("timeout").openConnection()).getInputStream().close();
-                    } catch (IOException x) {
-                        x.printStackTrace();
-                    }
-                    LOGGER.warning("…and giving steps a chance to fail…");
-                    try {
-                        Thread.sleep(15_000);
-                    } catch (InterruptedException x) {
-                        x.printStackTrace();
-                    }
-                    LOGGER.warning("…and killing Jenkins process.");
-                    proc.destroyForcibly();
-                    proc = null;
-                }
-            }, timeout, TimeUnit.SECONDS);
+            Timer.get()
+                    .schedule(
+                            () -> {
+                                if (proc != null) {
+                                    LOGGER.warning("Test timeout expired, stopping steps…");
+                                    try {
+                                        decorateConnection(endpoint("timeout").openConnection())
+                                                .getInputStream()
+                                                .close();
+                                    } catch (IOException x) {
+                                        x.printStackTrace();
+                                    }
+                                    LOGGER.warning("…and giving steps a chance to fail…");
+                                    try {
+                                        Thread.sleep(15_000);
+                                    } catch (InterruptedException x) {
+                                        x.printStackTrace();
+                                    }
+                                    LOGGER.warning("…and killing Jenkins process.");
+                                    proc.destroyForcibly();
+                                    proc = null;
+                                }
+                            },
+                            timeout,
+                            TimeUnit.SECONDS);
         }
     }
 
@@ -1169,7 +1203,9 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             proc = null;
             if (_proc.isAlive()) {
                 try {
-                    decorateConnection(endpoint("exit").openConnection()).getInputStream().close();
+                    decorateConnection(endpoint("exit").openConnection())
+                            .getInputStream()
+                            .close();
                 } catch (SocketException e) {
                     System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
@@ -1310,11 +1346,13 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         void run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
     }
 
-    public <A1 extends Serializable, A2 extends Serializable> void runRemotely(StepWithTwoArgs<A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+    public <A1 extends Serializable, A2 extends Serializable> void runRemotely(
+            StepWithTwoArgs<A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
         runRemotely(new StepWithTwoArgsWrapper<>(s, arg1, arg2));
     }
 
-    private static final class StepWithTwoArgsWrapper<A1 extends Serializable, A2 extends Serializable> implements Step {
+    private static final class StepWithTwoArgsWrapper<A1 extends Serializable, A2 extends Serializable>
+            implements Step {
         private final StepWithTwoArgs<A1, A2> delegate;
         private final A1 arg1;
         private final A2 arg2;
@@ -1332,15 +1370,19 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @FunctionalInterface
-    public interface StepWithThreeArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
+    public interface StepWithThreeArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            extends Serializable {
         void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
     }
 
-    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> void runRemotely(StepWithThreeArgs<A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> void runRemotely(
+            StepWithThreeArgs<A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
         runRemotely(new StepWithThreeArgsWrapper<>(s, arg1, arg2, arg3));
     }
 
-    private static final class StepWithThreeArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step {
+    private static final class StepWithThreeArgsWrapper<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            implements Step {
         private final StepWithThreeArgs<A1, A2, A3> delegate;
         private final A1 arg1;
         private final A2 arg2;
@@ -1360,15 +1402,20 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @FunctionalInterface
-    public interface StepWithFourArgs<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
+    public interface StepWithFourArgs<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            extends Serializable {
         void run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
     }
 
-    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> void runRemotely(StepWithFourArgs<A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+    public <A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            void runRemotely(StepWithFourArgs<A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
         runRemotely(new StepWithFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
     }
 
-    private static final class StepWithFourArgsWrapper<A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step {
+    private static final class StepWithFourArgsWrapper<
+                    A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable>
+            implements Step {
         private final StepWithFourArgs<A1, A2, A3, A4> delegate;
         private final A1 arg1;
         private final A2 arg2;
@@ -1394,11 +1441,13 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         R run(JenkinsRule r, A1 arg1) throws Throwable;
     }
 
-    public <R extends Serializable, A1 extends Serializable> R runRemotely(StepWithReturnAndOneArg<R, A1> s, A1 arg1) throws Throwable {
+    public <R extends Serializable, A1 extends Serializable> R runRemotely(StepWithReturnAndOneArg<R, A1> s, A1 arg1)
+            throws Throwable {
         return runRemotely(new StepWithReturnAndOneArgWrapper<>(s, arg1));
     }
 
-    private static final class StepWithReturnAndOneArgWrapper<R extends Serializable, A1 extends Serializable> implements Step2<R> {
+    private static final class StepWithReturnAndOneArgWrapper<R extends Serializable, A1 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndOneArg<R, A1> delegate;
         private final A1 arg1;
 
@@ -1414,15 +1463,19 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndTwoArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndTwoArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2) throws Throwable;
     }
 
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable> R runRemotely(StepWithReturnAndTwoArgs<R, A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable> R runRemotely(
+            StepWithReturnAndTwoArgs<R, A1, A2> s, A1 arg1, A2 arg2) throws Throwable {
         return runRemotely(new StepWithReturnAndTwoArgsWrapper<>(s, arg1, arg2));
     }
 
-    private static final class StepWithReturnAndTwoArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable> implements Step2<R> {
+    private static final class StepWithReturnAndTwoArgsWrapper<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndTwoArgs<R, A1, A2> delegate;
         private final A1 arg1;
         private final A2 arg2;
@@ -1440,21 +1493,27 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndThreeArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndThreeArgs<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3) throws Throwable;
     }
 
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> R runRemotely(StepWithReturnAndThreeArgs<R, A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
+    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            R runRemotely(StepWithReturnAndThreeArgs<R, A1, A2, A3> s, A1 arg1, A2 arg2, A3 arg3) throws Throwable {
         return runRemotely(new StepWithReturnAndThreeArgsWrapper<>(s, arg1, arg2, arg3));
     }
 
-    private static final class StepWithReturnAndThreeArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable> implements Step2<R> {
+    private static final class StepWithReturnAndThreeArgsWrapper<
+                    R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
 
-        StepWithReturnAndThreeArgsWrapper(StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
+        StepWithReturnAndThreeArgsWrapper(
+                StepWithReturnAndThreeArgs<R, A1, A2, A3> delegate, A1 arg1, A2 arg2, A3 arg3) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
@@ -1468,22 +1527,42 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @FunctionalInterface
-    public interface StepWithReturnAndFourArgs<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> extends Serializable {
+    public interface StepWithReturnAndFourArgs<
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            extends Serializable {
         R run(JenkinsRule r, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable;
     }
 
-    public <R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> R runRemotely(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4) throws Throwable {
+    public <
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            R runRemotely(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> s, A1 arg1, A2 arg2, A3 arg3, A4 arg4)
+                    throws Throwable {
         return runRemotely(new StepWithReturnAndFourArgsWrapper<>(s, arg1, arg2, arg3, arg4));
     }
 
-    private static final class StepWithReturnAndFourArgsWrapper<R extends Serializable, A1 extends Serializable, A2 extends Serializable, A3 extends Serializable, A4 extends Serializable> implements Step2<R> {
+    private static final class StepWithReturnAndFourArgsWrapper<
+                    R extends Serializable,
+                    A1 extends Serializable,
+                    A2 extends Serializable,
+                    A3 extends Serializable,
+                    A4 extends Serializable>
+            implements Step2<R> {
         private final StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate;
         private final A1 arg1;
         private final A2 arg2;
         private final A3 arg3;
         private final A4 arg4;
 
-        StepWithReturnAndFourArgsWrapper(StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+        StepWithReturnAndFourArgsWrapper(
+                StepWithReturnAndFourArgs<R, A1, A2, A3, A4> delegate, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
             this.delegate = delegate;
             this.arg1 = arg1;
             this.arg2 = arg2;
@@ -1502,9 +1581,19 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
 
         public static void run(Object jenkins) throws Exception {
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
-            ClassLoader uberClassLoader = (ClassLoader) pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(Files.readAllLines(Paths.get(System.getProperty("RealJenkinsExtension.classpath")), StandardCharsets.UTF_8).stream().map(Init2::pathToURL).toArray(URL[]::new), uberClassLoader);
-            tests.loadClass("org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension$Endpoint").getMethod("register").invoke(null);
+            ClassLoader uberClassLoader = (ClassLoader)
+                    pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
+            ClassLoader tests = new URLClassLoader(
+                    Files.readAllLines(
+                                    Paths.get(System.getProperty("RealJenkinsExtension.classpath")),
+                                    StandardCharsets.UTF_8)
+                            .stream()
+                            .map(Init2::pathToURL)
+                            .toArray(URL[]::new),
+                    uberClassLoader);
+            tests.loadClass("org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension$Endpoint")
+                    .getMethod("register")
+                    .invoke(null);
         }
 
         @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
@@ -1552,9 +1641,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             }
         }
 
-        private Init2() {
-        }
-
+        private Init2() {}
     }
 
     public static final class Endpoint implements UnprotectedRootAction {
@@ -1565,7 +1652,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             j.getActions().add(new Endpoint());
             CrumbExclusion.all().add(new CrumbExclusion() {
                 @Override
-                public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+                public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                        throws IOException, ServletException {
                     if (request.getPathInfo().startsWith("/RealJenkinsExtension/")) {
                         chain.doFilter(request, response);
                         return true;
@@ -1593,7 +1681,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                         minLevel = level;
                     }
                     logger.setLevel(level);
-                    loggers.add(logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
+                    loggers.add(
+                            logger); // Keep a ref around, otherwise it is garbage collected and we lose configuration
                 }
             }
             // Increase ConsoleHandler level to the finest level we want to log.
@@ -1621,7 +1710,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             return null;
         }
 
-        private final byte[] actualToken = System.getProperty("RealJenkinsExtension.token").getBytes(StandardCharsets.US_ASCII);
+        private final byte[] actualToken =
+                System.getProperty("RealJenkinsExtension.token").getBytes(StandardCharsets.US_ASCII);
 
         private void checkToken(String token) {
             if (!MessageDigest.isEqual(actualToken, token.getBytes(StandardCharsets.US_ASCII))) {
@@ -1638,8 +1728,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
          * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest2}
          * does not inadvertently interact with the request for {@link #doStep} itself.
          */
-        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(
-                new NamingThreadFactory(Executors.defaultThreadFactory(), RealJenkinsExtension.class.getName() + ".STEP_RUNNER"));
+        private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(new NamingThreadFactory(
+                Executors.defaultThreadFactory(), RealJenkinsExtension.class.getName() + ".STEP_RUNNER"));
 
         @POST
         public void doStep(StaplerRequest2 req, StaplerResponse2 rsp) throws Throwable {
@@ -1652,13 +1742,16 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             Throwable err = null;
             Object object = null;
             try {
-                object = STEP_RUNNER.submit(() -> {
-                    try (CustomJenkinsRule rule = new CustomJenkinsRule(url, contextPath); ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
-                        return s.run(rule);
-                    } catch (Throwable t) {
-                        throw new RuntimeException(t);
-                    }
-                }).get();
+                object = STEP_RUNNER
+                        .submit(() -> {
+                            try (CustomJenkinsRule rule = new CustomJenkinsRule(url, contextPath);
+                                    ACLContext ctx = ACL.as2(ACL.SYSTEM2)) {
+                                return s.run(rule);
+                            } catch (Throwable t) {
+                                throw new RuntimeException(t);
+                            }
+                        })
+                        .get();
             } catch (ExecutionException e) {
                 // Unwrap once for ExecutionException and once for RuntimeException:
                 err = e.getCause().getCause();
@@ -1703,12 +1796,15 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             this.url = url;
             this.contextPath = contextPath;
             if (jenkins.isUsageStatisticsCollected()) {
-                jenkins.setNoUsageStatistics(true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save config before loaded
+                jenkins.setNoUsageStatistics(
+                        true); // cannot use JenkinsRule._configureJenkinsForTest earlier because it tries to save
+                // config before loaded
             }
             if (JenkinsLocationConfiguration.get().getUrl() == null) {
                 JenkinsLocationConfiguration.get().setUrl(url.toExternalForm());
             }
-            testDescription = Description.createSuiteDescription(System.getProperty("RealJenkinsExtension.description"));
+            testDescription =
+                    Description.createSuiteDescription(System.getProperty("RealJenkinsExtension.description"));
             env = new TestEnvironment(this.testDescription);
             env.pin();
         }
@@ -1722,7 +1818,6 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
         public void close() throws Exception {
             env.dispose();
         }
-
     }
 
     // Copied from hudson.remoting
@@ -1768,7 +1863,11 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
 
     public static class StepException extends Exception {
         StepException(Throwable cause, @CheckForNull String name) {
-            super(name != null ? "Remote step in " + name + " threw an exception: " + cause : "Remote step threw an exception: " + cause, cause);
+            super(
+                    name != null
+                            ? "Remote step in " + name + " threw an exception: " + cause
+                            : "Remote step threw an exception: " + cause,
+                    cause);
         }
     }
 
@@ -1897,13 +1996,15 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                 if (!Files.isDirectory(main)) {
                     throw new IOException(main + " does not exist");
                 }
-                Path metaInf = Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
+                Path metaInf =
+                        Path.of(URI.create(mainU.toString().replaceFirst("\\Q" + pkgSlash + "\\E/?$", "META-INF")));
                 if (Files.isDirectory(metaInf)) {
                     zip(jos, metaInf, "META-INF/", pkg);
                 }
                 zip(jos, main, pkgSlash + "/", null);
             }
-            try (var os = new FileOutputStream(jpi); var jos = new JarOutputStream(os, mani)) {
+            try (var os = new FileOutputStream(jpi);
+                    var jos = new JarOutputStream(os, mani)) {
                 jos.putNextEntry(new JarEntry("WEB-INF/lib/" + shortName + ".jar"));
                 jos.write(jar.toByteArray());
             }
@@ -1923,7 +2024,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                         if (filter != null) {
                             // Deliberately not using UTF-8 since the file could be binary.
                             // If the package name happened to be non-ASCII, 🤷 this could be improved.
-                            if (!Files.readString(child, StandardCharsets.ISO_8859_1).contains(filter)) {
+                            if (!Files.readString(child, StandardCharsets.ISO_8859_1)
+                                    .contains(filter)) {
                                 LOGGER.info(() -> "Skipping " + child + " since it makes no mention of " + filter);
                                 continue;
                             }
@@ -1935,7 +2037,5 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                 }
             }
         }
-
     }
-
 }

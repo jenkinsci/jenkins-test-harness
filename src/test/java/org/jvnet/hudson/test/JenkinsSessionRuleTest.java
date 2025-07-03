@@ -23,15 +23,14 @@
  */
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.*;
+
+import java.io.File;
+import java.net.URL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.io.File;
-import java.net.URL;
-
-import static org.junit.Assert.*;
 
 /**
  * Test basic behavior of {@link JenkinsSessionRule}

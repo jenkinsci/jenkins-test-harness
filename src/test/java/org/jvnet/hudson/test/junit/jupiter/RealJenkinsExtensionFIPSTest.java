@@ -24,26 +24,27 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
-import io.jenkins.test.fips.FIPSTestBundleProvider;
-import jenkins.security.FIPS140;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-
-import javax.net.ssl.KeyManagerFactory;
-import java.security.KeyStore;
-import java.security.Provider;
-import java.security.Security;
-import java.util.Arrays;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+import io.jenkins.test.fips.FIPSTestBundleProvider;
+import java.security.KeyStore;
+import java.security.Provider;
+import java.security.Security;
+import java.util.Arrays;
+import javax.net.ssl.KeyManagerFactory;
+import jenkins.security.FIPS140;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 class RealJenkinsExtensionFIPSTest {
 
     @RegisterExtension
-    private final RealJenkinsExtension extension = new RealJenkinsExtension().prepareHomeLazily(true)
-            .withDebugPort(4001).withDebugServer(false)
+    private final RealJenkinsExtension extension = new RealJenkinsExtension()
+            .prepareHomeLazily(true)
+            .withDebugPort(4001)
+            .withDebugServer(false)
             .withFIPSEnabled(FIPSTestBundleProvider.get())
             .javaOptions("-Djava.security.debug=properties");
 
@@ -53,14 +54,18 @@ class RealJenkinsExtensionFIPSTest {
             Provider[] providers = Security.getProviders();
             System.out.println("fipsMode providers:" + Arrays.asList(providers));
 
-            Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider");
+            Class<?> clazz = Thread.currentThread()
+                    .getContextClassLoader()
+                    .loadClass("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider");
             System.out.println("BouncyCastleFipsProvider class:" + clazz);
 
             Provider provider = Security.getProvider("BCFIPS");
             assertThat(provider, notNullValue());
             assertThat(provider.getClass().getName(), is("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"));
-            assertThat(providers[0].getClass().getName(), is("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"));
-            assertThat(providers[1].getClass().getName(), is("org.bouncycastle.jsse.provider.BouncyCastleJsseProvider"));
+            assertThat(
+                    providers[0].getClass().getName(), is("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"));
+            assertThat(
+                    providers[1].getClass().getName(), is("org.bouncycastle.jsse.provider.BouncyCastleJsseProvider"));
             assertThat(providers[2].getClass().getName(), is("sun.security.provider.Sun"));
             assertThat(KeyStore.getDefaultType(), is("BCFKS"));
             assertThat(KeyManagerFactory.getDefaultAlgorithm(), is("PKIX"));
@@ -70,5 +75,4 @@ class RealJenkinsExtensionFIPSTest {
             assertThat(FIPS140.useCompliantAlgorithms(), is(true));
         });
     }
-
 }

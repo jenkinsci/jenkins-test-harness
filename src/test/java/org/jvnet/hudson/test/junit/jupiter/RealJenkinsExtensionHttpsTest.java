@@ -24,15 +24,13 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
-
+import java.io.IOException;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
-
-import java.io.IOException;
-import java.util.logging.Logger;
 
 class RealJenkinsExtensionHttpsTest {
     private static final Logger LOGGER = Logger.getLogger(RealJenkinsExtensionHttpsTest.class.getName());
@@ -60,8 +58,7 @@ class RealJenkinsExtensionHttpsTest {
 
     @Test
     void inboundAgent() throws Throwable {
-        var options = InboundAgentExtension.Options
-                .newBuilder()
+        var options = InboundAgentExtension.Options.newBuilder()
                 .name("remote")
                 .webSocket()
                 .color(PrefixedOutputStream.Color.YELLOW);

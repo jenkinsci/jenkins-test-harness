@@ -23,15 +23,14 @@
  */
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.io.File;
+import java.net.URL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-
-import java.io.File;
-import java.net.URL;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test basic behavior of {@link JenkinsSessionExtension}

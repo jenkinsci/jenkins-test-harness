@@ -24,6 +24,11 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
+import java.util.logging.Level;
 import jenkins.model.Jenkins;
 import jenkins.security.ClassFilterImpl;
 import org.junit.jupiter.api.Test;
@@ -31,12 +36,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.sample.plugin.CustomJobProperty;
 import org.jvnet.hudson.test.sample.plugin.Stuff;
-
-import java.util.logging.Level;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
 
 class RealJenkinsExtensionSyntheticPluginTest {
 
@@ -50,13 +49,16 @@ class RealJenkinsExtensionSyntheticPluginTest {
     }
 
     private static void _smokes(JenkinsRule r) throws Throwable {
-        assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
+        assertThat(
+                r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
                 is(Jenkins.get().getLegacyInstanceId()));
     }
 
     @Test
     void classFilter() throws Throwable {
-        extension.addSyntheticPlugin(new RealJenkinsExtension.SyntheticPlugin(CustomJobProperty.class)).withLogger(ClassFilterImpl.class, Level.FINE);
+        extension
+                .addSyntheticPlugin(new RealJenkinsExtension.SyntheticPlugin(CustomJobProperty.class))
+                .withLogger(ClassFilterImpl.class, Level.FINE);
         extension.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
@@ -69,7 +71,11 @@ class RealJenkinsExtensionSyntheticPluginTest {
         var pluginJpi = extension.createSyntheticPlugin(new RealJenkinsExtension.SyntheticPlugin(Stuff.class));
         extension.then(r -> {
             r.jenkins.pluginManager.dynamicLoad(pluginJpi);
-            assertThat(r.createWebClient().goTo("stuff", "text/plain").getWebResponse().getContentAsString(),
+            assertThat(
+                    r.createWebClient()
+                            .goTo("stuff", "text/plain")
+                            .getWebResponse()
+                            .getContentAsString(),
                     is(Jenkins.get().getLegacyInstanceId()));
         });
     }

@@ -23,17 +23,16 @@
  */
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
 
 @WithJenkins
 class BuildWatcherExtensionTest {
@@ -58,10 +57,7 @@ class BuildWatcherExtensionTest {
 
             j.buildAndAssertSuccess(j.createFreeStyleProject());
             String output = errContent.toString();
-            assertThat(output, allOf(
-                    containsString("Running as SYSTEM"),
-                    containsString("Finished: SUCCESS")
-            ));
+            assertThat(output, allOf(containsString("Running as SYSTEM"), containsString("Finished: SUCCESS")));
         } finally {
             System.setErr(originalErr); // restore
         }

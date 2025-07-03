@@ -24,14 +24,13 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 
 @WithJenkins
 class InboundAgentExtensionTest {
@@ -48,11 +47,14 @@ class InboundAgentExtensionTest {
 
     @Test
     void waitOnline() throws Exception {
-        assertTrue(inboundAgents.createAgent(r, InboundAgentExtension.Options.newBuilder().
-                        color(PrefixedOutputStream.Color.MAGENTA.bold()).
-                        name("remote").
-                        build()).
-                toComputer().isOnline());
+        assertTrue(inboundAgents
+                .createAgent(
+                        r,
+                        InboundAgentExtension.Options.newBuilder()
+                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
+                                .name("remote")
+                                .build())
+                .toComputer()
+                .isOnline());
     }
-
 }

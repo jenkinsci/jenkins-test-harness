@@ -24,6 +24,10 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -31,11 +35,6 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
@@ -110,13 +109,16 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
      */
     public void then(Step s) throws Throwable {
         CustomJenkinsRule r = new CustomJenkinsRule(home, port);
-        r.apply(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                port = r.getPort();
-                s.run(r);
-            }
-        }, description).evaluate();
+        r.apply(
+                        new Statement() {
+                            @Override
+                            public void evaluate() throws Throwable {
+                                port = r.getPort();
+                                s.run(r);
+                            }
+                        },
+                        description)
+                .evaluate();
     }
 
     private static final class CustomJenkinsRule extends JenkinsRule {

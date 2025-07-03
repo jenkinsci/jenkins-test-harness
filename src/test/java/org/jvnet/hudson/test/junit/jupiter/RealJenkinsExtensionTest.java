@@ -24,6 +24,12 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.*;
+
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
@@ -31,17 +37,6 @@ import hudson.PluginWrapper;
 import hudson.model.*;
 import hudson.model.listeners.ItemListener;
 import hudson.util.PluginServletFilter;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.jvnet.hudson.test.*;
-import org.jvnet.hudson.test.recipes.LocalData;
-import org.kohsuke.stapler.Stapler;
-import org.opentest4j.TestAbortedException;
-
-import javax.servlet.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -54,22 +49,33 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.mockito.Mockito.*;
+import javax.servlet.*;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.*;
+import org.jvnet.hudson.test.recipes.LocalData;
+import org.kohsuke.stapler.Stapler;
+import org.opentest4j.TestAbortedException;
 
 class RealJenkinsExtensionTest {
 
     @RegisterExtension
-    private final RealJenkinsExtension extension = new RealJenkinsExtension().prepareHomeLazily(true).withDebugPort(4001).withDebugServer(false);
+    private final RealJenkinsExtension extension = new RealJenkinsExtension()
+            .prepareHomeLazily(true)
+            .withDebugPort(4001)
+            .withDebugServer(false);
 
     @Test
     void smokes() throws Throwable {
         extension.addPlugins("plugins/structs.hpi");
-        extension.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsExtensionTest::_smokes);
+        extension
+                .extraEnv("SOME_ENV_VAR", "value")
+                .extraEnv("NOT_SET", null)
+                .withLogger(Jenkins.class, Level.FINEST)
+                .then(RealJenkinsExtensionTest::_smokes);
     }
 
     private static void _smokes(JenkinsRule r) throws Throwable {
@@ -130,12 +136,18 @@ class RealJenkinsExtensionTest {
     }
 
     private void assertThatLocalAndRemoteUrlEquals() throws Throwable {
-        assertEquals(extension.getUrl().toExternalForm(), extension.runRemotely(RealJenkinsExtensionTest::_getJenkinsUrlFromRemote));
+        assertEquals(
+                extension.getUrl().toExternalForm(),
+                extension.runRemotely(RealJenkinsExtensionTest::_getJenkinsUrlFromRemote));
     }
 
     @Test
     void testThrowsException() {
-        assertThat(assertThrows(RealJenkinsExtension.StepException.class, () -> extension.then(RealJenkinsExtensionTest::throwsException)).getMessage(),
+        assertThat(
+                assertThrows(
+                                RealJenkinsExtension.StepException.class,
+                                () -> extension.then(RealJenkinsExtensionTest::throwsException))
+                        .getMessage(),
                 containsString("IllegalStateException: something is wrong"));
     }
 
@@ -166,23 +178,21 @@ class RealJenkinsExtensionTest {
         PluginServletFilter.addFilter(new Filter() {
 
             @Override
-            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
                 String fake = request.getParameter("fake");
                 chain.doFilter(request, response);
             }
 
             @Override
-            public void destroy() {
-            }
+            public void destroy() {}
 
             @Override
-            public void init(FilterConfig filterConfig) throws ServletException {
-            }
+            public void init(FilterConfig filterConfig) throws ServletException {}
         });
     }
 
-    private static void _testFilter2(JenkinsRule jenkinsRule) throws Throwable {
-    }
+    private static void _testFilter2(JenkinsRule jenkinsRule) throws Throwable {}
 
     @Test
     void chainedSteps() throws Throwable {
@@ -235,7 +245,10 @@ class RealJenkinsExtensionTest {
         extension.startJenkins();
         extension.runRemotely(r -> {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+            r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                    .grant(Jenkins.ADMINISTER)
+                    .everywhere()
+                    .to("admin"));
             var p = r.createFreeStyleProject("p");
             p.setDescription("hello");
         });
@@ -265,12 +278,17 @@ class RealJenkinsExtensionTest {
     void restart() throws Throwable {
         extension.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-            Files.writeString(r.jenkins.getRootDir().toPath().resolve("url.txt"), r.getURL().toString(), StandardCharsets.UTF_8);
+            Files.writeString(
+                    r.jenkins.getRootDir().toPath().resolve("url.txt"),
+                    r.getURL().toString(),
+                    StandardCharsets.UTF_8);
             r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
         });
         extension.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
-            assertEquals(r.jenkins.getRootUrl(), Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
+            assertEquals(
+                    r.jenkins.getRootUrl(),
+                    Files.readString(r.jenkins.getRootDir().toPath().resolve("url.txt"), StandardCharsets.UTF_8));
             assertTrue(new File(Jenkins.get().getRootDir(), "RealJenkinsExtension-ran-cleanUp").exists());
         });
     }
@@ -304,7 +322,8 @@ class RealJenkinsExtensionTest {
             JenkinsLocationConfiguration.get().setUrl("https://example.com/");
         });
         extension.then(r -> {
-            assertEquals("https://example.com/", JenkinsLocationConfiguration.get().getUrl());
+            assertEquals(
+                    "https://example.com/", JenkinsLocationConfiguration.get().getUrl());
         });
     }
 
@@ -312,15 +331,15 @@ class RealJenkinsExtensionTest {
     void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        assertThrows(RealJenkinsExtension.JenkinsStartupException.class,
-                () -> RealJenkinsExtension.checkResult(conn));
+        assertThrows(RealJenkinsExtension.JenkinsStartupException.class, () -> RealJenkinsExtension.checkResult(conn));
     }
 
     @Test
     void test503Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(503);
-        when(conn.getErrorStream()).thenReturn(new ByteArrayInputStream("Jenkins Custom Error".getBytes(StandardCharsets.UTF_8)));
+        when(conn.getErrorStream())
+                .thenReturn(new ByteArrayInputStream("Jenkins Custom Error".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsExtension.checkResult(conn);
 
@@ -331,7 +350,8 @@ class RealJenkinsExtensionTest {
     void test200Ok() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(200);
-        when(conn.getInputStream()).thenReturn(new ByteArrayInputStream("blah blah blah".getBytes(StandardCharsets.UTF_8)));
+        when(conn.getInputStream())
+                .thenReturn(new ByteArrayInputStream("blah blah blah".getBytes(StandardCharsets.UTF_8)));
 
         String s = RealJenkinsExtension.checkResult(conn);
 
@@ -350,7 +370,8 @@ class RealJenkinsExtensionTest {
     @Test
     void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsExtension.JenkinsStartupException jse = assertThrows(
-                RealJenkinsExtension.JenkinsStartupException.class, () -> extension.addPlugins("plugins/failure.hpi").startJenkins());
+                RealJenkinsExtension.JenkinsStartupException.class,
+                () -> extension.addPlugins("plugins/failure.hpi").startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
@@ -358,21 +379,34 @@ class RealJenkinsExtensionTest {
     void whenUsingWrongJavaHome() throws Throwable {
         IOException ex = assertThrows(
                 IOException.class, () -> extension.withJavaHome("/noexists").startJenkins());
-        assertThat(ex.getMessage(), containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
+        assertThat(
+                ex.getMessage(),
+                containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
     @Test
     void smokesJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
         extension.addPlugins("plugins/structs.hpi");
-        extension.extraEnv("SOME_ENV_VAR", "value").extraEnv("NOT_SET", null).withJavaHome(altJavaHome).withLogger(Jenkins.class, Level.FINEST).then(RealJenkinsExtensionTest::_smokes);
+        extension
+                .extraEnv("SOME_ENV_VAR", "value")
+                .extraEnv("NOT_SET", null)
+                .withJavaHome(altJavaHome)
+                .withLogger(Jenkins.class, Level.FINEST)
+                .then(RealJenkinsExtensionTest::_smokes);
     }
 
     @Issue("https://github.com/jenkinsci/jenkins-test-harness/issues/359")
     @Test
     void assumptions() throws Throwable {
-        assertThat(assertThrows(TestAbortedException.class, () -> extension.then(RealJenkinsExtensionTest::_assumptions1)).getMessage(), is("Assumption failed: assumption is not true"));
-        assertThat(assertThrows(TestAbortedException.class, () -> extension.then(RealJenkinsExtensionTest::_assumptions2)).getMessage(), is("Assumption failed: oops"));
+        assertThat(
+                assertThrows(TestAbortedException.class, () -> extension.then(RealJenkinsExtensionTest::_assumptions1))
+                        .getMessage(),
+                is("Assumption failed: assumption is not true"));
+        assertThat(
+                assertThrows(TestAbortedException.class, () -> extension.then(RealJenkinsExtensionTest::_assumptions2))
+                        .getMessage(),
+                is("Assumption failed: oops"));
     }
 
     private static void _assumptions1(JenkinsRule r) {
@@ -386,8 +420,12 @@ class RealJenkinsExtensionTest {
     @Test
     void timeoutDuringStep() throws Throwable {
         extension.withTimeout(10);
-        assertThat(Functions.printThrowable(assertThrows(RealJenkinsExtension.StepException.class, () -> extension.then(RealJenkinsExtensionTest::hangs))),
-                containsString("\tat " + RealJenkinsExtensionTest.class.getName() + ".hangs(RealJenkinsExtensionTest.java:"));
+        assertThat(
+                Functions.printThrowable(assertThrows(
+                        RealJenkinsExtension.StepException.class,
+                        () -> extension.then(RealJenkinsExtensionTest::hangs))),
+                containsString(
+                        "\tat " + RealJenkinsExtensionTest.class.getName() + ".hangs(RealJenkinsExtensionTest.java:"));
     }
 
     private static void hangs(JenkinsRule r) throws Throwable {
@@ -425,34 +463,46 @@ class RealJenkinsExtensionTest {
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
         var prop = XStreamSerializable.of(new ParametersDefinitionProperty(new StringParameterDefinition("X", "dflt")));
         // Static method handle idiom:
-        assertThat(extension.runRemotely(RealJenkinsExtensionTest::_xStreamSerializable, prop).object().getAllParameters(), hasSize(1));
+        assertThat(
+                extension
+                        .runRemotely(RealJenkinsExtensionTest::_xStreamSerializable, prop)
+                        .object()
+                        .getAllParameters(),
+                hasSize(1));
         // Lambda idiom:
-        assertThat(extension.runRemotely(r -> {
-            var p = r.createFreeStyleProject();
-            p.addProperty(prop.object());
-            var b = r.buildAndAssertSuccess(p);
-            return XStreamSerializable.of(b.getAction(ParametersAction.class));
-        }).object().getAllParameters(), hasSize(1));
+        assertThat(
+                extension
+                        .runRemotely(r -> {
+                            var p = r.createFreeStyleProject();
+                            p.addProperty(prop.object());
+                            var b = r.buildAndAssertSuccess(p);
+                            return XStreamSerializable.of(b.getAction(ParametersAction.class));
+                        })
+                        .object()
+                        .getAllParameters(),
+                hasSize(1));
     }
 
-    private static XStreamSerializable<ParametersAction> _xStreamSerializable(JenkinsRule r, XStreamSerializable<? extends JobProperty<? super FreeStyleProject>> prop) throws Throwable {
+    private static XStreamSerializable<ParametersAction> _xStreamSerializable(
+            JenkinsRule r, XStreamSerializable<? extends JobProperty<? super FreeStyleProject>> prop) throws Throwable {
         var p = r.createFreeStyleProject();
         p.addProperty(prop.object());
         var b = r.buildAndAssertSuccess(p);
         return XStreamSerializable.of(b.getAction(ParametersAction.class));
     }
 
-    @Disabled("inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsExtensionTest; use TestBuilder.of instead")
+    @Disabled(
+            "inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsExtensionTest; use TestBuilder.of instead")
     @Test
     void lambduh() throws Throwable {
         extension.then(r -> {
             r.createFreeStyleProject().getBuildersList().add(new TestBuilder() {
                 @Override
-                public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+                public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+                        throws InterruptedException, IOException {
                     return true;
                 }
             });
         });
     }
-
 }

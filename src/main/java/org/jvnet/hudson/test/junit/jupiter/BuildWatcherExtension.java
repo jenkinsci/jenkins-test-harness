@@ -30,6 +30,9 @@ import hudson.console.LineTransformationOutputStream;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
+import java.io.*;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import jenkins.model.Jenkins;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -38,10 +41,6 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.DeltaSupportLogFormatter;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TailLog;
-
-import java.io.*;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Echoes build output to standard error as it arrives.
@@ -123,11 +122,11 @@ public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllC
             if (build != null) {
                 build.copy();
             } else {
-                System.err.println(r + " was finalized but never started; assuming it was started earlier using @LocalData");
+                System.err.println(
+                        r + " was finalized but never started; assuming it was started earlier using @LocalData");
                 new RunningBuild(r).copy();
             }
         }
-
     }
 
     private static final class RunningBuild {
@@ -144,9 +143,11 @@ public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllC
         synchronized void copy() {
             try {
                 pos = r.getLogText().writeLogTo(pos, sink);
-                // Note that !log.isComplete() after the initial call to copy, even if the build is complete, because Run.getLogText never calls markComplete!
+                // Note that !log.isComplete() after the initial call to copy, even if the build is complete, because
+                // Run.getLogText never calls markComplete!
                 // That is why Run.writeWholeLogTo calls getLogText repeatedly.
-                // Even if it did call markComplete this might not work from RestartableJenkinsRule since you would have a different Run object after the restart.
+                // Even if it did call markComplete this might not work from RestartableJenkinsRule since you would have
+                // a different Run object after the restart.
                 // Anyway we can just rely on onFinalized to let us know when to stop.
             } catch (FileNotFoundException x) {
                 // build deleted or not started
@@ -154,11 +155,11 @@ public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllC
                 if (Jenkins.getInstanceOrNull() != null) {
                     x.printStackTrace();
                 } else {
-                    // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is missing its descriptor, etc.
+                    // probably just IllegalStateException: Jenkins.instance is missing, AssertionError: class … is
+                    // missing its descriptor, etc.
                 }
             }
         }
-
     }
 
     // Copied from WorkflowRun.
@@ -179,7 +180,5 @@ public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllC
             logger.append(prefix);
             logger.write(b, 0, len);
         }
-
     }
-
 }

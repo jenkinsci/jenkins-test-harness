@@ -23,16 +23,14 @@
  */
 package org.jvnet.hudson.test;
 
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class BuildWatcherTest {
 
@@ -52,10 +50,7 @@ public class BuildWatcherTest {
 
             j.buildAndAssertSuccess(j.createFreeStyleProject());
             String output = errContent.toString();
-            assertThat(output, allOf(
-                    containsString("Running as SYSTEM"),
-                    containsString("Finished: SUCCESS")
-            ));
+            assertThat(output, allOf(containsString("Running as SYSTEM"), containsString("Finished: SUCCESS")));
         } finally {
             System.setErr(originalErr); // restore
         }

@@ -42,8 +42,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
-import static org.junit.Assert.assertTrue;
-
 import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
