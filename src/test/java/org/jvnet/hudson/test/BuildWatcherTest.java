@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2013, CloudBees, Inc.
+ * Copyright 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package org.jvnet.hudson.test;
 
-import io.jenkins.lib.support_log_formatter.SupportLogFormatter;
-import java.util.logging.LogRecord;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
-public class DeltaSupportLogFormatter extends SupportLogFormatter {
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
-    static long start = System.currentTimeMillis();
+public class BuildWatcherTest {
 
-    public static String elapsedTime() {
-        return String.format("%8.3f", (System.currentTimeMillis() - start) / 1_000.0);
-    }
+    @ClassRule
+    public static final BuildWatcher BUILD_WATCHER = new BuildWatcher();
 
-    DeltaSupportLogFormatter() {
-        start = System.currentTimeMillis(); // reset for each test, if using LoggerRule
-    }
+    @Rule
+    public final JenkinsRule j = new JenkinsRule();
 
-    @Override
-    protected String formatTime(LogRecord record) {
-        return elapsedTime();
+    @Test
+    public void testBuildWatcher() throws Exception {
+        PrintStream originalErr = System.err;
+
+        try {
+            ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(errContent));
+
+            j.buildAndAssertSuccess(j.createFreeStyleProject());
+            String output = errContent.toString();
+            assertThat(output, allOf(containsString("Running as SYSTEM"), containsString("Finished: SUCCESS")));
+        } finally {
+            System.setErr(originalErr); // restore
+        }
     }
 }
