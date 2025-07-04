@@ -55,7 +55,6 @@ import java.lang.management.RuntimeMXBean;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -1251,7 +1250,7 @@ public final class RealJenkinsRule implements TestRule {
                     decorateConnection(endpoint("exit").openConnection())
                             .getInputStream()
                             .close();
-                } catch (SocketException e) {
+                } catch (IOException e) {
                     System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {

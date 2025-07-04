@@ -1206,7 +1206,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
                     decorateConnection(endpoint("exit").openConnection())
                             .getInputStream()
                             .close();
-                } catch (SocketException e) {
+                } catch (IOException e) {
                     System.err.println("Unable to connect to the Jenkins process to stop it: " + e);
                 }
             } else {
