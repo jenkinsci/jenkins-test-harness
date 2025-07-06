@@ -76,10 +76,14 @@ public class SimpleCommandLauncher extends ComputerLauncher {
             cookie = EnvVars.createCookie();
             pb.environment().putAll(cookie);
             if (env != null) {
-            	pb.environment().putAll(env);
+                pb.environment().putAll(env);
             }
             proc = pb.start();
-            new StreamCopyThread("stderr copier for remote agent on " + computer.getDisplayName(), proc.getErrorStream(), listener.getLogger()).start();
+            new StreamCopyThread(
+                            "stderr copier for remote agent on " + computer.getDisplayName(),
+                            proc.getErrorStream(),
+                            listener.getLogger())
+                    .start();
             computer.setChannel(proc.getInputStream(), proc.getOutputStream(), listener, null);
             LOGGER.log(Level.INFO, "agent launched for {0}", computer.getName());
         } catch (Exception x) {
@@ -95,7 +99,8 @@ public class SimpleCommandLauncher extends ComputerLauncher {
                 ProcessTree.get().killAll(proc, cookie);
                 LOGGER.info(() -> "killed " + proc + " with " + cookie + " for " + computer.getName());
             } catch (Exception x) {
-                LOGGER.log(Level.WARNING, "failed to kill " + proc + " with " + cookie + " for " + computer.getName(), x);
+                LOGGER.log(
+                        Level.WARNING, "failed to kill " + proc + " with " + cookie + " for " + computer.getName(), x);
             }
             proc = null;
             cookie = null;

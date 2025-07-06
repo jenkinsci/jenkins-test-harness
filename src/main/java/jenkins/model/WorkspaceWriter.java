@@ -45,9 +45,8 @@ public class WorkspaceWriter extends TestBuilder {
     }
 
     @Override
-    public boolean perform(
-            AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener
-    ) throws InterruptedException, IOException {
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
         build.getWorkspace().child(path).write(content, "UTF-8");
         return true;
     }

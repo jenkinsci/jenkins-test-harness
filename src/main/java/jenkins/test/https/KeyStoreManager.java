@@ -56,12 +56,16 @@ import org.htmlunit.WebClient;
 public final class KeyStoreManager {
     @NonNull
     private final Path path;
+
     @NonNull
     private final URL url;
+
     @CheckForNull
     private final char[] password;
+
     @NonNull
     private final KeyStore keyStore;
+
     @NonNull
     private final String type;
 
@@ -277,10 +281,12 @@ public final class KeyStoreManager {
 
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-            defaultTrustManager.checkClientTrusted(trustManagers.stream()
-                    .map(X509TrustManager::getAcceptedIssuers)
-                    .flatMap(Arrays::stream)
-                    .toArray(X509Certificate[]::new), authType);
+            defaultTrustManager.checkClientTrusted(
+                    trustManagers.stream()
+                            .map(X509TrustManager::getAcceptedIssuers)
+                            .flatMap(Arrays::stream)
+                            .toArray(X509Certificate[]::new),
+                    authType);
         }
     }
 }

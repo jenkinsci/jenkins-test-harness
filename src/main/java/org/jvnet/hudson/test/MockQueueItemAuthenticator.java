@@ -45,7 +45,7 @@ import org.springframework.security.core.Authentication;
  */
 public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
 
-    private transient final Map<String,Authentication> jobsToUsers;
+    private final transient Map<String, Authentication> jobsToUsers;
 
     /**
      * Creates a new authenticator.
@@ -57,7 +57,8 @@ public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
     /** @deprecated use {@link #MockQueueItemAuthenticator()} plus {@link #authenticate} */
     @Deprecated
     public MockQueueItemAuthenticator(Map<String, org.acegisecurity.Authentication> jobsToUsers) {
-        this.jobsToUsers = jobsToUsers.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toSpring()));
+        this.jobsToUsers = jobsToUsers.entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toSpring()));
     }
 
     /**
@@ -68,8 +69,9 @@ public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
         jobsToUsers.put(jobFullName, authentication);
         return this;
     }
-    
-    @Override public Authentication authenticate2(Queue.Item item) {
+
+    @Override
+    public Authentication authenticate2(Queue.Item item) {
         if (item.task instanceof Item) {
             return jobsToUsers.get(((Item) item.task).getFullName());
         } else {
@@ -77,5 +79,6 @@ public final class MockQueueItemAuthenticator extends QueueItemAuthenticator {
         }
     }
 
-    @Extension public static final class DescriptorImpl extends QueueItemAuthenticatorDescriptor {}
+    @Extension
+    public static final class DescriptorImpl extends QueueItemAuthenticatorDescriptor {}
 }

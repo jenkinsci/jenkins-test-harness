@@ -49,5 +49,7 @@ public abstract class TestNotifier extends Notifier {
         return BuildStepMonitor.NONE;
     }
 
-    protected Object writeReplace() { return new Object(); }
+    protected Object writeReplace() {
+        return new Object();
+    }
 }

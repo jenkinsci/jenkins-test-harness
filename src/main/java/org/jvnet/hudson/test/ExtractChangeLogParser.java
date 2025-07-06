@@ -59,7 +59,8 @@ public class ExtractChangeLogParser extends ChangeLogParser {
     }
 
     @SuppressWarnings("rawtypes")
-    public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream) throws IOException, SAXException {
+    public ExtractChangeLogSet parse(AbstractBuild build, InputStream changeLogStream)
+            throws IOException, SAXException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(changeLogStream, build.getCharset()))) {
             ExtractChangeLogEntry entry = new ExtractChangeLogEntry(br.readLine());
             String fileName;
@@ -69,7 +70,6 @@ public class ExtractChangeLogParser extends ChangeLogParser {
             return new ExtractChangeLogSet(build, List.of(entry));
         }
     }
-
 
     @ExportedBean(defaultVisibility = 999)
     public static class ExtractChangeLogEntry extends ChangeLogSet.Entry {
@@ -114,7 +114,6 @@ public class ExtractChangeLogParser extends ChangeLogParser {
         public void addFile(FileInZip fileName) {
             files.add(fileName);
         }
-
     }
 
     @ExportedBean(defaultVisibility = 999)
@@ -129,7 +128,5 @@ public class ExtractChangeLogParser extends ChangeLogParser {
         public String getFileName() {
             return fileName;
         }
-
     }
-
 }

@@ -54,5 +54,4 @@ public class FlagRuleNoReplacementTest {
         assertFalse(FLAG);
         FLAG = true;
     }
-
 }

@@ -199,8 +199,7 @@ public class JenkinsMatchers {
         return new HasHashCodeContract(other);
     }
 
-    private static class HasDefaultConstructor
-            extends BaseMatcher<Class<?>> {
+    private static class HasDefaultConstructor extends BaseMatcher<Class<?>> {
         @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
@@ -218,8 +217,7 @@ public class JenkinsMatchers {
         }
     }
 
-    private static class HasImplementedEquals
-            extends BaseMatcher<Object> {
+    private static class HasImplementedEquals extends BaseMatcher<Object> {
         @Override
         public boolean matches(Object item) {
             if (item == null) {
@@ -239,8 +237,7 @@ public class JenkinsMatchers {
         }
     }
 
-    private static class HasImplementedHashCode
-            extends BaseMatcher<Object> {
+    private static class HasImplementedHashCode extends BaseMatcher<Object> {
         @Override
         public boolean matches(Object item) {
             if (item == null) {
@@ -260,8 +257,7 @@ public class JenkinsMatchers {
         }
     }
 
-    private static class IsClassWithOnlyPrivateConstructors
-            extends BaseMatcher<Class<?>> {
+    private static class IsClassWithOnlyPrivateConstructors extends BaseMatcher<Class<?>> {
         @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
@@ -279,8 +275,7 @@ public class JenkinsMatchers {
         }
     }
 
-    private static class IsFinalClass
-            extends BaseMatcher<Class<?>> {
+    private static class IsFinalClass extends BaseMatcher<Class<?>> {
         @Override
         public boolean matches(Object item) {
             Class<?> clazz = (Class<?>) item;
@@ -293,8 +288,7 @@ public class JenkinsMatchers {
         }
     }
 
-    private static class HasCause
-            extends BaseMatcher<Throwable> {
+    private static class HasCause extends BaseMatcher<Throwable> {
         private final Class<? extends Throwable> cause;
 
         public HasCause(Class<? extends Throwable> cause) {
@@ -478,5 +472,4 @@ public class JenkinsMatchers {
             description.appendText("matches pattern ").appendText(pattern.pattern());
         }
     }
-
 }

@@ -61,5 +61,4 @@ public final class XStreamSerializable<T> implements Serializable {
     public T object() {
         return (T) XSTREAM2.fromXML(xml);
     }
-
 }

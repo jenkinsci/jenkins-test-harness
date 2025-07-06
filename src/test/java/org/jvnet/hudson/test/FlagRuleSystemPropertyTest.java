@@ -52,5 +52,4 @@ public class FlagRuleSystemPropertyTest {
     public void smokes() {
         assertEquals("value", System.getProperty("some.key"));
     }
-
 }

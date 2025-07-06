@@ -38,5 +38,4 @@ public final class CustomJobProperty extends JobProperty<Job<?, ?>> {
     public CustomJobProperty(String value) {
         this.value = value;
     }
-
 }

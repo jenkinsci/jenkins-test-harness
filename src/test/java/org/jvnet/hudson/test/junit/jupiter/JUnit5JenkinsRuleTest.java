@@ -1,14 +1,14 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
-import org.junit.jupiter.api.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.junit.runner.Description;
-import java.io.File;
-import java.net.URL;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+
+import java.io.File;
+import java.net.URL;
+import org.junit.jupiter.api.Test;
+import org.junit.runner.Description;
+import org.jvnet.hudson.test.JenkinsRule;
 
 /**
  * Test {@link JUnit5JenkinsRule}.
@@ -40,5 +40,4 @@ class JUnit5JenkinsRuleTest {
         rule.createFreeStyleProject();
         assertThat(rule.jenkins.getJobNames(), hasSize(2));
     }
-
 }

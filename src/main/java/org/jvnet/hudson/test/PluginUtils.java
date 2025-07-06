@@ -1,19 +1,17 @@
 package org.jvnet.hudson.test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class PluginUtils {
 
@@ -24,7 +22,9 @@ class PluginUtils {
      * @throws IOException if something goes wrong whilst creating the plugin.
      * @return File the plugin we just created
      */
-    @SuppressFBWarnings(value="PATH_TRAVERSAL_IN", justification = "jth is a test utility, this is package scope code")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "jth is a test utility, this is package scope code")
     static File createRealJenkinsRulePlugin(File destinationDirectory, String baseline) throws IOException {
         final String pluginName = RealJenkinsRuleInit.class.getSimpleName();
 
@@ -46,15 +46,18 @@ class PluginUtils {
             try (FileOutputStream fos = new FileOutputStream(tmpClassesJar.toFile());
                     JarOutputStream classesJarOS = new JarOutputStream(fos, mf)) {
                 // the actual class
-                try (InputStream classIS = RealJenkinsRuleInit.class.getResourceAsStream(RealJenkinsRuleInit.class.getSimpleName() + ".class")) {
+                try (InputStream classIS = RealJenkinsRuleInit.class.getResourceAsStream(
+                        RealJenkinsRuleInit.class.getSimpleName() + ".class")) {
                     String path = RealJenkinsRuleInit.class.getPackageName().replace('.', '/');
-                    createJarEntry(classesJarOS, path + '/' + RealJenkinsRuleInit.class.getSimpleName() + ".class", classIS);
+                    createJarEntry(
+                            classesJarOS, path + '/' + RealJenkinsRuleInit.class.getSimpleName() + ".class", classIS);
                 }
             }
 
             // the actual JPI
-            File jpi = new File(destinationDirectory, pluginName+".jpi");
-            try (FileOutputStream fos = new FileOutputStream(jpi); JarOutputStream jos = new JarOutputStream(fos, mf)) {
+            File jpi = new File(destinationDirectory, pluginName + ".jpi");
+            try (FileOutputStream fos = new FileOutputStream(jpi);
+                    JarOutputStream jos = new JarOutputStream(fos, mf)) {
                 try (FileInputStream fis = new FileInputStream(tmpClassesJar.toFile())) {
                     createJarEntry(jos, "WEB-INF/lib/" + pluginName + ".jar", fis);
                 }
@@ -71,5 +74,4 @@ class PluginUtils {
         data.transferTo(jos);
         jos.closeEntry();
     }
-
 }

@@ -48,7 +48,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
         DumbSlave slave2 = createOnlineSlave(); // online, and a build finished, and disconnected.
         DumbSlave slave3 = createOnlineSlave(); // online, and a build still running.
         DumbSlave slave4 = createOnlineSlave(); // online, and not used.
-        DumbSlave slave5 = createSlave();   // offline.
+        DumbSlave slave5 = createSlave(); // offline.
 
         assertNotNull(slave1);
         assertNotNull(slave2);
@@ -64,7 +64,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
             assertBuildStatusSuccess(project1.scheduleBuild2(0));
         }
 
-        // A build runs on slave2 and finishes, then disconnect slave2 
+        // A build runs on slave2 and finishes, then disconnect slave2
         {
             FreeStyleProject project2 = createFreeStyleProject();
             project2.setAssignedLabel(LabelExpression.parseExpression(slave2.getNodeName()));

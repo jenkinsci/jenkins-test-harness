@@ -87,6 +87,7 @@ import org.jvnet.hudson.test.TailLog;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LocalData {
     String value() default "";
+
     Logger LOGGER = Logger.getLogger(LocalData.class.getName());
 
     class RunnerImpl extends Recipe.Runner<LocalData> {

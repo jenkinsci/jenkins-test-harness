@@ -44,7 +44,7 @@ import org.kohsuke.stapler.StaplerRequest2;
  * @author Oleg Nenashev
  */
 public class WorkspaceCopyFileBuilder extends Builder {
-    
+
     private final String fileName;
     private final String jobName;
     private final int buildNumber;
@@ -66,36 +66,37 @@ public class WorkspaceCopyFileBuilder extends Builder {
     public String getJobName() {
         return jobName;
     }
-    
+
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
         listener.getLogger().println("Copying a " + fileName + " from " + jobName + "#" + buildNumber);
-        
+
         Jenkins inst = Jenkins.get();
-        AbstractProject<?,?> item = inst.getItemByFullName(jobName, AbstractProject.class);
+        AbstractProject<?, ?> item = inst.getItemByFullName(jobName, AbstractProject.class);
         if (item == null) {
             throw new AbortException("Cannot find a source job: " + jobName);
         }
-        
-        AbstractBuild<?,?> sourceBuild = item.getBuildByNumber(buildNumber);
+
+        AbstractBuild<?, ?> sourceBuild = item.getBuildByNumber(buildNumber);
         if (sourceBuild == null) {
             throw new AbortException("Cannot find a source build: " + jobName + "#" + buildNumber);
         }
-        
+
         FilePath sourceWorkspace = sourceBuild.getWorkspace();
         if (sourceWorkspace == null) {
             throw new AbortException("Cannot get the source workspace from " + sourceBuild.getDisplayName());
         }
-        
+
         FilePath workspace = build.getWorkspace();
         if (workspace == null) {
             throw new IOException("Cannot get the workspace of the build");
         }
         workspace.child(fileName).copyFrom(sourceWorkspace.child(fileName));
-        
+
         return true;
     }
-    
+
     @Override
     public Descriptor<Builder> getDescriptor() {
         return new DescriptorImpl();
@@ -103,7 +104,7 @@ public class WorkspaceCopyFileBuilder extends Builder {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Builder> {
-        
+
         @Override
         public Builder newInstance(StaplerRequest2 req, @NonNull JSONObject data) {
             throw new UnsupportedOperationException();

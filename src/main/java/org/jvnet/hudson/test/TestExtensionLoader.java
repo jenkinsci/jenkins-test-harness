@@ -80,13 +80,13 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
         }
         Description description = env.description();
         if (!testNameList.isEmpty() && !testNameList.contains(description.getMethodName())) {
-            return false;   // doesn't apply to this test
+            return false; // doesn't apply to this test
         }
         String className = description.getClassName();
         if (e instanceof Class) {
             for (Class<?> outer = (Class<?>) e; outer != null; outer = outer.getEnclosingClass()) {
                 if (outer.getName().equals(className)) {
-                    return true;      // enclosed
+                    return true; // enclosed
                 }
             }
             return false;
@@ -101,5 +101,4 @@ public class TestExtensionLoader extends GuiceExtensionAnnotation<TestExtension>
         }
         return false;
     }
-
 }

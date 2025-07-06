@@ -64,14 +64,14 @@ import org.jvnet.hudson.test.JenkinsRule;
  * <pre>
  * &#64;WithJenkins
  * class ExampleJUnit5Test {
- * 
+ *
  *     private JenkinsRule r;
- * 
+ *
  *     &#64;BeforeEach
  *     public void setUp(JenkinsRule r) {
  *         this.r = r;
  *     }
- * 
+ *
  *     &#64;ParameterizedTest
  *     &#64;ValueSource(strings = { "one", "two", "three" })
  *     public void example(String param) {

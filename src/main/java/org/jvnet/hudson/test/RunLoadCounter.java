@@ -56,8 +56,7 @@ public final class RunLoadCounter {
      * @deprecated No longer needed.
      */
     @Deprecated
-    public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {
-    }
+    public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {}
 
     /**
      * Counts how many build records are loaded as a result of some task.
@@ -90,7 +89,8 @@ public final class RunLoadCounter {
      * @throws AssertionError if one more than max build record is loaded
      * @param <T> the return value type
      */
-    public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk) throws Exception {
+    public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk)
+            throws Exception {
         project.getLazyBuildMixIn()._getRuns().purgeCache();
         currProject = project;
         currCount = 0;
@@ -112,34 +112,39 @@ public final class RunLoadCounter {
     @Restricted(NoExternalUse.class)
     public static final class Marker extends InvisibleAction implements RunAction2 {
 
-        @Override public void onLoad(Run<?, ?> run) {
+        @Override
+        public void onLoad(Run<?, ?> run) {
             if (run.getParent().equals(currProject)) {
                 if (++currCount > maxCount) {
                     throw new AssertionError("More than " + maxCount + " build records loaded: " + run);
                 } else {
-                    LOGGER.log(Level.WARNING, "Loaded " + run + " (" + currCount + " ≤ " + maxCount + ")", new Throwable());
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Loaded " + run + " (" + currCount + " ≤ " + maxCount + ")",
+                            new Throwable());
                 }
             }
         }
 
-        @Override public void onAttached(Run r) {}
-
+        @Override
+        public void onAttached(Run r) {}
     }
 
     /**
      * Used internally.
      */
     @Restricted(NoExternalUse.class)
-    @Extension public static final class MarkerAdder extends TransientActionFactory<Run<?, ?>> {
+    @Extension
+    public static final class MarkerAdder extends TransientActionFactory<Run<?, ?>> {
 
-        @Override public Class<Run<?, ?>> type() {
+        @Override
+        public Class<Run<?, ?>> type() {
             return (Class) Run.class;
         }
 
-        @Override public Collection<? extends Action> createFor(Run<?, ?> target) {
+        @Override
+        public Collection<? extends Action> createFor(Run<?, ?> target) {
             return Set.of(new Marker());
         }
-
     }
-
 }

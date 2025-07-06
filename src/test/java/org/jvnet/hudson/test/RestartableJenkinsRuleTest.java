@@ -33,30 +33,20 @@ public class RestartableJenkinsRuleTest {
 
     @Test
     public void testNoPortReuse() {
-        assumeThat(
-                "This test requires a custom port to not be set.",
-                System.getProperty("port"),
-                nullValue());
+        assumeThat("This test requires a custom port to not be set.", System.getProperty("port"), nullValue());
 
         AtomicInteger port = new AtomicInteger();
-        noPortReuse.then(
-                s -> port.set(noPortReuse.j.getURL().getPort()));
-        noPortReuse.then(
-                s -> assertNotEquals(port.get(), noPortReuse.j.getURL().getPort()));
+        noPortReuse.then(s -> port.set(noPortReuse.j.getURL().getPort()));
+        noPortReuse.then(s -> assertNotEquals(port.get(), noPortReuse.j.getURL().getPort()));
     }
 
     @Test
     public void testPortReuse() {
-        assumeThat(
-                "This test requires a custom port to not be set.",
-                System.getProperty("port"),
-                nullValue());
+        assumeThat("This test requires a custom port to not be set.", System.getProperty("port"), nullValue());
 
         AtomicInteger port = new AtomicInteger();
-        portReuse.then(
-                s -> port.set(portReuse.j.getURL().getPort()));
-        portReuse.then(
-                s -> assertEquals(port.get(), portReuse.j.getURL().getPort()));
+        portReuse.then(s -> port.set(portReuse.j.getURL().getPort()));
+        portReuse.then(s -> assertEquals(port.get(), portReuse.j.getURL().getPort()));
     }
 
     @Test
@@ -65,7 +55,8 @@ public class RestartableJenkinsRuleTest {
         final String pluginId = "display-url-api";
         noPortReuse.then(jr -> {
             System.out.println(WarExploder.getExplodedDir());
-            Path srcLdap = new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins/" + pluginId + ".hpi").toPath();
+            Path srcLdap =
+                    new File(WarExploder.getExplodedDir(), "WEB-INF/detached-plugins/" + pluginId + ".hpi").toPath();
             Path dstLdap = new File(jr.jenkins.pluginManager.rootDir, pluginId + ".jpi").toPath();
             Files.createDirectories(dstLdap.getParent());
             Files.copy(srcLdap, dstLdap);
@@ -80,9 +71,11 @@ public class RestartableJenkinsRuleTest {
         });
 
         noPortReuse.then(jr -> {
-            assertFalse(pluginId + " is not enabled",
+            assertFalse(
+                    pluginId + " is not enabled",
                     jr.jenkins.getPluginManager().getPlugin(pluginId).isEnabled());
-            assertFalse(pluginId + " should not be active",
+            assertFalse(
+                    pluginId + " should not be active",
                     jr.jenkins.getPluginManager().getPlugin(pluginId).isActive());
         });
     }
@@ -97,4 +90,3 @@ public class RestartableJenkinsRuleTest {
         assertEquals(FileVisitResult.TERMINATE, visitor.visitFileFailed(testPath, new IOException()));
     }
 }
-

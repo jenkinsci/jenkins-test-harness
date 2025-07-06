@@ -56,5 +56,4 @@ public class LocalDataTest {
     public void otherData() {
         assertEquals("This is Jenkins in LocalDataTest#methodData", r.jenkins.getSystemMessage());
     }
-
 }

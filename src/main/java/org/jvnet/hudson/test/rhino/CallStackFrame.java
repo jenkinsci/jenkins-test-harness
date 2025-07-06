@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -79,21 +79,19 @@ public class CallStackFrame implements DebugFrame {
     }
 
     @Override
-    public void onExceptionThrown(Context cx, Throwable ex) {
-    }
+    public void onExceptionThrown(Context cx, Throwable ex) {}
 
     @Override
-    public void onDebuggerStatement(Context cx) {
-    }
+    public void onDebuggerStatement(Context cx) {}
 
     /**
      * In-scope variables.
      */
-    public SortedMap<String,Object> getVariables() {
-        SortedMap<String,Object> r = new TreeMap<>();
-        for( int i=fnOrScript.getParamAndVarCount()-1; i>=0; i-- ) {
-            String name =fnOrScript.getParamOrVarName(i);
-            r.put(name,activation.get(name,activation));
+    public SortedMap<String, Object> getVariables() {
+        SortedMap<String, Object> r = new TreeMap<>();
+        for (int i = fnOrScript.getParamAndVarCount() - 1; i >= 0; i--) {
+            String name = fnOrScript.getParamOrVarName(i);
+            r.put(name, activation.get(name, activation));
         }
         return r;
     }
@@ -106,7 +104,7 @@ public class CallStackFrame implements DebugFrame {
         StringBuilder buf = new StringBuilder();
         buf.append(fnOrScript.getFunctionName());
         buf.append('(');
-        for( int i=0; i<args.length; i++ ) {
+        for (int i = 0; i < args.length; i++) {
             if (i != 0) {
                 buf.append(',');
             }
@@ -116,7 +114,7 @@ public class CallStackFrame implements DebugFrame {
         buf.append("\n  at ").append(fnOrScript.getSourceName()).append('#').append(line);
 
         buf.append("\n  variables=").append(getVariables());
-        
+
         return buf.toString();
     }
 }

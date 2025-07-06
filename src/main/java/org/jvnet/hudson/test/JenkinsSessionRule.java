@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.After;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -67,10 +66,12 @@ public class JenkinsSessionRule implements TestRule {
         return home;
     }
 
-    @Override public Statement apply(final Statement base, Description description) {
+    @Override
+    public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
-            @Override public void evaluate() throws Throwable {
+            @Override
+            public void evaluate() throws Throwable {
                 try {
                     home = tmp.allocate();
                     base.evaluate();
@@ -98,12 +99,16 @@ public class JenkinsSessionRule implements TestRule {
      */
     public void then(Step s) throws Throwable {
         CustomJenkinsRule r = new CustomJenkinsRule(home, port);
-        r.apply(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                port = r.getPort();
-                s.run(r);
-            }
-        }, description).evaluate();
+        r.apply(
+                        new Statement() {
+                            @Override
+                            public void evaluate() throws Throwable {
+                                port = r.getPort();
+                                s.run(r);
+                            }
+                        },
+                        description)
+                .evaluate();
     }
 
     private static final class CustomJenkinsRule extends JenkinsRule {
@@ -111,9 +116,9 @@ public class JenkinsSessionRule implements TestRule {
             with(() -> home);
             localPort = port;
         }
+
         int getPort() {
             return localPort;
         }
     }
-
 }

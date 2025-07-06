@@ -89,8 +89,10 @@ public abstract class JmhBenchmarkState implements RootAction {
             try {
                 temporaryDirectoryAllocator.dispose();
             } catch (InterruptedException | IOException e) {
-                LOGGER.log(Level.WARNING, "Unable to dispose temporary Jenkins directory" +
-                                                  "that was started for benchmark", e);
+                LOGGER.log(
+                        Level.WARNING,
+                        "Unable to dispose temporary Jenkins directory" + "that was started for benchmark",
+                        e);
             }
         }
     }
