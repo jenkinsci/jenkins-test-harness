@@ -44,7 +44,7 @@ public class WebClientUtil {
      */
     public static void waitForJSExec(WebClient webClient) {
         webClient.getJavaScriptEngine().processPostponedActions();
-        webClient.waitForBackgroundJavaScriptStartingBefore(0);
+        webClient.waitForBackgroundJavaScriptStartingBefore(2_000, 10_000);
     }
 
     /**
