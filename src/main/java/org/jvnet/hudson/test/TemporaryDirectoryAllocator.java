@@ -85,7 +85,7 @@ public class TemporaryDirectoryAllocator {
         return allocate(withoutSpace ? "jkh" : "j h");
     }
 
-    synchronized File allocate(String name) throws IOException {
+    public synchronized File allocate(String name) throws IOException {
         try {
             File f = Files.createTempDirectory(base.toPath(), name).toFile();
             tmpDirectories.add(f);
