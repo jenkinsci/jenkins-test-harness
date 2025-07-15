@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2013, CloudBees, Inc.
+ * Copyright 2025 Jenkins project contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,26 +21,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 package org.jvnet.hudson.test;
 
-import io.jenkins.lib.support_log_formatter.SupportLogFormatter;
-import java.util.logging.LogRecord;
+import static org.junit.Assert.*;
 
-public class DeltaSupportLogFormatter extends SupportLogFormatter {
+import java.io.File;
+import java.net.URL;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
-    static long start = System.currentTimeMillis();
+/**
+ * Test basic behavior of {@link JenkinsSessionRule}
+ */
+public class JenkinsSessionRuleTest {
 
-    public static String elapsedTime() {
-        return String.format("%8.3f", (System.currentTimeMillis() - start) / 1_000.0);
+    @Rule
+    public final JenkinsSessionRule rule = new JenkinsSessionRule();
+
+    @Before
+    public void before() {
+        assertNotNull(rule.getHome());
+        assertTrue(rule.getHome().exists());
     }
 
-    DeltaSupportLogFormatter() {
-        start = System.currentTimeMillis(); // reset for each test, if using LoggerRule
+    @After
+    public void after() {
+        assertTrue(rule.getHome().exists());
     }
 
-    @Override
-    protected String formatTime(LogRecord record) {
-        return elapsedTime();
+    @Test
+    public void testRestart() throws Throwable {
+        assertNotNull(rule.getHome());
+        assertTrue(rule.getHome().exists());
+
+        File[] homes = new File[2];
+        URL[] urls = new URL[2];
+
+        rule.then(r -> {
+            homes[0] = r.jenkins.getRootDir();
+            urls[0] = r.getURL();
+        });
+
+        rule.then(r -> {
+            homes[1] = r.jenkins.getRootDir();
+            urls[1] = r.getURL();
+        });
+
+        assertEquals(homes[0], homes[1]);
+        assertEquals(urls[0], urls[1]);
     }
 }

@@ -71,7 +71,7 @@ public final class WarExploder {
 
     private static File EXPLODE_DIR;
 
-    static File findJenkinsWar() throws Exception {
+    public static File findJenkinsWar() throws Exception {
         File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
