@@ -6,8 +6,6 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
-    reviewers:
-      - jglick
     ignore:
       - dependency-name: io.jenkins.plugins*
       - dependency-name: org.jenkins-ci.main:jenkins-bom
