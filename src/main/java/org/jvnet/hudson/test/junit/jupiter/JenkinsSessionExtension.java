@@ -78,7 +78,8 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
 
         description = Description.createTestDescription(
                 extensionContext.getTestClass().map(Class::getName).orElse(null),
-                extensionContext.getTestMethod().map(Method::getName).orElse(null));
+                extensionContext.getTestMethod().map(Method::getName).orElse(null),
+                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(null));
 
         try {
             home = tmp.allocate();

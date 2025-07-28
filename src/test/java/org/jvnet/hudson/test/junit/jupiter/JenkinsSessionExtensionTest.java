@@ -31,6 +31,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
  * Test basic behavior of {@link JenkinsSessionExtension}
@@ -71,5 +72,13 @@ class JenkinsSessionExtensionTest {
 
         assertEquals(homes[0], homes[1]);
         assertEquals(urls[0], urls[1]);
+    }
+
+    @Test
+    @LocalData
+    void testLocalData() throws Throwable {
+        extension.then(r -> {
+            assertNotNull(r.jenkins.getItem("localData"));
+        });
     }
 }
