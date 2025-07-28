@@ -1173,6 +1173,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     */
+    public void showAgentLogs(Slave s, LogRecorder logRecorder) throws Exception {
+        showAgentLogs(s, logRecorder.getRecordedLevels());
+    }
+
+    /**
      * Forward agent logs to standard error of the test process.
      * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
      * or discarded entirely (if below {@link Level#INFO}).
