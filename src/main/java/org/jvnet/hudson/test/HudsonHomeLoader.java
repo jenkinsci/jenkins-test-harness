@@ -121,7 +121,7 @@ public interface HudsonHomeLoader {
             return target;
         }
 
-        void copy(File target) throws Exception {
+        public void copy(File target) throws Exception {
             URL res = findDataResource();
             if (!res.getProtocol().equals("file")) {
                 throw new AssertionError("Test data is not available in the file system: " + res);
