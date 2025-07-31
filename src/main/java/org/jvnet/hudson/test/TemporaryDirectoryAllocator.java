@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Allocates temporary directories and cleans it up at the end.
@@ -145,12 +144,9 @@ public class TemporaryDirectoryAllocator {
             }
             Files.deleteIfExists(p);
         } catch (DirectoryNotEmptyException x) {
-            String pathString = p.toString();
             try (Stream<Path> children = Files.list(p)) {
                 x.addSuppressed(new IOException("These files still exist : "
-                        + children.map(Path::toString)
-                                .map(s -> StringUtils.removeStart(s, pathString + File.separator))
-                                .collect(Collectors.joining(", "))));
+                        + children.map(p::relativize).map(Path::toString).collect(Collectors.joining(", "))));
             }
             throw x;
         }
