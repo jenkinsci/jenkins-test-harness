@@ -108,7 +108,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -134,6 +133,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsAdaptor;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.util.URLClassLoader2;
 import junit.framework.TestCase;
 import net.sf.json.JSONObject;
 import org.acegisecurity.AuthenticationException;
@@ -1807,7 +1807,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
             if (dir.exists() && MetaClassLoader.debugLoader == null) {
                 try {
                     MetaClassLoader.debugLoader = new MetaClassLoader(
-                            new URLClassLoader(new URL[] {dir.toURI().toURL()}));
+                            new URLClassLoader2(new URL[] {dir.toURI().toURL()}));
                 } catch (MalformedURLException e) {
                     throw new AssertionError(e);
                 }

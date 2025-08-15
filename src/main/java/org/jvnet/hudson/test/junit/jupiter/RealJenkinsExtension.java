@@ -77,6 +77,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.test.https.KeyStoreManager;
 import jenkins.util.Timer;
+import jenkins.util.URLClassLoader2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.htmlunit.WebClient;
@@ -1583,7 +1584,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
             Object pluginManager = jenkins.getClass().getField("pluginManager").get(jenkins);
             ClassLoader uberClassLoader = (ClassLoader)
                     pluginManager.getClass().getField("uberClassLoader").get(pluginManager);
-            ClassLoader tests = new URLClassLoader(
+            ClassLoader tests = new URLClassLoader2(
                     Files.readAllLines(
                                     Paths.get(System.getProperty("RealJenkinsExtension.classpath")),
                                     StandardCharsets.UTF_8)

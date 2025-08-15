@@ -129,7 +129,6 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
@@ -172,6 +171,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.MasterToSlaveCallable;
+import jenkins.util.URLClassLoader2;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -2955,7 +2955,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             if (dir.exists() && MetaClassLoader.debugLoader == null) {
                 try {
                     MetaClassLoader.debugLoader = new MetaClassLoader(
-                            new URLClassLoader(new URL[] {dir.toURI().toURL()}));
+                            new URLClassLoader2(new URL[] {dir.toURI().toURL()}));
                 } catch (MalformedURLException e) {
                     throw new AssertionError(e);
                 }
