@@ -6,5 +6,5 @@
 buildPlugin(useContainerAgent: true, forkCount: '1C', configurations: [
   [platform: 'linux', jdk: 17],
   [platform: 'windows', jdk: 17],
-  [platform: 'linux', jdk: 21, jenkins: '2.517']
+  [platform: 'linux', jdk: 21, jenkins: '2.524']
 ])

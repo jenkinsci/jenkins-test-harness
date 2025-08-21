@@ -446,7 +446,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
     }
 
-    static void dumpThreads() {
+    public static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
         for (ThreadInfo ti : threadInfos) {
@@ -1173,6 +1173,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     */
+    public void showAgentLogs(Slave s, LogRecorder logRecorder) throws Exception {
+        showAgentLogs(s, logRecorder.getRecordedLevels());
+    }
+
+    /**
      * Forward agent logs to standard error of the test process.
      * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
      * or discarded entirely (if below {@link Level#INFO}).
@@ -1183,7 +1190,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers, true));
     }
 
-    static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
+    public static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
         private final String name;
         private final Map<String, Level> loggers;
         private final TaskListener stderr;
@@ -1192,7 +1199,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         private static final List<Logger> loggerReferences = new LinkedList<>();
 
-        RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
+        public RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
             this.name = name;
             this.loggers = loggers;
             stderr = forward ? StreamTaskListener.fromStderr() : null;
