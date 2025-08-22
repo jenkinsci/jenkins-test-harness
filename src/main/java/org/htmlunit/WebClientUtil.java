@@ -54,7 +54,7 @@ public class WebClientUtil {
      */
     public static void waitForJSExec(WebClient webClient, long timeout) {
         webClient.getJavaScriptEngine().processPostponedActions();
-        webClient.waitForBackgroundJavaScript(timeout);
+        webClient.waitForBackgroundJavaScriptStartingBefore(2_000, timeout);
     }
 
     /**
