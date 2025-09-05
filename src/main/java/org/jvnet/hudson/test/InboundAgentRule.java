@@ -80,7 +80,7 @@ import org.junit.rules.ExternalResource;
  * </pre>
  *
  * @see JenkinsRule#createComputerLauncher
- * @see JenkinsRule#createAgent()
+ * @see JenkinsRule#createSlave()
  */
 public final class InboundAgentRule extends ExternalResource {
 
