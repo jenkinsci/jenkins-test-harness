@@ -10,7 +10,7 @@ import java.io.OutputStream;
  * Fake a process launch.
  *
  * @author Kohsuke Kawaguchi
- * @see PretendAgent
+ * @see PretendSlave
  */
 public interface FakeLauncher {
     /**
