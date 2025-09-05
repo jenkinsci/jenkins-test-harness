@@ -14,7 +14,7 @@ import java.io.OutputStream;
  */
 public interface FakeLauncher {
     /**
-     * Called whenever a {@link PretendAgent} is asked to fork a new process.
+     * Called whenever a {@link PretendSlave} is asked to fork a new process.
      *
      * <p>
      * The callee can inspect the {@link ProcStarter} object to determine what process is being launched,
