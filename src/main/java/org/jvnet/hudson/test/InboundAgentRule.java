@@ -71,7 +71,7 @@ import org.junit.rules.ExternalResource;
  * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
  *
  * <pre>
- * Slave agent = inboundAgents.createAgent(r, […]);
+ * agent agent = inboundAgents.createAgent(r, […]);
  * try {
  *     […]
  * } finally {
@@ -662,7 +662,7 @@ public final class InboundAgentRule extends ExternalResource {
             throw new AssertionError("no such agent: " + name);
         }
         if (!(node instanceof Slave)) {
-            throw new AssertionError("agent is not a Slave: " + name);
+            throw new AssertionError("agent is not a agent: " + name);
         }
         r.waitOnline((Slave) node);
         if (!loggers.isEmpty()) {
@@ -701,7 +701,7 @@ public final class InboundAgentRule extends ExternalResource {
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
-        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+        // AgentComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
         Computer computer = s.toComputer();
         while (computer == null || computer.getOfflineCause() == null) {
             Thread.sleep(100);
