@@ -71,7 +71,7 @@ import org.junit.rules.ExternalResource;
  * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
  *
  * <pre>
- * Slave agent = inboundAgents.createAgent(r, […]);
+ * Agent agent = inboundAgents.createAgent(r, […]);
  * try {
  *     […]
  * } finally {
@@ -80,7 +80,7 @@ import org.junit.rules.ExternalResource;
  * </pre>
  *
  * @see JenkinsRule#createComputerLauncher
- * @see JenkinsRule#createSlave()
+ * @see JenkinsRule#createAgent()
  */
 public final class InboundAgentRule extends ExternalResource {
 
@@ -331,7 +331,7 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * Creates, attaches, and starts a new inbound agent.
      *
-     * @param name an optional {@link Slave#getNodeName}
+     * @param name an optional {@link Agent#getNodeName}
      */
     public Slave createAgent(@NonNull JenkinsRule r, @CheckForNull String name) throws Exception {
         return createAgent(r, Options.newBuilder().name(name).build());
@@ -662,7 +662,7 @@ public final class InboundAgentRule extends ExternalResource {
             throw new AssertionError("no such agent: " + name);
         }
         if (!(node instanceof Slave)) {
-            throw new AssertionError("agent is not a Slave: " + name);
+            throw new AssertionError("agent is not a Agent: " + name);
         }
         r.waitOnline((Slave) node);
         if (!loggers.isEmpty()) {
@@ -701,7 +701,7 @@ public final class InboundAgentRule extends ExternalResource {
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
-        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+        // AgentComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
         Computer computer = s.toComputer();
         while (computer == null || computer.getOfflineCause() == null) {
             Thread.sleep(100);

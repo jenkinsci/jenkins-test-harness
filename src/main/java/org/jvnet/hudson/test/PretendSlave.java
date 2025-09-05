@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Slave that pretends to fork processes.
+ * Agent that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#createPretendSlave(FakeLauncher)
+ * @see HudsonTestCase#createPretendAgent(FakeLauncher)
  */
 public class PretendSlave extends Slave {
     private transient FakeLauncher faker;

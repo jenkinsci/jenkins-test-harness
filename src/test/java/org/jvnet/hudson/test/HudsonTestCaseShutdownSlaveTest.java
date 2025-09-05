@@ -31,10 +31,10 @@ import hudson.slaves.SlaveComputer;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Test that slaves are cleanly shutdown when test finishes.
+ * Test that agents are cleanly shutdown when test finishes.
  * <p>
  * In Windows, temporary directories fail to be deleted
- * if log files of slaves are not closed.
+ * if log files of agents are not closed.
  * This causes failures of tests using HudsonTestCase,
  * for an exception occurs in tearDown().
  * <p>
@@ -56,7 +56,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
         assertNotNull(slave4);
         assertNotNull(slave5);
 
-        // A build runs on slave1 and finishes.
+        // A build runs on agent1 and finishes.
         {
             FreeStyleProject project1 = createFreeStyleProject();
             project1.setAssignedLabel(LabelExpression.parseExpression(slave1.getNodeName()));
@@ -64,7 +64,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
             assertBuildStatusSuccess(project1.scheduleBuild2(0));
         }
 
-        // A build runs on slave2 and finishes, then disconnect slave2
+        // A build runs on agent2 and finishes, then disconnect agent2
         {
             FreeStyleProject project2 = createFreeStyleProject();
             project2.setAssignedLabel(LabelExpression.parseExpression(slave2.getNodeName()));
@@ -76,7 +76,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
             computer2.waitUntilOffline();
         }
 
-        // A build runs on slave3 and does not finish.
+        // A build runs on agent3 and does not finish.
         // This build will be interrupted in tearDown().
         {
             FreeStyleProject project3 = createFreeStyleProject();
