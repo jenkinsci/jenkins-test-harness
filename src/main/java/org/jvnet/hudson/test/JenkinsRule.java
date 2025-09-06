@@ -920,7 +920,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         long start = System.currentTimeMillis();
         while (slave.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
-                throw new IllegalStateException("Timed out waiting on DumbAgent channel to disconnect.");
+                throw new IllegalStateException("Timed out waiting on agent channel to disconnect.");
             }
             Thread.sleep(200);
         }
