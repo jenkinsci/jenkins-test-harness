@@ -56,7 +56,7 @@ public class PluginAutomaticTestBuilder {
      *      them or {@code false} to ignore any missing ones.
      */
     public static TestSuite build(Map<String, ?> params) throws Exception {
-        TestSuite Controller = new TestSuite();
+        TestSuite controller = new TestSuite();
         if (params.containsKey("outputDirectory")) { // shouldn't happen, but be defensive
             File outputDirectory = new File((String) params.get("outputDirectory"));
             TestSuite inJenkins = JellyTestSuiteBuilder.build(outputDirectory, toBoolean(params.get("requirePI")));
