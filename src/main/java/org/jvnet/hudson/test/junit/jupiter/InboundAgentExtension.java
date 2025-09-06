@@ -669,7 +669,7 @@ public class InboundAgentExtension implements AfterEachCallback {
         s.setLabelString(options.getLabel());
         s.setRetentionStrategy(RetentionStrategy.NOOP);
         r.jenkins.addNode(s);
-        // AgentComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
+        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
         Computer computer = s.toComputer();
         while (computer == null || computer.getOfflineCause() == null) {
             Thread.sleep(100);
