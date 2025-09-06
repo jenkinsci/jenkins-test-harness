@@ -936,7 +936,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates and launches a new Agent on the local host.
+     * Creates and launches a new agent on the local host.
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
