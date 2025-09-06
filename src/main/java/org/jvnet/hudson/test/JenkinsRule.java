@@ -1066,7 +1066,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
-     *      Environment variables to add to the Agent process. Can be {@code null}.
+     *      Environment variables to add to the agent process. Can be {@code null}.
      * @see InboundAgentRule
      */
     @NonNull
