@@ -65,7 +65,7 @@ import org.jvnet.hudson.test.PrefixedOutputStream;
  * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
  *
  * <pre>
- * Agent agent = inboundAgents.createAgent(r, […]);
+ * Slave agent = inboundAgents.createAgent(r, […]);
  * try {
  *     […]
  * } finally {
