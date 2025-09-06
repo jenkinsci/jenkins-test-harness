@@ -47,7 +47,7 @@ public class DummyCloudImpl extends Cloud {
     private final transient JenkinsRule rule;
 
     /**
-     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of a agent,
+     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of an agent,
      * to emulate a real cloud that takes some time for provisioning a new system.
      *
      * <p>
