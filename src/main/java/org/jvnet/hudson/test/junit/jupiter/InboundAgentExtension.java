@@ -630,7 +630,7 @@ public class InboundAgentExtension implements AfterEachCallback {
             throw new AssertionError("no such agent: " + name);
         }
         if (!(node instanceof Slave)) {
-            throw new AssertionError("agent is not a Agent: " + name);
+            throw new AssertionError("agent is not an agent: " + name);
         }
         r.waitOnline((Slave) node);
         if (!loggers.isEmpty()) {
