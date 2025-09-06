@@ -1234,7 +1234,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
-            DeltaSupportLogFormatter.start = start; // match clock time on Controller
+            DeltaSupportLogFormatter.start = start; // match clock time on controller
             if (name != null) {
                 ps.println("Set up log dumper on " + name + ": " + loggers);
             } else {
