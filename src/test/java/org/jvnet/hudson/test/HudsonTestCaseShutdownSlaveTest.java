@@ -64,7 +64,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
             assertBuildStatusSuccess(project1.scheduleBuild2(0));
         }
 
-        // A build runs on agent2 and finishes, then disconnect agent2
+        // A build runs on slave2 and finishes, then disconnect slave2
         {
             FreeStyleProject project2 = createFreeStyleProject();
             project2.setAssignedLabel(LabelExpression.parseExpression(slave2.getNodeName()));
