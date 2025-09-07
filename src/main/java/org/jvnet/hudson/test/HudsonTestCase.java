@@ -703,7 +703,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Creates a {@link ComputerLauncher} for launching a agent locally.
+     * Creates a {@link ComputerLauncher} for launching an agent locally.
      *
      * @param env
      *      Environment variables to add to the agent process. Can be null.
