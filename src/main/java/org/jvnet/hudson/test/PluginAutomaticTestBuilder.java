@@ -65,8 +65,8 @@ public class PluginAutomaticTestBuilder {
             if (packaging == null || packaging.trim().isEmpty() || "hpi".equals(packaging)) {
                 inJenkins.addTest(new OtherTests("testPluginActive", params));
             }
-            Controller.addTest(inJenkins);
-            Controller.addTest(new PropertiesTestSuite(outputDirectory));
+            controller.addTest(inJenkins);
+            controller.addTest(new PropertiesTestSuite(outputDirectory));
         }
         return Controller;
     }
