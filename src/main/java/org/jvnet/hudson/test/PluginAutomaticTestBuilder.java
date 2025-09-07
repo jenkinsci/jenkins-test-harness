@@ -68,7 +68,7 @@ public class PluginAutomaticTestBuilder {
             controller.addTest(inJenkins);
             controller.addTest(new PropertiesTestSuite(outputDirectory));
         }
-        return Controller;
+        return controller;
     }
 
     private static boolean toBoolean(Object requirePI) {
