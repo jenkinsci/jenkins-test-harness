@@ -666,7 +666,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Creates a agent with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
