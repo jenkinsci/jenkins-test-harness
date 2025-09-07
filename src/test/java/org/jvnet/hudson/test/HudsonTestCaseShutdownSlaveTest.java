@@ -76,7 +76,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
             computer2.waitUntilOffline();
         }
 
-        // A build runs on agent3 and does not finish.
+        // A build runs on slave3 and does not finish.
         // This build will be interrupted in tearDown().
         {
             FreeStyleProject project3 = createFreeStyleProject();
