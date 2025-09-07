@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Slave that pretends to fork processes.
+ * Agent that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
  * @see HudsonTestCase#createPretendSlave(FakeLauncher)

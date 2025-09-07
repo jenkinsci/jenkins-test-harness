@@ -905,7 +905,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             long start = System.currentTimeMillis();
             while (slave.getChannel() == null) {
                 if (System.currentTimeMillis() > (start + 10000)) {
-                    throw new IllegalStateException("Timed out waiting on DumbSlave channel to connect.");
+                    throw new IllegalStateException("Timed out waiting on agent channel to connect.");
                 }
                 Thread.sleep(200);
             }
@@ -920,7 +920,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         long start = System.currentTimeMillis();
         while (slave.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
-                throw new IllegalStateException("Timed out waiting on DumbSlave channel to disconnect.");
+                throw new IllegalStateException("Timed out waiting on agent channel to disconnect.");
             }
             Thread.sleep(200);
         }
@@ -936,7 +936,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates and launches a new slave on the local host.
+     * Creates and launches a new agent on the local host.
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
@@ -1020,7 +1020,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
@@ -1066,7 +1066,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
-     *      Environment variables to add to the slave process. Can be {@code null}.
+     *      Environment variables to add to the agent process. Can be {@code null}.
      * @see InboundAgentRule
      */
     @NonNull
@@ -1085,7 +1085,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1094,7 +1094,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1103,7 +1103,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning
      * @see #waitOnline
      */
@@ -1133,7 +1133,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Waits for a newly created slave to come online.
+     * Waits for a newly created agent to come online.
      * @see #createSlave()
      */
     public void waitOnline(Slave s) throws Exception {
@@ -1234,7 +1234,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
-            DeltaSupportLogFormatter.start = start; // match clock time on master
+            DeltaSupportLogFormatter.start = start; // match clock time on controller
             if (name != null) {
                 ps.println("Set up log dumper on " + name + ": " + loggers);
             } else {
@@ -2986,7 +2986,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
-     * Specify this to a TCP/IP port number to have slaves started with the debugger.
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
      */
     public static final int SLAVE_DEBUG_PORT =
             Integer.getInteger(HudsonTestCase.class.getName() + ".slaveDebugPort", -1);

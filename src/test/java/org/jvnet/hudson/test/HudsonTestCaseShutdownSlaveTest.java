@@ -31,10 +31,10 @@ import hudson.slaves.SlaveComputer;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Test that slaves are cleanly shutdown when test finishes.
+ * Test that agents are cleanly shutdown when test finishes.
  * <p>
  * In Windows, temporary directories fail to be deleted
- * if log files of slaves are not closed.
+ * if log files of agents are not closed.
  * This causes failures of tests using HudsonTestCase,
  * for an exception occurs in tearDown().
  * <p>
