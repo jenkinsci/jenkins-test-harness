@@ -56,7 +56,7 @@ public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
         assertNotNull(slave4);
         assertNotNull(slave5);
 
-        // A build runs on agent1 and finishes.
+        // A build runs on slave1 and finishes.
         {
             FreeStyleProject project1 = createFreeStyleProject();
             project1.setAssignedLabel(LabelExpression.parseExpression(slave1.getNodeName()));
