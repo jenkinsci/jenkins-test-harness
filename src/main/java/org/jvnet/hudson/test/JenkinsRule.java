@@ -1020,7 +1020,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates a Agent with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
