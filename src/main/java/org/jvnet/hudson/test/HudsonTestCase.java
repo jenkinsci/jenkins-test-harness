@@ -677,7 +677,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(
+            DumbSlave agent = new DumbSlave(
                     nodeName,
                     "dummy",
                     createTmpDir().getPath(),
@@ -687,18 +687,18 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                     createComputerLauncher(env),
                     RetentionStrategy.NOOP,
                     List.of());
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave =
+            PretendSlave agent =
                     new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
