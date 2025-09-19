@@ -38,7 +38,7 @@ public class PretendSlave extends Slave {
             throws IOException, FormException {
         super(
                 name,
-                "pretending a agent",
+                "pretending an agent",
                 remoteFS,
                 String.valueOf(numExecutors),
                 mode,
