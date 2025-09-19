@@ -123,18 +123,18 @@ public class DummyCloudImpl extends Cloud {
             Thread.sleep(time);
 
             System.out.println("launching agent");
-            final DumbSlave slave = rule.createSlave(label);
+            final DumbSlave agent = rule.createSlave(label);
             for (NodeProperty nodeProperty : nodeProperties) {
-                slave.getNodeProperties().add(updateWithNode(nodeProperty, slave));
+                agent.getNodeProperties().add(updateWithNode(nodeProperty, agent));
             }
-            computer = slave.toComputer();
+            computer = agent.toComputer();
             computer.connect(false).get();
             synchronized (DummyCloudImpl.this) {
                 System.out.println(
                         computer.getName() + " launch" + (computer.isOnline() ? "ed successfully" : " failed"));
                 System.out.println(computer.getLog());
             }
-            return slave;
+            return agent;
         }
     }
 
