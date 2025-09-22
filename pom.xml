@@ -124,7 +124,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.lib</groupId>
       <artifactId>support-log-formatter</artifactId>
-      <version>1.3</version>
+      <version>118.v18c3eb_f88f07</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.test.fips</groupId>
