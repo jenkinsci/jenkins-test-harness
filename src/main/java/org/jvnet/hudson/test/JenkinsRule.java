@@ -900,25 +900,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        DumbSlave slave = createSlave();
+        DumbSlave agent = createSlave();
         if (waitForChannelConnect) {
             long start = System.currentTimeMillis();
-            while (slave.getChannel() == null) {
+            while (agent.getChannel() == null) {
                 if (System.currentTimeMillis() > (start + 10000)) {
                     throw new IllegalStateException("Timed out waiting on agent channel to connect.");
                 }
                 Thread.sleep(200);
             }
         }
-        return slave;
+        return agent;
     }
 
-    public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer()
+    public void disconnectSlave(DumbSlave agent) throws Exception {
+        agent.getComputer()
                 .disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")))
                 .get(10, TimeUnit.SECONDS);
         long start = System.currentTimeMillis();
-        while (slave.getChannel() != null) {
+        while (agent.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
                 throw new IllegalStateException("Timed out waiting on agent channel to disconnect.");
             }
@@ -1034,16 +1034,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env)
             throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(
+            DumbSlave agent = new DumbSlave(
                     nodeName,
                     new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
                     createComputerLauncher(env));
             if (labels != null) {
-                slave.setLabelString(labels);
+                agent.setLabelString(labels);
             }
-            slave.setRetentionStrategy(RetentionStrategy.NOOP);
-            jenkins.addNode(slave);
-            return slave;
+            agent.setRetentionStrategy(RetentionStrategy.NOOP);
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
@@ -1051,14 +1051,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             String nodeName = "slave" + sz;
-            PretendSlave slave = new PretendSlave(
+            PretendSlave agent = new PretendSlave(
                     nodeName,
                     new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
                     "",
                     createComputerLauncher(null),
                     faker);
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 

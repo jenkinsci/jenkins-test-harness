@@ -44,43 +44,43 @@ import java.util.concurrent.TimeUnit;
 @Issue("JENKINS-18259")
 public class HudsonTestCaseShutdownSlaveTest extends HudsonTestCase {
     public void testShutdownSlave() throws Exception {
-        DumbSlave slave1 = createOnlineSlave(); // online, and a build finished.
-        DumbSlave slave2 = createOnlineSlave(); // online, and a build finished, and disconnected.
-        DumbSlave slave3 = createOnlineSlave(); // online, and a build still running.
-        DumbSlave slave4 = createOnlineSlave(); // online, and not used.
-        DumbSlave slave5 = createSlave(); // offline.
+        DumbSlave agent1 = createOnlineSlave(); // online, and a build finished.
+        DumbSlave agent2 = createOnlineSlave(); // online, and a build finished, and disconnected.
+        DumbSlave agent3 = createOnlineSlave(); // online, and a build still running.
+        DumbSlave agent4 = createOnlineSlave(); // online, and not used.
+        DumbSlave agent5 = createSlave(); // offline.
 
-        assertNotNull(slave1);
-        assertNotNull(slave2);
-        assertNotNull(slave3);
-        assertNotNull(slave4);
-        assertNotNull(slave5);
+        assertNotNull(agent1);
+        assertNotNull(agent2);
+        assertNotNull(agent3);
+        assertNotNull(agent4);
+        assertNotNull(agent5);
 
-        // A build runs on slave1 and finishes.
+        // A build runs on agent1 and finishes.
         {
             FreeStyleProject project1 = createFreeStyleProject();
-            project1.setAssignedLabel(LabelExpression.parseExpression(slave1.getNodeName()));
+            project1.setAssignedLabel(LabelExpression.parseExpression(agent1.getNodeName()));
             project1.getBuildersList().add(new SleepBuilder(TimeUnit.SECONDS.toMillis(1)));
             assertBuildStatusSuccess(project1.scheduleBuild2(0));
         }
 
-        // A build runs on slave2 and finishes, then disconnect slave2
+        // A build runs on agent2 and finishes, then disconnect agent2
         {
             FreeStyleProject project2 = createFreeStyleProject();
-            project2.setAssignedLabel(LabelExpression.parseExpression(slave2.getNodeName()));
+            project2.setAssignedLabel(LabelExpression.parseExpression(agent2.getNodeName()));
             project2.getBuildersList().add(new SleepBuilder(TimeUnit.SECONDS.toMillis(1)));
             assertBuildStatusSuccess(project2.scheduleBuild2(0));
 
-            SlaveComputer computer2 = slave2.getComputer();
+            SlaveComputer computer2 = agent2.getComputer();
             computer2.disconnect(null);
             computer2.waitUntilOffline();
         }
 
-        // A build runs on slave3 and does not finish.
+        // A build runs on agent3 and does not finish.
         // This build will be interrupted in tearDown().
         {
             FreeStyleProject project3 = createFreeStyleProject();
-            project3.setAssignedLabel(LabelExpression.parseExpression(slave3.getNodeName()));
+            project3.setAssignedLabel(LabelExpression.parseExpression(agent3.getNodeName()));
             project3.getBuildersList().add(new SleepBuilder(TimeUnit.MINUTES.toMillis(10)));
             project3.scheduleBuild2(0);
             FreeStyleBuild build;
