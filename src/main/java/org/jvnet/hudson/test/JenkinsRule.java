@@ -134,6 +134,7 @@ import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1080,7 +1081,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=" + (SLAVE_DEBUG_PORT + sz)
                                 : "",
                         "-Djava.awt.headless=true",
-                        new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
+                        Path.of(jenkins.getJnlpJars("slave.jar").getURL().toURI())),
                 env);
     }
 
