@@ -3056,7 +3056,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Restart the current instance with the same port and a copy of its {@code JENKINS_HOME}.
+     * @deprecated Rewrite to {@link RealJenkinsRule} and use {@link RealJenkinsRule#stopJenkinsForcibly}.
      */
+    @Deprecated
     public void restart() throws Throwable {
         // create backup of current instance as zip
         File source = jenkins.getRootDir();
