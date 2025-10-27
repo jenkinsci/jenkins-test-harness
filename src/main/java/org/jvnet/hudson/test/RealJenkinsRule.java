@@ -344,7 +344,7 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Add some Jenkins (including Winstone) startup options.
      * You probably meant to use {@link #javaOptions(String...)}.
-     * @param options one or more options, like {@code --webroot=/tmp/war --pluginroot=/tmp/plugins}
+     * @param options one or more options, like {@code --compression=none --requestHeaderSize=100000}
      */
     public RealJenkinsRule jenkinsOptions(String... options) {
         jenkinsOptions.addAll(List.of(options));
