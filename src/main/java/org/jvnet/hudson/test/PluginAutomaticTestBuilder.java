@@ -56,7 +56,7 @@ public class PluginAutomaticTestBuilder {
      *      them or {@code false} to ignore any missing ones.
      */
     public static TestSuite build(Map<String, ?> params) throws Exception {
-        TestSuite master = new TestSuite();
+        TestSuite controller = new TestSuite();
         if (params.containsKey("outputDirectory")) { // shouldn't happen, but be defensive
             File outputDirectory = new File((String) params.get("outputDirectory"));
             TestSuite inJenkins = JellyTestSuiteBuilder.build(outputDirectory, toBoolean(params.get("requirePI")));
@@ -65,10 +65,10 @@ public class PluginAutomaticTestBuilder {
             if (packaging == null || packaging.trim().isEmpty() || "hpi".equals(packaging)) {
                 inJenkins.addTest(new OtherTests("testPluginActive", params));
             }
-            master.addTest(inJenkins);
-            master.addTest(new PropertiesTestSuite(outputDirectory));
+            controller.addTest(inJenkins);
+            controller.addTest(new PropertiesTestSuite(outputDirectory));
         }
-        return master;
+        return controller;
     }
 
     private static boolean toBoolean(Object requirePI) {

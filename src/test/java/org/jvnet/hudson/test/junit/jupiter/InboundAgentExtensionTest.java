@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2013, CloudBees, Inc.
+ * Copyright 2023 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,25 +22,39 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.junit.jupiter;
 
-import io.jenkins.lib.support_log_formatter.SupportLogFormatter;
-import java.util.logging.LogRecord;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DeltaSupportLogFormatter extends SupportLogFormatter {
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.PrefixedOutputStream;
 
-    static long start = System.currentTimeMillis();
+@WithJenkins
+class InboundAgentExtensionTest {
 
-    public static String elapsedTime() {
-        return String.format("%8.3f", (System.currentTimeMillis() - start) / 1_000.0);
+    @RegisterExtension
+    private final InboundAgentExtension inboundAgents = new InboundAgentExtension();
+
+    private JenkinsRule r;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule) {
+        r = rule;
     }
 
-    DeltaSupportLogFormatter() {
-        start = System.currentTimeMillis(); // reset for each test, if using LoggerRule
-    }
-
-    @Override
-    protected String formatTime(LogRecord record) {
-        return elapsedTime();
+    @Test
+    void waitOnline() throws Exception {
+        assertTrue(inboundAgents
+                .createAgent(
+                        r,
+                        InboundAgentExtension.Options.newBuilder()
+                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
+                                .name("remote")
+                                .build())
+                .toComputer()
+                .isOnline());
     }
 }

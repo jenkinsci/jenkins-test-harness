@@ -615,7 +615,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Creates and launches a new slave on the local host.
+     * Creates and launches a new agent on the local host.
      */
     public DumbSlave createSlave(Label l) throws Exception {
         return createSlave(l, null);
@@ -666,7 +666,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     public DumbSlave createSlave(String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
@@ -677,7 +677,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
 
     public DumbSlave createSlave(String nodeName, String labels, EnvVars env) throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(
+            DumbSlave agent = new DumbSlave(
                     nodeName,
                     "dummy",
                     createTmpDir().getPath(),
@@ -687,26 +687,26 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
                     createComputerLauncher(env),
                     RetentionStrategy.NOOP,
                     List.of());
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            PretendSlave slave =
+            PretendSlave agent =
                     new PretendSlave("slave" + sz, createTmpDir().getPath(), "", createComputerLauncher(null), faker);
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
     /**
-     * Creates a {@link ComputerLauncher} for launching a slave locally.
+     * Creates a {@link ComputerLauncher} for launching an agent locally.
      *
      * @param env
-     *      Environment variables to add to the slave process. Can be null.
+     *      Environment variables to add to the agent process. Can be null.
      */
     public ComputerLauncher createComputerLauncher(EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
@@ -723,7 +723,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave() throws Exception {
@@ -731,7 +731,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     public DumbSlave createOnlineSlave(Label l) throws Exception {
@@ -739,7 +739,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning
      */
     @SuppressWarnings("deprecation")
@@ -1838,7 +1838,7 @@ public abstract class HudsonTestCase extends TestCase implements RootAction {
     protected static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
-     * Specify this to a TCP/IP port number to have slaves started with the debugger.
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
      */
     public static int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName() + ".slaveDebugPort", -1);
 

@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Slave that pretends to fork processes.
+ * Agent that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
  * @see HudsonTestCase#createPretendSlave(FakeLauncher)
@@ -38,7 +38,7 @@ public class PretendSlave extends Slave {
             throws IOException, FormException {
         super(
                 name,
-                "pretending a slave",
+                "pretending an agent",
                 remoteFS,
                 String.valueOf(numExecutors),
                 mode,

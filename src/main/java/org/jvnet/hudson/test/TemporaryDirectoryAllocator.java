@@ -36,7 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Allocates temporary directories and cleans it up at the end.
@@ -58,7 +57,7 @@ public class TemporaryDirectoryAllocator {
 
     /**
      * Whether there should be a space character in the allocated temporary directories names.
-     * It forces slaves created from a {@link JenkinsRule} to work inside a hazardous path,
+     * It forces agents created from a {@link JenkinsRule} to work inside a hazardous path,
      * which can help catching shell quoting bugs.<br>
      * If a particular test cannot be readily fixed to tolerate spaces, as a workaround try:
      * {@code @ClassRule public static TestRule noSpaceInTmpDirs = FlagRule.systemProperty("jenkins.test.noSpaceInTmpDirs", "true");}
@@ -85,7 +84,7 @@ public class TemporaryDirectoryAllocator {
         return allocate(withoutSpace ? "jkh" : "j h");
     }
 
-    synchronized File allocate(String name) throws IOException {
+    public synchronized File allocate(String name) throws IOException {
         try {
             File f = Files.createTempDirectory(base.toPath(), name).toFile();
             tmpDirectories.add(f);
@@ -145,12 +144,9 @@ public class TemporaryDirectoryAllocator {
             }
             Files.deleteIfExists(p);
         } catch (DirectoryNotEmptyException x) {
-            String pathString = p.toString();
             try (Stream<Path> children = Files.list(p)) {
                 x.addSuppressed(new IOException("These files still exist : "
-                        + children.map(Path::toString)
-                                .map(s -> StringUtils.removeStart(s, pathString + File.separator))
-                                .collect(Collectors.joining(", "))));
+                        + children.map(p::relativize).map(Path::toString).collect(Collectors.joining(", "))));
             }
             throw x;
         }

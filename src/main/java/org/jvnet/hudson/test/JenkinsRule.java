@@ -134,6 +134,7 @@ import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -446,7 +447,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
     }
 
-    static void dumpThreads() {
+    public static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
         for (ThreadInfo ti : threadInfos) {
@@ -900,27 +901,27 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        DumbSlave slave = createSlave();
+        DumbSlave agent = createSlave();
         if (waitForChannelConnect) {
             long start = System.currentTimeMillis();
-            while (slave.getChannel() == null) {
+            while (agent.getChannel() == null) {
                 if (System.currentTimeMillis() > (start + 10000)) {
-                    throw new IllegalStateException("Timed out waiting on DumbSlave channel to connect.");
+                    throw new IllegalStateException("Timed out waiting on agent channel to connect.");
                 }
                 Thread.sleep(200);
             }
         }
-        return slave;
+        return agent;
     }
 
-    public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer()
+    public void disconnectSlave(DumbSlave agent) throws Exception {
+        agent.getComputer()
                 .disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")))
                 .get(10, TimeUnit.SECONDS);
         long start = System.currentTimeMillis();
-        while (slave.getChannel() != null) {
+        while (agent.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
-                throw new IllegalStateException("Timed out waiting on DumbSlave channel to disconnect.");
+                throw new IllegalStateException("Timed out waiting on agent channel to disconnect.");
             }
             Thread.sleep(200);
         }
@@ -936,7 +937,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates and launches a new slave on the local host.
+     * Creates and launches a new agent on the local host.
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
@@ -1020,7 +1021,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
@@ -1034,16 +1035,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env)
             throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(
+            DumbSlave agent = new DumbSlave(
                     nodeName,
                     new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
                     createComputerLauncher(env));
             if (labels != null) {
-                slave.setLabelString(labels);
+                agent.setLabelString(labels);
             }
-            slave.setRetentionStrategy(RetentionStrategy.NOOP);
-            jenkins.addNode(slave);
-            return slave;
+            agent.setRetentionStrategy(RetentionStrategy.NOOP);
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
@@ -1051,14 +1052,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             String nodeName = "slave" + sz;
-            PretendSlave slave = new PretendSlave(
+            PretendSlave agent = new PretendSlave(
                     nodeName,
                     new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
                     "",
                     createComputerLauncher(null),
                     faker);
-            jenkins.addNode(slave);
-            return slave;
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
@@ -1066,7 +1067,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
-     *      Environment variables to add to the slave process. Can be {@code null}.
+     *      Environment variables to add to the agent process. Can be {@code null}.
      * @see InboundAgentRule
      */
     @NonNull
@@ -1080,12 +1081,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                                 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=" + (SLAVE_DEBUG_PORT + sz)
                                 : "",
                         "-Djava.awt.headless=true",
-                        new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
+                        Path.of(jenkins.getJnlpJars("slave.jar").getURL().toURI())),
                 env);
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1094,7 +1095,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1103,7 +1104,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning
      * @see #waitOnline
      */
@@ -1133,7 +1134,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Waits for a newly created slave to come online.
+     * Waits for a newly created agent to come online.
      * @see #createSlave()
      */
     public void waitOnline(Slave s) throws Exception {
@@ -1173,6 +1174,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     */
+    public void showAgentLogs(Slave s, LogRecorder logRecorder) throws Exception {
+        showAgentLogs(s, logRecorder.getRecordedLevels());
+    }
+
+    /**
      * Forward agent logs to standard error of the test process.
      * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
      * or discarded entirely (if below {@link Level#INFO}).
@@ -1183,7 +1191,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers, true));
     }
 
-    static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
+    public static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
         private final String name;
         private final Map<String, Level> loggers;
         private final TaskListener stderr;
@@ -1192,7 +1200,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         private static final List<Logger> loggerReferences = new LinkedList<>();
 
-        RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
+        public RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
             this.name = name;
             this.loggers = loggers;
             stderr = forward ? StreamTaskListener.fromStderr() : null;
@@ -1227,7 +1235,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
-            DeltaSupportLogFormatter.start = start; // match clock time on master
+            DeltaSupportLogFormatter.start = start; // match clock time on controller
             if (name != null) {
                 ps.println("Set up log dumper on " + name + ": " + loggers);
             } else {
@@ -2979,7 +2987,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
-     * Specify this to a TCP/IP port number to have slaves started with the debugger.
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
      */
     public static final int SLAVE_DEBUG_PORT =
             Integer.getInteger(HudsonTestCase.class.getName() + ".slaveDebugPort", -1);
@@ -3048,7 +3056,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Restart the current instance with the same port and a copy of its {@code JENKINS_HOME}.
+     * @deprecated Rewrite to {@link RealJenkinsRule} and use {@link RealJenkinsRule#stopJenkinsForcibly}.
      */
+    @Deprecated
     public void restart() throws Throwable {
         // create backup of current instance as zip
         File source = jenkins.getRootDir();
