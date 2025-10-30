@@ -251,7 +251,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>221.vfef8db_a_a_a_57e</version>
+      <version>225.v7d540e18a_8f4</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
