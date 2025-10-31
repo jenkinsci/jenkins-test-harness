@@ -24,6 +24,9 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,43 +37,46 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.PropertyResourceBundle;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicTest;
 
 /**
  * Checks things about {@code *.properties}.
  */
-public class PropertiesTestSuite extends TestSuite {
+public class PropertiesTestSuite {
 
-    public PropertiesTestSuite(File resources) throws IOException {
+    public static DynamicContainer build(File resources) throws IOException {
+        List<DynamicTest> tests = new ArrayList<>();
+
         for (Map.Entry<URL, String> entry :
                 JellyTestSuiteBuilder.scan(resources, "properties").entrySet()) {
-            addTest(new PropertiesTest(entry.getKey(), entry.getValue()));
+            tests.add(DynamicTest.dynamicTest(
+                    "Check " + entry.getKey(), () -> new PropertiesTest(entry.getKey()).test()));
         }
+
+        return DynamicContainer.dynamicContainer("Properties Tests", tests);
     }
 
-    private static class PropertiesTest extends TestCase {
+    private static class PropertiesTest {
 
         private final URL resource;
 
-        private PropertiesTest(URL resource, String name) {
-            super(name);
+        private PropertiesTest(URL resource) {
             this.resource = resource;
         }
 
-        @Override
-        protected void runTest() throws Throwable {
+        void test() throws Throwable {
             Properties props = new Properties() {
                 @Override
                 public synchronized Object put(Object key, Object value) {
                     Object old = super.put(key, value);
-                    if (old != null) {
-                        throw new AssertionError(
-                                "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
-                    }
+                    assertNotNull(
+                            old, "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
                     return null;
                 }
             };
@@ -80,9 +86,7 @@ public class PropertiesTestSuite extends TestSuite {
                 if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
                     boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
                     boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
-                    if (!isUtf8 && !isIso88591) {
-                        throw new AssertionError(resource + " must be either valid UTF-8 or valid ISO-8859-1.");
-                    }
+                    assertTrue(!isUtf8 && !isIso88591, resource + " must be either valid UTF-8 or valid ISO-8859-1.");
                 }
             }
 
@@ -94,19 +98,19 @@ public class PropertiesTestSuite extends TestSuite {
                         .forEachRemaining(key -> props.setProperty(key, propertyResourceBundle.getString(key)));
             }
         }
-    }
 
-    private static boolean isEncoded(byte[] bytes, Charset charset) {
-        CharsetDecoder decoder = charset.newDecoder();
-        decoder.onMalformedInput(CodingErrorAction.REPORT);
-        decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        private static boolean isEncoded(byte[] bytes, Charset charset) {
+            CharsetDecoder decoder = charset.newDecoder();
+            decoder.onMalformedInput(CodingErrorAction.REPORT);
+            decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
-        try {
-            decoder.decode(buffer);
-            return true;
-        } catch (CharacterCodingException e) {
-            return false;
+            try {
+                decoder.decode(buffer);
+                return true;
+            } catch (CharacterCodingException e) {
+                return false;
+            }
         }
     }
 }
