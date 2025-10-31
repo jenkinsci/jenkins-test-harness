@@ -92,13 +92,17 @@ public class JellyTestSuiteBuilder {
         private final JellyClassLoaderTearOff jct;
         private final boolean requirePI;
 
+        private final HudsonTestCase h = new HudsonTestCase("JellyCheck#test") {};
+
         JellyCheck(URL jelly, JellyClassLoaderTearOff jct, boolean requirePI) {
             this.jelly = jelly;
             this.jct = jct;
             this.requirePI = requirePI;
         }
 
-        void test() throws Exception {
+        void test() throws Throwable {
+            h.setUp();
+
             jct.createContext().compileScript(jelly);
             Document dom = new SAXReader().read(jelly);
             if (requirePI) {
@@ -108,6 +112,8 @@ public class JellyTestSuiteBuilder {
                 }
             }
             // TODO: what else can we check statically? use of taglibs?
+
+            h.tearDown();
         }
     }
 }

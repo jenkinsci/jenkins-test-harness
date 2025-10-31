@@ -67,12 +67,12 @@ public class PluginAutomaticTestBuilder {
 
             nodes.add(JellyTestSuiteBuilder.build(outputDirectory, requirePi));
 
-            OtherTests other = new OtherTests(params);
             nodes.add(DynamicContainer.dynamicContainer(
                     "Other Tests",
                     List.of(
-                            DynamicTest.dynamicTest("testCliSanity", other::testCliSanity),
-                            DynamicTest.dynamicTest("testPluginActive", other::testPluginActive))));
+                            DynamicTest.dynamicTest("testCliSanity", () -> new OtherTests(params).testCliSanity()),
+                            DynamicTest.dynamicTest(
+                                    "testPluginActive", () -> new OtherTests(params).testPluginActive()))));
 
             nodes.add(PropertiesTestSuite.build(outputDirectory));
         }
@@ -90,7 +90,7 @@ public class PluginAutomaticTestBuilder {
         return Boolean.parseBoolean(object.toString());
     }
 
-    public static class OtherTests {
+    private static class OtherTests {
 
         private final Map<String, ?> params;
 
@@ -102,7 +102,11 @@ public class PluginAutomaticTestBuilder {
             CLICommand.clone("help");
         }
 
-        void testPluginActive() {
+        void testPluginActive() throws Exception {
+            HudsonTestCase h = new HudsonTestCase("OtherTests#testPluginActive") {};
+
+            h.setUp();
+
             String plugin = (String) params.get("artifactId");
             if (plugin != null) {
                 for (FailedPlugin fp : Jenkins.get().getPluginManager().getFailedPlugins()) {
@@ -114,6 +118,8 @@ public class PluginAutomaticTestBuilder {
                 assertNotNull(pw, plugin + " failed to start");
                 assertTrue(pw.isActive(), plugin + " was not active");
             }
+
+            h.tearDown();
         }
     }
 }

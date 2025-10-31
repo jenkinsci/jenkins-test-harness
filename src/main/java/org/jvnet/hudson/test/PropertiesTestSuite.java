@@ -24,7 +24,7 @@
 
 package org.jvnet.hudson.test;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -70,13 +70,12 @@ public class PropertiesTestSuite {
             this.resource = resource;
         }
 
-        void test() throws Throwable {
+        void test() throws Exception {
             Properties props = new Properties() {
                 @Override
                 public synchronized Object put(Object key, Object value) {
                     Object old = super.put(key, value);
-                    assertNotNull(
-                            old, "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
+                    assertNull(old, "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
                     return null;
                 }
             };
