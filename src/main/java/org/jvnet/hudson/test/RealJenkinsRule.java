@@ -37,6 +37,10 @@ import hudson.security.csrf.CrumbExclusion;
 import hudson.util.NamingThreadFactory;
 import hudson.util.StreamCopyThread;
 import io.jenkins.test.fips.FIPSTestBundleProvider;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -111,10 +115,6 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.test.https.KeyStoreManager;
@@ -135,8 +135,8 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.verb.POST;
 
 /**
@@ -1764,14 +1764,14 @@ public final class RealJenkinsRule implements TestRule {
             checkToken(token);
         }
         /**
-         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest}
+         * Used to run test methods on a separate thread so that code that uses {@link Stapler#getCurrentRequest2}
          * does not inadvertently interact with the request for {@link #doStep} itself.
          */
         private static final ExecutorService STEP_RUNNER = Executors.newSingleThreadExecutor(new NamingThreadFactory(
                 Executors.defaultThreadFactory(), RealJenkinsRule.class.getName() + ".STEP_RUNNER"));
 
         @POST
-        public void doStep(StaplerRequest req, StaplerResponse rsp) throws Throwable {
+        public void doStep(StaplerRequest2 req, StaplerResponse2 rsp) throws Throwable {
             InputPayload input = (InputPayload) Init2.readSer(req.getInputStream(), Endpoint.class.getClassLoader());
             checkToken(input.token);
             Step2<?> s = input.step;
