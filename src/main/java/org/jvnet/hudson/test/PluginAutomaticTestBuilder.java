@@ -54,12 +54,15 @@ public class PluginAutomaticTestBuilder {
      *      testOutputDirectory (String) : target/test-classes.
      *      requirePI (String) : either {@code true} to verify that all the jelly scripts have the Jelly XSS PI in
      *      them or {@code false} to ignore any missing ones.
+     *      requireNoInlineJS (String) : either {@code true} to verify that all the jelly scripts have no inline Javascript in
+     *      them or {@code false} to ignore any violations.
      */
     public static TestSuite build(Map<String, ?> params) throws Exception {
         TestSuite controller = new TestSuite();
         if (params.containsKey("outputDirectory")) { // shouldn't happen, but be defensive
             File outputDirectory = new File((String) params.get("outputDirectory"));
-            TestSuite inJenkins = JellyTestSuiteBuilder.build(outputDirectory, toBoolean(params.get("requirePI")));
+            TestSuite inJenkins = JellyTestSuiteBuilder.build(
+                    outputDirectory, toBoolean(params.get("requirePI")), toBoolean(params.get("requireNoInlineJS")));
             inJenkins.addTest(new OtherTests("testCliSanity", params));
             String packaging = (String) params.get("packaging");
             if (packaging == null || packaging.trim().isEmpty() || "hpi".equals(packaging)) {
@@ -71,14 +74,14 @@ public class PluginAutomaticTestBuilder {
         return controller;
     }
 
-    private static boolean toBoolean(Object requirePI) {
-        if (requirePI == null) {
+    private static boolean toBoolean(Object value) {
+        if (value == null) {
             return false;
         }
-        if (requirePI instanceof Boolean) {
-            return (Boolean) requirePI;
+        if (value instanceof Boolean) {
+            return (Boolean) value;
         }
-        return Boolean.parseBoolean(requirePI.toString());
+        return Boolean.parseBoolean(value.toString());
     }
 
     public static class OtherTests extends TestCase {
