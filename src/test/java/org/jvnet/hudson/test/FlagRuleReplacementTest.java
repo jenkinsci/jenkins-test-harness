@@ -54,5 +54,4 @@ public class FlagRuleReplacementTest {
     public void smokes() {
         assertTrue(FLAG);
     }
-
 }

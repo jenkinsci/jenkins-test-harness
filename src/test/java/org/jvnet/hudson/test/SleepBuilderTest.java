@@ -17,5 +17,4 @@ public class SleepBuilderTest {
         j.configRoundtrip(project);
         j.assertEqualDataBoundBeans(project.getBuildersList().get(SleepBuilder.class), builder);
     }
-
 }

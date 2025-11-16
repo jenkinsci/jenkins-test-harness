@@ -26,19 +26,13 @@ package org.jvnet.hudson.test;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.util.RingBufferLogHandler;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Formatter;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
-import java.util.stream.Collectors;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.ClassRule;
@@ -57,35 +51,19 @@ import org.junit.rules.RuleChain;
  */
 public class LoggerRule extends ExternalResource {
 
-    private final Handler consoleHandler = new ConsoleHandlerWithMaxLevel();
-    private final Map<Logger,Level> loggers = new HashMap<>();
-    // initialized if and only if capture is called:
-    private RingBufferLogHandler ringHandler;
-    private List<String> messages;
-    private boolean verbose = true;
-
-    /**
-     * Initializes the rule, by default not recording anything.
-     */
-    public LoggerRule() {
-        consoleHandler.setFormatter(new DeltaSupportLogFormatter());
-        consoleHandler.setLevel(Level.ALL);
-    }
+    private final LogRecorder recorder = new LogRecorder();
 
     /**
      * Don't emit logs to the console, only record.
      */
     public LoggerRule quiet() {
-        this.verbose = false;
+        recorder.quiet();
         return this;
     }
 
     @Override
     public String toString() {
-        return getRecords()
-                .stream()
-                .map(logRecord -> logRecord.getLevel().toString() + "->" + logRecord.getMessage())
-                .collect(Collectors.joining(","));
+        return recorder.toString();
     }
 
     /**
@@ -95,23 +73,7 @@ public class LoggerRule extends ExternalResource {
      * @return this rule, for convenience
      */
     public LoggerRule capture(int maximum) {
-        messages = new ArrayList<>();
-        ringHandler = new RingBufferLogHandler(maximum) {
-            final Formatter f = new SimpleFormatter(); // placeholder instance for what should have been a static method perhaps
-            @Override
-            public synchronized void publish(LogRecord record) {
-                super.publish(record);
-                String message = f.formatMessage(record);
-                Throwable x = record.getThrown();
-                synchronized (messages) {
-                    messages.add(message == null && x != null ? x.toString() : message);
-                }
-            }
-        };
-        ringHandler.setLevel(Level.ALL);
-        for (Logger logger : loggers.keySet()) {
-            logger.addHandler(ringHandler);
-        }
+        recorder.capture(maximum);
         return this;
     }
 
@@ -128,14 +90,7 @@ public class LoggerRule extends ExternalResource {
      * @return this rule, for convenience
      */
     public LoggerRule record(Logger logger, Level level) {
-        loggers.put(logger, logger.getLevel());
-        logger.setLevel(level);
-        if (verbose) {
-            logger.addHandler(consoleHandler);
-        }
-        if (ringHandler != null) {
-            logger.addHandler(ringHandler);
-        }
+        recorder.record(logger, level);
         return this;
     }
 
@@ -143,25 +98,28 @@ public class LoggerRule extends ExternalResource {
      * Same as {@link #record(Logger, Level)} but calls {@link Logger#getLogger(String)} for you first.
      */
     public LoggerRule record(String name, Level level) {
-        return record(Logger.getLogger(name), level);
+        recorder.record(Logger.getLogger(name), level);
+        return this;
     }
-    
+
     /**
      * Same as {@link #record(String, Level)} but calls {@link Class#getName()} for you first.
      */
     public LoggerRule record(Class<?> clazz, Level level) {
-        return record(clazz.getName(), level);
+        recorder.record(clazz.getName(), level);
+        return this;
     }
 
     /**
      * Same as {@link #record(String, Level)} but calls {@link Class#getPackage()} and getName() for you first.
      */
     public LoggerRule recordPackage(Class<?> clazz, Level level) {
-        return record(clazz.getPackage().getName(), level);
+        recorder.record(clazz.getPackage().getName(), level);
+        return this;
     }
 
     Map<String, Level> getRecordedLevels() {
-        return loggers.keySet().stream().collect(Collectors.toMap(Logger::getName, Logger::getLevel));
+        return recorder.getRecordedLevels();
     }
 
     /**
@@ -170,7 +128,7 @@ public class LoggerRule extends ExternalResource {
      * If more than the maximum number of records were captured, older ones will have been discarded.
      */
     public List<LogRecord> getRecords() {
-        return ringHandler.getView();
+        return recorder.getRecords();
     }
 
     /**
@@ -181,28 +139,12 @@ public class LoggerRule extends ExternalResource {
      * Does not include logger names, stack traces, times, etc. (these will appear in the test console anyway).
      */
     public List<String> getMessages() {
-        synchronized (messages) {
-            return List.copyOf(messages);
-        }
+        return recorder.getMessages();
     }
 
     @Override
     protected void after() {
-        for (Map.Entry<Logger,Level> entry : loggers.entrySet()) {
-            Logger logger = entry.getKey();
-            logger.setLevel(entry.getValue());
-            if (verbose) {
-                logger.removeHandler(consoleHandler);
-            }
-            if (ringHandler != null) {
-                logger.removeHandler(ringHandler);
-            }
-        }
-        loggers.clear();
-        if (ringHandler != null) {
-            ringHandler.clear();
-            messages.clear();
-        }
+        recorder.close();
     }
 
     /**
@@ -216,8 +158,22 @@ public class LoggerRule extends ExternalResource {
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
      * passing {@link org.hamcrest.Matchers#anything}
      */
-    public static Matcher<LoggerRule> recorded(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
-        return new RecordedMatcher(level, message, thrown);
+    public static Matcher<LoggerRule> recorded(
+            @CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+        return new TypeSafeMatcher<>() {
+
+            private final LogRecorder.RecordedMatcher matcher = new LogRecorder.RecordedMatcher(level, message, thrown);
+
+            @Override
+            public void describeTo(Description description) {
+                matcher.describeTo(description);
+            }
+
+            @Override
+            protected boolean matchesSafely(LoggerRule loggerRule) {
+                return matcher.matches(loggerRule.recorder);
+            }
+        };
     }
 
     /**
@@ -242,7 +198,8 @@ public class LoggerRule extends ExternalResource {
      * @param thrown the matcher to match against {@link LogRecord#getThrown()}. Passing {@code null} is equivalent to
      * passing {@link org.hamcrest.Matchers#anything}
      */
-    public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
+    public static Matcher<LoggerRule> recorded(
+            @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
         return recorded(null, message, thrown);
     }
 
@@ -254,72 +211,6 @@ public class LoggerRule extends ExternalResource {
      * @param message the matcher to match against {@link LogRecord#getMessage}
      */
     public static Matcher<LoggerRule> recorded(@NonNull Matcher<String> message) {
-        return recorded(null, message);
-    }
-
-    private static class RecordedMatcher extends TypeSafeMatcher<LoggerRule> {
-        @CheckForNull Level level;
-        @NonNull Matcher<String> message;
-        @CheckForNull Matcher<Throwable> thrown;
-
-        public RecordedMatcher(@CheckForNull Level level, @NonNull Matcher<String> message, @CheckForNull Matcher<Throwable> thrown) {
-            this.level = level;
-            this.message = message;
-            this.thrown = thrown;
-        }
-
-        @Override
-        protected boolean matchesSafely(LoggerRule item) {
-            synchronized (item) {
-                for (LogRecord record : item.getRecords()) {
-                    if (level == null || record.getLevel() == level) {
-                        if (message.matches(record.getMessage())) {
-                            if (thrown != null) {
-                                if (thrown.matches(record.getThrown())) {
-                                    return true;
-                                }
-                            } else {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public void describeTo(org.hamcrest.Description description) {
-            description.appendText("has LogRecord");
-            if (level != null) {
-                description.appendText(" with level ");
-                description.appendValue(level.getName());
-            }
-            description.appendText(" with a message matching ");
-            description.appendDescriptionOf(message);
-            if (thrown != null) {
-                description.appendText(" with an exception matching ");
-                description.appendDescriptionOf(thrown);
-            }
-        }
-    }
-
-    /**
-     * Delegates to the given Handler but filter out records higher or equal to its initial level
-     */
-    private static class ConsoleHandlerWithMaxLevel extends ConsoleHandler {
-        private final Level initialLevel;
-
-        public ConsoleHandlerWithMaxLevel() {
-            super();
-            initialLevel = getLevel();
-        }
-
-        @Override
-        public void publish(LogRecord record) {
-            if (record.getLevel().intValue() < initialLevel.intValue()) {
-                super.publish(record);
-            }
-        }
+        return recorded(null, message, null);
     }
 }

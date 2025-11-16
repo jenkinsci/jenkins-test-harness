@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Slave that pretends to fork processes.
+ * Agent that pretends to fork processes.
  *
  * @author Kohsuke Kawaguchi
- * @see HudsonTestCase#createPretendSlave(FakeLauncher) 
+ * @see HudsonTestCase#createPretendSlave(FakeLauncher)
  */
 public class PretendSlave extends Slave {
     private transient FakeLauncher faker;
@@ -27,15 +27,32 @@ public class PretendSlave extends Slave {
      */
     public int numLaunch;
 
-    public PretendSlave(String name, String remoteFS, int numExecutors, Mode mode, String labelString, ComputerLauncher launcher, FakeLauncher faker) throws IOException, FormException {
-        super(name, "pretending a slave", remoteFS, String.valueOf(numExecutors), mode, labelString, launcher, RetentionStrategy.NOOP, List.of());
+    public PretendSlave(
+            String name,
+            String remoteFS,
+            int numExecutors,
+            Mode mode,
+            String labelString,
+            ComputerLauncher launcher,
+            FakeLauncher faker)
+            throws IOException, FormException {
+        super(
+                name,
+                "pretending an agent",
+                remoteFS,
+                String.valueOf(numExecutors),
+                mode,
+                labelString,
+                launcher,
+                RetentionStrategy.NOOP,
+                List.of());
         this.faker = faker;
     }
 
-    public PretendSlave(String name, String remoteFS, String labelString, ComputerLauncher launcher, FakeLauncher faker) throws IOException, FormException {
-    	this(name, remoteFS, 1, Mode.NORMAL, labelString, launcher, faker);
+    public PretendSlave(String name, String remoteFS, String labelString, ComputerLauncher launcher, FakeLauncher faker)
+            throws IOException, FormException {
+        this(name, remoteFS, 1, Mode.NORMAL, labelString, launcher, faker);
     }
-
 
     @NonNull
     @Override

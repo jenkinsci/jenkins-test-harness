@@ -42,5 +42,4 @@ public class JenkinsRuleTimeout4Test extends JenkinsRuleTimeoutTestBase {
             JenkinsRuleTimeoutTestBase.hangUninterruptibly();
         }
     }
-
 }

@@ -1,11 +1,11 @@
 package jenkins.model;
 
 /**
- * Access the package protected quiet period
+ * @deprecated use {@link Jenkins#setQuietPeriod}
  */
+@Deprecated
 public class JenkinsAdaptor {
     public static void setQuietPeriod(Jenkins jenkins, int quietPeriod) {
         jenkins.quietPeriod = quietPeriod;
     }
-
 }

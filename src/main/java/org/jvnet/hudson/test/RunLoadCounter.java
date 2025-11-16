@@ -25,17 +25,19 @@
 package org.jvnet.hudson.test;
 
 import hudson.Extension;
-import hudson.model.Action;
+import hudson.ExtensionList;
 import hudson.model.InvisibleAction;
+import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model.listeners.RunListener;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.RunAction2;
-import jenkins.model.TransientActionFactory;
 import jenkins.model.lazy.LazyBuildMixIn;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -56,16 +58,16 @@ public final class RunLoadCounter {
      * @deprecated No longer needed.
      */
     @Deprecated
-    public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {
-    }
+    public static void prepare(LazyBuildMixIn.LazyLoadingJob<?, ?> project) throws IOException {}
 
     /**
      * Counts how many build records are loaded as a result of some task.
-     * @param project a project on which {@link #prepare} was called prior to creating builds
+     * @param project a project which may have some builds
      * @param thunk a task which is expected to load some build records
      * @return how many build records were actually {@linkplain Run#onLoad loaded} as a result
      */
     public static int countLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, Runnable thunk) {
+        MarkerAdder.register(project);
         project.getLazyBuildMixIn()._getRuns().purgeCache();
         currProject = project;
         currCount = 0;
@@ -82,7 +84,7 @@ public final class RunLoadCounter {
 
     /**
      * Asserts that at most a certain number of build records are loaded as a result of some task.
-     * @param project a project on which {@link #prepare} was called prior to creating builds
+     * @param project a project which may have some builds
      * @param max the maximum number of build records we expect to load
      * @param thunk a task which is expected to load some build records
      * @return the result of the task, if any
@@ -90,7 +92,9 @@ public final class RunLoadCounter {
      * @throws AssertionError if one more than max build record is loaded
      * @param <T> the return value type
      */
-    public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk) throws Exception {
+    public static <T> T assertMaxLoads(LazyBuildMixIn.LazyLoadingJob<?, ?> project, int max, Callable<T> thunk)
+            throws Exception {
+        MarkerAdder.register(project);
         project.getLazyBuildMixIn()._getRuns().purgeCache();
         currProject = project;
         currCount = 0;
@@ -112,34 +116,52 @@ public final class RunLoadCounter {
     @Restricted(NoExternalUse.class)
     public static final class Marker extends InvisibleAction implements RunAction2 {
 
-        @Override public void onLoad(Run<?, ?> run) {
+        @Override
+        public void onLoad(Run<?, ?> run) {
             if (run.getParent().equals(currProject)) {
                 if (++currCount > maxCount) {
                     throw new AssertionError("More than " + maxCount + " build records loaded: " + run);
                 } else {
-                    LOGGER.log(Level.WARNING, "Loaded " + run + " (" + currCount + " ≤ " + maxCount + ")", new Throwable());
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Loaded " + run + " (" + currCount + " ≤ " + maxCount + ")",
+                            new Throwable());
                 }
             }
         }
 
-        @Override public void onAttached(Run r) {}
-
+        @Override
+        public void onAttached(Run r) {
+            LOGGER.info(() -> "Registered on " + r);
+        }
     }
 
     /**
      * Used internally.
      */
     @Restricted(NoExternalUse.class)
-    @Extension public static final class MarkerAdder extends TransientActionFactory<Run<?, ?>> {
+    @Extension
+    public static final class MarkerAdder extends RunListener<Run<?, ?>> {
+        private final Set<String> jobs = new HashSet<>();
 
-        @Override public Class<Run<?, ?>> type() {
-            return (Class) Run.class;
+        static void register(LazyBuildMixIn.LazyLoadingJob<?, ?> job) {
+            if (ExtensionList.lookupSingleton(MarkerAdder.class).jobs.add(((Job) job).getFullName())) {
+                for (Run<?, ?> build : job.getLazyBuildMixIn()._getRuns()) {
+                    build.addAction(new Marker());
+                    try {
+                        build.save();
+                    } catch (IOException x) {
+                        throw new RuntimeException(x);
+                    }
+                }
+            }
         }
 
-        @Override public Collection<? extends Action> createFor(Run<?, ?> target) {
-            return Set.of(new Marker());
+        @Override
+        public void onStarted(Run<?, ?> build, TaskListener listener) {
+            if (jobs.contains(build.getParent().getFullName())) {
+                build.addAction(new Marker());
+            }
         }
-
     }
-
 }

@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,6 +28,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
+import java.util.logging.Logger;
 import org.junit.runner.Description;
 import org.jvnet.hudson.test.HudsonHomeLoader.Local;
 import org.jvnet.hudson.test.HudsonTestCase;
@@ -86,17 +88,36 @@ import org.jvnet.hudson.test.TailLog;
 public @interface LocalData {
     String value() default "";
 
+    Logger LOGGER = Logger.getLogger(LocalData.class.getName());
+
     class RunnerImpl extends Recipe.Runner<LocalData> {
         @Override
         public void setup(HudsonTestCase testCase, LocalData recipe) throws Exception {
             testCase.with(new Local(testCase.getClass().getMethod(testCase.getName()), recipe.value()));
         }
     }
+
     class RuleRunnerImpl extends JenkinsRecipe.Runner<LocalData> {
         @Override
         public void setup(JenkinsRule jenkinsRule, LocalData recipe) throws Exception {
             Description desc = jenkinsRule.getTestDescription();
-            jenkinsRule.with(new Local(desc.getTestClass().getMethod(desc.getMethodName()), recipe.value()));
+
+            Method testMethod = null;
+            for (var cls = desc.getTestClass(); testMethod == null && cls != null; cls = cls.getSuperclass()) {
+                try {
+                    testMethod = cls.getDeclaredMethod(desc.getMethodName());
+                } catch (NoSuchMethodException ex) {
+                    try {
+                        testMethod = cls.getDeclaredMethod(desc.getMethodName(), JenkinsRule.class);
+                    } catch (NoSuchMethodException ex2) {
+                        LOGGER.fine("No method " + desc.getMethodName() + " in " + cls);
+                    }
+                }
+            }
+            if (testMethod == null) {
+                throw new NoSuchMethodException("Could not look up any test method for " + desc);
+            }
+            jenkinsRule.with(new Local(testMethod, recipe.value()));
         }
     }
 }

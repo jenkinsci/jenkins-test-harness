@@ -40,14 +40,13 @@ class IOUtil {
      * @param from if &lt;=0 then default value 49152 is used
      * @param to   if &lt;=0 then default value 65535 is used
      */
-    public static int randomTcpPort(int from, int to){
-        from = (from <=0) ? 49152 : from;
+    public static int randomTcpPort(int from, int to) {
+        from = (from <= 0) ? 49152 : from;
         to = (to <= 0) ? 65535 : to;
 
-
-        while(true){
-            int candidate = (int) ((Math.random() * (to-from)) + from);
-            if(isTcpPortFree(candidate)){
+        while (true) {
+            int candidate = (int) ((Math.random() * (to - from)) + from);
+            if (isTcpPortFree(candidate)) {
                 return candidate;
             }
             LOGGER.info(String.format("Port %s is in use", candidate));
@@ -57,11 +56,11 @@ class IOUtil {
     /**
      * Gives random available TCP port.
      */
-    public static int randomTcpPort(){
-        return randomTcpPort(-1,-1);
+    public static int randomTcpPort() {
+        return randomTcpPort(-1, -1);
     }
 
-    public static boolean isTcpPortFree(int port){
+    public static boolean isTcpPortFree(int port) {
         try {
             ServerSocket ss = new ServerSocket(port);
             ss.close();

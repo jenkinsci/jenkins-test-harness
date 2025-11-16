@@ -24,25 +24,29 @@
 
 package org.jvnet.hudson.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import org.apache.commons.io.FileUtils;
-import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public final class TailLogTest {
 
-    @Rule public final TemporaryFolder tmp = new TemporaryFolder();
+    @Rule
+    public final TemporaryFolder tmp = new TemporaryFolder();
 
-    @Test public void recreatedLog() throws Exception {
+    @Test
+    public void recreatedLog() throws Exception {
         var dir = tmp.getRoot();
         try (var tail = new TailLog(dir, "prj", 123).withColor(PrefixedOutputStream.Color.MAGENTA)) {
             Thread.sleep(1000);
             var log = new File(dir, "log");
-            try (var os = new FileOutputStream(log); var pw = new PrintWriter(os)) {
+            try (var os = new FileOutputStream(log);
+                    var pw = new PrintWriter(os)) {
                 for (int i = 0; i < 10; i++) {
                     pw.println(i);
                     pw.flush();
@@ -53,7 +57,8 @@ public final class TailLogTest {
             FileUtils.copyFile(log, log2);
             FileUtils.delete(log);
             assertTrue(log2.renameTo(log));
-            try (var os = new FileOutputStream(log, true); var pw = new PrintWriter(os)) {
+            try (var os = new FileOutputStream(log, true);
+                    var pw = new PrintWriter(os)) {
                 for (int i = 10; i < 20; i++) {
                     pw.println(i);
                     pw.flush();
@@ -64,5 +69,4 @@ public final class TailLogTest {
             tail.waitForCompletion();
         }
     }
-
 }

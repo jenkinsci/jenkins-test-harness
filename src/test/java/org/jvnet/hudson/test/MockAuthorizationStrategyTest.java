@@ -40,20 +40,34 @@ public class MockAuthorizationStrategyTest {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
-    
+
     @Test
     public void smokes() throws Exception {
         final MockFolder d = r.createFolder("d");
         final FreeStyleProject p = d.createProject(FreeStyleProject.class, "p");
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
-            grant(Jenkins.ADMINISTER).everywhere().to("root").
-            grantWithoutImplication(Jenkins.ADMINISTER).onRoot().to("admin").
-            grant(Jenkins.READ, Item.READ).everywhere().toEveryone().
-            grant(Item.EXTENDED_READ).everywhere().toAuthenticated().
-            grant(Item.CREATE).onItems(d).to("dev").
-            grant(Item.CONFIGURE).onItems(p).to("dev").
-            grant(Item.BUILD).onFolders(d).to("dev"));
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
+                .grant(Jenkins.ADMINISTER)
+                .everywhere()
+                .to("root")
+                .grantWithoutImplication(Jenkins.ADMINISTER)
+                .onRoot()
+                .to("admin")
+                .grant(Jenkins.READ, Item.READ)
+                .everywhere()
+                .toEveryone()
+                .grant(Item.EXTENDED_READ)
+                .everywhere()
+                .toAuthenticated()
+                .grant(Item.CREATE)
+                .onItems(d)
+                .to("dev")
+                .grant(Item.CONFIGURE)
+                .onItems(p)
+                .to("dev")
+                .grant(Item.BUILD)
+                .onFolders(d)
+                .to("dev"));
         try (ACLContext ctx = ACL.as(User.get("root"))) {
             assertTrue(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
             assertTrue(p.hasPermission(Item.DELETE));
@@ -90,7 +104,7 @@ public class MockAuthorizationStrategyTest {
     public void noPermissionsByDefault() {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy());
-        assertFalse(r.jenkins.getACL().hasPermission2(User.getById("alice", true).impersonate2(), Jenkins.ADMINISTER));
+        assertFalse(
+                r.jenkins.getACL().hasPermission2(User.getById("alice", true).impersonate2(), Jenkins.ADMINISTER));
     }
-
 }

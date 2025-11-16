@@ -36,5 +36,4 @@ public class JenkinsRuleTimeout1Test extends JenkinsRuleTimeoutTestBase {
             System.err.println("Interrupted, good.");
         }
     }
-
 }

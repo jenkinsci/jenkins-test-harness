@@ -1,7 +1,6 @@
 package org.jvnet.hudson.test;
 
 import groovy.lang.Closure;
-import hudson.PluginManager;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.runner.Description;
@@ -28,27 +28,18 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
 /**
- * Provides a pattern for executing a sequence of steps.
- * In between steps, Jenkins gets restarted.
- *
- * <p>
- * To use this, add this rule instead of {@link JenkinsRule} to the test,
- * then from your test method, call {@link #then} repeatedly.
- * You may test scenarios related to abrupt shutdowns or failures to start using {@link #thenWithHardShutdown} and
- * {@link #thenDoesNotStart}.
- * <p>
- * The rule will evaluate your test method to collect all steps, then execute them in turn and restart Jenkins in
- * between each step. Consider using {@link JenkinsSessionRule} if you want each step to be executed immediately when
- * {@link #then} is called.
- * <p>
- * If your test requires disabling of a plugin then the default {@link PluginManager} ({@link TestPluginManager}) used for tests
- * will need to be changed to {@link UnitTestSupportingPluginManager}.
- * This can be accomplished by annotating the test with {@code @WithPluginManager(UnitTestSupportingPluginManager.class)}.
- * 
  * @author Kohsuke Kawaguchi
- * @see JenkinsRule
  * @since 1.567
+ * @deprecated New code should use {@link JenkinsSessionRule}.
+ *             {@link RestartableJenkinsRule} will evaluate your test method to collect all steps,
+ *             then execute them in turn and restart Jenkins in between each step,
+ *             <em>after</em> the test method has exited.
+ *             That is probably not what you would expect from looking at sources,
+ *             and it will not work naturally with {@link After} etc.
+ *             Tests needing to dynamically disable plugins, simulate crashes, etc.
+ *             are better written using {@link RealJenkinsRule}.
  */
+@Deprecated
 public class RestartableJenkinsRule implements MethodRule {
     public JenkinsRule j;
     private Description description;
@@ -148,38 +139,40 @@ public class RestartableJenkinsRule implements MethodRule {
     static class CopyFileVisitor extends SimpleFileVisitor<Path> {
         private final Path targetPath;
         private Path sourcePath = null;
+
         public CopyFileVisitor(Path targetPath) {
             this.targetPath = targetPath;
         }
 
         @Override
-        public FileVisitResult preVisitDirectory(final Path dir,
-                                                 final BasicFileAttributes attrs) throws IOException {
+        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
             if (sourcePath == null) {
                 sourcePath = dir;
             } else {
-                Files.createDirectories(targetPath.resolve(sourcePath
-                        .relativize(dir)));
+                Files.createDirectories(targetPath.resolve(sourcePath.relativize(dir)));
             }
 
             return FileVisitResult.CONTINUE;
         }
 
         @Override
-        public FileVisitResult visitFile(final Path file,
-                                         final BasicFileAttributes attrs) throws IOException {
+        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
             try {
                 if (!Files.isSymbolicLink(file)) {
-                    // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a NoSuchFileException
-                    Files.copy(file,
-                            targetPath.resolve(sourcePath.relativize(file)), StandardCopyOption.COPY_ATTRIBUTES);
+                    // Needed because Jenkins includes invalid lastSuccessful symlinks and otherwise we get a
+                    // NoSuchFileException
+                    Files.copy(
+                            file, targetPath.resolve(sourcePath.relativize(file)), StandardCopyOption.COPY_ATTRIBUTES);
                 } else if (Files.isSymbolicLink(file) && Files.exists(Files.readSymbolicLink(file))) {
-                    Files.copy(file,
-                            targetPath.resolve(sourcePath.relativize(file)), LinkOption.NOFOLLOW_LINKS, StandardCopyOption.COPY_ATTRIBUTES);
+                    Files.copy(
+                            file,
+                            targetPath.resolve(sourcePath.relativize(file)),
+                            LinkOption.NOFOLLOW_LINKS,
+                            StandardCopyOption.COPY_ATTRIBUTES);
                 }
             } catch (NoSuchFileException nsfe) {
                 // File removed in between scan beginning and when we try to copy it, ignore it
-                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: "+ file);
+                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: " + file);
             }
 
             return FileVisitResult.CONTINUE;
@@ -188,10 +181,14 @@ public class RestartableJenkinsRule implements MethodRule {
         @Override
         public FileVisitResult visitFileFailed(Path file, IOException exc) {
             if (exc instanceof FileNotFoundException) {
-                LOGGER.log(Level.FINE, "File not found while trying to copy to new home, continuing anyway: " + file.toString());
+                LOGGER.log(
+                        Level.FINE,
+                        "File not found while trying to copy to new home, continuing anyway: " + file.toString());
                 return FileVisitResult.CONTINUE;
             } else if (exc instanceof NoSuchFileException) {
-                LOGGER.log(Level.FINE, "File disappeared while trying to copy to new home, continuing anyway: " + file.toString());
+                LOGGER.log(
+                        Level.FINE,
+                        "File disappeared while trying to copy to new home, continuing anyway: " + file.toString());
                 return FileVisitResult.CONTINUE;
             } else {
                 LOGGER.log(Level.WARNING, "Error copying file", exc);
@@ -209,15 +206,19 @@ public class RestartableJenkinsRule implements MethodRule {
      *
      * Should be run as the last part of a {@link org.jvnet.hudson.test.RestartableJenkinsRule.Step}.
      */
-     void simulateAbruptShutdown() throws IOException {
-         LOGGER.log(Level.INFO, "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
-         File homeDir = this.home;
-         File newHome = tmp.allocate();
+    void simulateAbruptShutdown() throws IOException {
+        LOGGER.log(
+                Level.INFO,
+                "Beginning snapshot of JENKINS_HOME so we can simulate abrupt shutdown.  Disk writes MAY be lost if they happen after this.");
+        File homeDir = this.home;
+        File newHome = tmp.allocate();
 
-         // Copy efficiently
-         Files.walkFileTree(homeDir.toPath(), Set.of(), 99, new CopyFileVisitor(newHome.toPath()));
-         LOGGER.log(Level.INFO, "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
-         home = newHome;
+        // Copy efficiently
+        Files.walkFileTree(homeDir.toPath(), Set.of(), 99, new CopyFileVisitor(newHome.toPath()));
+        LOGGER.log(
+                Level.INFO,
+                "Finished snapshot of JENKINS_HOME, any disk writes by Jenkins after this are lost as we will simulate suddenly killing the Jenkins process and switch to the snapshot.");
+        home = newHome;
     }
 
     /**
@@ -262,12 +263,14 @@ public class RestartableJenkinsRule implements MethodRule {
     }
 
     public void thenDoesNotStart() {
-        addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                throw new IllegalStateException("should have failed before reaching here.");
-            }
-        }, false);
+        addStep(
+                new Statement() {
+                    @Override
+                    public void evaluate() throws Throwable {
+                        throw new IllegalStateException("should have failed before reaching here.");
+                    }
+                },
+                false);
     }
 
     /**
@@ -283,14 +286,16 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     @Deprecated
     public void addStep(final Statement step, boolean expectedToStartCorrectly) {
-        steps.put(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                j.jenkins.getInjector().injectMembers(step);
-                j.jenkins.getInjector().injectMembers(target);
-                step.evaluate();
-            }
-        }, expectedToStartCorrectly);
+        steps.put(
+                new Statement() {
+                    @Override
+                    public void evaluate() throws Throwable {
+                        j.jenkins.getInjector().injectMembers(step);
+                        j.jenkins.getInjector().injectMembers(target);
+                        step.evaluate();
+                    }
+                },
+                expectedToStartCorrectly);
     }
 
     /**
@@ -298,15 +303,17 @@ public class RestartableJenkinsRule implements MethodRule {
      */
     @Deprecated
     public void addStepWithDirtyShutdown(final Statement step) {
-        steps.put(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                j.jenkins.getInjector().injectMembers(step);
-                j.jenkins.getInjector().injectMembers(target);
-                step.evaluate();
-                simulateAbruptShutdown();
-            }
-        }, true);
+        steps.put(
+                new Statement() {
+                    @Override
+                    public void evaluate() throws Throwable {
+                        j.jenkins.getInjector().injectMembers(step);
+                        j.jenkins.getInjector().injectMembers(target);
+                        step.evaluate();
+                        simulateAbruptShutdown();
+                    }
+                },
+                true);
     }
 
     private void run() throws Throwable {
@@ -322,7 +329,7 @@ public class RestartableJenkinsRule implements MethodRule {
                     Assert.fail("The current JenkinsRule should have failed to start Jenkins.");
                 }
             } catch (Exception e) {
-                if(entry.getValue()) {
+                if (entry.getValue()) {
                     throw e;
                 }
                 // Failure ignored as requested

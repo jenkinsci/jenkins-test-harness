@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Martin Eigenbrodt
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,6 +53,7 @@ public final class WarExploder {
     private static final Logger LOGGER = Logger.getLogger(WarExploder.class.getName());
 
     public static final String JENKINS_WAR_PATH_PROPERTY_NAME = "jth.jenkins-war.path";
+
     @CheckForNull
     private static final String JENKINS_WAR_PATH = System.getProperty(JENKINS_WAR_PATH_PROPERTY_NAME);
 
@@ -70,12 +71,13 @@ public final class WarExploder {
 
     private static File EXPLODE_DIR;
 
-    static File findJenkinsWar() throws Exception {
+    public static File findJenkinsWar() throws Exception {
         File war;
         if (JENKINS_WAR_PATH != null) {
             war = new File(JENKINS_WAR_PATH).getAbsoluteFile();
-            LOGGER.log(Level.INFO, "Using WAR file path {0} specified by the {1} system property",
-                    new Object[] {war, JENKINS_WAR_PATH_PROPERTY_NAME});
+            LOGGER.log(Level.INFO, "Using WAR file path {0} specified by the {1} system property", new Object[] {
+                war, JENKINS_WAR_PATH_PROPERTY_NAME
+            });
             if (!war.exists()) {
                 throw new IOException("The WAR file path " + war + " specified by the " + JENKINS_WAR_PATH_PROPERTY_NAME
                         + " system property does not exist");
@@ -89,8 +91,11 @@ public final class WarExploder {
             if (winstone != null) {
                 war = Which.jarFile(Class.forName("executable.Main"));
             } else {
-                // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle timestamped snapshots; in that case use `mvn test`.
-                File core = Which.jarFile(Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor jenkins-core.jar in ${java.class.path}
+                // JENKINS-45245: work around incorrect test classpath in IDEA. Note that this will not correctly handle
+                // timestamped snapshots; in that case use `mvn test`.
+                File core = Which.jarFile(
+                        Jenkins.class); // will fail with IllegalArgumentException if have neither jenkins-war.war nor
+                // jenkins-core.jar in ${java.class.path}
                 String version;
                 File coreArtifactDir;
                 if (HEX_DIGITS.matcher(core.getParentFile().getName()).matches()) {
@@ -102,7 +107,8 @@ public final class WarExploder {
                     version = core.getParentFile().getName();
                     coreArtifactDir = core.getParentFile().getParentFile();
                 }
-                if (core.getName().equals("jenkins-core-" + version + ".jar") && coreArtifactDir.getName().equals("jenkins-core")) {
+                if (core.getName().equals("jenkins-core-" + version + ".jar")
+                        && coreArtifactDir.getName().equals("jenkins-core")) {
                     File warArtifactDir = new File(coreArtifactDir.getParentFile(), "jenkins-war");
                     war = new File(new File(warArtifactDir, version), "jenkins-war-" + version + ".war");
                     if (!war.isFile()) {
@@ -118,12 +124,16 @@ public final class WarExploder {
                             }
                         }
                         if (!war.isFile()) {
-                            throw new AssertionError(war + " does not yet exist. Prime your development environment by running `mvn validate`.");
+                            throw new AssertionError(
+                                    war
+                                            + " does not yet exist. Prime your development environment by running `mvn validate`.");
                         }
                     }
                     LOGGER.log(Level.FINE, "{0} is the continuation of the classpath by other means", war);
                 } else {
-                    throw new AssertionError(core + " is not in the expected location, and jenkins-war-*.war was not in " + System.getProperty("java.class.path"));
+                    throw new AssertionError(
+                            core + " is not in the expected location, and jenkins-war-*.war was not in "
+                                    + System.getProperty("java.class.path"));
                 }
             }
         }
@@ -139,10 +149,10 @@ public final class WarExploder {
 
         File d = new File(".").getAbsoluteFile();
 
-        for( ; d!=null; d=d.getParentFile()) {
-            if(new File(d,".jenkins").exists()) {
-                File dir = new File(d,"war/target/jenkins");
-                if(dir.exists()) {
+        for (; d != null; d = d.getParentFile()) {
+            if (new File(d, ".jenkins").exists()) {
+                File dir = new File(d, "war/target/jenkins");
+                if (dir.exists()) {
                     LOGGER.log(Level.INFO, "Using jenkins.war resources from {0}", dir);
                     return dir;
                 }
@@ -162,10 +172,11 @@ public final class WarExploder {
         Path lock = new File(explodeDir + ".lock").toPath();
         // it is not the presence of the lock file that prevents reading / writing (as that can not be made reliable)
         // but the lock we subsequently obtain on the file.
-        try (FileChannel lockChannel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try (FileChannel lockChannel = FileChannel.open(
+                        lock, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
                 FileLock fl = getLockForChannel(lockChannel)) {
-            File timestamp = new File(explodeDir,".timestamp");
-            if(!timestamp.exists() || (timestamp.lastModified() != war.lastModified())) {
+            File timestamp = new File(explodeDir, ".timestamp");
+            if (!timestamp.exists() || (timestamp.lastModified() != war.lastModified())) {
                 LOGGER.log(Level.INFO, "Exploding {0} into {1}", new Object[] {war, explodeDir});
                 new FilePath(explodeDir).deleteRecursive();
                 new FilePath(war).unzip(new FilePath(explodeDir));
@@ -189,7 +200,7 @@ public final class WarExploder {
             } catch (OverlappingFileLockException ignored) {
                 // should only occur when we have multiple threads in this JVM attempting to lock this file
                 // by default surefire and junit use JVM per fork - but gradle and other testing frameworks may differ
-                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a 
+                // so be defensive and treat this specific exception as a failure to obtain the lock rather than a
                 // generic failure
             }
             if (++iteration % 50 == 0) {
@@ -201,5 +212,4 @@ public final class WarExploder {
     }
 
     private WarExploder() {}
-
 }

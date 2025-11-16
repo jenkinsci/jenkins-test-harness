@@ -39,11 +39,14 @@ public final class InboundAgentRuleTest {
 
     @Test
     public void waitOnline() throws Exception {
-        assertTrue(inboundAgents.createAgent(r, InboundAgentRule.Options.newBuilder().
-            color(PrefixedOutputStream.Color.MAGENTA.bold()).
-            name("remote").
-            build()).
-        toComputer().isOnline());
+        assertTrue(inboundAgents
+                .createAgent(
+                        r,
+                        InboundAgentRule.Options.newBuilder()
+                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
+                                .name("remote")
+                                .build())
+                .toComputer()
+                .isOnline());
     }
-
 }

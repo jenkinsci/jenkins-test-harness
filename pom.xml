@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.125</version>
+    <version>1.141</version>
     <relativePath />
   </parent>
 
@@ -61,7 +61,8 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <!-- Normally filled in by "maven-hpi-plugin" with the path to "org-netbeans-insane-hook.jar" extracted from this repository -->
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
-    <jetty.version>12.0.14</jetty.version>
+    <jetty.version>12.1.3</jetty.version>
+    <spotless.check.skip>false</spotless.check.skip>
   </properties>
 
   <dependencyManagement>
@@ -74,9 +75,24 @@ THE SOFTWARE.
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.eclipse.jetty.ee9</groupId>
         <artifactId>jetty-ee9-bom</artifactId>
         <version>${jetty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!-- Pull in servlet API based on Jenkins core in use -->
+        <groupId>org.jenkins-ci.main</groupId>
+        <artifactId>jenkins-bom</artifactId>
+        <version>${jenkins.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -94,7 +110,7 @@ THE SOFTWARE.
       <dependency>
         <groupId>org.kohsuke</groupId>
         <artifactId>access-modifier-annotation</artifactId>
-        <version>1.34</version>
+        <version>1.35</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -108,7 +124,12 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.lib</groupId>
       <artifactId>support-log-formatter</artifactId>
-      <version>1.3</version>
+      <version>118.v18c3eb_f88f07</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.test.fips</groupId>
+      <artifactId>fips-bundle-test</artifactId>
+      <version>27.va_f689db_8c5ea_</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -126,9 +147,70 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-webapp</artifactId>
+      <exclusions>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+      <artifactId>jetty-ee10-websocket-jetty-server</artifactId>
+      <!-- or jetty-ee10-websocket-javax-server -->
+      <exclusions>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>jakarta.annotation</groupId>
+          <artifactId>jakarta.annotation-api</artifactId>
+        </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <!-- Not shipped in Winstone either and causes unnecessary log spam -->
+        <exclusion>
+          <groupId>org.eclipse.jetty.ee10</groupId>
+          <artifactId>jetty-ee10-annotations</artifactId>
+        </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty.ee9</groupId>
       <artifactId>jetty-ee9-webapp</artifactId>
       <exclusions>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
         <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
@@ -146,6 +228,16 @@ THE SOFTWARE.
           <groupId>jakarta.annotation</groupId>
           <artifactId>jakarta.annotation-api</artifactId>
         </exclusion>
+        <!-- Provided by plugin parent POM at Jenkins core version -->
+        <exclusion>
+          <groupId>jakarta.servlet</groupId>
+          <artifactId>jakarta.servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty.toolchain</groupId>
+          <artifactId>jetty-jakarta-servlet-api</artifactId>
+        </exclusion>
+        <!-- Provided by Jenkins core -->
         <exclusion>
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-api</artifactId>
@@ -159,7 +251,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci.main</groupId>
       <artifactId>jenkins-test-harness-htmlunit</artifactId>
-      <version>194.v8a_1b_f761b_46a_</version>
+      <version>226.v08d56c2329f7</version>
       <exclusions>
         <exclusion>
           <groupId>commons-io</groupId>
@@ -189,13 +281,13 @@ THE SOFTWARE.
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>io.jenkins.test.fips</groupId>
-      <artifactId>fips-bundle-test</artifactId>
-      <version>26.va_a_809279829b_</version>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kohsuke.metainf-services</groupId>
+      <artifactId>metainf-services</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.netbeans.modules</groupId>
@@ -211,6 +303,11 @@ THE SOFTWARE.
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>${jmh.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci</groupId>
@@ -293,7 +390,8 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <!-- version specified in grandparent pom -->
         <configuration>
-          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook}</argLine>
+          <!-- add-opens copied from plugin-pom to let RealJenkinsRuleTest better simulate tests in plugin repos: -->
+          <argLine>-Xmx256m -Djava.awt.headless=true @{jenkins.insaneHook} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
           <systemPropertyVariables>
             <hudson.maven.debug>${mavenDebug}</hudson.maven.debug>
             <buildDirectory>${project.build.directory}</buildDirectory>
@@ -305,7 +403,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.gmavenplus</groupId>
         <artifactId>gmavenplus-plugin</artifactId>
-        <version>4.0.1</version>
+        <version>4.2.1</version>
         <dependencies>
           <dependency>
             <groupId>org.apache.ant</groupId>

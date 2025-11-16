@@ -8,18 +8,21 @@ import jakarta.servlet.ServletContext;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
 import org.eclipse.jetty.server.Server;
 import org.jvnet.hudson.test.JavaNetReverseProxy2;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
 import org.jvnet.hudson.test.TestPluginManager;
+import org.jvnet.hudson.test.jetty.JettyProvider;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -86,22 +89,21 @@ public abstract class JmhBenchmarkState implements RootAction {
             try {
                 temporaryDirectoryAllocator.dispose();
             } catch (InterruptedException | IOException e) {
-                LOGGER.log(Level.WARNING, "Unable to dispose temporary Jenkins directory" +
-                                                  "that was started for benchmark", e);
+                LOGGER.log(
+                        Level.WARNING,
+                        "Unable to dispose temporary Jenkins directory" + "that was started for benchmark",
+                        e);
             }
         }
     }
 
     private void launchInstance() throws Exception {
-        WebAppContext context = JenkinsRule._createWebAppContext2(
-                contextPath,
-                localPort::set,
-                getClass().getClassLoader(),
-                localPort.get(),
-                JenkinsRule::_configureUserRealm);
-        server = context.getServer();
+        JettyProvider jp = findJettyProvider();
+        JettyProvider.Context jpc = jp.createWebServer(localPort.get(), contextPath, JenkinsRule::_configureUserRealm);
+        localPort.set(jpc.localPort());
+        server = jpc.server();
 
-        ServletContext webServer = context.getServletContext();
+        ServletContext webServer = jpc.servletContext();
 
         jenkins = new Hudson(temporaryDirectoryAllocator.allocate(), webServer, TestPluginManager.INSTANCE);
         JenkinsRule._configureJenkinsForTest(jenkins);
@@ -111,6 +113,18 @@ public abstract class JmhBenchmarkState implements RootAction {
         String url = Objects.requireNonNull(getJenkinsURL()).toString();
         Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(url);
         LOGGER.log(Level.INFO, "Running on {0}", url);
+    }
+
+    private static JettyProvider findJettyProvider() {
+        Iterator<JettyProvider> it = ServiceLoader.load(JettyProvider.class).iterator();
+        while (it.hasNext()) {
+            try {
+                return it.next();
+            } catch (ServiceConfigurationError e) {
+                LOGGER.log(Level.FINE, null, e);
+            }
+        }
+        return null;
     }
 
     private URL getJenkinsURL() throws MalformedURLException {

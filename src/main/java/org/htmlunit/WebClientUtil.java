@@ -54,7 +54,7 @@ public class WebClientUtil {
      */
     public static void waitForJSExec(WebClient webClient, long timeout) {
         webClient.getJavaScriptEngine().processPostponedActions();
-        webClient.waitForBackgroundJavaScript(timeout);
+        webClient.waitForBackgroundJavaScriptStartingBefore(2_000, timeout);
     }
 
     /**
@@ -121,26 +121,22 @@ public class WebClientUtil {
          * {@inheritDoc}
          */
         @Override
-        public void timeoutError(HtmlPage htmlPage, long allowedTime, long executionTime) {
-        }
+        public void timeoutError(HtmlPage htmlPage, long allowedTime, long executionTime) {}
         /**
          * {@inheritDoc}
          */
         @Override
-        public void malformedScriptURL(HtmlPage htmlPage, String url, MalformedURLException malformedURLException) {
-        }
+        public void malformedScriptURL(HtmlPage htmlPage, String url, MalformedURLException malformedURLException) {}
         /**
          * {@inheritDoc}
          */
         @Override
-        public void loadScriptError(HtmlPage htmlPage, URL scriptUrl, Exception exception) {
-        }
+        public void loadScriptError(HtmlPage htmlPage, URL scriptUrl, Exception exception) {}
 
         /**
          * {@inheritDoc}
          */
         @Override
-        public void warn(String message, String sourceName, int line, String lineSource, int lineOffset) {
-        }
+        public void warn(String message, String sourceName, int line, String lineSource, int lineOffset) {}
     }
 }

@@ -37,5 +37,4 @@ public class JenkinsRuleTimeout7Test extends JenkinsRuleTimeoutTestBase {
         Thread.sleep(1000 * 20);
         fail("Should have been interrupted");
     }
-
 }

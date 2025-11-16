@@ -27,14 +27,15 @@ package org.jvnet.hudson.test;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.After;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 /**
- * Simpler alternative to {@link RestartableJenkinsRule}.
- * Most critically, {@link #then} runs immediately, so this rule plays nicely with things like {@link After}.
+ * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
+ * It also supports running test code before, between, or after Jenkins sessions,
+ * whereas a test method using {@link JenkinsRule} directly
+ * will only run after Jenkins has started and must complete before Jenkins terminates.
  */
 public class JenkinsSessionRule implements TestRule {
 
@@ -65,10 +66,12 @@ public class JenkinsSessionRule implements TestRule {
         return home;
     }
 
-    @Override public Statement apply(final Statement base, Description description) {
+    @Override
+    public Statement apply(final Statement base, Description description) {
         this.description = description;
         return new Statement() {
-            @Override public void evaluate() throws Throwable {
+            @Override
+            public void evaluate() throws Throwable {
                 try {
                     home = tmp.allocate();
                     base.evaluate();
@@ -96,12 +99,16 @@ public class JenkinsSessionRule implements TestRule {
      */
     public void then(Step s) throws Throwable {
         CustomJenkinsRule r = new CustomJenkinsRule(home, port);
-        r.apply(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                port = r.getPort();
-                s.run(r);
-            }
-        }, description).evaluate();
+        r.apply(
+                        new Statement() {
+                            @Override
+                            public void evaluate() throws Throwable {
+                                port = r.getPort();
+                                s.run(r);
+                            }
+                        },
+                        description)
+                .evaluate();
     }
 
     private static final class CustomJenkinsRule extends JenkinsRule {
@@ -109,9 +116,9 @@ public class JenkinsSessionRule implements TestRule {
             with(() -> home);
             localPort = port;
         }
+
         int getPort() {
             return localPort;
         }
     }
-
 }

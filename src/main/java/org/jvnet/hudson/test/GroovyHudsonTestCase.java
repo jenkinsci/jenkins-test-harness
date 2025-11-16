@@ -33,7 +33,8 @@ public abstract class GroovyHudsonTestCase extends HudsonTestCase {
     public Builder builder(final Closure<?> c) {
         return new TestBuilder() {
             @Override
-            public boolean perform(AbstractBuild<?,?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+                    throws InterruptedException, IOException {
                 Object r = c.call(build, launcher, listener);
                 if (r instanceof Boolean) {
                     return (Boolean) r;

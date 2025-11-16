@@ -44,6 +44,7 @@ import hudson.DescriptorExtensionList;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.FilePath;
 import hudson.Functions;
 import hudson.Launcher;
 import hudson.Main;
@@ -133,6 +134,7 @@ import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +147,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -152,11 +156,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.jar.Manifest;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Filter;
@@ -175,22 +177,11 @@ import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.FileUtils;
-import org.eclipse.jetty.ee9.webapp.Configuration;
-import org.eclipse.jetty.ee9.webapp.WebAppContext;
-import org.eclipse.jetty.ee9.webapp.WebXmlConfiguration;
-import org.eclipse.jetty.ee9.websocket.server.config.JettyWebSocketServletContainerInitializer;
-import org.eclipse.jetty.http.HttpCompliance;
-import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.security.UserStore;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.security.Password;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.htmlunit.AjaxController;
 import org.htmlunit.BrowserVersion;
 import org.htmlunit.DefaultCssErrorHandler;
@@ -237,6 +228,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestTimedOutException;
+import org.jvnet.hudson.test.jetty.JettyProvider;
 import org.jvnet.hudson.test.recipes.Recipe;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 import org.jvnet.hudson.test.rhino.JavaScriptDebugger;
@@ -285,6 +277,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * TCP/IP port that the server is listening on.
      */
     protected int localPort;
+
     protected Server server;
 
     /**
@@ -332,10 +325,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Number of seconds until the test times out.
-     * 
+     *
      * The {@link WithTimeout} rule can be used to specify this value per test.
-     * 
-     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes. 
+     *
+     * In case of debugging session, the default timeout behavior is removed. Otherwise it's set to 3 minutes.
      */
     public int timeout = Integer.getInteger("jenkins.test.timeout", new DisableOnDebug(null).isDebugging() ? 0 : 180);
 
@@ -369,7 +362,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             LOGGER.warning("was interrupted before start");
         }
 
-        if(Functions.isWindows()) {
+        if (Functions.isWindows()) {
             // JENKINS-4409.
             // URLConnection caches handles to jar files by default,
             // and it prevents delete temporary directories on Windows.
@@ -380,7 +373,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             origDefaultUseCache = aConnection.getDefaultUseCaches();
             aConnection.setDefaultUseCaches(false);
         }
-        
+
         // Not ideal (https://github.com/junit-team/junit/issues/116) but basically works.
         if (Boolean.getBoolean("ignore.random.failures")) {
             RandomlyFails rf = testDescription.getAnnotation(RandomlyFails.class);
@@ -412,18 +405,21 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // Likely it is an issue in @Initializer() definitions (see JENKINS-37759).
             // So we just fail the test.
             if (jenkins.getInitLevel() != InitMilestone.COMPLETED) {
-                throw new Exception("Jenkins initialization has not reached the COMPLETED initialization stage. Current state is " + jenkins.getInitLevel() +
-                        ". Likely there is an issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
+                throw new Exception(
+                        "Jenkins initialization has not reached the COMPLETED initialization stage. Current state is "
+                                + jenkins.getInitLevel()
+                                + ". Likely there is an issue with the Initialization task graph (e.g. usage of @Initializer(after = InitMilestone.COMPLETED)). See JENKINS-37759 for more info");
             }
         } catch (Exception e) {
-            // if Hudson instance fails to initialize, it leaves the instance field non-empty and break all the rest of the tests, so clean that up.
+            // if Hudson instance fails to initialize, it leaves the instance field non-empty and break all the rest of
+            // the tests, so clean that up.
             Field f = Jenkins.class.getDeclaredField("theInstance");
             f.setAccessible(true);
-            f.set(null,null);
+            f.set(null, null);
             throw e;
         }
 
-        jenkins.setCrumbIssuer(new TestCrumbIssuer());  // TODO: Move to _configureJenkinsForTest after JENKINS-55240
+        jenkins.setCrumbIssuer(new TestCrumbIssuer()); // TODO: Move to _configureJenkinsForTest after JENKINS-55240
         _configureJenkinsForTest(jenkins);
         configureUpdateCenter();
 
@@ -450,8 +446,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // set a default JDK to be the one that the harness is using.
         jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
     }
-    
-    static void dumpThreads() {
+
+    public static void dumpThreads() {
         ThreadInfo[] threadInfos = Functions.getThreadInfos();
         Functions.ThreadGroupMap m = Functions.sortThreadsAndGetGroupMap(threadInfos);
         for (ThreadInfo ti : threadInfos) {
@@ -496,7 +492,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void after() throws Exception {
         try {
-            if (jenkins!=null) {
+            if (jenkins != null) {
                 for (EndOfTestListener tl : jenkins.getExtensionList(EndOfTestListener.class)) {
                     tl.onTearDown();
                 }
@@ -504,22 +500,21 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             // cancel asynchronous operations as best as we can
             for (WebClient client : clients) {
-                // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
-                // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
-                if (client.getJavaScriptEngine() != null) {
-                    // wait until current asynchronous operations have finished executing
-                    WebClientUtil.waitForJSExec(client);
-                }
-                // unload the page to prevent new asynchronous operations from being scheduled
                 try (client) {
+                    // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
+                    // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
+                    if (client.getJavaScriptEngine() != null) {
+                        // wait until current asynchronous operations have finished executing
+                        WebClientUtil.waitForJSExec(client);
+                    }
+                    // unload the page to prevent new asynchronous operations from being scheduled
                     // Adapt to https://github.com/HtmlUnit/htmlunit/issues/627
                     // See https://github.com/jenkinsci/jenkins-test-harness/pull/664
                     if (client.getCurrentWindow() != null) {
                         client.getPage("about:blank");
                     }
-                } catch (IOException e) {
-                    // should never happen when loading "about:blank"
-                    throw new UncheckedIOException(e);
+                } catch (Exception x) {
+                    LOGGER.log(Level.WARNING, "failure to clean up", x);
                 }
             }
             clients.clear();
@@ -538,7 +533,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 env.dispose();
             } finally {
                 // restore defaultUseCache
-                if(Functions.isWindows()) {
+                if (Functions.isWindows()) {
                     URLConnection aConnection = new File(".").toURI().toURL().openConnection();
                     aConnection.setDefaultUseCaches(origDefaultUseCache);
                 }
@@ -603,7 +598,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             if (priorLoggerLevel == null || level.intValue() < priorLoggerLevel.intValue()) {
                 logger.setLevel(level);
             }
-            handler = Arrays.stream(Logger.getLogger("").getHandlers()).filter(ConsoleHandler.class::isInstance).findFirst().orElse(null);
+            handler = Arrays.stream(Logger.getLogger("").getHandlers())
+                    .filter(ConsoleHandler.class::isInstance)
+                    .findFirst()
+                    .orElse(null);
             if (handler != null) {
                 priorHandlerLevel = handler.getLevel();
                 if (priorHandlerLevel == null || level.intValue() < priorHandlerLevel.intValue()) {
@@ -632,7 +630,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     @Override
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
-        return apply(base,Description.createTestDescription(method.getMethod().getDeclaringClass(), method.getName(), method.getAnnotations()));
+        return apply(
+                base,
+                Description.createTestDescription(
+                        method.getMethod().getDeclaringClass(), method.getName(), method.getAnnotations()));
     }
 
     @Override
@@ -647,7 +648,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 testDescription = description;
                 Thread t = Thread.currentThread();
                 String o = t.getName();
-                t.setName("Executing "+ testDescription.getDisplayName());
+                t.setName("Executing " + testDescription.getDisplayName());
                 System.out.println("=== Starting " + testDescription.getDisplayName());
                 before();
                 Throwable testFailure = null;
@@ -662,7 +663,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                         // for diagnosing a rare failure
                         try {
                             throw new BreakException();
-                        } catch (BreakException e) {}
+                        } catch (BreakException e) {
+                        }
 
                         RandomlyFails rf = testDescription.getAnnotation(RandomlyFails.class);
                         if (rf != null) {
@@ -713,7 +715,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private int getTestTimeoutOverride(Description description) {
         WithTimeout withTimeout = description.getAnnotation(WithTimeout.class);
-        return withTimeout != null ? withTimeout.value(): this.timeout;
+        return withTimeout != null ? withTimeout.value() : this.timeout;
     }
 
     @SuppressWarnings("serial")
@@ -790,121 +792,24 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * that we need for testing.
      */
     protected ServletContext createWebServer2() throws Exception {
-        return createWebServer2(null);
-    }
-
-    /**
-     * Prepares a webapp hosting environment to get {@link jakarta.servlet.ServletContext} implementation
-     * that we need for testing.
-     * 
-     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
-     * @since 2.63
-     */
-    protected ServletContext createWebServer2(@CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        WebAppContext context = _createWebAppContext2(
-                contextPath,
-                (x) -> localPort = x,
-                getClass().getClassLoader(),
-                localPort,
-                this::configureUserRealm,
-                contextAndServerConsumer);
-        server = context.getServer();
+        JettyProvider jp = findJettyProvider();
+        JettyProvider.Context jpc = jp.createWebServer(localPort, contextPath, this::configureUserRealm);
+        localPort = jpc.localPort();
+        server = jpc.server();
         LOGGER.log(Level.INFO, "Running on {0}", getURL());
-        return context.getServletContext();
+        return jpc.servletContext();
     }
 
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath          the context path at which to put Jenkins
-     * @param portSetter           the port on which the server runs will be set using this function
-     * @param classLoader          the class loader for the {@link WebAppContext}
-     * @param localPort            port on which the server runs
-     * @param loginServiceSupplier configures the {@link LoginService} for the instance
-     * @return                     the {@link Server}
-     * @since 2.50
-     */
-    public static WebAppContext _createWebAppContext2(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier)
-            throws Exception {
-        return _createWebAppContext2(contextPath, portSetter, classLoader, localPort, loginServiceSupplier, null);
-    }
-    /**
-     * Creates a web server on which Jenkins can run
-     *
-     * @param contextPath              the context path at which to put Jenkins
-     * @param portSetter               the port on which the server runs will be set using this function
-     * @param classLoader              the class loader for the {@link WebAppContext}
-     * @param localPort                port on which the server runs
-     * @param loginServiceSupplier     configures the {@link LoginService} for the instance
-     * @param contextAndServerConsumer configures the {@link WebAppContext} and the {@link Server} for the instance, before they are started
-     * @return                         the {@link Server}
-     * @since 2.50
-     */
-    public static WebAppContext _createWebAppContext2(
-            String contextPath,
-            Consumer<Integer> portSetter,
-            ClassLoader classLoader,
-            int localPort,
-            Supplier<LoginService> loginServiceSupplier,
-            @CheckForNull BiConsumer<WebAppContext, Server> contextAndServerConsumer)
-            throws Exception {
-        QueuedThreadPool qtp = new QueuedThreadPool();
-        qtp.setName("Jetty (JenkinsRule)");
-        Server server = new Server(qtp);
-
-        WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath) {
-            @Override
-            protected ClassLoader configureClassLoader(ClassLoader loader) {
-                // Use flat classpath in tests
-                return loader;
+    private static JettyProvider findJettyProvider() {
+        Iterator<JettyProvider> it = ServiceLoader.load(JettyProvider.class).iterator();
+        while (it.hasNext()) {
+            try {
+                return it.next();
+            } catch (ServiceConfigurationError e) {
+                LOGGER.log(Level.FINE, null, e);
             }
-        };
-        context.setClassLoader(classLoader);
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
-        context.addBean(new NoListenerConfiguration2(context));
-        context.setServer(server);
-        String compression = System.getProperty("jth.compression", "gzip");
-        if (compression.equals("gzip")) {
-            GzipHandler gzipHandler = new GzipHandler();
-            gzipHandler.setHandler(context);
-            server.setHandler(gzipHandler);
-        } else if (compression.equals("none")) {
-            server.setHandler(context);
-        } else {
-            throw new IllegalArgumentException("Unexpected compression scheme: " + compression);
         }
-        JettyWebSocketServletContainerInitializer.configure(context, null);
-        context.getSecurityHandler().setLoginService(loginServiceSupplier.get());
-        context.setResourceBase(WarExploder.getExplodedDir().getPath());
-
-        ServerConnector connector = new ServerConnector(server);
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
-        // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
-        config.setRequestHeaderSize(12 * 1024);
-        config.setHttpCompliance(HttpCompliance.RFC7230);
-        config.setUriCompliance(UriCompliance.LEGACY);
-        connector.setHost("localhost");
-        if (System.getProperty("port") != null) {
-            connector.setPort(Integer.parseInt(System.getProperty("port")));
-        } else if (localPort != 0) {
-            connector.setPort(localPort);
-        }
-
-        server.addConnector(connector);
-        if (contextAndServerConsumer != null) {
-            contextAndServerConsumer.accept(context, server);
-        }
-        server.start();
-
-        portSetter.accept(connector.getLocalPort());
-
-        return context;
+        return null;
     }
 
     /**
@@ -923,19 +828,19 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public static LoginService _configureUserRealm() {
         HashLoginService realm = new HashLoginService();
-        realm.setName("default");   // this is the magic realm name to make it effective on everywhere
+        realm.setName("default"); // this is the magic realm name to make it effective on everywhere
         UserStore userStore = new UserStore();
-        realm.setUserStore( userStore );
-        userStore.addUser("alice", new Password("alice"), new String[]{"user","female"});
-        userStore.addUser("bob", new Password("bob"), new String[]{"user","male"});
-        userStore.addUser("charlie", new Password("charlie"), new String[]{"user","male"});
+        realm.setUserStore(userStore);
+        userStore.addUser("alice", new Password("alice"), new String[] {"user", "female"});
+        userStore.addUser("bob", new Password("bob"), new String[] {"user", "male"});
+        userStore.addUser("charlie", new Password("charlie"), new String[] {"user", "male"});
 
         return realm;
     }
 
-//
-// Convenience methods
-//
+    //
+    // Convenience methods
+    //
 
     /**
      * Creates a new job.
@@ -975,7 +880,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     protected String createUniqueProjectName() {
-        return "test"+jenkins.getItems().size();
+        return "test" + jenkins.getItems().size();
     }
 
     /**
@@ -996,25 +901,27 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     @NonNull
     public DumbSlave createSlave(boolean waitForChannelConnect) throws Exception {
-        DumbSlave slave = createSlave();
+        DumbSlave agent = createSlave();
         if (waitForChannelConnect) {
             long start = System.currentTimeMillis();
-            while (slave.getChannel() == null) {
+            while (agent.getChannel() == null) {
                 if (System.currentTimeMillis() > (start + 10000)) {
-                    throw new IllegalStateException("Timed out waiting on DumbSlave channel to connect.");
+                    throw new IllegalStateException("Timed out waiting on agent channel to connect.");
                 }
                 Thread.sleep(200);
             }
         }
-        return slave;
+        return agent;
     }
 
-    public void disconnectSlave(DumbSlave slave) throws Exception {
-        slave.getComputer().disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")));
+    public void disconnectSlave(DumbSlave agent) throws Exception {
+        agent.getComputer()
+                .disconnect(new OfflineCause.ChannelTermination(new Exception("terminate")))
+                .get(10, TimeUnit.SECONDS);
         long start = System.currentTimeMillis();
-        while (slave.getChannel() != null) {
+        while (agent.getChannel() != null) {
             if (System.currentTimeMillis() > (start + 10000)) {
-                throw new IllegalStateException("Timed out waiting on DumbSlave channel to disconnect.");
+                throw new IllegalStateException("Timed out waiting on agent channel to disconnect.");
             }
             Thread.sleep(200);
         }
@@ -1026,15 +933,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     @NonNull
     public DumbSlave createSlave() throws Exception {
-        return createSlave("",null);
+        return createSlave("", null);
     }
 
     /**
-     * Creates and launches a new slave on the local host.
+     * Creates and launches a new agent on the local host.
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull Label l) throws Exception {
-    	return createSlave(l, null);
+        return createSlave(l, null);
     }
 
     /**
@@ -1048,7 +955,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /** @see #createDummySecurityRealm */
     public static class DummySecurityRealm extends AbstractPasswordBasedSecurityRealm {
 
-        private final Map<String,Set<String>> groupsByUser = new HashMap<>();
+        private final Map<String, Set<String>> groupsByUser = new HashMap<>();
 
         DummySecurityRealm() {}
 
@@ -1093,7 +1000,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             Set<String> gs = groupsByUser.computeIfAbsent(username, k -> new TreeSet<>());
             gs.addAll(List.of(groups));
         }
-
     }
 
     /**
@@ -1101,50 +1007,59 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * URL ends with '/'.
      */
     public URL getURL() throws IOException {
-        return new URL("http://localhost:"+localPort+contextPath+"/");
+        return new URL("http://localhost:" + localPort + contextPath + "/");
     }
 
     @NonNull
     public DumbSlave createSlave(@CheckForNull EnvVars env) throws Exception {
-        return createSlave("",env);
+        return createSlave("", env);
     }
 
     @NonNull
     public DumbSlave createSlave(@CheckForNull Label l, @CheckForNull EnvVars env) throws Exception {
-        return createSlave(l==null ? null : l.getExpression(), env);
+        return createSlave(l == null ? null : l.getExpression(), env);
     }
 
     /**
-     * Creates a slave with certain additional environment variables
+     * Creates an agent with certain additional environment variables
      */
     @NonNull
     public DumbSlave createSlave(@CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
-            return createSlave("slave" + sz,labels,env);
-    	}
+            return createSlave("slave" + sz, labels, env);
+        }
     }
 
     @NonNull
-    public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env) throws Exception {
+    public DumbSlave createSlave(@NonNull String nodeName, @CheckForNull String labels, @CheckForNull EnvVars env)
+            throws Exception {
         synchronized (jenkins) {
-            DumbSlave slave = new DumbSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), createComputerLauncher(env));
+            DumbSlave agent = new DumbSlave(
+                    nodeName,
+                    new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
+                    createComputerLauncher(env));
             if (labels != null) {
-                slave.setLabelString(labels);
+                agent.setLabelString(labels);
             }
-            slave.setRetentionStrategy(RetentionStrategy.NOOP);
-    		jenkins.addNode(slave);
-    		return slave;
-    	}
+            agent.setRetentionStrategy(RetentionStrategy.NOOP);
+            jenkins.addNode(agent);
+            return agent;
+        }
     }
 
     public PretendSlave createPretendSlave(FakeLauncher faker) throws Exception {
         synchronized (jenkins) {
             int sz = jenkins.getNodes().size();
             String nodeName = "slave" + sz;
-            PretendSlave slave = new PretendSlave(nodeName, new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(), "", createComputerLauncher(null), faker);
-    		jenkins.addNode(slave);
-    		return slave;
+            PretendSlave agent = new PretendSlave(
+                    nodeName,
+                    new File(jenkins.getRootDir(), "agent-work-dirs/" + nodeName).getAbsolutePath(),
+                    "",
+                    createComputerLauncher(null),
+                    faker);
+            jenkins.addNode(agent);
+            return agent;
         }
     }
 
@@ -1152,23 +1067,26 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Creates a launcher for starting a local agent.
      * This is an outbound agent using {@link SimpleCommandLauncher}.
      * @param env
-     *      Environment variables to add to the slave process. Can be {@code null}.
+     *      Environment variables to add to the agent process. Can be {@code null}.
      * @see InboundAgentRule
      */
     @NonNull
     public ComputerLauncher createComputerLauncher(@CheckForNull EnvVars env) throws URISyntaxException, IOException {
         int sz = jenkins.getNodes().size();
         return new SimpleCommandLauncher(
-                String.format("\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
+                String.format(
+                        "\"%s/bin/java\" %s %s -Xmx512m -XX:+PrintCommandLineFlags -jar \"%s\"",
                         System.getProperty("java.home"),
-                        SLAVE_DEBUG_PORT>0 ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address="+(SLAVE_DEBUG_PORT+sz): "",
+                        SLAVE_DEBUG_PORT > 0
+                                ? " -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=" + (SLAVE_DEBUG_PORT + sz)
+                                : "",
                         "-Djava.awt.headless=true",
-                        new File(jenkins.getJnlpJars("slave.jar").getURL().toURI()).getAbsolutePath()),
+                        Path.of(jenkins.getJnlpJars("slave.jar").getURL().toURI())),
                 env);
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1177,7 +1095,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning.
      */
     @NonNull
@@ -1186,7 +1104,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
-     * Create a new slave on the local host and wait for it to come online
+     * Create a new agent on the local host and wait for it to come online
      * before returning
      * @see #waitOnline
      */
@@ -1214,9 +1132,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             throw new UncheckedIOException(e);
         }
     }
-    
+
     /**
-     * Waits for a newly created slave to come online.
+     * Waits for a newly created agent to come online.
      * @see #createSlave()
      */
     public void waitOnline(Slave s) throws Exception {
@@ -1256,6 +1174,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     /**
+     * Same as {@link #showAgentLogs(Slave, Map)} but taking a preconfigured list of loggers as a convenience.
+     */
+    public void showAgentLogs(Slave s, LogRecorder logRecorder) throws Exception {
+        showAgentLogs(s, logRecorder.getRecordedLevels());
+    }
+
+    /**
      * Forward agent logs to standard error of the test process.
      * Otherwise log messages would be sent only to {@link Computer#getLogText} etc.,
      * or discarded entirely (if below {@link Level#INFO}).
@@ -1266,30 +1191,42 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         s.getChannel().call(new RemoteLogDumper(s.getNodeName(), loggers, true));
     }
 
-    static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
+    public static final class RemoteLogDumper extends MasterToSlaveCallable<Void, RuntimeException> {
         private final String name;
         private final Map<String, Level> loggers;
         private final TaskListener stderr;
         private final long start = DeltaSupportLogFormatter.start;
+
         @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         private static final List<Logger> loggerReferences = new LinkedList<>();
-        RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
+
+        public RemoteLogDumper(String name, Map<String, Level> loggers, boolean forward) {
             this.name = name;
             this.loggers = loggers;
             stderr = forward ? StreamTaskListener.fromStderr() : null;
         }
-        @Override public Void call() throws RuntimeException {
+
+        @Override
+        public Void call() throws RuntimeException {
             PrintStream ps = stderr != null ? stderr.getLogger() : System.err;
             Handler handler = new Handler() {
                 final Formatter formatter = new DeltaSupportLogFormatter();
-                @Override public void publish(LogRecord record) {
+
+                @Override
+                public void publish(LogRecord record) {
                     if (isLoggable(record)) {
-                        ps.print(formatter.format(record).replaceAll("(?m)^([ 0-9.]*)", name != null ? "$1[" + name + "] " : "$1 "));
+                        ps.print(formatter
+                                .format(record)
+                                .replaceAll("(?m)^([ 0-9.]*)", name != null ? "$1[" + name + "] " : "$1 "));
                         ps.flush();
                     }
                 }
-                @Override public void flush() {}
-                @Override public void close() throws SecurityException {}
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void close() throws SecurityException {}
             };
             handler.setLevel(Level.ALL);
             loggers.forEach((key, value) -> {
@@ -1298,7 +1235,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 logger.addHandler(handler);
                 loggerReferences.add(logger);
             });
-            DeltaSupportLogFormatter.start = start; // match clock time on master
+            DeltaSupportLogFormatter.start = start; // match clock time on controller
             if (name != null) {
                 ps.println("Set up log dumper on " + name + ": " + loggers);
             } else {
@@ -1322,7 +1259,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Returns the last item in the list.
      */
     public <T> T last(List<T> items) {
-        return items.get(items.size()-1);
+        return items.get(items.size() - 1);
     }
 
     /**
@@ -1387,10 +1324,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             WebResponseData webResponseData;
             try (InputStream responseStream = conn.getInputStream()) {
                 byte[] bytes = responseStream.readAllBytes();
-                webResponseData = new WebResponseData(bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
+                webResponseData = new WebResponseData(
+                        bytes, conn.getResponseCode(), conn.getResponseMessage(), extractHeaders(conn));
             }
 
-            WebResponse webResponse = new WebResponse(webResponseData, postUrl, HttpMethod.POST, (System.currentTimeMillis() - startTime));
+            WebResponse webResponse = new WebResponse(
+                    webResponseData, postUrl, HttpMethod.POST, (System.currentTimeMillis() - startTime));
 
             return new JSONWebResponse(webResponse);
         } finally {
@@ -1400,8 +1339,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private List<NameValuePair> extractHeaders(HttpURLConnection conn) {
         List<NameValuePair> headers = new ArrayList<>();
-        Set<Map.Entry<String,List<String>>> headerFields = conn.getHeaderFields().entrySet();
-        for (Map.Entry<String,List<String>> headerField : headerFields) {
+        Set<Map.Entry<String, List<String>>> headerFields =
+                conn.getHeaderFields().entrySet();
+        for (Map.Entry<String, List<String>> headerField : headerFields) {
             String name = headerField.getKey();
             if (name != null) { // Yes, the header name can be null.
                 List<String> values = headerField.getValue();
@@ -1454,8 +1394,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public <B extends Builder> B configRoundtrip(B before) throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         p.getBuildersList().add(before);
-        configRoundtrip((Item)p);
-        return (B)p.getBuildersList().get(before.getClass());
+        configRoundtrip((Item) p);
+        return (B) p.getBuildersList().get(before.getClass());
     }
 
     /**
@@ -1465,23 +1405,25 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         FreeStyleProject p = createFreeStyleProject();
         p.getPublishersList().add(before);
         configRoundtrip((Item) p);
-        return (P)p.getPublishersList().get(before.getClass());
+        return (P) p.getPublishersList().get(before.getClass());
     }
 
     public <C extends ComputerConnector> C configRoundtrip(C before) throws Exception {
         computerConnectorTester.connector = before;
         submit(createWebClient().goTo("self/computerConnectorTester/configure").getFormByName("config"));
-        return (C)computerConnectorTester.connector;
+        return (C) computerConnectorTester.connector;
     }
 
     public User configRoundtrip(User u) throws Exception {
-        submit(createWebClient().goTo(u.getUrl()+"/configure").getFormByName("config"));
+        submit(createWebClient().goTo(u.getUrl() + "/configure").getFormByName("config"));
         return u;
     }
 
     public <N extends Node> N configRoundtrip(N node) throws Exception {
-        submit(createWebClient().goTo("computer/" + node.getNodeName() + "/configure").getFormByName("config"));
-        return (N)jenkins.getNode(node.getNodeName());
+        submit(createWebClient()
+                .goTo("computer/" + node.getNodeName() + "/configure")
+                .getFormByName("config"));
+        return (N) jenkins.getNode(node.getNodeName());
     }
 
     public <V extends View> V configRoundtrip(V view) throws Exception {
@@ -1503,12 +1445,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         jenkins.clouds.add(cloud);
         jenkins.save();
         submit(createWebClient().goTo("configureClouds/").getFormByName("config"));
-        return (C)jenkins.getCloud(cloud.name);
+        return (C) jenkins.getCloud(cloud.name);
     }
-
 
     /**
      * Asserts that the outcome of the build is a specific outcome.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#hasStatus(Result)} as an alternative.
      */
     public <R extends Run> R assertBuildStatus(Result status, R r) throws Exception {
         if (status == r.getResult()) {
@@ -1544,7 +1487,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertThat(isGoodHttpStatus(page.getWebResponse().getStatusCode()), is(true));
     }
 
-
     public <R extends Run> R assertBuildStatusSuccess(R r) throws Exception {
         assertBuildStatus(Result.SUCCESS, r);
         return r;
@@ -1555,7 +1497,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     }
 
     @NonNull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertSuccess(@NonNull J job) throws Exception {
+    public <J extends Job<J, R> & ParameterizedJobMixIn.ParameterizedJob<J, R>, R extends Run<J, R> & Queue.Executable>
+            R buildAndAssertSuccess(@NonNull J job) throws Exception {
         return buildAndAssertStatus(Result.SUCCESS, job);
     }
 
@@ -1564,9 +1507,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @since TODO
      */
     @NonNull
-    public <J extends Job<J,R> & ParameterizedJobMixIn.ParameterizedJob<J,R>,R extends Run<J,R> & Queue.Executable> R buildAndAssertStatus(@NonNull Result status, @NonNull J job) throws Exception {
+    public <J extends Job<J, R> & ParameterizedJobMixIn.ParameterizedJob<J, R>, R extends Run<J, R> & Queue.Executable>
+            R buildAndAssertStatus(@NonNull Result status, @NonNull J job) throws Exception {
         final QueueTaskFuture<R> f = new ParameterizedJobMixIn<J, R>() {
-            @Override protected J asJob() {
+            @Override
+            protected J asJob() {
                 return job;
             }
         }.scheduleBuild2(0);
@@ -1583,6 +1528,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build contains the given substring.
+     * <p>
+     * Consider {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), containsString(substring));
@@ -1590,6 +1537,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     /**
      * Asserts that the console output of the build does not contain the given substring.
+     * <p>
+     * Consider {@link org.hamcrest.Matchers#not} and {@link jenkins.test.RunMatchers#logContains(String)} as an alternative.
      */
     public void assertLogNotContains(String substring, Run run) throws IOException {
         assertThat(getLog(run), not(containsString(substring)));
@@ -1613,10 +1562,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     /**
      * Waits for a build to complete.
      * Useful in conjunction with {@link BuildWatcher}.
+     * <p>
+     * As an alternative, if using <a href="https://github.com/awaitility/awaitility">Awaitibility</a>, you can use {@code await().until(() -> r, RunMatchers.completed());}
+     *
      * @return the same build, once done
      * @since 1.607
      */
-    public <R extends Run<?,?>> R waitForCompletion(R r) throws InterruptedException {
+    public <R extends Run<?, ?>> R waitForCompletion(R r) throws InterruptedException {
         Executor executor = r.getExecutor();
         if (executor != null) {
             WorkUnit workUnit = executor.getCurrentWorkUnit();
@@ -1629,7 +1581,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         }
-        // Could be using com.jayway.awaitility:awaitility but it seems like overkill here.
         while (r.isLogUpdated()) {
             Thread.sleep(100);
         }
@@ -1642,7 +1593,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * @return the same build, once it does
      * @since 1.607
      */
-    public <R extends Run<?,?>> R waitForMessage(String message, R r) throws IOException, InterruptedException {
+    public <R extends Run<?, ?>> R waitForMessage(String message, R r) throws IOException, InterruptedException {
         while (!getLog(r).contains(message)) {
             if (!r.isLogUpdated()) {
                 assertLogContains(message, r); // should now fail
@@ -1657,7 +1608,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      */
     public void assertXPath(HtmlPage page, String xpath) {
         HtmlElement documentElement = page.getDocumentElement();
-        assertNotNull("There should be an object that matches XPath:" + xpath,
+        assertNotNull(
+                "There should be an object that matches XPath:" + xpath,
                 DomNodeUtil.selectSingleNode(documentElement, xpath));
     }
 
@@ -1707,7 +1659,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertThat("needle found in haystack", found, is(true));
     }
 
-
     /**
      * Makes sure that all the images in the page loads successfully.
      * (By default, HtmlUnit doesn't load images.)
@@ -1715,7 +1666,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void assertAllImageLoadSuccessfully(HtmlPage p) {
         for (HtmlImage img : DomNodeUtil.<HtmlImage>selectNodes(p, "//IMG")) {
             try {
-                assertEquals("Failed to load " + img.getSrcAttribute(),
+                assertEquals(
+                        "Failed to load " + img.getSrcAttribute(),
                         200,
                         img.getWebResponse(true).getStatusCode());
             } catch (IOException e) {
@@ -1723,7 +1675,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             }
         }
     }
-
 
     public void assertStringContains(String message, String haystack, String needle) {
         assertThat(message, haystack, containsString(needle));
@@ -1749,8 +1700,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 WebClient wc = createWebClient();
                 for (String property : listProperties(properties)) {
                     String url = d.getHelpFile(property);
-                    assertThat("Help file for the property " + property + " is missing on " + type, url,
-                            notNullValue());
+                    assertThat(
+                            "Help file for the property " + property + " is missing on " + type, url, notNullValue());
                     wc.goTo(url); // make sure it successfully loads
                 }
                 return null;
@@ -1789,8 +1740,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      This corresponds to the @name of {@code <f:submit />}
      */
     public HtmlPage submit(HtmlForm form, String name) throws Exception {
-        for( HtmlElement e : form.getElementsByTagName("button")) {
-            HtmlElement p = (HtmlElement)e.getParentNode().getParentNode();                        
+        for (HtmlElement e : form.getElementsByTagName("button")) {
+            HtmlElement p = (HtmlElement) e.getParentNode().getParentNode();
             if (p.getAttribute("name").equals(name) && HtmlElementUtil.hasClassName(p, "yui-submit-button")) {
                 // For YUI handled submit buttons, just do a click.
                 return (HtmlPage) HtmlElementUtil.click(e);
@@ -1798,17 +1749,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 return (HtmlPage) HtmlFormUtil.submit(form, e);
             }
         }
-        throw new AssertionError("No such submit button with the name "+name);
+        throw new AssertionError("No such submit button with the name " + name);
     }
 
     public HtmlInput findPreviousInputElement(HtmlElement current, String name) {
-        return DomNodeUtil.selectSingleNode(current, "(preceding::input[@name='_."+name+"'])[last()]");
+        return DomNodeUtil.selectSingleNode(current, "(preceding::input[@name='_." + name + "'])[last()]");
     }
 
     public HtmlButton getButtonByCaption(HtmlForm f, String s) {
         for (HtmlElement b : f.getElementsByTagName("button")) {
             if (b.getTextContent().trim().equals(s)) {
-                return (HtmlButton)b;
+                return (HtmlButton) b;
             }
         }
         return null;
@@ -1844,13 +1795,14 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      *      ','-separated list of property names that are compared.
      * @since 1.297
      */
-    public void assertEqualBeans(Object lhs, Object rhs, String properties) throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+    public void assertEqualBeans(Object lhs, Object rhs, String properties)
+            throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         assertThat("LHS", lhs, notNullValue());
         assertThat("RHS", rhs, notNullValue());
         for (String p : properties.split(",")) {
             PropertyDescriptor pd = PropertyUtils.getPropertyDescriptor(lhs, p);
-            Object lp,rp;
-            if(pd==null) {
+            Object lp, rp;
+            if (pd == null) {
                 // field?
                 try {
                     Field f = lhs.getClass().getField(p);
@@ -1865,13 +1817,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 rp = PropertyUtils.getProperty(rhs, p);
             }
 
-            if (lp!=null && rp!=null && lp.getClass().isArray() && rp.getClass().isArray()) {
+            if (lp != null
+                    && rp != null
+                    && lp.getClass().isArray()
+                    && rp.getClass().isArray()) {
                 // deep array equality comparison
                 int m = Array.getLength(lp);
                 int n = Array.getLength(rp);
                 assertThat("Array length is different for property " + p, n, is(m));
                 for (int i = 0; i < m; i++) {
-                    assertThat(p + "[" + i + "] is different", Array.get(rp, i), is(Array.get(lp,i)));
+                    assertThat(p + "[" + i + "] is different", Array.get(rp, i), is(Array.get(lp, i)));
                 }
                 return;
             }
@@ -1880,6 +1835,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
     }
 
+    /**
+     * @deprecated use {@link Jenkins#setQuietPeriod}
+     */
+    @Deprecated
     public void setQuietPeriod(int qp) {
         JenkinsAdaptor.setQuietPeriod(jenkins, qp);
     }
@@ -1888,7 +1847,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * Works like {@link #assertEqualBeans(Object, Object, String)} but figure out the properties
      * via {@link org.kohsuke.stapler.DataBoundConstructor} and {@link org.kohsuke.stapler.DataBoundSetter}
      */
-    public void assertEqualDataBoundBeans(Object lhs, Object rhs) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public void assertEqualDataBoundBeans(Object lhs, Object rhs)
+            throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if (lhs == null && rhs == null) {
             return;
         }
@@ -1901,7 +1861,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         Constructor<?> lc = findDataBoundConstructor(lhs.getClass());
         Constructor<?> rc = findDataBoundConstructor(rhs.getClass());
-        assertThat("Data bound constructor mismatch. Different type?", (Constructor)rc, is(lc));
+        assertThat("Data bound constructor mismatch. Different type?", (Constructor) rc, is(lc));
 
         String[] names = ClassDescriptor.loadParameterNames(lc);
         Class<?>[] types = lc.getParameterTypes();
@@ -1920,33 +1880,38 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         assertEqualProperties(lhs, rhs, setterNames.toArray(new String[0]), setterTypes.toArray(new Class<?>[0]));
     }
 
-    private void assertEqualProperties(@NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    private void assertEqualProperties(
+            @NonNull Object lhs, @NonNull Object rhs, @NonNull String[] names, @NonNull Class<?>[] types)
+            throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         List<String> primitiveProperties = new ArrayList<>();
 
-        for (int i=0; i<types.length; i++) {
+        for (int i = 0; i < types.length; i++) {
             Object lv = ReflectionUtils.getPublicProperty(lhs, names[i]);
             Object rv = ReflectionUtils.getPublicProperty(rhs, names[i]);
 
             if (lv != null && rv != null && Iterable.class.isAssignableFrom(types[i])) {
                 Iterable lcol = (Iterable) lv;
                 Iterable rcol = (Iterable) rv;
-                Iterator ltr,rtr;
-                for (ltr=lcol.iterator(), rtr=rcol.iterator(); ltr.hasNext() && rtr.hasNext();) {
+                Iterator ltr, rtr;
+                for (ltr = lcol.iterator(), rtr = rcol.iterator(); ltr.hasNext() && rtr.hasNext(); ) {
                     Object litem = ltr.next();
                     Object ritem = rtr.next();
 
-                    if (findDataBoundConstructor(litem.getClass())!=null) {
-                        assertEqualDataBoundBeans(litem,ritem);
+                    if (findDataBoundConstructor(litem.getClass()) != null) {
+                        assertEqualDataBoundBeans(litem, ritem);
                     } else {
                         assertThat(ritem, is(litem));
                     }
                 }
-                assertThat("collection size mismatch between " + lhs + " and " + rhs, ltr.hasNext() ^ rtr.hasNext(),
+                assertThat(
+                        "collection size mismatch between " + lhs + " and " + rhs,
+                        ltr.hasNext() ^ rtr.hasNext(),
                         is(false));
-            } else
-            if (findDataBoundConstructor(types[i])!=null || (lv!=null && findDataBoundConstructor(lv.getClass())!=null) || (rv!=null && findDataBoundConstructor(rv.getClass())!=null)) {
+            } else if (findDataBoundConstructor(types[i]) != null
+                    || (lv != null && findDataBoundConstructor(lv.getClass()) != null)
+                    || (rv != null && findDataBoundConstructor(rv.getClass()) != null)) {
                 // recurse into nested databound objects
-                assertEqualDataBoundBeans(lv,rv);
+                assertEqualDataBoundBeans(lv, rv);
             } else {
                 primitiveProperties.add(names[i]);
             }
@@ -1954,24 +1919,24 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         // compare shallow primitive properties
         if (!primitiveProperties.isEmpty()) {
-            assertEqualBeans(lhs,rhs,Util.join(primitiveProperties,","));
+            assertEqualBeans(lhs, rhs, Util.join(primitiveProperties, ","));
         }
     }
 
     @NonNull
     private Map<String, Class<?>> extractDataBoundSetterProperties(@NonNull Class<?> c) {
         Map<String, Class<?>> ret = new HashMap<>();
-        for ( ;c != null; c = c.getSuperclass()) {
+        for (; c != null; c = c.getSuperclass()) {
 
-            for (Field f: c.getDeclaredFields()) {
+            for (Field f : c.getDeclaredFields()) {
                 if (f.getAnnotation(DataBoundSetter.class) == null) {
                     continue;
                 }
                 f.setAccessible(true);
                 ret.put(f.getName(), f.getType());
-           }
+            }
 
-            for (Method m: c.getDeclaredMethods()) {
+            for (Method m : c.getDeclaredMethods()) {
                 AbstractMap.SimpleEntry<String, Class<?>> nameAndType = extractDataBoundSetter(m);
                 if (nameAndType == null) {
                     continue;
@@ -1979,7 +1944,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 if (ret.containsKey(nameAndType.getKey())) {
                     continue;
                 }
-                ret.put(nameAndType.getKey(),  nameAndType.getValue());
+                ret.put(nameAndType.getKey(), nameAndType.getValue());
             }
         }
         return ret;
@@ -2000,12 +1965,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         if (!m.isAnnotationPresent(DataBoundSetter.class)) {
             return null;
         }
-        
+
         // setXyz -> xyz
         return new AbstractMap.SimpleEntry<>(
-                Introspector.decapitalize(m.getName().substring(3)),
-                m.getParameterTypes()[0]
-        );
+                Introspector.decapitalize(m.getName().substring(3)), m.getParameterTypes()[0]);
     }
 
     /**
@@ -2014,7 +1977,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public void assertEqualDataBoundBeans(List<?> lhs, List<?> rhs) throws Exception {
         assertThat(rhs.size(), is(lhs.size()));
         for (int i = 0; i < lhs.size(); i++) {
-            assertEqualDataBoundBeans(lhs.get(i),rhs.get(i));
+            assertEqualDataBoundBeans(lhs.get(i), rhs.get(i));
         }
     }
 
@@ -2033,7 +1996,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public <T extends Descriptor<?>> T get(Class<T> d) {
         return jenkins.getDescriptorByType(d);
     }
-
 
     /**
      * Returns true if Hudson is building something or going to build something.
@@ -2068,7 +2030,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         while (true) {
             Thread.sleep(10);
             if (isSomethingHappening()) {
-                streak=0;
+                streak = 0;
             } else {
                 streak++;
             }
@@ -2078,7 +2040,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 return;
             }
 
-            if (System.currentTimeMillis()-startTime > timeout) {
+            if (System.currentTimeMillis() - startTime > timeout) {
                 List<Queue.Executable> building = new ArrayList<>();
                 for (Computer c : jenkins.getComputers()) {
                     for (Executor e : c.getExecutors()) {
@@ -2093,16 +2055,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
                 dumpThreads();
-                throw new AssertionError(String.format("Jenkins is still doing something after %dms: queue=%s building=%s",
+                throw new AssertionError(String.format(
+                        "Jenkins is still doing something after %dms: queue=%s building=%s",
                         timeout, List.of(jenkins.getQueue().getItems()), building));
             }
         }
     }
 
-
-//
-// recipe methods. Control the test environments.
-//
+    //
+    // recipe methods. Control the test environments.
+    //
 
     /**
      * Called during the {@link #before()} to give a test case an opportunity to
@@ -2124,7 +2086,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 final JenkinsRecipe.Runner runner = r.value().newInstance();
                 recipes.add(runner);
                 tearDowns.add(() -> runner.tearDown(JenkinsRule.this, a));
-                runner.setup(this,a);
+                runner.setup(this, a);
             }
         } catch (NoSuchMethodException e) {
             // not a plain JUnit test.
@@ -2140,17 +2102,17 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * packaging is {@code jpi}.
      */
     public void recipeLoadCurrentPlugin() throws Exception {
-    	final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
+        final Enumeration<URL> jpls = getClass().getClassLoader().getResources("the.jpl");
         final Enumeration<URL> hpls = getClass().getClassLoader().getResources("the.hpl");
 
         final List<URL> all = Collections.list(jpls);
         all.addAll(Collections.list(hpls));
-        
+
         if (all.isEmpty()) {
             // nope
             return;
         }
-        
+
         recipes.add(new JenkinsRecipe.Runner() {
             @Override
             public void decorateHome(JenkinsRule testCase, File home) throws Exception {
@@ -2173,109 +2135,114 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
     private static final class Jpl {
         private final File home;
-                final URL jpl;
-                Manifest m;
-                private String shortName;
+        final URL jpl;
+        Manifest m;
+        private String shortName;
 
-                Jpl(File home, URL jpl) {
-                    this.home = home;
-                    this.jpl = jpl;
-                }
+        Jpl(File home, URL jpl) {
+            this.home = home;
+            this.jpl = jpl;
+        }
 
-                void loadManifest() throws IOException {
-                    m = new Manifest(jpl.openStream());
-                    shortName = m.getMainAttributes().getValue("Short-Name");
-                    if (shortName == null) {
-                        throw new Error(jpl +" doesn't have the Short-Name attribute");
-                    }
-                    FileUtils.copyURLToFile(jpl, new File(home, "plugins/" + shortName + ".jpl"));
-                }
-
-                void resolveDependencies(List<Jpl> jpls) throws Exception {
-                    // make dependency plugins available
-                    // TODO: probably better to read POM, but where to read from?
-                    // TODO: this doesn't handle transitive dependencies
-
-                    // Tom: plugins are now searched on the classpath first. They should be available on
-                    // the compile or test classpath.
-                    // For transitive dependencies, we could evaluate Plugin-Dependencies transitively.
-                    String dependencies = m.getMainAttributes().getValue("Plugin-Dependencies");
-                    if(dependencies!=null) {
-                        DEPENDENCY:
-                        for( String dep : dependencies.split(",")) {
-                            String suffix = ";resolution:=optional";
-                            boolean optional = dep.endsWith(suffix);
-                            if (optional) {
-                                dep = dep.substring(0, dep.length() - suffix.length());
-                            }
-                            String[] tokens = dep.split(":");
-                            String artifactId = tokens[0];
-                            String version = tokens[1];
-
-                            for (Jpl other : jpls) {
-                                if (other.shortName.equals(artifactId)) {
-                                    continue DEPENDENCY;    // resolved from another JPL file
-                                }
-                            }
-
-                            File dependencyJar=resolveDependencyJar(artifactId,version);
-                            if (dependencyJar == null) {
-                                if (optional) {
-                                    LOGGER.log(Level.INFO, "cannot resolve optional dependency {0} of {1}; skipping", new Object[] {dep, shortName});
-                                    continue;
-                                }
-                                throw new IOException("Could not resolve " + dep + " in " + System.getProperty("java.class.path"));
-                            }
-
-                            File dst = new File(home, "plugins/" + artifactId + ".jpi");
-                            if(!dst.exists() || dst.lastModified()!=dependencyJar.lastModified()) {
-                                try {
-                                    FileUtils.copyFile(dependencyJar, dst);
-                                } catch (ClosedByInterruptException x) {
-                                    throw new AssumptionViolatedException("copying dependencies was interrupted", x);
-                                }
-                            }
-                        }
-                    }
-                }
-
-            private @CheckForNull File resolveDependencyJar(String artifactId, String version) throws Exception {
-                // try to locate it from manifest
-                Enumeration<URL> manifests = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
-                while (manifests.hasMoreElements()) {
-                    URL manifest = manifests.nextElement();
-                    InputStream is = manifest.openStream();
-                    Manifest m = new Manifest(is);
-                    is.close();
-
-                    if (artifactId.equals(m.getMainAttributes().getValue("Short-Name"))) {
-                        return Which.jarFile(manifest);
-                    }
-                }
-
-                // For snapshot plugin dependencies, an IDE may have replaced ~/.m2/repository/…/${artifactId}.hpi with …/${artifactId}-plugin/target/classes/
-                // which unfortunately lacks META-INF/MANIFEST.MF so try to find index.jelly (which every plugin should include) and thus the ${artifactId}.hpi:
-                Enumeration<URL> jellies = getClass().getClassLoader().getResources("index.jelly");
-                while (jellies.hasMoreElements()) {
-                    URL jellyU = jellies.nextElement();
-                    if (jellyU.getProtocol().equals("file")) {
-                        File jellyF = new File(jellyU.toURI());
-                        File classes = jellyF.getParentFile();
-                        if (classes.getName().equals("classes")) {
-                            File target = classes.getParentFile();
-                            if (target.getName().equals("target")) {
-                                File hpi = new File(target, artifactId + ".hpi");
-                                if (hpi.isFile()) {
-                                    return hpi;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return null;
+        void loadManifest() throws IOException {
+            m = new Manifest(jpl.openStream());
+            shortName = m.getMainAttributes().getValue("Short-Name");
+            if (shortName == null) {
+                throw new Error(jpl + " doesn't have the Short-Name attribute");
             }
-            
+            FileUtils.copyURLToFile(jpl, new File(home, "plugins/" + shortName + ".jpl"));
+        }
+
+        void resolveDependencies(List<Jpl> jpls) throws Exception {
+            // make dependency plugins available
+            // TODO: probably better to read POM, but where to read from?
+            // TODO: this doesn't handle transitive dependencies
+
+            // Tom: plugins are now searched on the classpath first. They should be available on
+            // the compile or test classpath.
+            // For transitive dependencies, we could evaluate Plugin-Dependencies transitively.
+            String dependencies = m.getMainAttributes().getValue("Plugin-Dependencies");
+            if (dependencies != null) {
+                DEPENDENCY:
+                for (String dep : dependencies.split(",")) {
+                    String suffix = ";resolution:=optional";
+                    boolean optional = dep.endsWith(suffix);
+                    if (optional) {
+                        dep = dep.substring(0, dep.length() - suffix.length());
+                    }
+                    String[] tokens = dep.split(":");
+                    String artifactId = tokens[0];
+                    String version = tokens[1];
+
+                    for (Jpl other : jpls) {
+                        if (other.shortName.equals(artifactId)) {
+                            continue DEPENDENCY; // resolved from another JPL file
+                        }
+                    }
+
+                    File dependencyJar = resolveDependencyJar(artifactId, version);
+                    if (dependencyJar == null) {
+                        if (optional) {
+                            LOGGER.log(
+                                    Level.INFO,
+                                    "cannot resolve optional dependency {0} of {1}; skipping",
+                                    new Object[] {dep, shortName});
+                            continue;
+                        }
+                        throw new IOException(
+                                "Could not resolve " + dep + " in " + System.getProperty("java.class.path"));
+                    }
+
+                    File dst = new File(home, "plugins/" + artifactId + ".jpi");
+                    if (!dst.exists() || dst.lastModified() != dependencyJar.lastModified()) {
+                        try {
+                            FileUtils.copyFile(dependencyJar, dst);
+                        } catch (ClosedByInterruptException x) {
+                            throw new AssumptionViolatedException("copying dependencies was interrupted", x);
+                        }
+                    }
+                }
+            }
+        }
+
+        private @CheckForNull File resolveDependencyJar(String artifactId, String version) throws Exception {
+            // try to locate it from manifest
+            Enumeration<URL> manifests = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
+            while (manifests.hasMoreElements()) {
+                URL manifest = manifests.nextElement();
+                InputStream is = manifest.openStream();
+                Manifest m = new Manifest(is);
+                is.close();
+
+                if (artifactId.equals(m.getMainAttributes().getValue("Short-Name"))) {
+                    return Which.jarFile(manifest);
+                }
+            }
+
+            // For snapshot plugin dependencies, an IDE may have replaced ~/.m2/repository/…/${artifactId}.hpi with
+            // …/${artifactId}-plugin/target/classes/
+            // which unfortunately lacks META-INF/MANIFEST.MF so try to find index.jelly (which every plugin should
+            // include) and thus the ${artifactId}.hpi:
+            Enumeration<URL> jellies = getClass().getClassLoader().getResources("index.jelly");
+            while (jellies.hasMoreElements()) {
+                URL jellyU = jellies.nextElement();
+                if (jellyU.getProtocol().equals("file")) {
+                    File jellyF = new File(jellyU.toURI());
+                    File classes = jellyF.getParentFile();
+                    if (classes.getName().equals("classes")) {
+                        File target = classes.getParentFile();
+                        if (target.getName().equals("target")) {
+                            File hpi = new File(target, artifactId + ".hpi");
+                            if (hpi.isFile()) {
+                                return hpi;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
     }
 
     public JenkinsRule withNewHome() {
@@ -2305,7 +2272,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         this.homeLoader = homeLoader;
         return this;
     }
-
 
     /**
      * Executes the given closure on the server, by the servlet request handling thread,
@@ -2337,7 +2303,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
      * so detect that and flag that as an error.
      */
     protected Object writeReplace() {
-        throw new AssertionError("JenkinsRule " + testDescription.getDisplayName() + " is not supposed to be serialized");
+        throw new AssertionError(
+                "JenkinsRule " + testDescription.getDisplayName() + " is not supposed to be serialized");
     }
 
     /**
@@ -2360,12 +2327,13 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         private List<WebResponseListener> webResponseListeners = new ArrayList<>();
 
         public WebClient() {
-//            setJavaScriptEnabled(false);
+            //            setJavaScriptEnabled(false);
             setPageCreator(HudsonPageCreator.INSTANCE);
             clients.add(this);
             // make ajax calls run as post-action for predictable behaviors that simplify debugging
             setAjaxController(new AjaxController() {
                 private static final long serialVersionUID = -76034615893907856L;
+
                 @Override
                 public boolean processSynchron(HtmlPage page, WebRequest settings, boolean async) {
                     return false;
@@ -2405,26 +2373,23 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // so as not to interfere with the 'Dim' class.
             AbstractJavaScriptEngine<?> javaScriptEngine = getJavaScriptEngine();
             if (javaScriptEngine instanceof JavaScriptEngine) {
-                ((JavaScriptEngine) javaScriptEngine).getContextFactory()
-                        .addListener(new ContextFactory.Listener() {
-                            @Override
-                            public void contextCreated(Context cx) {
-                                if (cx.getDebugger() == null) {
-                                    cx.setDebugger(jsDebugger, null);
-                                }
-                            }
+                ((JavaScriptEngine) javaScriptEngine).getContextFactory().addListener(new ContextFactory.Listener() {
+                    @Override
+                    public void contextCreated(Context cx) {
+                        if (cx.getDebugger() == null) {
+                            cx.setDebugger(jsDebugger, null);
+                        }
+                    }
 
-                            @Override
-                            public void contextReleased(Context cx) {
-                            }
-                        });
+                    @Override
+                    public void contextReleased(Context cx) {}
+                });
             }
 
             // avoid a hang by setting a time out. It should be long enough to prevent
             // false-positive timeout on slow systems
-            //setTimeout(60*1000);
+            // setTimeout(60*1000);
         }
-
 
         public void addWebResponseListener(WebResponseListener listener) {
             webResponseListeners.add(listener);
@@ -2445,7 +2410,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Logs in to Jenkins.
          */
         public WebClient login(String username, String password) throws Exception {
-            return login(username,password,false);
+            return login(username, password, false);
         }
 
         /**
@@ -2486,11 +2451,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             setJavaScriptEnabled(enabled);
             return this;
         }
-    
+
         /**
          * Returns true if an exception will be thrown in the event of a failing response code.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @return {@code true} if an exception will be thrown in the event of a failing response code
          * @see WebClientOptions#isThrowExceptionOnFailingStatusCode()
          * @since 2.42
@@ -2514,7 +2479,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Changes the behavior of this webclient when a script error occurs.
          * Fluent method to ease discovery of feature + improve readability
-         * 
+         *
          * @param enabled {@code true} to enable this feature
          * @return self for fluent method chaining
          * @see WebClientOptions#setThrowExceptionOnFailingStatusCode(boolean)
@@ -2524,11 +2489,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             setThrowExceptionOnFailingStatusCode(enabled);
             return this;
         }
-        
+
         /**
          * Returns whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @return {@code true} if automatic redirection is enabled
          * @see WebClientOptions#isRedirectEnabled()
          * @since 2.42
@@ -2540,7 +2505,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         /**
          * Sets whether or not redirections will be followed automatically on receipt of a redirect status code from the server.
          * Short-hand method to ease discovery of feature + improve readability
-         * 
+         *
          * @param enabled {@code true} to enable automatic redirection
          * @see WebClientOptions#setRedirectEnabled(boolean)
          * @since 2.42
@@ -2568,7 +2533,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          */
         public WebClient login(String username, String password, boolean rememberMe) throws Exception {
             HtmlPage page = goTo("login");
-//            page = (HtmlPage) page.getFirstAnchorByText("Login").click();
+            //            page = (HtmlPage) page.getFirstAnchorByText("Login").click();
 
             HtmlForm form = page.getFormByName("login");
             form.getInputByName("j_username").setValue(username);
@@ -2620,9 +2585,10 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             final Exception[] t = new Exception[1];
             final AtomicReference<V> r = new AtomicReference<>();
 
-            ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
+            ClosureExecuterAction cea =
+                    jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
-            cea.add(id,new Runnable() {
+            cea.add(id, new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -2635,7 +2601,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     }
                 }
             });
-            goTo("closures/?uuid="+id);
+            goTo("closures/?uuid=" + id);
 
             if (t[0] != null) {
                 throw t[0];
@@ -2645,7 +2611,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
         public HtmlPage search(String q) throws IOException, SAXException {
             HtmlPage top = goTo("");
-            HtmlButton button = top.querySelector("#button-open-command-palette");
+            HtmlButton button = top.querySelector("#button-open-command-palette, #root-action-SearchAction");
 
             // Legacy versions of Jenkins
             if (button == null) {
@@ -2661,7 +2627,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             // We need to wait for the 'Get help using Jenkins search' item to no longer be visible
             waitUntilStringIsNotPresent(top, "Get help using Jenkins search");
-            HtmlAnchor firstResult = (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
+            HtmlAnchor firstResult =
+                    (HtmlAnchor) waitUntilElementIsPresent(top, ".jenkins-command-palette__results__item");
 
             if (firstResult == null) {
                 System.out.println("Couldn't find result for query '" + q + "'");
@@ -2675,7 +2642,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Short for {@code getPage(r,"")}, to access the top page of a build.
          */
         public HtmlPage getPage(Run r) throws IOException, SAXException {
-            return getPage(r,"");
+            return getPage(r, "");
         }
 
         /**
@@ -2685,15 +2652,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          *      Relative URL within the build URL, like "changes". Doesn't start with '/'. Can be empty.
          */
         public HtmlPage getPage(Run r, String relative) throws IOException, SAXException {
-            return goTo(r.getUrl()+relative);
+            return goTo(r.getUrl() + relative);
         }
 
         public HtmlPage getPage(Item item) throws IOException, SAXException {
-            return getPage(item,"");
+            return getPage(item, "");
         }
 
         public HtmlPage getPage(Item item, String relative) throws IOException, SAXException {
-            return goTo(item.getUrl()+relative);
+            return goTo(item.getUrl() + relative);
         }
 
         public HtmlPage getPage(Node item) throws IOException, SAXException {
@@ -2701,7 +2668,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         }
 
         public HtmlPage getPage(Node item, String relative) throws IOException, SAXException {
-            return goTo(item.toComputer().getUrl()+relative);
+            return goTo(item.toComputer().getUrl() + relative);
         }
 
         public HtmlPage getPage(View view) throws IOException, SAXException {
@@ -2742,7 +2709,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             if (p instanceof HtmlPage) {
                 return (HtmlPage) p;
             } else {
-                throw new AssertionError("Expected text/html but instead the content type was "+p.getWebResponse().getContentType());
+                throw new AssertionError("Expected text/html but instead the content type was "
+                        + p.getWebResponse().getContentType());
             }
         }
 
@@ -2801,7 +2769,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // enforce the throwing of exception for the catch scope only
             setThrowExceptionOnFailingStatusCode(true);
             try {
-                fail(url + " should have been rejected but produced: " + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
+                fail(url + " should have been rejected but produced: "
+                        + super.getPage(getContextPath() + url).getWebResponse().getContentAsString());
             } catch (FailingHttpStatusCodeException x) {
                 assertEquals(statusCode, x.getStatusCode());
             } finally {
@@ -2841,9 +2810,9 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             String crumbName = issuer.getDescriptor().getCrumbRequestField();
             String crumb = issuer.getCrumb((ServletRequest) null);
             if (relativePath.indexOf('?') == -1) {
-                return new URL(getContextPath()+relativePath+"?"+crumbName+"="+crumb);
+                return new URL(getContextPath() + relativePath + "?" + crumbName + "=" + crumb);
             }
-            return new URL(getContextPath()+relativePath+"&"+crumbName+"="+crumb);
+            return new URL(getContextPath() + relativePath + "&" + crumbName + "=" + crumb);
         }
 
         /**
@@ -2851,7 +2820,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @since 2.32
          */
         public @NonNull WebClient withBasicCredentials(@NonNull String login, @NonNull String passwordOrToken) {
-            String authCode = Base64.getEncoder().encodeToString((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8));
+            String authCode = Base64.getEncoder()
+                    .encodeToString((login + ":" + passwordOrToken).getBytes(StandardCharsets.UTF_8));
 
             addRequestHeader("Authorization", "Basic " + authCode);
             return this;
@@ -2862,7 +2832,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Add the "Authorization" header with Basic credentials derived from login using Base64
          * @since 2.32
          */
-        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword){
+        public @NonNull WebClient withBasicCredentials(@NonNull String loginAndPassword) {
             return withBasicCredentials(loginAndPassword, loginAndPassword);
         }
 
@@ -2873,7 +2843,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicCredentials(String, String)
          * @since 2.32 (since TODO it creates a new token everytime it's called)
          */
-        public @NonNull WebClient withBasicApiToken(@NonNull User user){
+        public @NonNull WebClient withBasicApiToken(@NonNull User user) {
             String apiToken = JenkinsRule.this.createApiToken(user);
             return withBasicCredentials(user.getId(), apiToken);
         }
@@ -2883,7 +2853,7 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * @see #withBasicApiToken(User)
          * @since 2.32
          */
-        public @NonNull WebClient withBasicApiToken(@NonNull String userId){
+        public @NonNull WebClient withBasicApiToken(@NonNull String userId) {
             User user = User.getById(userId, true);
             assert user != null;
             return withBasicApiToken(user);
@@ -2893,10 +2863,11 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
          * Makes an HTTP request, process it with the given request handler, and returns the response.
          */
         public HtmlPage eval(final Runnable requestHandler) throws IOException, SAXException {
-            ClosureExecuterAction cea = jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
+            ClosureExecuterAction cea =
+                    jenkins.getExtensionList(RootAction.class).get(ClosureExecuterAction.class);
             UUID id = UUID.randomUUID();
-            cea.add(id,requestHandler);
-            return goTo("closures/?uuid="+id);
+            cea.add(id, requestHandler);
+            return goTo("closures/?uuid=" + id);
         }
 
         /**
@@ -2966,7 +2937,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
 
             return new JSONWebResponse(loadWebResponse(postRequest));
         }
-
     }
 
     // needs to keep reference, or it gets GC-ed.
@@ -2977,16 +2947,16 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         // screen scraping relies on locale being fixed.
         Locale.setDefault(Locale.ENGLISH);
 
-        {// enable debug assistance, since tests are often run from IDE
+        { // enable debug assistance, since tests are often run from IDE
             Dispatcher.TRACE = true;
-            MetaClass.NO_CACHE=true;
+            MetaClass.NO_CACHE = true;
             System.setProperty("jenkins.model.Jenkins.SHOW_STACK_TRACE", "true");
             // load resources from the source dir.
             File dir = new File("src/main/resources");
             if (dir.exists() && MetaClassLoader.debugLoader == null) {
                 try {
                     MetaClassLoader.debugLoader = new MetaClassLoader(
-                        new URLClassLoader(new URL[]{dir.toURI().toURL()}));
+                            new URLClassLoader(new URL[] {dir.toURI().toURL()}));
                 } catch (MalformedURLException e) {
                     throw new AssertionError(e);
                 }
@@ -3003,7 +2973,8 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         XML_HTTP_REQUEST_LOGGER.setFilter(new Filter() {
             @Override
             public boolean isLoggable(LogRecord record) {
-                return !record.getMessage().contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
+                return !record.getMessage()
+                        .contains("XMLHttpRequest.getResponseHeader() was called before the response was available.");
             }
         });
 
@@ -3016,13 +2987,22 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
     public static final List<ToolProperty<?>> NO_PROPERTIES = List.of();
 
     /**
-     * Specify this to a TCP/IP port number to have slaves started with the debugger.
+     * Specify this to a TCP/IP port number to have agents started with the debugger.
      */
-    public static final int SLAVE_DEBUG_PORT = Integer.getInteger(HudsonTestCase.class.getName()+".slaveDebugPort",-1);
+    public static final int SLAVE_DEBUG_PORT =
+            Integer.getInteger(HudsonTestCase.class.getName() + ".slaveDebugPort", -1);
 
     static {
         jettyLevel(Level.INFO);
-        Functions.DEBUG_YUI = true;
+        try {
+            Functions.class.getDeclaredField("DEBUG_YUI").setBoolean(null, true);
+        } catch (IllegalAccessException e) {
+            IllegalAccessError x = new IllegalAccessError();
+            x.initCause(e);
+            throw x;
+        } catch (NoSuchFieldException e) {
+            // No YUI, no problem
+        }
 
         if (Functions.isGlibcSupported()) {
             try {
@@ -3038,10 +3018,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         public Result buildResultInTearDown;
 
         @Override
-        public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+        public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener)
+                throws IOException, InterruptedException {
             return new BuildWrapper.Environment() {
                 @Override
-                public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+                public boolean tearDown(AbstractBuild build, BuildListener listener)
+                        throws IOException, InterruptedException {
                     buildResultInTearDown = build.getResult();
                     return true;
                 }
@@ -3072,8 +3054,37 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
         return testDescription;
     }
 
+    /**
+     * Restart the current instance with the same port and a copy of its {@code JENKINS_HOME}.
+     * @deprecated Rewrite to {@link RealJenkinsRule} and use {@link RealJenkinsRule#stopJenkinsForcibly}.
+     */
+    @Deprecated
+    public void restart() throws Throwable {
+        // create backup of current instance as zip
+        File source = jenkins.getRootDir();
+        File backup = File.createTempFile("jenkins", ".zip");
+
+        new FilePath(source).zip(new FilePath(backup));
+
+        // shutdown and cleanup current instance
+        after();
+
+        // unzip the backup to the old location
+        new FilePath(backup).unzip(new FilePath(source.getParentFile()));
+
+        // init new instance from backup
+        with(() -> source);
+
+        // startup new instance
+        before();
+
+        // delete backup
+        FileUtils.deleteQuietly(backup);
+    }
+
     private NameValuePair getCrumbHeaderNVP() {
-        return new NameValuePair(jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
-                        jenkins.getCrumbIssuer().getCrumb((ServletRequest) null));
+        return new NameValuePair(
+                jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField(),
+                jenkins.getCrumbIssuer().getCrumb((ServletRequest) null));
     }
 }

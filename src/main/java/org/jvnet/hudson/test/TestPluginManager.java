@@ -6,19 +6,19 @@ import hudson.PluginWrapper;
 import hudson.Util;
 import java.io.IOException;
 
-/** 
+/**
  * {@link PluginManager} to speed up unit tests.
-* 
-*
-* <p>
-* Instead of loading every plugin for every test case, this allows them to reuse a single plugin manager.
-* This has the downside that you can not disabling plugins.
-* <p>
-* TODO: {@link Plugin} start/stop/postInitialize invocation semantics gets different. Perhaps
-* 
-* @author Kohsuke Kawaguchi
-* @see HudsonTestCase#useLocalPluginManager
-*/
+ *
+ *
+ * <p>
+ * Instead of loading every plugin for every test case, this allows them to reuse a single plugin manager.
+ * This has the downside that you can not disabling plugins.
+ * <p>
+ * TODO: {@link Plugin} start/stop/postInitialize invocation semantics gets different. Perhaps
+ *
+ * @author Kohsuke Kawaguchi
+ * @see HudsonTestCase#useLocalPluginManager
+ */
 public class TestPluginManager extends UnitTestSupportingPluginManager {
 
     public static final PluginManager INSTANCE;
@@ -27,9 +27,10 @@ public class TestPluginManager extends UnitTestSupportingPluginManager {
         try {
             INSTANCE = new TestPluginManager();
             Runtime.getRuntime().addShutdownHook(new Thread("delete " + INSTANCE.rootDir) {
-                @Override public void run() {
+                @Override
+                public void run() {
                     // Shutdown and release plugins as in PluginManager#stop
-                    ((TestPluginManager)INSTANCE).reallyStop();
+                    ((TestPluginManager) INSTANCE).reallyStop();
 
                     // allow JVM cleanup handles of jar files...
                     System.gc();
@@ -66,5 +67,4 @@ public class TestPluginManager extends UnitTestSupportingPluginManager {
     private void reallyStop() {
         super.stop();
     }
-
 }

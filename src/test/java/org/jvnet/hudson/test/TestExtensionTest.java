@@ -40,54 +40,35 @@ public class TestExtensionTest {
     public JenkinsRule j = new JenkinsRule();
 
     @TestExtension
-    public static class AllTests extends ItemListener {
-    }
+    public static class AllTests extends ItemListener {}
 
     @TestExtension("test1")
-    public static class SingleTests extends ItemListener {
-    }
+    public static class SingleTests extends ItemListener {}
 
     @TestExtension({"test1", "test2"})
-    public static class MultipleTests extends ItemListener {
-    }
+    public static class MultipleTests extends ItemListener {}
 
     private List<Class<? extends ItemListener>> getExtensionClasses() {
-        return j.jenkins.getExtensionList(ItemListener.class).stream().map(ItemListener::getClass).collect(Collectors.toList());
+        return j.jenkins.getExtensionList(ItemListener.class).stream()
+                .map(ItemListener::getClass)
+                .collect(Collectors.toList());
     }
 
     @Test
     public void test1() {
-        assertThat(
-            getExtensionClasses(),
-            Matchers.hasItems(AllTests.class, SingleTests.class, MultipleTests.class)
-        );
+        assertThat(getExtensionClasses(), Matchers.hasItems(AllTests.class, SingleTests.class, MultipleTests.class));
     }
 
     @Test
     public void test2() {
-        assertThat(
-            getExtensionClasses(),
-            Matchers.hasItems(AllTests.class, MultipleTests.class)
-        );
-        assertThat(
-            getExtensionClasses(),
-            Matchers.not(Matchers.hasItem(SingleTests.class))
-        );
+        assertThat(getExtensionClasses(), Matchers.hasItems(AllTests.class, MultipleTests.class));
+        assertThat(getExtensionClasses(), Matchers.not(Matchers.hasItem(SingleTests.class)));
     }
 
     @Test
     public void test3() {
-        assertThat(
-            getExtensionClasses(),
-            Matchers.hasItems(AllTests.class)
-        );
-        assertThat(
-            getExtensionClasses(),
-            Matchers.not(Matchers.hasItem(SingleTests.class))
-        );
-        assertThat(
-            getExtensionClasses(),
-            Matchers.not(Matchers.hasItem(MultipleTests.class))
-        );
+        assertThat(getExtensionClasses(), Matchers.hasItems(AllTests.class));
+        assertThat(getExtensionClasses(), Matchers.not(Matchers.hasItem(SingleTests.class)));
+        assertThat(getExtensionClasses(), Matchers.not(Matchers.hasItem(MultipleTests.class)));
     }
 }

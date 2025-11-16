@@ -71,7 +71,8 @@ public final class RemainingActivityListener implements EndOfTestListener {
         for (Computer c : Jenkins.get().getComputers()) {
             for (Executor x : c.getAllExecutors()) {
                 if (!x.isIdle()) {
-                    return x.getCurrentExecutable() + " still seems to be running, which could break deletion of log files or metadata";
+                    return x.getCurrentExecutable()
+                            + " still seems to be running, which could break deletion of log files or metadata";
                 }
             }
         }
@@ -80,5 +81,4 @@ public final class RemainingActivityListener implements EndOfTestListener {
         }
         return null;
     }
-
 }

@@ -56,8 +56,7 @@ public class RealJenkinsRuleHttpsTest {
 
     @Test
     public void inboundAgent() throws Throwable {
-        var options = InboundAgentRule.Options
-                .newBuilder()
+        var options = InboundAgentRule.Options.newBuilder()
                 .name("remote")
                 .webSocket()
                 .color(PrefixedOutputStream.Color.YELLOW);

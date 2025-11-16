@@ -46,7 +46,8 @@ import junit.framework.TestSuite;
 public class PropertiesTestSuite extends TestSuite {
 
     public PropertiesTestSuite(File resources) throws IOException {
-        for (Map.Entry<URL,String> entry : JellyTestSuiteBuilder.scan(resources, "properties").entrySet()) {
+        for (Map.Entry<URL, String> entry :
+                JellyTestSuiteBuilder.scan(resources, "properties").entrySet()) {
             addTest(new PropertiesTest(entry.getKey(), entry.getValue()));
         }
     }
@@ -67,7 +68,8 @@ public class PropertiesTestSuite extends TestSuite {
                 public synchronized Object put(Object key, Object value) {
                     Object old = super.put(key, value);
                     if (old != null) {
-                        throw new AssertionError("Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
+                        throw new AssertionError(
+                                "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
                     }
                     return null;
                 }
@@ -92,7 +94,6 @@ public class PropertiesTestSuite extends TestSuite {
                         .forEachRemaining(key -> props.setProperty(key, propertyResourceBundle.getString(key)));
             }
         }
-
     }
 
     private static boolean isEncoded(byte[] bytes, Charset charset) {
@@ -108,5 +109,4 @@ public class PropertiesTestSuite extends TestSuite {
             return false;
         }
     }
-
 }

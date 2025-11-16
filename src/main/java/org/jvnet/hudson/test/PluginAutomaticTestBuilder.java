@@ -55,20 +55,20 @@ public class PluginAutomaticTestBuilder {
      *      requirePI (String) : either {@code true} to verify that all the jelly scripts have the Jelly XSS PI in
      *      them or {@code false} to ignore any missing ones.
      */
-    public static TestSuite build(Map<String,?> params) throws Exception {
-        TestSuite master = new TestSuite();
+    public static TestSuite build(Map<String, ?> params) throws Exception {
+        TestSuite controller = new TestSuite();
         if (params.containsKey("outputDirectory")) { // shouldn't happen, but be defensive
-            File outputDirectory = new File((String)params.get("outputDirectory"));
-            TestSuite inJenkins = JellyTestSuiteBuilder.build(outputDirectory,toBoolean(params.get("requirePI")));
+            File outputDirectory = new File((String) params.get("outputDirectory"));
+            TestSuite inJenkins = JellyTestSuiteBuilder.build(outputDirectory, toBoolean(params.get("requirePI")));
             inJenkins.addTest(new OtherTests("testCliSanity", params));
             String packaging = (String) params.get("packaging");
             if (packaging == null || packaging.trim().isEmpty() || "hpi".equals(packaging)) {
                 inJenkins.addTest(new OtherTests("testPluginActive", params));
             }
-            master.addTest(inJenkins);
-            master.addTest(new PropertiesTestSuite(outputDirectory));
+            controller.addTest(inJenkins);
+            controller.addTest(new PropertiesTestSuite(outputDirectory));
         }
-        return master;
+        return controller;
     }
 
     private static boolean toBoolean(Object requirePI) {
@@ -83,9 +83,9 @@ public class PluginAutomaticTestBuilder {
 
     public static class OtherTests extends TestCase {
 
-        private final Map<String,?> params;
+        private final Map<String, ?> params;
 
-        public OtherTests(String name, Map<String,?> params) {
+        public OtherTests(String name, Map<String, ?> params) {
             super(name);
             this.params = params;
         }
@@ -104,10 +104,9 @@ public class PluginAutomaticTestBuilder {
 
                 PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(plugin);
 
-                assertNotNull(plugin+" failed to start", pw);
+                assertNotNull(plugin + " failed to start", pw);
                 assertTrue(plugin + " was not active", pw.isActive());
             }
         }
-
     }
 }

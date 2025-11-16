@@ -63,17 +63,22 @@ public class CLICommandInvoker {
     private static final String username = "user";
     private final JenkinsRule rule;
     private final CLICommand command;
+
     @Deprecated
     private SecurityRealm originalSecurityRealm = null;
+
     @Deprecated
     private AuthorizationStrategy originalAuthorizationStrategy = null;
+
     @Deprecated
     private SecurityContext originalSecurityContext = null;
 
     private InputStream stdin;
     private List<String> args = List.of();
+
     @Deprecated
     private List<Permission> permissions = List.of();
+
     private Locale locale = Locale.ENGLISH;
 
     public CLICommandInvoker(final JenkinsRule rule, final CLICommand command) {
@@ -152,13 +157,8 @@ public class CLICommandInvoker {
             throw new RuntimeException(e);
         }
 
-        final int returnCode =
-                command.main(
-                        args,
-                        locale,
-                        stdin,
-                        new PrintStream(out, false, outCharset),
-                        new PrintStream(err, false, errCharset));
+        final int returnCode = command.main(
+                args, locale, stdin, new PrintStream(out, false, outCharset), new PrintStream(err, false, errCharset));
 
         restoreAuth();
 
@@ -168,6 +168,7 @@ public class CLICommandInvoker {
     private static class GrantPermissions extends AuthorizationStrategy {
         final String username;
         final Set<String> permissions;
+
         GrantPermissions(String username, List<Permission> permissions) {
             this.username = username;
             this.permissions = permissions.stream().map(Permission::getId).collect(Collectors.toSet());
@@ -182,7 +183,8 @@ public class CLICommandInvoker {
             return new SidACL() {
                 @Override
                 protected Boolean hasPermission(Sid u, Permission permission) {
-                    if (u instanceof PrincipalSid && ((PrincipalSid) u).getPrincipal().equals(username)) {
+                    if (u instanceof PrincipalSid
+                            && ((PrincipalSid) u).getPrincipal().equals(username)) {
                         for (Permission p = permission; p != null; p = p.impliedBy) {
                             if (permissions.contains(p.getId())) {
                                 return true;
@@ -262,8 +264,7 @@ public class CLICommandInvoker {
                 final ByteArrayOutputStream out,
                 final Charset outCharset,
                 final ByteArrayOutputStream err,
-                final Charset errCharset
-        ) {
+                final Charset errCharset) {
 
             this.result = result;
             this.out = out;
@@ -330,7 +331,8 @@ public class CLICommandInvoker {
 
         public static Matcher hasNoStandardOutput() {
             return new Matcher("No standard output") {
-                @Override protected boolean matchesSafely(Result result) {
+                @Override
+                protected boolean matchesSafely(Result result) {
                     return "".equals(result.stdout());
                 }
             };
@@ -338,7 +340,8 @@ public class CLICommandInvoker {
 
         public static Matcher hasNoErrorOutput() {
             return new Matcher("No error output") {
-                @Override protected boolean matchesSafely(Result result) {
+                @Override
+                protected boolean matchesSafely(Result result) {
                     return "".equals(result.stderr());
                 }
             };
@@ -346,7 +349,8 @@ public class CLICommandInvoker {
 
         public static Matcher succeeded() {
             return new Matcher("Exited with 0 return code") {
-                @Override protected boolean matchesSafely(Result result) {
+                @Override
+                protected boolean matchesSafely(Result result) {
                     return result.result == 0;
                 }
             };
@@ -354,7 +358,8 @@ public class CLICommandInvoker {
 
         public static Matcher succeededSilently() {
             return new Matcher("Succeeded silently") {
-                @Override protected boolean matchesSafely(Result result) {
+                @Override
+                protected boolean matchesSafely(Result result) {
                     return result.result == 0 && "".equals(result.stderr()) && "".equals(result.stdout());
                 }
             };
@@ -362,7 +367,8 @@ public class CLICommandInvoker {
 
         public static Matcher failedWith(final long expectedCode) {
             return new Matcher("Exited with " + expectedCode + " return code") {
-                @Override protected boolean matchesSafely(Result result) {
+                @Override
+                protected boolean matchesSafely(Result result) {
                     return result.result == expectedCode;
                 }
             };

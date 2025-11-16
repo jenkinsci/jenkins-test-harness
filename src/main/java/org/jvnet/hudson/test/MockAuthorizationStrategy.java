@@ -51,7 +51,7 @@ import org.acegisecurity.acls.sid.Sid;
  * You probably also want to call {@link Jenkins#setSecurityRealm} on {@link JenkinsRule#createDummySecurityRealm}.
  */
 public class MockAuthorizationStrategy extends AuthorizationStrategy {
-    
+
     private final List<Grant.GrantOn.GrantOnTo> grantsOnTo = new ArrayList<>();
 
     /** Creates a new strategy granting no permissions. */
@@ -179,12 +179,12 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
 
             /** To everyone, including anonymous users. */
             public MockAuthorizationStrategy toEveryone() {
-                return to(/* SidACL.toString(ACL.EVERYONE) */"role_everyone");
+                return to(/* SidACL.toString(ACL.EVERYONE) */ "role_everyone");
             }
 
             /** To all authenticated users. */
             public MockAuthorizationStrategy toAuthenticated() {
-                return to(/* SecurityRealm.AUTHENTICATED_AUTHORITY */"authenticated");
+                return to(/* SecurityRealm.AUTHENTICATED_AUTHORITY */ "authenticated");
             }
 
             private class GrantOnTo {
@@ -201,15 +201,13 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
                 }
 
                 boolean matches(String path, String name, Permission permission) {
-                    return regexp.matcher(path).matches() &&
-                        sids.contains(name) && // TODO consider IdStrategy
-                        permissions.contains(permission.getId());
+                    return regexp.matcher(path).matches()
+                            && sids.contains(name)
+                            && // TODO consider IdStrategy
+                            permissions.contains(permission.getId());
                 }
-
             }
-
         }
-
     }
 
     @NonNull
@@ -238,7 +236,8 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
             this.path = path;
         }
 
-        @Override protected Boolean hasPermission(Sid p, Permission permission) {
+        @Override
+        protected Boolean hasPermission(Sid p, Permission permission) {
             String name = toString(p);
             for (Grant.GrantOn.GrantOnTo grantOnTo : grantsOnTo) {
                 if (grantOnTo.matches(path, name, permission)) {
@@ -247,7 +246,6 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
             }
             return null; // allow groups to be checked after users, etc.
         }
-
     }
 
     @NonNull
@@ -256,4 +254,3 @@ public class MockAuthorizationStrategy extends AuthorizationStrategy {
         return Collections.emptySet(); // we do not differentiate usernames from groups
     }
 }
-

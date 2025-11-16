@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,15 +39,15 @@ import org.jvnet.hudson.test.JenkinsRule;
  * {@link Cloud} implementation useful for testing.
  *
  * <p>
- * This implementation launches "java -jar slave.jar" on the localhost when provisioning a new slave.
+ * This implementation launches "java -jar agent.jar" on the localhost when provisioning a new agent.
  *
  * @author Kohsuke Kawaguchi
-*/
+ */
 public class DummyCloudImpl extends Cloud {
     private final transient JenkinsRule rule;
 
     /**
-     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of a slave,
+     * Configurable delay between the {@link Cloud#provision(Label,int)} and the actual launch of an agent,
      * to emulate a real cloud that takes some time for provisioning a new system.
      *
      * <p>
@@ -67,8 +67,7 @@ public class DummyCloudImpl extends Cloud {
         return this.nodeProperties;
     }
 
-    List<NodeProperty<?>> nodeProperties =
-            new ArrayList<>();
+    List<NodeProperty<?>> nodeProperties = new ArrayList<>();
 
     public DummyCloudImpl(JenkinsRule rule, int delay) {
         super("test");
@@ -91,19 +90,19 @@ public class DummyCloudImpl extends Cloud {
             return r;
         }
 
-        while(excessWorkload>0) {
+        while (excessWorkload > 0) {
             System.out.println("Provisioning");
             numProvisioned++;
             Future<Node> f = Computer.threadPoolForRemoting.submit(new Launcher(delay));
-            r.add(new PlannedNode(name+" #"+numProvisioned,f,1));
-            excessWorkload-=1;
+            r.add(new PlannedNode(name + " #" + numProvisioned, f, 1));
+            excessWorkload -= 1;
         }
         return r;
     }
 
     @Override
     public boolean canProvision(Label label) {
-        return label==this.label;
+        return label == this.label;
     }
 
     private final class Launcher implements Callable<Node> {
@@ -119,22 +118,23 @@ public class DummyCloudImpl extends Cloud {
 
         @Override
         public Node call() throws Exception {
-            // simulate the delay in provisioning a new slave,
+            // simulate the delay in provisioning a new agent,
             // since it's normally some async operation.
             Thread.sleep(time);
-            
-            System.out.println("launching slave");
-            final DumbSlave slave = rule.createSlave(label);
+
+            System.out.println("launching agent");
+            final DumbSlave agent = rule.createSlave(label);
             for (NodeProperty nodeProperty : nodeProperties) {
-                slave.getNodeProperties().add(updateWithNode(nodeProperty, slave));
+                agent.getNodeProperties().add(updateWithNode(nodeProperty, agent));
             }
-            computer = slave.toComputer();
+            computer = agent.toComputer();
             computer.connect(false).get();
             synchronized (DummyCloudImpl.this) {
-                System.out.println(computer.getName()+" launch"+(computer.isOnline()?"ed successfully":" failed"));
+                System.out.println(
+                        computer.getName() + " launch" + (computer.isOnline() ? "ed successfully" : " failed"));
                 System.out.println(computer.getLog());
             }
-            return slave;
+            return agent;
         }
     }
 

@@ -26,10 +26,7 @@ public class SignupPage {
             }
             this.signupForm = signupForm;
         }
-
     }
-
-
 
     public void enterUsername(String username) {
         signupForm.getInputByName("username").setValue(username);
@@ -61,6 +58,6 @@ public class SignupPage {
     }
 
     public void assertErrorContains(String msg) {
-        assertThat(signupForm.getPage().getElementById("main-panel").getTextContent(),containsString(msg));
+        assertThat(signupForm.getPage().getElementById("main-panel").getTextContent(), containsString(msg));
     }
 }

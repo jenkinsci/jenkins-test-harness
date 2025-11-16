@@ -27,10 +27,11 @@ package org.jvnet.hudson.test;
 import io.jenkins.lib.support_log_formatter.SupportLogFormatter;
 import java.util.logging.LogRecord;
 
-class DeltaSupportLogFormatter extends SupportLogFormatter {
+public class DeltaSupportLogFormatter extends SupportLogFormatter {
 
     static long start = System.currentTimeMillis();
-    static String elapsedTime() {
+
+    public static String elapsedTime() {
         return String.format("%8.3f", (System.currentTimeMillis() - start) / 1_000.0);
     }
 
@@ -38,8 +39,8 @@ class DeltaSupportLogFormatter extends SupportLogFormatter {
         start = System.currentTimeMillis(); // reset for each test, if using LoggerRule
     }
 
-    @Override protected String formatTime(LogRecord record) {
+    @Override
+    protected String formatTime(LogRecord record) {
         return elapsedTime();
     }
-
 }
