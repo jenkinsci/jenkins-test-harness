@@ -62,7 +62,7 @@ public class PluginAutomaticTestBuilder {
         if (params.containsKey("outputDirectory")) { // shouldn't happen, but be defensive
             File outputDirectory = new File((String) params.get("outputDirectory"));
             TestSuite inJenkins = JellyTestSuiteBuilder.build(
-                    outputDirectory, toBoolean(params.get("requirePI")), toBoolean(params.get("requireNoInlineJS")));
+                    outputDirectory, toBoolean(params.get("requirePI")), toBoolean(params.get("prohibitInlineJS")));
             inJenkins.addTest(new OtherTests("testCliSanity", params));
             String packaging = (String) params.get("packaging");
             if (packaging == null || packaging.trim().isEmpty() || "hpi".equals(packaging)) {

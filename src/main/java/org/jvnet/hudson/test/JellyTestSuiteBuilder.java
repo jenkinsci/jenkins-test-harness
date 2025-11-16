@@ -102,16 +102,16 @@ public class JellyTestSuiteBuilder {
         private final URL jelly;
         private final JellyClassLoaderTearOff jct;
         private final boolean requirePI;
-        private List<String> errors = new ArrayList<>();
+        private final List<String> errors = new ArrayList<>();
         private boolean inlineJs = false;
-        private final boolean requireNoInlineJS;
+        private final boolean prohibitInlineJS;
 
-        JellyCheck(URL jelly, String name, JellyClassLoaderTearOff jct, boolean requirePI, boolean requireNoInlineJS) {
+        JellyCheck(URL jelly, String name, JellyClassLoaderTearOff jct, boolean requirePI, boolean prohibitInlineJS) {
             super(name);
             this.jelly = jelly;
             this.jct = jct;
             this.requirePI = requirePI;
-            this.requireNoInlineJS = requireNoInlineJS;
+            this.prohibitInlineJS = prohibitInlineJS;
         }
 
         @Override
@@ -174,7 +174,7 @@ public class JellyTestSuiteBuilder {
         }
 
         private void reportInlineJSUsage(String message) {
-            if (requireNoInlineJS) {
+            if (prohibitInlineJS) {
                 errors.add(message);
                 inlineJs = true;
             } else {
