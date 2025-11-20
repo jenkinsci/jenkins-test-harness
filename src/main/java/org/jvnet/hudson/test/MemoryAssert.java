@@ -161,6 +161,7 @@ public class MemoryAssert {
 
     /**
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
+     * <p>Beware that failures messages can be misleading and you may need to use heap dumps to diagnose issues.
      * @param reference object used to verify garbage collection.
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
@@ -192,28 +193,17 @@ public class MemoryAssert {
                 Object obj = reference.get();
                 if (obj != null) {
                     softErr = "Apparent soft references to " + obj + ": "
-                            + fromRoots(Set.of(obj), null, null, new Filter() {
-                                final Field referent;
-
-                                {
-                                    try {
-                                        referent = Reference.class.getDeclaredField("referent");
-                                    } catch (NoSuchFieldException x) {
-                                        throw new AssertionError(x);
-                                    }
-                                }
-
-                                @Override
-                                public boolean accept(Object obj, Object referredFrom, Field reference) {
-                                    return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
-                                }
-                            })
+                            + fromRoots(Set.of(obj), null, null, new SkipWeakReferencesFilter())
                             + "; apparent weak references: "
                             + fromRoots(
                                     Set.of(obj), null, null, ScannerUtils.skipObjectsFilter(Set.of(reference), true));
                     System.err.println(softErr);
                 }
             }
+        }
+        if (softErr != null) {
+            // Sometimes soft references can be cleared prior to an OutOfMemoryError occurring.
+            fail(softErr);
         }
         objects = null;
         System.gc();
@@ -228,22 +218,7 @@ public class MemoryAssert {
                 fail(rootRefs.toString());
             } else {
                 System.err.println("Did not find any strong references to " + obj + ", looking for soft references…");
-                rootRefs = fromRoots(Set.of(obj), null, null, new Filter() {
-                    final Field referent;
-
-                    {
-                        try {
-                            referent = Reference.class.getDeclaredField("referent");
-                        } catch (NoSuchFieldException x) {
-                            throw new AssertionError(x);
-                        }
-                    }
-
-                    @Override
-                    public boolean accept(Object obj, Object referredFrom, Field reference) {
-                        return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
-                    }
-                });
+                rootRefs = fromRoots(Set.of(obj), null, null, new SkipWeakReferencesFilter());
                 if (!rootRefs.isEmpty()) {
                     fail(rootRefs.toString());
                 } else {
@@ -341,6 +316,23 @@ public class MemoryAssert {
             } else {
                 throw e;
             }
+        }
+    }
+
+    private static class SkipWeakReferencesFilter implements Filter {
+        static final Field referent;
+
+        static {
+            try {
+                referent = Reference.class.getDeclaredField("referent");
+            } catch (NoSuchFieldException x) {
+                throw new AssertionError(x);
+            }
+        }
+
+        @Override
+        public boolean accept(Object obj, Object referredFrom, Field reference) {
+            return !referent.equals(reference) || !(referredFrom instanceof WeakReference);
         }
     }
 }
