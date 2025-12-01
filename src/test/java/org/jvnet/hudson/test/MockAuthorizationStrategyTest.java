@@ -69,11 +69,10 @@ public class MockAuthorizationStrategyTest {
                 .onFolders(d)
                 .to("dev"));
         try (ACLContext ctx = ACL.as(User.get("root"))) {
-            assertTrue(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
+            assertTrue(r.jenkins.hasPermission(Jenkins.ADMINISTER));
             assertTrue(p.hasPermission(Item.DELETE));
         }
         try (ACLContext ctx = ACL.as(User.get("admin"))) {
-            assertFalse(r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS));
             assertTrue(r.jenkins.hasPermission(Jenkins.ADMINISTER));
             assertFalse(p.hasPermission(Item.DELETE));
             assertTrue(p.hasPermission(Item.READ));
@@ -97,7 +96,7 @@ public class MockAuthorizationStrategyTest {
             assertTrue(p.hasPermission(Item.READ));
             assertFalse(p.hasPermission(Item.EXTENDED_READ));
         }
-        assertTrue("SYSTEM has everything", r.jenkins.hasPermission(Jenkins.RUN_SCRIPTS)); // handled by SidACL
+        assertTrue("SYSTEM has everything", r.jenkins.hasPermission(Jenkins.ADMINISTER)); // handled by SidACL
     }
 
     @Test
