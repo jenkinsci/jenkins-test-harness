@@ -26,17 +26,25 @@ package org.jvnet.hudson.test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.logging.Logger;
 import junit.framework.TestCase;
 import junit.framework.TestResult;
 import junit.framework.TestSuite;
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Attribute;
 import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.Namespace;
+import org.dom4j.Node;
 import org.dom4j.ProcessingInstruction;
 import org.dom4j.io.SAXReader;
 import org.jvnet.hudson.test.junit.GroupedTest;
@@ -77,26 +85,33 @@ public class JellyTestSuiteBuilder {
      * Given a jar file or a class file directory, recursively search all the Jelly files and build a {@link TestSuite}
      * that performs static syntax checks.
      */
-    public static TestSuite build(File res, boolean requirePI) throws Exception {
+    public static TestSuite build(File res, boolean requirePI, boolean requireNoInlineJS) throws Exception {
         TestSuite ts = new JellyTestSuite();
         final JellyClassLoaderTearOff jct = new MetaClassLoader(JellyTestSuiteBuilder.class.getClassLoader())
                 .loadTearOff(JellyClassLoaderTearOff.class);
         for (Map.Entry<URL, String> entry : scan(res, "jelly").entrySet()) {
-            ts.addTest(new JellyCheck(entry.getKey(), entry.getValue(), jct, requirePI));
+            ts.addTest(new JellyCheck(entry.getKey(), entry.getValue(), jct, requirePI, requireNoInlineJS));
         }
         return ts;
     }
 
     private static class JellyCheck extends TestCase {
+
+        private static final Logger LOGGER = Logger.getLogger(JellyCheck.class.getName());
+
         private final URL jelly;
         private final JellyClassLoaderTearOff jct;
         private final boolean requirePI;
+        private final List<String> errors = new ArrayList<>();
+        private boolean inlineJs = false;
+        private final boolean prohibitInlineJS;
 
-        JellyCheck(URL jelly, String name, JellyClassLoaderTearOff jct, boolean requirePI) {
+        JellyCheck(URL jelly, String name, JellyClassLoaderTearOff jct, boolean requirePI, boolean prohibitInlineJS) {
             super(name);
             this.jelly = jelly;
             this.jct = jct;
             this.requirePI = requirePI;
+            this.prohibitInlineJS = prohibitInlineJS;
         }
 
         @Override
@@ -106,10 +121,65 @@ public class JellyTestSuiteBuilder {
             if (requirePI) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
                 if (pi == null || !pi.getText().contains("escape-by-default")) {
-                    throw new AssertionError("<?jelly escape-by-default='true'?> is missing in " + jelly);
+                    errors.add("<?jelly escape-by-default='true'?> is missing in " + jelly);
                 }
             }
             // TODO: what else can we check statically? use of taglibs?
+            checkScriptElement(dom);
+            checkJavaScriptAttributes(dom);
+            if (!errors.isEmpty()) {
+                if (inlineJs) {
+                    errors.add("Please visit https://www.jenkins.io/doc/developer/security/csp/ for more details.");
+                }
+                String message = String.join("\n", errors);
+                throw new AssertionError(message);
+            }
+        }
+
+        private void checkJavaScriptAttributes(Document dom) {
+            List<Node> allNodes = dom.selectNodes("//*");
+            allNodes.forEach(n -> {
+                Element element = (Element) n;
+                Attribute onclick = element.attribute("onclick");
+                Attribute checkUrl = element.attribute("checkUrl");
+                Attribute checkDependsOn = element.attribute("checkDependsOn");
+                if (checkUrl != null && checkDependsOn == null) {
+                    reportInlineJSUsage("Usage of 'checkUrl' without 'checkDependsOn' in " + jelly);
+                }
+                if (onclick != null && element.getNamespace() != Namespace.NO_NAMESPACE) {
+                    reportInlineJSUsage("Usage of 'onclick' from a taglib in " + jelly);
+                }
+                List<Attribute> attributes = element.attributes();
+                if (element.getNamespace() == Namespace.NO_NAMESPACE && !attributes.isEmpty()) {
+                    attributes.forEach(a -> {
+                        if (a.getName().startsWith("on")) {
+                            reportInlineJSUsage("Usage of inline event handler '" + a.getName() + "' in " + jelly);
+                        }
+                    });
+                }
+            });
+        }
+
+        private void checkScriptElement(Document dom) {
+            List<Node> scriptTags = dom.selectNodes("//script");
+            scriptTags.forEach(n -> {
+                Element element = (Element) n;
+                String typeAttribute = element.attributeValue("type");
+                if (element.attributeValue("src") == null
+                        && (typeAttribute == null
+                                || !"application/json".equals(typeAttribute.toLowerCase(Locale.US)))) {
+                    reportInlineJSUsage("inline <script> element in " + jelly);
+                }
+            });
+        }
+
+        private void reportInlineJSUsage(String message) {
+            if (prohibitInlineJS) {
+                errors.add(message);
+                inlineJs = true;
+            } else {
+                LOGGER.warning(message);
+            }
         }
 
         private boolean isConfigJelly() {
