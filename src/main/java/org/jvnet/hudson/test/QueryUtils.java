@@ -20,8 +20,6 @@ public final class QueryUtils {
 
         while (System.currentTimeMillis() - startTime < maxWaitTime) {
             if (page.querySelector("*").getVisibleText().contains(value)) {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " + "until string '"
-                        + value + "' was present");
                 return;
             } else {
                 try {
@@ -54,8 +52,6 @@ public final class QueryUtils {
                     throw new RuntimeException(e);
                 }
             } else {
-                System.out.println("Took '" + (System.currentTimeMillis() - startTime) + "ms' " + "until string '"
-                        + value + "' was no longer present");
                 return;
             }
         }
@@ -80,7 +76,6 @@ public final class QueryUtils {
             try {
                 element = page.querySelector(query);
             } catch (Exception ignored) {
-                System.out.println("Looking again for element: " + query);
             }
 
             // If the element is not found, wait for a short interval before trying again
