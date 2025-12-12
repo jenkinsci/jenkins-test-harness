@@ -45,14 +45,17 @@ public class JellyTest extends InjectedTest {
     @ParameterizedTest
     @MethodSource("resources")
     void testParseJelly(URL resource) throws Exception {
-        jct.createContext().compileScript(resource);
-        Document dom = new SAXReader().read(resource);
-        if (requirePI) {
-            ProcessingInstruction pi = dom.processingInstruction("jelly");
-            if (pi == null || !pi.getText().contains("escape-by-default")) {
-                fail("<?jelly escape-by-default='true'?> is missing in " + resource);
+        jenkinsRule.executeOnServer(() -> {
+            jct.createContext().compileScript(resource);
+            Document dom = new SAXReader().read(resource);
+            if (requirePI) {
+                ProcessingInstruction pi = dom.processingInstruction("jelly");
+                if (pi == null || !pi.getText().contains("escape-by-default")) {
+                    fail("<?jelly escape-by-default='true'?> is missing in " + resource);
+                }
             }
-        }
+            return null;
+        });
         // TODO: what else can we check statically? use of taglibs?
     }
 }
