@@ -1,10 +1,13 @@
 package org.jvnet.hudson.test.injected;
 
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.dom4j.Document;
 import org.dom4j.ProcessingInstruction;
@@ -33,8 +36,12 @@ public class JellyTest extends InjectedTest {
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN")
     static Stream<Arguments> resources() throws Exception {
-        return scan(new File(outputDirectory), "jelly").entrySet().stream()
-                .map(e -> Arguments.of(Named.of(e.getKey(), e.getValue())));
+        Map<String, URL> resources = scan(new File(outputDirectory), "jelly");
+        if (resources.isEmpty()) {
+            return Stream.of(Arguments.of(Named.of("empty", new URI("file:///empty.jelly").toURL())));
+        } else {
+            return resources.entrySet().stream().map(e -> Arguments.of(Named.of(e.getKey(), e.getValue())));
+        }
     }
 
     @BeforeEach
@@ -45,6 +52,8 @@ public class JellyTest extends InjectedTest {
     @ParameterizedTest
     @MethodSource("resources")
     void testParseJelly(URL resource) throws Exception {
+        assumeFalse(resource.toURI().equals(new URI("file:///empty.jelly")), "No jelly file found - skipping test");
+
         jenkinsRule.executeOnServer(() -> {
             jct.createContext().compileScript(resource);
             Document dom = new SAXReader().read(resource);
