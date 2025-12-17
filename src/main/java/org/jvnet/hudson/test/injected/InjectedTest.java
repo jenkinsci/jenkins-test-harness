@@ -1,94 +1,222 @@
 package org.jvnet.hudson.test.injected;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.PluginWrapper;
+import hudson.cli.CLICommand;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.PropertyResourceBundle;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.stream.Stream;
+import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Document;
+import org.dom4j.ProcessingInstruction;
+import org.dom4j.io.SAXReader;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+import org.kohsuke.stapler.MetaClassLoader;
+import org.kohsuke.stapler.jelly.JellyClassLoaderTearOff;
 
 /**
  * Base class for tests injected via the <code>maven-hpi-plugin</code>.
- * All injected tests should extend this class in order to be discovered by the <code>maven-hpi-plugin</code> in order to access the provided configuration parameters.
+ * All injected tests should be put into this class in order to be discovered by the <code>maven-hpi-plugin</code> to access the provided configuration parameters.
  */
+@WithJenkins
 @ExtendWith(InjectedTest.ExtensionContextResolver.class)
-public abstract class InjectedTest {
+class InjectedTest {
 
-    static String basedir;
-    static String groupId;
-    static String artifactId;
-    static String version;
-    static String packaging;
-    static String outputDirectory;
-    static String testOutputDirectory;
-    static boolean requirePI;
+    private static String groupId;
+    private static String artifactId;
+    private static String version;
+    private static File outputDirectory;
+    private static boolean requirePI;
+
+    private static JenkinsRule jenkinsRule;
+
+    private final JellyClassLoaderTearOff jct =
+            new MetaClassLoader(InjectedTest.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
 
     /**
      * Common initializer for injected tests.
      * Parses the configuration parameters from the given {@link ExtensionContext}.
      *
      * @param context the extension context injected by {@link ExtensionContextResolver}
+     * @param rule a {@link JenkinsRule} to be used by tests
      */
     @BeforeAll
-    static void beforeAll(ExtensionContext context) {
-        basedir = context.getConfigurationParameter("InjectedTest.basedir")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.basedir"));
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN")
+    static void beforeAll(ExtensionContext context, JenkinsRule rule) {
+        jenkinsRule = rule;
+
         groupId = context.getConfigurationParameter("InjectedTest.groupId")
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.groupId"));
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.groupId'"));
         artifactId = context.getConfigurationParameter("InjectedTest.artifactId")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.artifactId"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.artifactId'"));
         version = context.getConfigurationParameter("InjectedTest.version")
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.version"));
-        packaging = context.getConfigurationParameter("InjectedTest.packaging")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.packaging"));
-        outputDirectory = context.getConfigurationParameter("InjectedTest.outputDirectory")
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.outputDirectory"));
-        testOutputDirectory = context.getConfigurationParameter("InjectedTest.testOutputDirectory")
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.version'"));
+        outputDirectory = new File(context.getConfigurationParameter("InjectedTest.outputDirectory")
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Missing configuration value for 'InjectedTest.testOutputDirectory"));
+                        "Missing configuration value for 'InjectedTest.outputDirectory'")));
         requirePI = Boolean.parseBoolean(context.getConfigurationParameter("InjectedTest.requirePI")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.requirePI")));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.requirePI'")));
 
-        System.out.println(
-                "Running InjectedTest." + context.getTestClass().orElseThrow().getSimpleName() + " for " + groupId + ":"
-                        + artifactId + ":" + version);
+        System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
+    }
+
+    @Test
+    @WithoutJenkins
+    void testCliSanity() {
+        CLICommand.clone("help");
+    }
+
+    @Test
+    void testPluginActive() {
+        String plugin = artifactId;
+        if (plugin != null) {
+            if (!Jenkins.get().getPluginManager().getFailedPlugins().isEmpty()) {
+                fail("While testing " + plugin + " the following plugins failed to start: \n"
+                        + String.join(
+                                "\n",
+                                Jenkins.get().getPluginManager().getFailedPlugins().stream()
+                                        .map(fp -> "\t" + fp.name + " - " + fp.cause)
+                                        .toList()));
+            }
+
+            PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(plugin);
+
+            assertNotNull(pw, plugin + " failed to start");
+            assertTrue(pw.isActive(), plugin + " was not active");
+        }
+    }
+
+    static Stream<Arguments> jellyResources() throws Exception {
+        Map<String, URL> resources = scan("jelly");
+        if (resources.isEmpty()) {
+            return Stream.of(Arguments.of(Named.of("empty", new URI("file:///empty.jelly").toURL())));
+        } else {
+            return resources.entrySet().stream().map(e -> Arguments.of(Named.of(e.getKey(), e.getValue())));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("jellyResources")
+    void testParseJelly(URL resource) throws Exception {
+        assumeFalse(resource.toURI().equals(new URI("file:///empty.jelly")), "No jelly file found - skipping test");
+
+        jenkinsRule.executeOnServer(() -> {
+            jct.createContext().compileScript(resource);
+            Document dom = new SAXReader().read(resource);
+            if (requirePI) {
+                ProcessingInstruction pi = dom.processingInstruction("jelly");
+                if (pi == null || !pi.getText().contains("escape-by-default")) {
+                    fail("<?jelly escape-by-default='true'?> is missing in " + resource);
+                }
+            }
+            return null;
+        });
+        // TODO: what else can we check statically? use of taglibs?
+    }
+
+    static Stream<Arguments> propertiesResources() throws Exception {
+        Map<String, URL> resources = scan("properties");
+        if (resources.isEmpty()) {
+            return Stream.of(Arguments.of(Named.of("empty", new URI("file:///empty.properties").toURL())));
+        } else {
+            return resources.entrySet().stream().map(e -> Arguments.of(Named.of(e.getKey(), e.getValue())));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("propertiesResources")
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD")
+    @WithoutJenkins
+    void testProperties(URL resource) throws Exception {
+        assumeFalse(
+                resource.toURI().equals(new URI("file:///empty.properties")),
+                "No properties file found - skipping test");
+
+        Properties props = new Properties() {
+            @Override
+            public synchronized Object put(Object key, Object value) {
+                Object old = super.put(key, value);
+                assertNull(old, "Two values for `" + key + "` (`" + old + "` vs. `" + value + "`) in " + resource);
+                return null;
+            }
+        };
+
+        try (InputStream is = resource.openStream()) {
+            byte[] contents = is.readAllBytes();
+            if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
+                boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
+                boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
+                assertTrue(!isUtf8 && !isIso88591, resource + " must be either valid UTF-8 or valid ISO-8859-1.");
+            }
+        }
+
+        try (InputStream is = resource.openStream()) {
+            PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(is);
+            propertyResourceBundle
+                    .getKeys()
+                    .asIterator()
+                    .forEachRemaining(key -> props.setProperty(key, propertyResourceBundle.getString(key)));
+        }
     }
 
     /**
-     * Scans the given resource for files with the given extension.
+     * Scans the {@link #outputDirectory} for files with the given extension.
      *
-     * @param resource the resource to scan - can be a directory or jar file.
      * @param extension the file extension
      * @return a map containing the {@link URL} to a resource as value and the string representation as key
-     * @throws IOException for errors when scanning the given resource
+     * @throws IOException for errors when scanning the {@link #outputDirectory}
      */
-    static Map<String, URL> scan(File resource, String extension) throws IOException {
+    private static Map<String, URL> scan(String extension) throws IOException {
         Map<String, URL> result = new HashMap<>();
-        if (resource.isDirectory()) {
-            for (File f : FileUtils.listFiles(resource, new String[] {extension}, true)) {
+        if (outputDirectory.isDirectory()) {
+            for (File f : FileUtils.listFiles(outputDirectory, new String[] {extension}, true)) {
                 result.put(
-                        f.getAbsolutePath().substring((resource.getAbsolutePath() + File.separator).length()),
+                        f.getAbsolutePath().substring((outputDirectory.getAbsolutePath() + File.separator).length()),
                         f.toURI().toURL());
             }
-        } else if (resource.getName().endsWith(".jar")) {
-            String jarUrl = resource.toURI().toURL().toExternalForm();
-            try (JarFile jf = new JarFile(resource)) {
+        } else if (outputDirectory.getName().endsWith(".jar")) {
+            String jarUrl = outputDirectory.toURI().toURL().toExternalForm();
+            try (JarFile jf = new JarFile(outputDirectory)) {
                 Enumeration<JarEntry> e = jf.entries();
                 while (e.hasMoreElements()) {
                     JarEntry ent = e.nextElement();
@@ -99,6 +227,26 @@ public abstract class InjectedTest {
             }
         }
         return result;
+    }
+
+    /**
+     * Check if the given bytes are encoded with the given charset.
+     * @param bytes the bytes to check
+     * @param charset the charset to use
+     * @return if the bytes are encoded properly
+     */
+    private static boolean isEncoded(byte[] bytes, Charset charset) {
+        CharsetDecoder decoder = charset.newDecoder();
+        decoder.onMalformedInput(CodingErrorAction.REPORT);
+        decoder.onUnmappableCharacter(CodingErrorAction.REPORT);
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+        try {
+            decoder.decode(buffer);
+            return true;
+        } catch (CharacterCodingException e) {
+            return false;
+        }
     }
 
     /**
