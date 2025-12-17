@@ -40,18 +40,30 @@ public abstract class InjectedTest {
      */
     @BeforeAll
     static void beforeAll(ExtensionContext context) {
-        basedir = context.getConfigurationParameter("InjectedTest.basedir").orElse(null);
-        groupId = context.getConfigurationParameter("InjectedTest.groupId").orElse(null);
-        artifactId =
-                context.getConfigurationParameter("InjectedTest.artifactId").orElse(null);
-        version = context.getConfigurationParameter("InjectedTest.version").orElse(null);
-        packaging = context.getConfigurationParameter("InjectedTest.packaging").orElse(null);
+        basedir = context.getConfigurationParameter("InjectedTest.basedir")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.basedir"));
+        groupId = context.getConfigurationParameter("InjectedTest.groupId")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.groupId"));
+        artifactId = context.getConfigurationParameter("InjectedTest.artifactId")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.artifactId"));
+        version = context.getConfigurationParameter("InjectedTest.version")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.version"));
+        packaging = context.getConfigurationParameter("InjectedTest.packaging")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.packaging"));
         outputDirectory = context.getConfigurationParameter("InjectedTest.outputDirectory")
-                .orElse(null);
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.outputDirectory"));
         testOutputDirectory = context.getConfigurationParameter("InjectedTest.testOutputDirectory")
-                .orElse(null);
-        requirePI = Boolean.parseBoolean(
-                context.getConfigurationParameter("InjectedTest.requirePI").orElse(null));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Missing configuration value for 'InjectedTest.testOutputDirectory"));
+        requirePI = Boolean.parseBoolean(context.getConfigurationParameter("InjectedTest.requirePI")
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.requirePI")));
 
         System.out.println(
                 "Running InjectedTest." + context.getTestClass().orElseThrow().getSimpleName() + " for " + groupId + ":"
