@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.PluginWrapper;
 import hudson.cli.CLICommand;
@@ -24,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.PropertyResourceBundle;
 import java.util.jar.JarEntry;
@@ -37,10 +37,8 @@ import org.dom4j.io.SAXReader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -52,52 +50,52 @@ import org.kohsuke.stapler.jelly.JellyClassLoaderTearOff;
 
 /**
  * Base class for tests injected via the <code>maven-hpi-plugin</code>.
- * All injected tests should be put into this class in order to be discovered by the <code>maven-hpi-plugin</code> to access the provided configuration parameters.
+ * All injected tests should be put into this class in order to be executed by the <code>maven-hpi-plugin</code>.
  */
 @WithJenkins
-@ExtendWith(InjectedTest.ExtensionContextResolver.class)
-class InjectedTest {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public abstract class InjectedTest {
 
-    private static String groupId;
-    private static String artifactId;
-    private static String version;
-    private static File outputDirectory;
-    private static boolean requirePI;
+    private static final JellyClassLoaderTearOff JCT =
+            new MetaClassLoader(InjectedTest.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
 
     private static JenkinsRule jenkinsRule;
 
-    private final JellyClassLoaderTearOff jct =
-            new MetaClassLoader(InjectedTest.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
+    private final String artifactId;
+    private final File outputDirectory;
+    private final boolean requirePi;
+
+    /**
+     * Default constructor for initialization.
+     * @param groupId a plugin groupId
+     * @param artifactId a plugin artifactId
+     * @param version a plugin version
+     * @param outputDirectory a build output directory
+     * @param requirePi if {@link ProcessingInstruction} are required
+     */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    protected InjectedTest(
+            String groupId, String artifactId, String version, String outputDirectory, boolean requirePi) {
+        Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTest.groupId'");
+        this.artifactId =
+                Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTest.artifactId'");
+        Objects.requireNonNull(version, "Missing configuration value for 'InjectedTest.version'");
+        this.outputDirectory = new File(Objects.requireNonNull(
+                outputDirectory, "Missing configuration value for 'InjectedTest.outputDirectory'"));
+        this.requirePi = requirePi;
+
+        System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
+    }
 
     /**
      * Common initializer for injected tests.
      * Parses the configuration parameters from the given {@link ExtensionContext}.
      *
-     * @param context the extension context injected by {@link ExtensionContextResolver}
      * @param rule a {@link JenkinsRule} to be used by tests
      */
     @BeforeAll
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN")
-    static void beforeAll(ExtensionContext context, JenkinsRule rule) {
+    static void beforeAll(JenkinsRule rule) {
         jenkinsRule = rule;
-
-        groupId = context.getConfigurationParameter("InjectedTest.groupId")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.groupId'"));
-        artifactId = context.getConfigurationParameter("InjectedTest.artifactId")
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.artifactId'"));
-        version = context.getConfigurationParameter("InjectedTest.version")
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Missing configuration value for 'InjectedTest.version'"));
-        outputDirectory = new File(context.getConfigurationParameter("InjectedTest.outputDirectory")
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Missing configuration value for 'InjectedTest.outputDirectory'")));
-        requirePI = Boolean.parseBoolean(context.getConfigurationParameter("InjectedTest.requirePI")
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Missing configuration value for 'InjectedTest.requirePI'")));
-
-        System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
     }
 
     @Test
@@ -108,25 +106,22 @@ class InjectedTest {
 
     @Test
     void testPluginActive() {
-        String plugin = artifactId;
-        if (plugin != null) {
-            if (!Jenkins.get().getPluginManager().getFailedPlugins().isEmpty()) {
-                fail("While testing " + plugin + " the following plugins failed to start: \n"
-                        + String.join(
-                                "\n",
-                                Jenkins.get().getPluginManager().getFailedPlugins().stream()
-                                        .map(fp -> "\t" + fp.name + " - " + fp.cause)
-                                        .toList()));
-            }
-
-            PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(plugin);
-
-            assertNotNull(pw, plugin + " failed to start");
-            assertTrue(pw.isActive(), plugin + " was not active");
+        if (!Jenkins.get().getPluginManager().getFailedPlugins().isEmpty()) {
+            fail("While testing " + artifactId + " the following plugins failed to start: \n"
+                    + String.join(
+                            "\n",
+                            Jenkins.get().getPluginManager().getFailedPlugins().stream()
+                                    .map(fp -> "\t" + fp.name + " - " + fp.cause)
+                                    .toList()));
         }
+
+        PluginWrapper pw = Jenkins.get().getPluginManager().getPlugin(artifactId);
+
+        assertNotNull(pw, artifactId + " failed to start");
+        assertTrue(pw.isActive(), artifactId + " was not active");
     }
 
-    static Stream<Arguments> jellyResources() throws Exception {
+    Stream<Arguments> jellyResources() throws Exception {
         Map<String, URL> resources = scan("jelly");
         if (resources.isEmpty()) {
             return Stream.of(Arguments.of(Named.of("empty", new URI("file:///empty.jelly").toURL())));
@@ -141,9 +136,9 @@ class InjectedTest {
         assumeFalse(resource.toURI().equals(new URI("file:///empty.jelly")), "No jelly file found - skipping test");
 
         jenkinsRule.executeOnServer(() -> {
-            jct.createContext().compileScript(resource);
+            JCT.createContext().compileScript(resource);
             Document dom = new SAXReader().read(resource);
-            if (requirePI) {
+            if (requirePi) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
                 if (pi == null || !pi.getText().contains("escape-by-default")) {
                     fail("<?jelly escape-by-default='true'?> is missing in " + resource);
@@ -154,7 +149,7 @@ class InjectedTest {
         // TODO: what else can we check statically? use of taglibs?
     }
 
-    static Stream<Arguments> propertiesResources() throws Exception {
+    Stream<Arguments> propertiesResources() throws Exception {
         Map<String, URL> resources = scan("properties");
         if (resources.isEmpty()) {
             return Stream.of(Arguments.of(Named.of("empty", new URI("file:///empty.properties").toURL())));
@@ -206,12 +201,13 @@ class InjectedTest {
      * @return a map containing the {@link URL} to a resource as value and the string representation as key
      * @throws IOException for errors when scanning the {@link #outputDirectory}
      */
-    private static Map<String, URL> scan(String extension) throws IOException {
+    private Map<String, URL> scan(String extension) throws IOException {
         Map<String, URL> result = new HashMap<>();
         if (outputDirectory.isDirectory()) {
             for (File f : FileUtils.listFiles(outputDirectory, new String[] {extension}, true)) {
                 result.put(
-                        f.getAbsolutePath().substring((outputDirectory.getAbsolutePath() + File.separator).length()),
+                        f.getAbsolutePath()
+                                .substring((outputDirectory.getAbsolutePath() + java.io.File.separator).length()),
                         f.toURI().toURL());
             }
         } else if (outputDirectory.getName().endsWith(".jar")) {
@@ -246,24 +242,6 @@ class InjectedTest {
             return true;
         } catch (CharacterCodingException e) {
             return false;
-        }
-    }
-
-    /**
-     * Resolves the {@link ExtensionContext} containing configuration values provided by <code>maven-hpi-plugin</code> for injected tests.
-     */
-    public static class ExtensionContextResolver implements ParameterResolver {
-
-        @Override
-        public boolean supportsParameter(
-                ParameterContext parameterContext, @NonNull ExtensionContext extensionContext) {
-            return parameterContext.getParameter().getType().equals(ExtensionContext.class);
-        }
-
-        @Override
-        public Object resolveParameter(
-                @NonNull ParameterContext parameterContext, @NonNull ExtensionContext extensionContext) {
-            return extensionContext;
         }
     }
 }
