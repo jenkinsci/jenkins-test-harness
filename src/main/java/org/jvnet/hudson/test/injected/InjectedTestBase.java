@@ -54,10 +54,10 @@ import org.kohsuke.stapler.jelly.JellyClassLoaderTearOff;
  */
 @WithJenkins
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class InjectedTest {
+public abstract class InjectedTestBase {
 
     private static final JellyClassLoaderTearOff JCT =
-            new MetaClassLoader(InjectedTest.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
+            new MetaClassLoader(InjectedTestBase.class.getClassLoader()).loadTearOff(JellyClassLoaderTearOff.class);
 
     private static JenkinsRule jenkinsRule;
 
@@ -74,14 +74,14 @@ public abstract class InjectedTest {
      * @param requirePi if {@link ProcessingInstruction} are required
      */
     @SuppressFBWarnings("PATH_TRAVERSAL_IN")
-    protected InjectedTest(
+    protected InjectedTestBase(
             String groupId, String artifactId, String version, String outputDirectory, boolean requirePi) {
-        Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTest.groupId'");
+        Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTestBase.groupId'");
         this.artifactId =
-                Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTest.artifactId'");
-        Objects.requireNonNull(version, "Missing configuration value for 'InjectedTest.version'");
+                Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTestBase.artifactId'");
+        Objects.requireNonNull(version, "Missing configuration value for 'InjectedTestBase.version'");
         this.outputDirectory = new File(Objects.requireNonNull(
-                outputDirectory, "Missing configuration value for 'InjectedTest.outputDirectory'"));
+                outputDirectory, "Missing configuration value for 'InjectedTestBase.outputDirectory'"));
         this.requirePi = requirePi;
 
         System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
