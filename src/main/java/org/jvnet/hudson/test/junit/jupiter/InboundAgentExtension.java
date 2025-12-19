@@ -26,37 +26,17 @@ package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Computer;
-import hudson.model.Descriptor;
-import hudson.model.Node;
 import hudson.model.Slave;
-import hudson.remoting.VirtualChannel;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.JNLPLauncher;
-import hudson.slaves.RetentionStrategy;
-import hudson.slaves.SlaveComputer;
-import hudson.util.ProcessTree;
-import hudson.util.StreamCopyThread;
-import hudson.util.VersionNumber;
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import org.apache.commons.io.FileUtils;
-import org.apache.tools.ant.util.JavaEnvUtils;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.fixtures.InboundAgentFixture;
 
 /**
  * Manages inbound agents.
@@ -80,79 +60,40 @@ public class InboundAgentExtension implements AfterEachCallback {
 
     private static final Logger LOGGER = Logger.getLogger(InboundAgentExtension.class.getName());
 
-    private final String id = UUID.randomUUID().toString();
-    private final Map<String, List<Process>> procs = Collections.synchronizedMap(new HashMap<>());
-    private final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
-    private final Set<File> jars = Collections.synchronizedSet(new HashSet<>());
+    private final InboundAgentFixture fixture = new InboundAgentFixture();
 
     /**
      * The options used to (re)start an inbound agent.
      */
     public static final class Options implements Serializable {
 
-        @CheckForNull
-        private String name;
-
-        private boolean webSocket;
-
-        @CheckForNull
-        private String tunnel;
-
-        private List<String> javaOptions = new ArrayList<>();
-        private boolean start = true;
-        private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
-        private String label;
-        private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
-        private String trustStorePath;
-        private String trustStorePassword;
-        private String cert;
-        private boolean noCertificateCheck;
+        private final InboundAgentFixture.Options delegate = new InboundAgentFixture.Options();
 
         public String getName() {
-            return name;
+            return delegate.getName();
         }
 
         public boolean isWebSocket() {
-            return webSocket;
+            return delegate.isWebSocket();
         }
 
         public String getTunnel() {
-            return tunnel;
+            return delegate.getTunnel();
         }
 
         public boolean isStart() {
-            return start;
+            return delegate.isStart();
         }
 
         public String getLabel() {
-            return label;
-        }
-
-        /**
-         * Compute java options required to connect to the given RealJenkinsExtension instance.
-         * If {@link #cert} or {@link #noCertificateCheck} is set, trustStore options are not computed.
-         * This prevents Remoting from implicitly bypassing failures related to {@code -cert} or {@code -noCertificateCheck}.
-         *
-         * @param r The instance to compute Java options for
-         */
-        private void computeJavaOptions(RealJenkinsExtension r) {
-            if (cert != null || noCertificateCheck) {
-                return;
-            }
-            if (trustStorePath != null && trustStorePassword != null) {
-                javaOptions.addAll(List.of(
-                        "-Djavax.net.ssl.trustStore=" + trustStorePath,
-                        "-Djavax.net.ssl.trustStorePassword=" + trustStorePassword));
-            } else {
-                javaOptions.addAll(List.of(r.getTruststoreJavaOptions()));
-            }
+            return delegate.getLabel();
         }
 
         /**
          * A builder of {@link Options}.
          *
          * <p>Instances of {@link Builder} are created by calling {@link
-         * InboundAgentExtension.Options#newBuilder}.
+         * Options#newBuilder}.
          */
         public static final class Builder {
 
@@ -167,7 +108,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder name(String name) {
-                options.name = name;
+                options.delegate.name = name;
                 return this;
             }
 
@@ -178,7 +119,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder color(PrefixedOutputStream.AnsiColor color) {
-                options.prefixedOutputStreamBuilder.withColor(color);
+                options.delegate.prefixedOutputStreamBuilder.withColor(color);
                 return this;
             }
 
@@ -198,7 +139,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder webSocket(boolean websocket) {
-                options.webSocket = websocket;
+                options.delegate.webSocket = websocket;
                 return this;
             }
 
@@ -208,12 +149,12 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder tunnel(String tunnel) {
-                options.tunnel = tunnel;
+                options.delegate.tunnel = tunnel;
                 return this;
             }
 
             public Builder javaOptions(String... opts) {
-                options.javaOptions.addAll(List.of(opts));
+                options.delegate.javaOptions.addAll(List.of(opts));
                 return this;
             }
 
@@ -225,8 +166,8 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder trustStore(String path, String password) {
-                options.trustStorePath = path;
-                options.trustStorePassword = password;
+                options.delegate.trustStorePath = path;
+                options.delegate.trustStorePassword = password;
                 return this;
             }
 
@@ -238,7 +179,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder cert(String cert) {
-                options.cert = cert;
+                options.delegate.cert = cert;
                 return this;
             }
 
@@ -248,7 +189,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder noCertificateCheck() {
-                options.noCertificateCheck = true;
+                options.delegate.noCertificateCheck = true;
                 return this;
             }
 
@@ -258,7 +199,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder skipStart() {
-                options.start = false;
+                options.delegate.start = false;
                 return this;
             }
 
@@ -268,7 +209,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder.
              */
             public Builder label(String label) {
-                options.label = label;
+                options.delegate.label = label;
                 return this;
             }
 
@@ -281,7 +222,7 @@ public class InboundAgentExtension implements AfterEachCallback {
             }
 
             public Builder withLogger(String logger, Level level) {
-                options.loggers.put(logger, level);
+                options.delegate.loggers.put(logger, level);
                 return this;
             }
 
@@ -306,7 +247,7 @@ public class InboundAgentExtension implements AfterEachCallback {
      * @param name an optional {@link Slave#getNodeName}
      */
     public Slave createAgent(@NonNull JenkinsRule r, @CheckForNull String name) throws Exception {
-        return createAgent(r, Options.newBuilder().name(name).build());
+        return fixture.createAgent(r, Options.newBuilder().name(name).build().delegate);
     }
 
     /**
@@ -315,12 +256,7 @@ public class InboundAgentExtension implements AfterEachCallback {
      * @param options the options
      */
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
-        Slave s = createAgentJR(r, options);
-        workDirs.add(s.getRemoteFS());
-        if (options.isStart()) {
-            start(r, options);
-        }
-        return s;
+        return fixture.createAgent(r, options.delegate);
     }
 
     public void createAgent(@NonNull RealJenkinsExtension extension, @CheckForNull String name) throws Throwable {
@@ -328,9 +264,9 @@ public class InboundAgentExtension implements AfterEachCallback {
     }
 
     public void createAgent(@NonNull RealJenkinsExtension extension, Options options) throws Throwable {
-        var nameAndWorkDir = extension.runRemotely(InboundAgentExtension::createAgentRJR, options);
-        options.name = nameAndWorkDir[0];
-        workDirs.add(nameAndWorkDir[1]);
+        var nameAndWorkDir = extension.runRemotely(InboundAgentFixture::createAgentRJR, options.delegate);
+        options.delegate.name = nameAndWorkDir[0];
+        fixture.workDirs.add(nameAndWorkDir[1]);
         if (options.isStart()) {
             start(extension, options);
         }
@@ -340,20 +276,14 @@ public class InboundAgentExtension implements AfterEachCallback {
      * (Re-)starts an existing inbound agent.
      */
     public void start(@NonNull JenkinsRule r, @NonNull String name) throws Exception {
-        start(r, Options.newBuilder().name(name).build());
+        fixture.start(r, Options.newBuilder().name(name).build().delegate);
     }
 
     /**
      * (Re-)starts an existing inbound agent.
      */
     public void start(@NonNull JenkinsRule r, Options options) throws Exception {
-        String name = options.getName();
-        Objects.requireNonNull(name);
-        stop(r, name);
-        var args = getAgentArguments(r, name);
-        jars.add(args.agentJar);
-        start(args, options);
-        waitForAgentOnline(r, name, options.loggers);
+        fixture.start(r, options.delegate);
     }
 
     /**
@@ -364,7 +294,7 @@ public class InboundAgentExtension implements AfterEachCallback {
         Objects.requireNonNull(name);
         stop(r, name);
         startOnly(r, options);
-        r.runRemotely(InboundAgentExtension::waitForAgentOnline, name, options.loggers);
+        r.runRemotely(InboundAgentFixture::waitForAgentOnline, name, options.delegate.loggers);
     }
 
     /**
@@ -372,96 +302,21 @@ public class InboundAgentExtension implements AfterEachCallback {
      */
     public void startOnly(@NonNull RealJenkinsExtension extension, Options options) throws Throwable {
         Objects.requireNonNull(options.getName());
-        var args = agentArguments(extension, options);
-        options.computeJavaOptions(extension);
-        start(args, options, false);
-    }
-
-    private AgentArguments agentArguments(RealJenkinsExtension extension, Options options) throws Throwable {
-        var args = extension.runRemotely(InboundAgentExtension::getAgentArguments, options.getName());
-        jars.add(args.agentJar);
-        return args;
+        var args = extension.runRemotely(InboundAgentFixture::getAgentArguments, options.getName());
+        fixture.jars.add(args.agentJar());
+        options.delegate.computeJavaOptions(List.of(extension.getTruststoreJavaOptions()));
+        fixture.start(args, options.delegate, false);
     }
 
     public void start(AgentArguments agentArguments, Options options) throws Exception {
-        start(agentArguments, options, true);
-    }
-
-    @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
-    private void start(AgentArguments agentArguments, Options options, boolean stop)
-            throws InterruptedException, IOException {
-        Objects.requireNonNull(options.getName());
-        if (stop) {
-            stop(options.getName());
-        }
-        List<String> cmd = new ArrayList<>(List.of(
-                JavaEnvUtils.getJreExecutable("java"),
-                "-Xmx512m",
-                "-XX:+PrintCommandLineFlags",
-                "-Djava.awt.headless=true"));
-        if (JenkinsRule.SLAVE_DEBUG_PORT > 0) {
-            cmd.add("-Xdebug");
-            cmd.add("Xrunjdwp:transport=dt_socket,server=y,address="
-                    + (JenkinsRule.SLAVE_DEBUG_PORT + agentArguments.numberOfNodes - 1));
-        }
-        cmd.addAll(options.javaOptions);
-        cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
-        if (remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
-            cmd.addAll(List.of("-url", agentArguments.url));
-            cmd.addAll(List.of("-name", agentArguments.name));
-            cmd.addAll(List.of("-secret", agentArguments.secret));
-            if (options.isWebSocket()) {
-                cmd.add("-webSocket");
-            }
-            if (options.getTunnel() != null) {
-                cmd.addAll(List.of("-tunnel", options.getTunnel()));
-            }
-        } else {
-            cmd.addAll(List.of("-jnlpUrl", agentArguments.agentJnlpUrl()));
-        }
-
-        if (options.noCertificateCheck) {
-            cmd.add("-noCertificateCheck");
-        } else if (options.cert != null) {
-            cmd.addAll(List.of("-cert", options.cert));
-        }
-
-        cmd.addAll(agentArguments.commandLineArgs);
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        pb.redirectErrorStream(true);
-        pb.environment().put("INBOUND_AGENT_RULE_ID", id);
-        pb.environment().put("INBOUND_AGENT_RULE_NAME", options.getName());
-        LOGGER.info(() -> "Running: " + pb.command());
-        Process proc = pb.start();
-        procs.merge(options.getName(), List.of(proc), (oldValue, newValue) -> {
-            // Duplicate agent name, but this can be a valid test case.
-            List<Process> result = new ArrayList<>(oldValue);
-            result.addAll(newValue);
-            return result;
-        });
-        new StreamCopyThread(
-                        "inbound-agent-" + options.getName(),
-                        proc.getInputStream(),
-                        options.prefixedOutputStreamBuilder.build(System.err))
-                .start();
-    }
-
-    private static VersionNumber remotingVersion(File agentJar) throws IOException {
-        try (JarFile j = new JarFile(agentJar)) {
-            String v = j.getManifest().getMainAttributes().getValue("Version");
-            if (v == null) {
-                throw new IOException("no Version in " + agentJar);
-            }
-            return new VersionNumber(v);
-        }
+        fixture.start(agentArguments.delegate, options.delegate);
     }
 
     /**
      * Stop an existing inbound agent and wait for it to go offline.
      */
     public void stop(@NonNull JenkinsRule r, @NonNull String name) throws InterruptedException {
-        stop(name);
-        waitForAgentOffline(r, name);
+        fixture.stop(r, name);
     }
 
     /**
@@ -470,7 +325,7 @@ public class InboundAgentExtension implements AfterEachCallback {
     public void stop(@NonNull RealJenkinsExtension rjr, @NonNull String name) throws Throwable {
         stop(name);
         if (rjr.isAlive()) {
-            rjr.runRemotely(InboundAgentExtension::waitForAgentOffline, name);
+            rjr.runRemotely(InboundAgentFixture::waitForAgentOffline, name);
         } else {
             LOGGER.warning(
                     () -> "Controller seems to have already shut down; not waiting for " + name + " to go offline");
@@ -482,23 +337,7 @@ public class InboundAgentExtension implements AfterEachCallback {
      * You need only call this to simulate an agent crash, followed by {@link #start}.
      */
     public void stop(@NonNull String name) {
-        procs.computeIfPresent(name, (k, v) -> {
-            stop(name, v);
-            return null;
-        });
-    }
-
-    private static void stop(String name, List<Process> v) {
-        for (Process proc : v) {
-            LOGGER.info(() -> "Killing " + name + " agent JVM (but not subprocesses)");
-            proc.destroyForcibly();
-            try {
-                proc.waitFor();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while waiting for process to terminate", e);
-            }
-        }
+        fixture.stop(name);
     }
 
     /**
@@ -506,175 +345,27 @@ public class InboundAgentExtension implements AfterEachCallback {
      * (This is distinct from whether Jenkins considers the computer to be connected.)
      */
     public boolean isAlive(String name) {
-        return procs.get(name).stream().anyMatch(Process::isAlive);
+        return fixture.isAlive(name);
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "test code")
     @Override
-    public void afterEach(ExtensionContext context) {
-        for (var entry : procs.entrySet()) {
-            String name = entry.getKey();
-            stop(name, entry.getValue());
-            try {
-                LOGGER.info(() -> "Cleaning up " + name + " agent JVM and/or any subprocesses");
-                ProcessTree.get().killAll(null, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                Thread.currentThread().interrupt();
-            }
-        }
-        procs.clear();
-        for (var workDir : workDirs) {
-            LOGGER.info(() -> "Deleting " + workDir);
-            try {
-                FileUtils.deleteDirectory(new File(workDir));
-            } catch (IOException x) {
-                LOGGER.log(Level.WARNING, null, x);
-            }
-        }
-        for (var jar : jars) {
-            LOGGER.info(() -> "Deleting " + jar);
-            try {
-                Files.deleteIfExists(jar.toPath());
-            } catch (IOException x) {
-                LOGGER.log(Level.WARNING, null, x);
-            }
-        }
+    public void afterEach(@NonNull ExtensionContext context) {
+        fixture.tearDown();
     }
 
-    /**
-     * @param agentJar        A reference to the agent jar
-     * @param url             the controller root URL
-     * @param name            the agent name
-     * @param secret          The secret the agent should use to connect.
-     * @param numberOfNodes   The number of nodes in the Jenkins instance where the agent is running.
-     * @param commandLineArgs Additional command line arguments to pass to the agent.
-     */
-    public record AgentArguments(
-            @NonNull File agentJar,
-            @NonNull String url,
-            @NonNull String name,
-            @NonNull String secret,
-            int numberOfNodes,
-            @NonNull List<String> commandLineArgs)
-            implements Serializable {
-        @Deprecated
+    public static class AgentArguments implements Serializable {
+
+        private final InboundAgentFixture.AgentArguments delegate;
+
         public AgentArguments(
-                @NonNull String agentJnlpUrl,
                 @NonNull File agentJar,
+                @NonNull String url,
+                @NonNull String name,
                 @NonNull String secret,
                 int numberOfNodes,
                 @NonNull List<String> commandLineArgs) {
-            this(agentJar, parseUrlAndName(agentJnlpUrl), secret, numberOfNodes, commandLineArgs);
+            delegate =
+                    new InboundAgentFixture.AgentArguments(agentJar, url, name, secret, numberOfNodes, commandLineArgs);
         }
-
-        @Deprecated
-        private static String[] parseUrlAndName(@NonNull String agentJnlpUrl) {
-            // TODO separate method pending JEP-447
-            var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentJnlpUrl);
-            if (!m.matches()) {
-                throw new IllegalArgumentException(agentJnlpUrl);
-            }
-            return new String[] {m.group(1), URI.create(m.group(2)).getPath()};
-        }
-
-        @Deprecated
-        private AgentArguments(
-                @NonNull File agentJar,
-                @NonNull String[] urlAndName,
-                @NonNull String secret,
-                int numberOfNodes,
-                @NonNull List<String> commandLineArgs) {
-            this(agentJar, urlAndName[0], urlAndName[1], secret, numberOfNodes, commandLineArgs);
-        }
-
-        @Deprecated
-        public String agentJnlpUrl() {
-            try {
-                return url + "computer/" + new URI(null, name, null).toString() + "/slave-agent.jnlp";
-            } catch (URISyntaxException x) {
-                throw new RuntimeException(x);
-            }
-        }
-    }
-
-    private static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
-        Node node = r.jenkins.getNode(name);
-        if (node == null) {
-            throw new AssertionError("no such agent: " + name);
-        }
-        SlaveComputer c = (SlaveComputer) node.toComputer();
-        if (c == null) {
-            throw new AssertionError("agent " + node + " has no executor");
-        }
-        JNLPLauncher launcher = (JNLPLauncher) c.getLauncher();
-        List<String> commandLineArgs = List.of();
-        if (!launcher.getWorkDirSettings().isDisabled()) {
-            commandLineArgs = launcher.getWorkDirSettings().toCommandLineArgs(c);
-        }
-        File agentJar = Files.createTempFile(Path.of(System.getProperty("java.io.tmpdir")), "agent", ".jar")
-                .toFile();
-        FileUtils.copyURLToFile(new Slave.JnlpJar("agent.jar").getURL(), agentJar);
-        return new AgentArguments(
-                agentJar,
-                r.jenkins.getRootUrl(),
-                name,
-                c.getJnlpMac(),
-                r.jenkins.getNodes().size(),
-                commandLineArgs);
-    }
-
-    private static void waitForAgentOnline(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
-        Node node = r.jenkins.getNode(name);
-        if (node == null) {
-            throw new AssertionError("no such agent: " + name);
-        }
-        if (!(node instanceof Slave)) {
-            throw new AssertionError("agent is not a Slave: " + name);
-        }
-        r.waitOnline((Slave) node);
-        if (!loggers.isEmpty()) {
-            VirtualChannel channel = node.getChannel();
-            assert channel != null;
-            channel.call(new JenkinsRule.RemoteLogDumper(null, loggers, false));
-        }
-    }
-
-    private static void waitForAgentOffline(JenkinsRule r, String name) throws InterruptedException {
-        Computer c = r.jenkins.getComputer(name);
-        if (c != null) {
-            while (c.isOnline()) {
-                Thread.sleep(100);
-            }
-        }
-    }
-
-    private static String[] createAgentRJR(JenkinsRule r, Options options) throws Throwable {
-        var agent = createAgentJR(r, options);
-        return new String[] {options.getName(), agent.getRemoteFS()};
-    }
-
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
-    private static Slave createAgentJR(JenkinsRule r, Options options)
-            throws Descriptor.FormException, IOException, InterruptedException {
-        if (options.getName() == null) {
-            options.name = "agent" + r.jenkins.getNodes().size();
-        }
-        JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
-        DumbSlave s = new DumbSlave(
-                options.getName(),
-                Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work")
-                        .toString(),
-                launcher);
-        s.setLabelString(options.getLabel());
-        s.setRetentionStrategy(RetentionStrategy.NOOP);
-        r.jenkins.addNode(s);
-        // SlaveComputer#_connect runs asynchronously. Wait for it to finish for a more deterministic test.
-        Computer computer = s.toComputer();
-        while (computer == null || computer.getOfflineCause() == null) {
-            Thread.sleep(100);
-            computer = s.toComputer();
-        }
-        return s;
     }
 }
