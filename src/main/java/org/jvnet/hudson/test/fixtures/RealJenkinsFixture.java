@@ -1337,8 +1337,10 @@ public class RealJenkinsFixture {
             if (result.assumptionFailure != null) {
                 if (result.error.getCause() instanceof TestAbortedException) {
                     throw new TestAbortedException(result.assumptionFailure, result.error);
-                } else {
+                } else if (result.error.getCause() instanceof AssumptionViolatedException) {
                     throw new AssumptionViolatedException(result.assumptionFailure, result.error);
+                } else {
+                    throw new StepException(result.error, result.assumptionFailure);
                 }
             } else if (result.error != null) {
                 throw new StepException(result.error, getName());
@@ -1884,7 +1886,7 @@ public class RealJenkinsFixture {
     // Copied from hudson.remoting
     public static final class ProxyException extends IOException {
         ProxyException(Throwable cause) {
-            super(cause.toString());
+            super(cause.toString(), cause);
             setStackTrace(cause.getStackTrace());
             if (cause.getCause() != null) {
                 initCause(new ProxyException(cause.getCause()));
