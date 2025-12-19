@@ -81,6 +81,7 @@ import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.fixtures.RealJenkinsFixture;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.Stapler;
 
@@ -163,7 +164,7 @@ public class RealJenkinsRuleTest {
     @Test
     public void testThrowsException() {
         assertThat(
-                assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException))
+                assertThrows(RealJenkinsFixture.StepException.class, () -> rr.then(RealJenkinsRuleTest::throwsException))
                         .getMessage(),
                 containsString("IllegalStateException: something is wrong"));
     }
@@ -172,7 +173,7 @@ public class RealJenkinsRuleTest {
     public void killedExternally() throws Throwable {
         rr.startJenkins();
         try {
-            rr.proc.destroy();
+            rr.getProcess().destroy();
         } finally {
             assertThrows("nonzero exit code: 143", AssertionError.class, () -> rr.stopJenkins());
         }
@@ -348,7 +349,7 @@ public class RealJenkinsRuleTest {
     public void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        assertThrows(RealJenkinsRule.JenkinsStartupException.class, () -> RealJenkinsRule.checkResult(conn));
+        assertThrows(RealJenkinsFixture.JenkinsStartupException.class, () -> RealJenkinsRule.checkResult(conn));
     }
 
     @Test
@@ -389,8 +390,8 @@ public class RealJenkinsRuleTest {
      */
     @Test
     public void whenUsingFailurePlugin() throws Throwable {
-        RealJenkinsRule.JenkinsStartupException jse =
-                assertThrows(RealJenkinsRule.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi")
+        RealJenkinsFixture.JenkinsStartupException jse =
+                assertThrows(RealJenkinsFixture.JenkinsStartupException.class, () -> rr.addPlugins("plugins/failure.hpi")
                         .startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
@@ -441,7 +442,7 @@ public class RealJenkinsRuleTest {
         rr.withTimeout(10);
         assertThat(
                 Functions.printThrowable(
-                        assertThrows(RealJenkinsRule.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
+                        assertThrows(RealJenkinsFixture.StepException.class, () -> rr.then(RealJenkinsRuleTest::hangs))),
                 containsString("\tat " + RealJenkinsRuleTest.class.getName() + ".hangs(RealJenkinsRuleTest.java:"));
     }
 

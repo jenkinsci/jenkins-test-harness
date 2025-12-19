@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.fixtures;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Plugin;
@@ -31,45 +31,36 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.jar.Manifest;
 import jenkins.model.Jenkins;
+import org.jvnet.hudson.test.PluginUtils;
+import org.jvnet.hudson.test.RealJenkinsRule;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Plugin for use <b>internally only</b> by {@link RealJenkinsRule}, do not use this from plugin test code!
  * <p>
- * <strong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsPlugin(String, File, String)}.
+ * <strong>NOTE</strong>: this and only this class is added into a dynamically generated plugin, see {@link PluginUtils#createRealJenkinsFixturePlugin(File, String)}.
  * In order for this to occur correctly there need to be no inner classes or other code dependencies here (except what can be loaded by reflection).
  */
 @Restricted(NoExternalUse.class)
-public class RealJenkinsRuleInit extends Plugin {
+public class RealJenkinsFixtureInit extends Plugin {
 
     @SuppressWarnings("deprecation")
     // @Initializer just gets run too late, even with before = InitMilestone.PLUGINS_PREPARED
-    public RealJenkinsRuleInit() {}
+    public RealJenkinsFixtureInit() {}
 
     @Override
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "jth is a test utility")
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "test utility")
     public void start() throws Exception {
         URL url = ((URLClassLoader) getClass().getClassLoader()).findResource("META-INF/MANIFEST.MF");
         Manifest manifest = new Manifest(url.openStream());
-        String target = manifest.getMainAttributes().getValue("Init-Target");
 
-        if ("RealJenkinsRule".equals(target)) {
-            new URLClassLoader(
-                            "RealJenkinsRule",
-                            new URL[] {new URL(System.getProperty("RealJenkinsRule.location"))},
-                            ClassLoader.getSystemClassLoader().getParent())
-                    .loadClass("org.jvnet.hudson.test.RealJenkinsRule$Init2")
-                    .getMethod("run", Object.class)
-                    .invoke(null, Jenkins.get());
-        } else if ("RealJenkinsExtension".equals(target)) {
-            new URLClassLoader(
-                            "RealJenkinsExtension",
-                            new URL[] {new URL(System.getProperty("RealJenkinsExtension.location"))},
-                            ClassLoader.getSystemClassLoader().getParent())
-                    .loadClass("org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension$Init2")
-                    .getMethod("run", Object.class)
-                    .invoke(null, Jenkins.get());
-        }
+        new URLClassLoader(
+                        "RealJenkinsFixtureInit",
+                        new URL[] {new URL(System.getProperty("RealJenkinsFixtureInit.location"))},
+                        ClassLoader.getSystemClassLoader().getParent())
+                .loadClass("org.jvnet.hudson.test.fixtures.RealJenkinsFixtureInit$Init2")
+                .getMethod("run", Object.class)
+                .invoke(null, Jenkins.get());
     }
 }

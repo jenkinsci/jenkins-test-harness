@@ -56,6 +56,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.*;
+import org.jvnet.hudson.test.fixtures.RealJenkinsFixture;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.Stapler;
 import org.opentest4j.TestAbortedException;
@@ -145,7 +146,7 @@ class RealJenkinsExtensionTest {
     void testThrowsException() {
         assertThat(
                 assertThrows(
-                                RealJenkinsExtension.StepException.class,
+                        RealJenkinsFixture.StepException.class,
                                 () -> extension.then(RealJenkinsExtensionTest::throwsException))
                         .getMessage(),
                 containsString("IllegalStateException: something is wrong"));
@@ -155,7 +156,7 @@ class RealJenkinsExtensionTest {
     void killedExternally() throws Exception {
         extension.startJenkins();
         try {
-            extension.proc.destroy();
+            extension.getProcess().destroy();
         } finally {
             assertThrows(AssertionError.class, extension::stopJenkins, "nonzero exit code: 143");
         }
@@ -331,7 +332,7 @@ class RealJenkinsExtensionTest {
     void test500Errors() throws IOException {
         HttpURLConnection conn = mock(HttpURLConnection.class);
         when(conn.getResponseCode()).thenReturn(500);
-        assertThrows(RealJenkinsExtension.JenkinsStartupException.class, () -> RealJenkinsExtension.checkResult(conn));
+        assertThrows(RealJenkinsFixture.JenkinsStartupException.class, () -> RealJenkinsExtension.checkResult(conn));
     }
 
     @Test
@@ -369,8 +370,8 @@ class RealJenkinsExtensionTest {
      */
     @Test
     void whenUsingFailurePlugin() throws Throwable {
-        RealJenkinsExtension.JenkinsStartupException jse = assertThrows(
-                RealJenkinsExtension.JenkinsStartupException.class,
+        RealJenkinsFixture.JenkinsStartupException jse = assertThrows(
+                RealJenkinsFixture.JenkinsStartupException.class,
                 () -> extension.addPlugins("plugins/failure.hpi").startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
@@ -422,7 +423,7 @@ class RealJenkinsExtensionTest {
         extension.withTimeout(10);
         assertThat(
                 Functions.printThrowable(assertThrows(
-                        RealJenkinsExtension.StepException.class,
+                        RealJenkinsFixture.StepException.class,
                         () -> extension.then(RealJenkinsExtensionTest::hangs))),
                 containsString(
                         "\tat " + RealJenkinsExtensionTest.class.getName() + ".hangs(RealJenkinsExtensionTest.java:"));
