@@ -23,23 +23,21 @@
  */
 package org.jvnet.hudson.test.fixtures;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.runner.Description;
-import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
-import org.jvnet.hudson.test.recipes.LocalData;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.net.URL;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.runner.Description;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
+import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
  * Test basic behavior of {@link JenkinsSessionExtension}

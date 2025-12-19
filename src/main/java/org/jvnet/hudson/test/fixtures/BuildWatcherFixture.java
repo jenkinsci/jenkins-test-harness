@@ -30,26 +30,24 @@ import hudson.console.LineTransformationOutputStream;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import jenkins.model.Jenkins;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.DeltaSupportLogFormatter;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Echoes build output to standard error as it arrives.
  * Usage: <pre>{@code
  * private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
  * }</pre>
- * Should work in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
+ * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
  * <p>
  *
  * @see org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension
@@ -170,7 +168,7 @@ public class BuildWatcherFixture {
         }
 
         @Override
-        protected void eol(byte[] b, int len) throws IOException {
+        protected void eol(byte[] b, int len) {
             logger.append(DeltaSupportLogFormatter.elapsedTime());
             logger.write(' ');
             logger.append(prefix);

@@ -24,20 +24,14 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.lang.reflect.Method;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.JenkinsSessionRule;
-import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
 import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
@@ -47,7 +41,7 @@ import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
  */
 public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
 
-    private final JenkinsSessionFixture fixture =  new JenkinsSessionFixture();
+    private final JenkinsSessionFixture fixture = new JenkinsSessionFixture();
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
@@ -73,8 +67,7 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
      * One step to run, intended to be a SAM for lambdas with {@link #then}.
      */
     @FunctionalInterface
-    public interface Step extends JenkinsSessionFixture.Step {
-    }
+    public interface Step extends JenkinsSessionFixture.Step {}
 
     /**
      * Run one Jenkins session and shut down.

@@ -24,12 +24,12 @@
 
 package org.jvnet.hudson.test.fixtures;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlagFixtureNoReplacementTest {
 
@@ -43,7 +43,7 @@ class FlagFixtureNoReplacementTest {
     }
 
     @AfterAll
-     static void afterAll() {
+    static void afterAll() {
         assertTrue(FLAG);
         FIXTURE.tearDown();
         assertFalse(FLAG);

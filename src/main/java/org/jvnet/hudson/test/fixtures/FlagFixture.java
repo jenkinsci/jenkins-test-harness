@@ -24,15 +24,13 @@
 
 package org.jvnet.hudson.test.fixtures;
 
-import org.junit.rules.ExternalResource;
-
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
  * Saves and restores sort of a flag, such as a {@code static} field or system property.
  */
-public class FlagFixture<T>  {
+public class FlagFixture<T> {
 
     private final Supplier<T> getter;
     private final Consumer<T> setter;

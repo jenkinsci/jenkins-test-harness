@@ -25,15 +25,12 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.rules.ExternalResource;
 import org.jvnet.hudson.test.fixtures.FlagFixture;
-
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Saves and restores sort of a flag, such as a {@code static} field or system property.

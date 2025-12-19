@@ -38,12 +38,9 @@ import hudson.slaves.RetentionStrategy;
 import hudson.slaves.SlaveComputer;
 import hudson.util.ProcessTree;
 import hudson.util.StreamCopyThread;
-import hudson.util.VersionNumber;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,10 +53,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.JavaEnvUtils;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -373,18 +368,14 @@ public class InboundAgentFixture {
         }
         cmd.addAll(options.javaOptions);
         cmd.addAll(List.of("-jar", agentArguments.agentJar.getAbsolutePath()));
-        if (remotingVersion(agentArguments.agentJar).isNewerThanOrEqualTo(new VersionNumber("3186.vc3b_7249b_87eb_"))) {
-            cmd.addAll(List.of("-url", agentArguments.url));
-            cmd.addAll(List.of("-name", agentArguments.name));
-            cmd.addAll(List.of("-secret", agentArguments.secret));
-            if (options.isWebSocket()) {
-                cmd.add("-webSocket");
-            }
-            if (options.getTunnel() != null) {
-                cmd.addAll(List.of("-tunnel", options.getTunnel()));
-            }
-        } else {
-            cmd.addAll(List.of("-jnlpUrl", agentArguments.agentJnlpUrl()));
+        cmd.addAll(List.of("-url", agentArguments.url));
+        cmd.addAll(List.of("-name", agentArguments.name));
+        cmd.addAll(List.of("-secret", agentArguments.secret));
+        if (options.isWebSocket()) {
+            cmd.add("-webSocket");
+        }
+        if (options.getTunnel() != null) {
+            cmd.addAll(List.of("-tunnel", options.getTunnel()));
         }
 
         if (options.noCertificateCheck) {
@@ -396,8 +387,8 @@ public class InboundAgentFixture {
         cmd.addAll(agentArguments.commandLineArgs);
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
-        pb.environment().put("INBOUND_AGENT_RULE_ID", id);
-        pb.environment().put("INBOUND_AGENT_RULE_NAME", options.getName());
+        pb.environment().put("INBOUND_AGENT_FIXTURE_ID", id);
+        pb.environment().put("INBOUND_AGENT_FIXTURE_NAME", options.getName());
         LOGGER.info(() -> "Running: " + pb.command());
         Process proc = pb.start();
         procs.merge(options.getName(), List.of(proc), (oldValue, newValue) -> {
@@ -411,16 +402,6 @@ public class InboundAgentFixture {
                         proc.getInputStream(),
                         options.prefixedOutputStreamBuilder.build(System.err))
                 .start();
-    }
-
-    private static VersionNumber remotingVersion(File agentJar) throws IOException {
-        try (JarFile j = new JarFile(agentJar)) {
-            String v = j.getManifest().getMainAttributes().getValue("Version");
-            if (v == null) {
-                throw new IOException("no Version in " + agentJar);
-            }
-            return new VersionNumber(v);
-        }
     }
 
     /**
@@ -470,7 +451,8 @@ public class InboundAgentFixture {
             stop(name, entry.getValue());
             try {
                 LOGGER.info(() -> "Cleaning up " + name + " agent JVM and/or any subprocesses");
-                ProcessTree.get().killAll(null, Map.of("INBOUND_AGENT_RULE_ID", id, "INBOUND_AGENT_RULE_NAME", name));
+                ProcessTree.get()
+                        .killAll(null, Map.of("INBOUND_AGENT_FIXTURE_ID", id, "INBOUND_AGENT_FIXTURE_NAME", name));
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
@@ -510,46 +492,7 @@ public class InboundAgentFixture {
             @NonNull String secret,
             int numberOfNodes,
             @NonNull List<String> commandLineArgs)
-            implements Serializable {
-        @Deprecated
-        public AgentArguments(
-                @NonNull String agentJnlpUrl,
-                @NonNull File agentJar,
-                @NonNull String secret,
-                int numberOfNodes,
-                @NonNull List<String> commandLineArgs) {
-            this(agentJar, parseUrlAndName(agentJnlpUrl), secret, numberOfNodes, commandLineArgs);
-        }
-
-        @Deprecated
-        private static String[] parseUrlAndName(@NonNull String agentJnlpUrl) {
-            // TODO separate method pending JEP-447
-            var m = Pattern.compile("(.+)computer/([^/]+)/slave-agent[.]jnlp").matcher(agentJnlpUrl);
-            if (!m.matches()) {
-                throw new IllegalArgumentException(agentJnlpUrl);
-            }
-            return new String[] {m.group(1), URI.create(m.group(2)).getPath()};
-        }
-
-        @Deprecated
-        private AgentArguments(
-                @NonNull File agentJar,
-                @NonNull String[] urlAndName,
-                @NonNull String secret,
-                int numberOfNodes,
-                @NonNull List<String> commandLineArgs) {
-            this(agentJar, urlAndName[0], urlAndName[1], secret, numberOfNodes, commandLineArgs);
-        }
-
-        @Deprecated
-        public String agentJnlpUrl() {
-            try {
-                return url + "computer/" + new URI(null, name, null).toString() + "/slave-agent.jnlp";
-            } catch (URISyntaxException x) {
-                throw new RuntimeException(x);
-            }
-        }
-    }
+            implements Serializable {}
 
     public static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
         Node node = r.jenkins.getNode(name);

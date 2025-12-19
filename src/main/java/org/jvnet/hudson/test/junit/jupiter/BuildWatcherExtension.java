@@ -25,14 +25,12 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TailLog;
 import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
-import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
  * Echoes build output to standard error as it arrives.
@@ -49,18 +47,16 @@ import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
  * @see TailLog
  * @see BuildWatcherFixture
  */
-public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
+public class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
 
-    private final BuildWatcherFixture fixture =  new BuildWatcherFixture();
+    private final BuildWatcherFixture fixture = new BuildWatcherFixture();
 
     @Override
-    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     public void beforeAll(@NonNull ExtensionContext extensionContext) {
         fixture.setUp();
     }
 
     @Override
-    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     public void afterAll(@NonNull ExtensionContext extensionContext) {
         fixture.tearDown();
     }

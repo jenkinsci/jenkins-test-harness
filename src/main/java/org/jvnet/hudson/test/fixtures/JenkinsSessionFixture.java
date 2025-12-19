@@ -25,17 +25,12 @@
 package org.jvnet.hudson.test.fixtures;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
-import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 /**
  * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
@@ -72,7 +67,7 @@ public class JenkinsSessionFixture {
     }
 
     public void setUp(Description description) {
-        this.description =  description;
+        this.description = description;
         try {
             home = tmp.allocate();
         } catch (Exception x) {

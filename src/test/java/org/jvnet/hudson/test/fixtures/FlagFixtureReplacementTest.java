@@ -24,13 +24,12 @@
 
 package org.jvnet.hudson.test.fixtures;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlagFixtureReplacementTest {
 

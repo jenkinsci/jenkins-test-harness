@@ -27,7 +27,6 @@ package org.jvnet.hudson.test;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import io.jenkins.test.fips.FIPSTestBundleProvider;
@@ -47,7 +46,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import jenkins.test.https.KeyStoreManager;
 import org.htmlunit.WebClient;
@@ -92,8 +90,6 @@ import org.jvnet.hudson.test.recipes.LocalData;
  */
 public final class RealJenkinsRule implements TestRule {
 
-    private static final Logger LOGGER = Logger.getLogger(RealJenkinsRule.class.getName());
-
     private final RealJenkinsFixture fixture;
     private Description description;
 
@@ -109,6 +105,7 @@ public final class RealJenkinsRule implements TestRule {
      */
     public RealJenkinsRule(RealJenkinsRule source) {
         fixture = source.fixture;
+        description = source.description;
     }
 
     /**
@@ -158,7 +155,6 @@ public final class RealJenkinsRule implements TestRule {
      * @param plugin the configured {@link SyntheticPlugin}
      * @return the JPI file for the plugin
      */
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant, this is test code")
     public File createSyntheticPlugin(SyntheticPlugin plugin) throws IOException, URISyntaxException {
         return fixture.createSyntheticPlugin(plugin.delegate);
     }
@@ -252,8 +248,8 @@ public final class RealJenkinsRule implements TestRule {
     /**
      * Allows to specify a java home, defaults to JAVA_HOME if not used
      */
-    public RealJenkinsRule withJavaHome(String JavaHome) {
-        fixture.withJavaHome(JavaHome);
+    public RealJenkinsRule withJavaHome(String javaHome) {
+        fixture.withJavaHome(javaHome);
         return this;
     }
 

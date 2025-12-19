@@ -24,12 +24,12 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
+import static org.junit.Assert.assertFalse;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-
-import static org.junit.Assert.assertFalse;
 
 class FlagExtensionNoReplacementTest {
 
@@ -41,7 +41,7 @@ class FlagExtensionNoReplacementTest {
     }
 
     @AfterAll
-     static void afterAll() {
+    static void afterAll() {
         assertFalse(FLAG);
     }
 

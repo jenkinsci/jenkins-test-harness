@@ -146,7 +146,7 @@ class RealJenkinsExtensionTest {
     void testThrowsException() {
         assertThat(
                 assertThrows(
-                        RealJenkinsFixture.StepException.class,
+                                RealJenkinsFixture.StepException.class,
                                 () -> extension.then(RealJenkinsExtensionTest::throwsException))
                         .getMessage(),
                 containsString("IllegalStateException: something is wrong"));
@@ -423,8 +423,7 @@ class RealJenkinsExtensionTest {
         extension.withTimeout(10);
         assertThat(
                 Functions.printThrowable(assertThrows(
-                        RealJenkinsFixture.StepException.class,
-                        () -> extension.then(RealJenkinsExtensionTest::hangs))),
+                        RealJenkinsFixture.StepException.class, () -> extension.then(RealJenkinsExtensionTest::hangs))),
                 containsString(
                         "\tat " + RealJenkinsExtensionTest.class.getName() + ".hangs(RealJenkinsExtensionTest.java:"));
     }

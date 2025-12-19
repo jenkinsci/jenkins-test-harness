@@ -27,12 +27,10 @@ package org.jvnet.hudson.test.junit.jupiter;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import io.jenkins.test.fips.FIPSTestBundleProvider;
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.file.Files;
@@ -89,7 +87,6 @@ import org.kohsuke.stapler.*;
  * <li>Possibly {@link Timeout} can be used.
  * </ul>
  */
-@SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "irrelevant")
 public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallback {
 
     private final RealJenkinsFixture fixture;
@@ -107,6 +104,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
      */
     public RealJenkinsExtension(RealJenkinsExtension source) {
         fixture = source.fixture;
+        extensionContext = source.extensionContext;
     }
 
     /**
@@ -256,8 +254,8 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     /**
      * Allows to specify a java home, defaults to JAVA_HOME if not used
      */
-    public RealJenkinsExtension withJavaHome(String JavaHome) {
-        fixture.withJavaHome(JavaHome);
+    public RealJenkinsExtension withJavaHome(String javaHome) {
+        fixture.withJavaHome(javaHome);
         return this;
     }
 
@@ -431,7 +429,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     }
 
     @Override
-    public void afterEach(ExtensionContext context) throws Exception {
+    public void afterEach(@NonNull ExtensionContext context) throws Exception {
         fixture.tearDown();
     }
 
