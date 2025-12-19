@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,36 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package org.jvnet.hudson.test.fixtures;
 
-package org.jvnet.hudson.test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import org.junit.rules.ExternalResource;
-import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
-/**
- * Echoes build output to standard error as it arrives.
- * Usage: <pre>{@code @ClassRule public static final BuildWatcher BUILD_WATCHER = new BuildWatcher();}</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionRule}.
- *
- * This is the JUnit4 implementation of {@link BuildWatcherFixture}.
- *
- * @see JenkinsRule#waitForCompletion
- * @see JenkinsRule#waitForMessage
- * @see TailLog
- * @see BuildWatcherFixture
- * @since 1.607
- */
-public final class BuildWatcher extends ExternalResource {
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+
+@WithJenkins
+class BuildWatcherFixtureTest {
 
     private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
 
-    @Override
-    protected void before() throws Throwable {
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
         FIXTURE.setUp();
     }
 
-    @Override
-    protected void after() {
+    @AfterEach
+    void afterEach() {
         FIXTURE.tearDown();
+    }
+
+    @Test
+    void testBuildWatcher() throws Exception {
+        PrintStream originalErr = System.err;
+
+        try {
+            ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(errContent));
+
+            j.buildAndAssertSuccess(j.createFreeStyleProject());
+            String output = errContent.toString();
+            assertThat(output, allOf(containsString("Running as SYSTEM"), containsString("Finished: SUCCESS")));
+        } finally {
+            System.setErr(originalErr); // restore
+        }
     }
 }
