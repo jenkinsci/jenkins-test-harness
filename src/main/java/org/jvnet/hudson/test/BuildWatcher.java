@@ -28,16 +28,16 @@ import org.junit.rules.ExternalResource;
 import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
 
 /**
- * Echoes build output to standard error as it arrives.
- * Usage: <pre>{@code @ClassRule public static final BuildWatcher BUILD_WATCHER = new BuildWatcher();}</pre>
+ * This is the JUnit 4 implementation of {@link BuildWatcherFixture}.
+ * Usage: <pre>{@code
+ * @ClassRule
+ * public static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcher();
+ * }</pre>
  * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionRule}.
  *
- * This is the JUnit4 implementation of {@link BuildWatcherFixture}.
- *
- * @see JenkinsRule#waitForCompletion
- * @see JenkinsRule#waitForMessage
- * @see TailLog
  * @see BuildWatcherFixture
+ * @see JenkinsRule
+ * @see JenkinsSessionRule
  * @since 1.607
  */
 public final class BuildWatcher extends ExternalResource {

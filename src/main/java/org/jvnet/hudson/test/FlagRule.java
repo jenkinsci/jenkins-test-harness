@@ -30,7 +30,13 @@ import org.junit.rules.ExternalResource;
 import org.jvnet.hudson.test.fixtures.FlagFixture;
 
 /**
- * Saves and restores sort of a flag, such as a {@code static} field or system property.
+ * This is the JUnit 4 implementation of {@link FlagFixture}.
+ * Usage: <pre>{@code
+ * @ClassRule
+ * public static final FlagRule<String> FLAG_RULE = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
+ * }</pre>
+ *
+ * @see FlagFixture
  */
 public final class FlagRule<T> extends ExternalResource {
 

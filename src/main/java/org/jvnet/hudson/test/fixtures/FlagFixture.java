@@ -29,6 +29,9 @@ import java.util.function.Supplier;
 
 /**
  * Saves and restores sort of a flag, such as a {@code static} field or system property.
+ *
+ * @see org.jvnet.hudson.test.junit.jupiter.FlagExtension
+ * @see org.jvnet.hudson.test.FlagRule
  */
 public class FlagFixture<T> {
 

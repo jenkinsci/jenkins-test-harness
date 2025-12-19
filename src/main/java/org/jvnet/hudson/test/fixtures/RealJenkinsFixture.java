@@ -123,12 +123,11 @@ import jenkins.util.Timer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.htmlunit.WebClient;
+import org.junit.AssumptionViolatedException;
 import org.junit.rules.DisableOnDebug;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
 import org.junit.runner.Description;
-import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.HudsonHomeLoader;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -140,7 +139,6 @@ import org.jvnet.hudson.test.TestEnvironment;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.WarExploder;
 import org.jvnet.hudson.test.XStreamSerializable;
-import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.HttpResponses;
@@ -152,7 +150,7 @@ import org.kohsuke.stapler.verb.POST;
 import org.opentest4j.TestAbortedException;
 
 /**
- * Like {@link JenkinsSessionExtension} but running Jenkins in a more realistic environment.
+ * Like {@link JenkinsSessionFixture} but running Jenkins in a more realistic environment.
  * <p>Though Jenkins is run in a separate JVM using Winstone ({@code java -jar jenkins.war}),
  * you can still do “whitebox” testing: directly calling Java API methods, starting from {@link JenkinsRule} or not.
  * This is because the test code gets sent to the remote JVM and loaded and run there.
@@ -166,6 +164,10 @@ import org.opentest4j.TestAbortedException;
  * This is because {@code target/test-classes/the.hpl} is used to load unpacked plugin resources.
  * <p>Like {@link JenkinsRule}, the controller is started in “development mode”:
  * the setup wizard is suppressed, the update center is not checked, etc.
+ * Usage: <pre>{@code
+ * private static final RealJenkinsFixture FIXTURE = new RealJenkinsFixture();
+ * }</pre>
+ *
  * <p>Known limitations:
  * <ul>
  * <li>Execution is a bit slower due to the overhead of launching a new JVM; and class loading overhead cannot be shared between test cases. More memory is needed.
@@ -174,12 +176,14 @@ import org.opentest4j.TestAbortedException;
  * <li>When using a snapshot dep on Jenkins core, you must build {@code jenkins.war} to test core changes (there is no “compile-on-save” support for this).
  * <li>{@link TestExtension} is not available (but try {@link #addSyntheticPlugin}).
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
- * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
+ * <li>{@link BuildWatcherFixture} is not available, but you can use {@link TailLog} instead.
  * </ul>
- * <p>Systems not yet tested:
- * <ul>
- * <li>Possibly {@link Timeout} can be used.
- * </ul>
+ *
+ * @see JenkinsRule
+ * @see JenkinsSessionFixture
+ * @see org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension
+ * @see org.jvnet.hudson.test.RealJenkinsRule
+ * @see RealJenkinsFixtureInit
  */
 @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "irrelevant")
 public class RealJenkinsFixture {
@@ -1331,7 +1335,11 @@ public class RealJenkinsFixture {
         try {
             OutputPayload result = (OutputPayload) Init.readSer(conn.getInputStream(), null);
             if (result.assumptionFailure != null) {
-                throw new TestAbortedException(result.assumptionFailure, result.error);
+                if (result.error.getCause() instanceof TestAbortedException) {
+                    throw new TestAbortedException(result.assumptionFailure, result.error);
+                } else {
+                    throw new AssumptionViolatedException(result.assumptionFailure, result.error);
+                }
             } else if (result.error != null) {
                 throw new StepException(result.error, getName());
             }
@@ -1947,7 +1955,9 @@ public class RealJenkinsFixture {
             this.result = result;
             // TODO use raw error if it seems safe enough
             this.error = error != null ? new ProxyException(error) : null;
-            assumptionFailure = error instanceof TestAbortedException ? error.getMessage() : null;
+            assumptionFailure = error instanceof TestAbortedException || error instanceof AssumptionViolatedException
+                    ? error.getMessage()
+                    : null;
         }
     }
 

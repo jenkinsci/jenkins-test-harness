@@ -39,20 +39,13 @@ import org.jvnet.hudson.test.PrefixedOutputStream;
 import org.jvnet.hudson.test.fixtures.InboundAgentFixture;
 
 /**
- * Manages inbound agents.
- * While these run on the local host, they are launched outside of Jenkins.
+ * This is the JUnit Jupiter implementation of {@link InboundAgentFixture}.
+ * Usage: <pre>{@code
+ * @RegisterExtension
+ * private final InboundAgentRule inboundAgent = InboundAgentExtension.newBuilder().build();
+ * }</pre>
  *
- * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
- *
- * <pre>
- * Slave agent = inboundAgents.createAgent(r, […]);
- * try {
- *     […]
- * } finally {
- *     inboundAgents.stop(r, agent.getNodeName());
- * }
- * </pre>
- *
+ * @see InboundAgentFixture
  * @see JenkinsRule#createComputerLauncher
  * @see JenkinsRule#createSlave()
  */
@@ -108,7 +101,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder name(String name) {
-                options.delegate.name = name;
+                options.delegate.setName(name);
                 return this;
             }
 
@@ -119,7 +112,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder color(PrefixedOutputStream.AnsiColor color) {
-                options.delegate.prefixedOutputStreamBuilder.withColor(color);
+                options.delegate.getPrefixedOutputStreamBuilder().withColor(color);
                 return this;
             }
 
@@ -139,7 +132,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder webSocket(boolean websocket) {
-                options.delegate.webSocket = websocket;
+                options.delegate.setWebSocket(websocket);
                 return this;
             }
 
@@ -149,12 +142,12 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder tunnel(String tunnel) {
-                options.delegate.tunnel = tunnel;
+                options.delegate.setTunnel(tunnel);
                 return this;
             }
 
             public Builder javaOptions(String... opts) {
-                options.delegate.javaOptions.addAll(List.of(opts));
+                options.delegate.getJavaOptions().addAll(List.of(opts));
                 return this;
             }
 
@@ -166,8 +159,8 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder trustStore(String path, String password) {
-                options.delegate.trustStorePath = path;
-                options.delegate.trustStorePassword = password;
+                options.delegate.setTrustStorePath(path);
+                options.delegate.setTrustStorePassword(password);
                 return this;
             }
 
@@ -179,7 +172,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder cert(String cert) {
-                options.delegate.cert = cert;
+                options.delegate.setCert(cert);
                 return this;
             }
 
@@ -189,7 +182,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder noCertificateCheck() {
-                options.delegate.noCertificateCheck = true;
+                options.delegate.setNoCertificateCheck(true);
                 return this;
             }
 
@@ -199,7 +192,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder
              */
             public Builder skipStart() {
-                options.delegate.start = false;
+                options.delegate.setStart(false);
                 return this;
             }
 
@@ -209,7 +202,7 @@ public class InboundAgentExtension implements AfterEachCallback {
              * @return this builder.
              */
             public Builder label(String label) {
-                options.delegate.label = label;
+                options.delegate.setLabel(label);
                 return this;
             }
 
@@ -222,7 +215,7 @@ public class InboundAgentExtension implements AfterEachCallback {
             }
 
             public Builder withLogger(String logger, Level level) {
-                options.delegate.loggers.put(logger, level);
+                options.delegate.getLoggers().put(logger, level);
                 return this;
             }
 
@@ -265,8 +258,8 @@ public class InboundAgentExtension implements AfterEachCallback {
 
     public void createAgent(@NonNull RealJenkinsExtension extension, Options options) throws Throwable {
         var nameAndWorkDir = extension.runRemotely(InboundAgentFixture::createAgentRJR, options.delegate);
-        options.delegate.name = nameAndWorkDir[0];
-        fixture.workDirs.add(nameAndWorkDir[1]);
+        options.delegate.setName(nameAndWorkDir[0]);
+        fixture.getWorkDirs().add(nameAndWorkDir[1]);
         if (options.isStart()) {
             start(extension, options);
         }
@@ -294,7 +287,7 @@ public class InboundAgentExtension implements AfterEachCallback {
         Objects.requireNonNull(name);
         stop(r, name);
         startOnly(r, options);
-        r.runRemotely(InboundAgentFixture::waitForAgentOnline, name, options.delegate.loggers);
+        r.runRemotely(InboundAgentFixture::waitForAgentOnline, name, (LinkedHashMap) options.delegate.getLoggers());
     }
 
     /**
@@ -303,7 +296,7 @@ public class InboundAgentExtension implements AfterEachCallback {
     public void startOnly(@NonNull RealJenkinsExtension extension, Options options) throws Throwable {
         Objects.requireNonNull(options.getName());
         var args = extension.runRemotely(InboundAgentFixture::getAgentArguments, options.getName());
-        fixture.jars.add(args.agentJar());
+        fixture.getJars().add(args.agentJar());
         options.delegate.computeJavaOptions(List.of(extension.getTruststoreJavaOptions()));
         fixture.start(args, options.delegate, false);
     }

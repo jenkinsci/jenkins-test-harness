@@ -35,9 +35,15 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
- * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
- * It also supports running test code before, between, or after Jenkins sessions,
- * whereas a test method using {@link JenkinsRule} directly will only run after Jenkins has started and must complete before Jenkins terminates.
+ * This is the JUnit Jupiter implementation of {@link JenkinsSessionFixture}.
+ * Usage: <pre>{@code
+ * @RegisterExtension
+ * private final JenkinsSessionExtension jenkinsSession = new JenkinsSessionExtension();
+ * }</pre>
+ *
+ * @see JenkinsSessionFixture
+ * @see JenkinsRule#createComputerLauncher
+ * @see JenkinsRule#createSlave()
  */
 public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
 

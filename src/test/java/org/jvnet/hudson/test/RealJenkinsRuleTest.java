@@ -460,10 +460,10 @@ public class RealJenkinsRuleTest {
     }
 
     private static void _noDetachedPlugins(JenkinsRule r) throws Throwable {
-        // only RealJenkinsRuleInit should be present
+        // only RealJenkinsFixtureInit should be present
         List<PluginWrapper> plugins = r.jenkins.getPluginManager().getPlugins();
         assertThat(plugins, hasSize(1));
-        assertThat(plugins.get(0).getShortName(), is("RealJenkinsRuleInit"));
+        assertThat(plugins.get(0).getShortName(), is("RealJenkinsFixtureInit"));
     }
 
     @Test

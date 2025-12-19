@@ -36,6 +36,13 @@ import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
  * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
  * It also supports running test code before, between, or after Jenkins sessions,
  * whereas a test method using {@link JenkinsRule} directly will only run after Jenkins has started and must complete before Jenkins terminates.
+ * Usage: <pre>{@code
+ * private static final JenkinsSessionFixture FIXTURE = new JenkinsSessionFixture();
+ * }</pre>
+ *
+ * @see JenkinsRule
+ * @see org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension
+ * @see org.jvnet.hudson.test.JenkinsSessionRule
  */
 public class JenkinsSessionFixture {
 

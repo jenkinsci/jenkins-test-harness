@@ -52,27 +52,20 @@ import org.htmlunit.WebClient;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 import org.jvnet.hudson.test.fixtures.RealJenkinsFixture;
+import org.jvnet.hudson.test.fixtures.RealJenkinsFixtureInit;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
- * Like {@link JenkinsSessionRule} but running Jenkins in a more realistic environment.
- * <p>Though Jenkins is run in a separate JVM using Winstone ({@code java -jar jenkins.war}),
- * you can still do “whitebox” testing: directly calling Java API methods, starting from {@link JenkinsRule} or not.
- * This is because the test code gets sent to the remote JVM and loaded and run there.
- * (Thus when using Maven, there are at least <em>three</em> JVMs involved:
- * Maven itself; the Surefire booter with your top-level test code; and the Jenkins controller with test bodies.)
- * Just as with {@link JenkinsRule}, all plugins found in the test classpath will be enabled,
- * but with more realistic behavior: class loaders in a graph, {@code pluginFirstClassLoader} and {@code maskClasses}, etc.
- * <p>“Compile-on-save” style development works for classes and resources in the current plugin:
- * with a suitable IDE, you can edit a source file, have it be sent to {@code target/classes/},
- * and rerun a test without needing to go through a full Maven build cycle.
- * This is because {@code target/test-classes/the.hpl} is used to load unpacked plugin resources.
- * <p>Like {@link JenkinsRule}, the controller is started in “development mode”:
- * the setup wizard is suppressed, the update center is not checked, etc.
+ * This is the JUnit 4 implementation of {@link RealJenkinsFixture}.
+ * Usage: <pre>{@code
+ * @RegisterExtension
+ * public static final RealJenkinsRule REAL_JENKINS = new RealJenkinsRule();
+ * }</pre>
+ *
  * <p>Known limitations:
  * <ul>
  * <li>Execution is a bit slower due to the overhead of launching a new JVM; and class loading overhead cannot be shared between test cases. More memory is needed.
@@ -83,10 +76,12 @@ import org.jvnet.hudson.test.recipes.LocalData;
  * <li>{@link LoggerRule} is not available, however additional loggers can be configured via {@link #withLogger(Class, Level)}}.
  * <li>{@link BuildWatcher} is not available, but you can use {@link TailLog} instead.
  * </ul>
- * <p>Systems not yet tested:
- * <ul>
- * <li>Possibly {@link Timeout} can be used.
- * </ul>
+ *
+ * @see JenkinsRule
+ * @see JenkinsSessionFixture
+ * @see org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension
+ * @see org.jvnet.hudson.test.RealJenkinsRule
+ * @see RealJenkinsFixtureInit
  */
 public final class RealJenkinsRule implements TestRule {
 

@@ -33,7 +33,13 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.fixtures.FlagFixture;
 
 /**
- * Saves and restores sort of a flag, such as a {@code static} field or system property.
+ * This is the JUnit Jupiter implementation of {@link FlagFixture}.
+ * Usage: <pre>{@code
+ * @RegisterExtension
+ * private static final FlagExtension<String> FLAG_EXTENSION = new FlagExtension<>(() -> FLAG, x -> FLAG = x, true);
+ * }</pre>
+ *
+ * @see FlagFixture
  */
 public class FlagExtension<T> implements BeforeEachCallback, AfterEachCallback {
 

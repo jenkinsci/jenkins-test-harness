@@ -64,18 +64,22 @@ import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 /**
  * Manages inbound agents.
  * While these run on the local host, they are launched outside of Jenkins.
+ * Usage: <pre>{@code
+ * private static final InboundAgentFixture FIXTURE = InboundAgentFixture.newBuilder().build();
+ * }</pre>
  *
  * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:
  *
- * <pre>
+ * <pre>{@code
  * Slave agent = inboundAgents.createAgent(r, […]);
  * try {
  *     […]
  * } finally {
  *     inboundAgents.stop(r, agent.getNodeName());
- * }
- * </pre>
+ * }}</pre>
  *
+ * @see org.jvnet.hudson.test.junit.jupiter.InboundAgentExtension
+ * @see org.jvnet.hudson.test.InboundAgentRule
  * @see JenkinsRule#createComputerLauncher
  * @see JenkinsRule#createSlave()
  */
@@ -85,8 +89,9 @@ public class InboundAgentFixture {
 
     private final String id = UUID.randomUUID().toString();
     private final Map<String, List<Process>> procs = Collections.synchronizedMap(new HashMap<>());
-    public final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
-    public final Set<File> jars = Collections.synchronizedSet(new HashSet<>());
+
+    private final Set<String> workDirs = Collections.synchronizedSet(new HashSet<>());
+    private final Set<File> jars = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * The options used to (re)start an inbound agent.
@@ -94,41 +99,111 @@ public class InboundAgentFixture {
     public static class Options implements Serializable {
 
         @CheckForNull
-        public String name;
+        private String name;
 
-        public boolean webSocket;
+        private boolean webSocket;
 
         @CheckForNull
-        public String tunnel;
+        private String tunnel;
 
-        public List<String> javaOptions = new ArrayList<>();
-        public boolean start = true;
-        public final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
-        public String label;
-        public final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
-        public String trustStorePath;
-        public String trustStorePassword;
-        public String cert;
-        public boolean noCertificateCheck;
+        private List<String> javaOptions = new ArrayList<>();
+        private boolean start = true;
+        private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
+        private String label;
+        private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+        private String trustStorePath;
+        private String trustStorePassword;
+        private String cert;
+        private boolean noCertificateCheck;
 
+        @CheckForNull
         public String getName() {
             return name;
+        }
+
+        public void setName(@CheckForNull String name) {
+            this.name = name;
         }
 
         public boolean isWebSocket() {
             return webSocket;
         }
 
+        public void setWebSocket(boolean webSocket) {
+            this.webSocket = webSocket;
+        }
+
+        @CheckForNull
         public String getTunnel() {
             return tunnel;
+        }
+
+        public void setTunnel(@CheckForNull String tunnel) {
+            this.tunnel = tunnel;
+        }
+
+        public List<String> getJavaOptions() {
+            return javaOptions;
+        }
+
+        public void setJavaOptions(List<String> javaOptions) {
+            this.javaOptions = javaOptions;
         }
 
         public boolean isStart() {
             return start;
         }
 
+        public void setStart(boolean start) {
+            this.start = start;
+        }
+
+        public Map<String, Level> getLoggers() {
+            return loggers;
+        }
+
         public String getLabel() {
             return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public PrefixedOutputStream.Builder getPrefixedOutputStreamBuilder() {
+            return prefixedOutputStreamBuilder;
+        }
+
+        public String getTrustStorePath() {
+            return trustStorePath;
+        }
+
+        public void setTrustStorePath(String trustStorePath) {
+            this.trustStorePath = trustStorePath;
+        }
+
+        public String getTrustStorePassword() {
+            return trustStorePassword;
+        }
+
+        public void setTrustStorePassword(String trustStorePassword) {
+            this.trustStorePassword = trustStorePassword;
+        }
+
+        public String getCert() {
+            return cert;
+        }
+
+        public void setCert(String cert) {
+            this.cert = cert;
+        }
+
+        public boolean isNoCertificateCheck() {
+            return noCertificateCheck;
+        }
+
+        public void setNoCertificateCheck(boolean noCertificateCheck) {
+            this.noCertificateCheck = noCertificateCheck;
         }
 
         /**
@@ -303,6 +378,14 @@ public class InboundAgentFixture {
         }
     }
 
+    public Set<String> getWorkDirs() {
+        return workDirs;
+    }
+
+    public Set<File> getJars() {
+        return jars;
+    }
+
     /**
      * Creates, attaches, and starts a new inbound agent.
      *
@@ -354,7 +437,7 @@ public class InboundAgentFixture {
     public void start(AgentArguments agentArguments, Options options, boolean stop) throws IOException {
         Objects.requireNonNull(options.getName());
         if (stop) {
-            stop(options.getName());
+            stop(Objects.requireNonNull(options.getName()));
         }
         List<String> cmd = new ArrayList<>(List.of(
                 JavaEnvUtils.getJreExecutable("java"),
@@ -558,7 +641,7 @@ public class InboundAgentFixture {
         }
         JNLPLauncher launcher = new JNLPLauncher(options.getTunnel());
         DumbSlave s = new DumbSlave(
-                options.getName(),
+                Objects.requireNonNull(options.getName()),
                 Files.createTempDirectory(Path.of(System.getProperty("java.io.tmpdir")), options.getName() + "-work")
                         .toString(),
                 launcher);

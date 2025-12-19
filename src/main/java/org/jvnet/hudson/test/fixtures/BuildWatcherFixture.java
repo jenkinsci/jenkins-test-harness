@@ -39,16 +39,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import jenkins.model.Jenkins;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.DeltaSupportLogFormatter;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 /**
  * Echoes build output to standard error as it arrives.
  * Usage: <pre>{@code
  * private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
  * }</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
- * <p>
  *
  * @see org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension
  * @see BuildWatcher
@@ -56,7 +52,7 @@ import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 public class BuildWatcherFixture {
 
     private static boolean active;
-    private static final Map<File, RunningBuild> builds = new ConcurrentHashMap<>();
+    private static final Map<File, RunningBuild> BUILDS = new ConcurrentHashMap<>();
 
     private Thread thread;
 
@@ -68,7 +64,7 @@ public class BuildWatcherFixture {
             public void run() {
                 try {
                     while (active) {
-                        for (RunningBuild build : builds.values()) {
+                        for (RunningBuild build : BUILDS.values()) {
                             build.copy();
                         }
                         Thread.sleep(50);
@@ -77,7 +73,7 @@ public class BuildWatcherFixture {
                     // stopped
                 }
                 // last chance
-                for (RunningBuild build : builds.values()) {
+                for (RunningBuild build : BUILDS.values()) {
                     build.copy();
                 }
             }
@@ -93,6 +89,7 @@ public class BuildWatcherFixture {
     }
 
     @Extension
+    @SuppressWarnings("unused")
     public static final class Listener extends RunListener<Run<?, ?>> {
 
         @Override
@@ -101,7 +98,7 @@ public class BuildWatcherFixture {
                 return;
             }
             RunningBuild build = new RunningBuild(r);
-            RunningBuild orig = builds.put(r.getRootDir(), build);
+            RunningBuild orig = BUILDS.put(r.getRootDir(), build);
             if (orig != null) {
                 System.err.println(r + " was started twice?!");
             }
@@ -112,7 +109,7 @@ public class BuildWatcherFixture {
             if (!active) {
                 return;
             }
-            RunningBuild build = builds.remove(r.getRootDir());
+            RunningBuild build = BUILDS.remove(r.getRootDir());
             if (build != null) {
                 build.copy();
             } else {

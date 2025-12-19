@@ -29,23 +29,19 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.TailLog;
 import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
 
 /**
- * Echoes build output to standard error as it arrives.
+ * This is the JUnit Jupiter implementation of {@link BuildWatcherFixture}.
  * Usage: <pre>{@code
  * @RegisterExtension
  * private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
  * }</pre>
  * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
- * <p>
- * This is the JUnit Jupiter implementation of {@link BuildWatcherFixture}.
  *
- * @see JenkinsRule#waitForCompletion
- * @see JenkinsRule#waitForMessage
- * @see TailLog
  * @see BuildWatcherFixture
+ * @see JenkinsRule
+ * @see JenkinsSessionExtension
  */
 public class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
 
