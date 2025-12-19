@@ -30,6 +30,7 @@ import java.util.logging.Logger;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
  * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
@@ -39,48 +40,25 @@ import org.junit.runners.model.Statement;
  */
 public class JenkinsSessionRule implements TestRule {
 
-    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
+    private final JenkinsSessionFixture fixture =  new JenkinsSessionFixture();
 
-    private Description description;
-
-    private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
-
-    /**
-     * JENKINS_HOME needs to survive restarts, so we allocate our own.
-     */
-    private File home;
-
-    /**
-     * TCP/IP port that the server is listening on.
-     * Like the home directory, this will be consistent across restarts.
-     */
-    private int port;
-
-    /**
+        /**
      * Get the Jenkins home directory, which is consistent across restarts.
      */
     public File getHome() {
-        if (home == null) {
-            throw new IllegalStateException("JENKINS_HOME has not been allocated yet");
-        }
-        return home;
+        return fixture.getHome();
     }
 
     @Override
     public Statement apply(final Statement base, Description description) {
-        this.description = description;
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    home = tmp.allocate();
+                    fixture.setUp(description);
                     base.evaluate();
                 } finally {
-                    try {
-                        tmp.dispose();
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, null, x);
-                    }
+                    fixture.tearDown();
                 }
             }
         };
@@ -90,35 +68,13 @@ public class JenkinsSessionRule implements TestRule {
      * One step to run, intended to be a SAM for lambdas with {@link #then}.
      */
     @FunctionalInterface
-    public interface Step {
-        void run(JenkinsRule r) throws Throwable;
+    public interface Step extends JenkinsSessionFixture.Step {
     }
 
     /**
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
-        CustomJenkinsRule r = new CustomJenkinsRule(home, port);
-        r.apply(
-                        new Statement() {
-                            @Override
-                            public void evaluate() throws Throwable {
-                                port = r.getPort();
-                                s.run(r);
-                            }
-                        },
-                        description)
-                .evaluate();
-    }
-
-    private static final class CustomJenkinsRule extends JenkinsRule {
-        CustomJenkinsRule(File home, int port) {
-            with(() -> home);
-            localPort = port;
-        }
-
-        int getPort() {
-            return localPort;
-        }
+       fixture.then(s);
     }
 }

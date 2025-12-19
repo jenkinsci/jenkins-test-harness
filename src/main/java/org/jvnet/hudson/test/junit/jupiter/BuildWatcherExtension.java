@@ -32,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TailLog;
 import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
  * Echoes build output to standard error as it arrives.
@@ -48,17 +49,19 @@ import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
  * @see TailLog
  * @see BuildWatcherFixture
  */
-public final class BuildWatcherExtension extends BuildWatcherFixture implements BeforeAllCallback, AfterAllCallback {
+public final class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
+
+    private final BuildWatcherFixture fixture =  new BuildWatcherFixture();
 
     @Override
     @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     public void beforeAll(@NonNull ExtensionContext extensionContext) {
-        setUp();
+        fixture.setUp();
     }
 
     @Override
     @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     public void afterAll(@NonNull ExtensionContext extensionContext) {
-        tearDown();
+        fixture.tearDown();
     }
 }
