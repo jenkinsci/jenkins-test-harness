@@ -30,15 +30,18 @@ class JUnit5JenkinsRule extends JenkinsRule {
         // so that test code has all the access to the system
         ACL.as2(ACL.SYSTEM2);
 
-        // WithLocalData does not implement JenkinsRecipe
-        WithLocalData withLocalData =
-                extensionContext.getTestMethod().orElseThrow().getAnnotation(WithLocalData.class);
-        if (withLocalData == null) {
-            Class<?> testClass = extensionContext.getTestClass().orElseThrow();
-            withLocalData = testClass.getAnnotation(WithLocalData.class);
-        }
-        if (withLocalData != null) {
-            with(new HudsonHomeLoader.Local(extensionContext.getTestMethod().orElseThrow(), withLocalData.value()));
+        if (extensionContext.getTestMethod().isPresent()) {
+            // WithLocalData does not implement JenkinsRecipe
+            Method testMethod = extensionContext.getTestMethod().get();
+            WithLocalData localData = testMethod.getAnnotation(WithLocalData.class);
+            if (localData == null && extensionContext.getTestClass().isPresent()) {
+                Class<?> testClass = extensionContext.getTestClass().get();
+                localData = testClass.getAnnotation(WithLocalData.class);
+            }
+
+            if (localData != null) {
+                with(new HudsonHomeLoader.Local(testMethod, localData.value()));
+            }
         }
 
         // other JenkinsRecipes handled here
