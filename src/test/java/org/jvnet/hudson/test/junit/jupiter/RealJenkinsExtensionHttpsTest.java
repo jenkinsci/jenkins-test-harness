@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.junit.jupiter.InboundAgentExtension.Options;
 
 class RealJenkinsExtensionHttpsTest {
     private static final Logger LOGGER = Logger.getLogger(RealJenkinsExtensionHttpsTest.class.getName());
@@ -58,10 +59,7 @@ class RealJenkinsExtensionHttpsTest {
 
     @Test
     void inboundAgent() throws Throwable {
-        var options = InboundAgentExtension.Options.newBuilder()
-                .name("remote")
-                .webSocket()
-                .color(PrefixedOutputStream.Color.YELLOW);
+        var options = Options.newBuilder().name("remote").webSocket().color(PrefixedOutputStream.Color.YELLOW);
         iae.createAgent(extension, options.build());
     }
 

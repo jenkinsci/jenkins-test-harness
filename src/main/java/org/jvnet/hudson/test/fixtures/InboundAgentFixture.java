@@ -96,25 +96,28 @@ public class InboundAgentFixture {
     /**
      * The options used to (re)start an inbound agent.
      */
-    public static class Options implements Serializable {
+    @SuppressWarnings({"unused", "unchecked", "rawtypes"})
+    public static class Options<O extends Options> implements Serializable {
 
         @CheckForNull
-        private String name;
+        protected String name;
 
-        private boolean webSocket;
+        protected boolean webSocket;
 
         @CheckForNull
-        private String tunnel;
+        protected String tunnel;
 
-        private List<String> javaOptions = new ArrayList<>();
-        private boolean start = true;
-        private final LinkedHashMap<String, Level> loggers = new LinkedHashMap<>();
-        private String label;
-        private final PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
-        private String trustStorePath;
-        private String trustStorePassword;
-        private String cert;
-        private boolean noCertificateCheck;
+        protected List<String> javaOptions = new ArrayList<>();
+        protected boolean start = true;
+        protected Map<String, Level> loggers = new LinkedHashMap<>();
+        protected String label;
+        protected PrefixedOutputStream.Builder prefixedOutputStreamBuilder = PrefixedOutputStream.builder();
+        protected String trustStorePath;
+        protected String trustStorePassword;
+        protected String cert;
+        protected boolean noCertificateCheck;
+
+        protected Options() {}
 
         @CheckForNull
         public String getName() {
@@ -232,11 +235,9 @@ public class InboundAgentFixture {
          * <p>Instances of {@link Builder} are created by calling {@link
          * InboundAgentFixture.Options#newBuilder}.
          */
-        public static class Builder {
+        public static class Builder<B extends Builder, O extends Options> {
 
-            private final Options options = new Options();
-
-            protected Builder() {}
+            protected final Options<O> options = new Options<>();
 
             /**
              * Set the name of the agent.
@@ -244,9 +245,9 @@ public class InboundAgentFixture {
              * @param name the name
              * @return this builder
              */
-            public Builder name(String name) {
+            public B name(String name) {
                 options.name = name;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -255,9 +256,9 @@ public class InboundAgentFixture {
              * @param color the color
              * @return this builder
              */
-            public Builder color(PrefixedOutputStream.AnsiColor color) {
+            public B color(PrefixedOutputStream.AnsiColor color) {
                 options.prefixedOutputStreamBuilder.withColor(color);
-                return this;
+                return (B) this;
             }
 
             /**
@@ -265,7 +266,7 @@ public class InboundAgentFixture {
              *
              * @return this builder
              */
-            public Builder webSocket() {
+            public B webSocket() {
                 return webSocket(true);
             }
 
@@ -275,9 +276,9 @@ public class InboundAgentFixture {
              * @param websocket use websocket if true, otherwise use inbound TCP
              * @return this builder
              */
-            public Builder webSocket(boolean websocket) {
+            public B webSocket(boolean websocket) {
                 options.webSocket = websocket;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -285,14 +286,14 @@ public class InboundAgentFixture {
              *
              * @return this builder
              */
-            public Builder tunnel(String tunnel) {
+            public B tunnel(String tunnel) {
                 options.tunnel = tunnel;
-                return this;
+                return (B) this;
             }
 
-            public Builder javaOptions(String... opts) {
+            public B javaOptions(String... opts) {
                 options.javaOptions.addAll(List.of(opts));
-                return this;
+                return (B) this;
             }
 
             /**
@@ -302,10 +303,10 @@ public class InboundAgentFixture {
              * @param password the password for the truststore
              * @return this builder
              */
-            public Builder trustStore(String path, String password) {
+            public B trustStore(String path, String password) {
                 options.trustStorePath = path;
                 options.trustStorePassword = password;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -315,9 +316,9 @@ public class InboundAgentFixture {
              * @param cert the certificate to use
              * @return this builder
              */
-            public Builder cert(String cert) {
+            public B cert(String cert) {
                 options.cert = cert;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -325,9 +326,9 @@ public class InboundAgentFixture {
              *
              * @return this builder
              */
-            public Builder noCertificateCheck() {
+            public B noCertificateCheck() {
                 options.noCertificateCheck = true;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -335,9 +336,9 @@ public class InboundAgentFixture {
              *
              * @return this builder
              */
-            public Builder skipStart() {
+            public B skipStart() {
                 options.start = false;
-                return this;
+                return (B) this;
             }
 
             /**
@@ -345,22 +346,22 @@ public class InboundAgentFixture {
              *
              * @return this builder.
              */
-            public Builder label(String label) {
+            public B label(String label) {
                 options.label = label;
-                return this;
+                return (B) this;
             }
 
-            public Builder withLogger(Class<?> clazz, Level level) {
+            public B withLogger(Class<?> clazz, Level level) {
                 return withLogger(clazz.getName(), level);
             }
 
-            public Builder withPackageLogger(Class<?> clazz, Level level) {
+            public B withPackageLogger(Class<?> clazz, Level level) {
                 return withLogger(clazz.getPackageName(), level);
             }
 
-            public Builder withLogger(String logger, Level level) {
+            public B withLogger(String logger, Level level) {
                 options.loggers.put(logger, level);
-                return this;
+                return (B) this;
             }
 
             /**
@@ -368,13 +369,13 @@ public class InboundAgentFixture {
              *
              * @return a new {@link Options}
              */
-            public Options build() {
-                return options;
+            public O build() {
+                return (O) options;
             }
         }
 
-        public static Builder newBuilder() {
-            return new Builder();
+        public static <T extends Builder> T newBuilder() {
+            return (T) new Builder();
         }
     }
 
@@ -561,21 +562,79 @@ public class InboundAgentFixture {
     }
 
     /**
-     * @param agentJar        A reference to the agent jar
-     * @param url             the controller root URL
-     * @param name            the agent name
-     * @param secret          The secret the agent should use to connect.
-     * @param numberOfNodes   The number of nodes in the Jenkins instance where the agent is running.
-     * @param commandLineArgs Additional command line arguments to pass to the agent.
+     * Argument for an Agent.
      */
-    public record AgentArguments(
-            @NonNull File agentJar,
-            @NonNull String url,
-            @NonNull String name,
-            @NonNull String secret,
-            int numberOfNodes,
-            @NonNull List<String> commandLineArgs)
-            implements Serializable {}
+    public static class AgentArguments implements Serializable {
+
+        @NonNull
+        private final File agentJar;
+
+        @NonNull
+        private final String url;
+
+        @NonNull
+        private final String name;
+
+        @NonNull
+        private final String secret;
+
+        private final int numberOfNodes;
+
+        @NonNull
+        private final List<String> commandLineArgs;
+
+        /**
+         * @param agentJar        A reference to the agent jar
+         * @param url             the controller root URL
+         * @param name            the agent name
+         * @param secret          The secret the agent should use to connect.
+         * @param numberOfNodes   The number of nodes in the Jenkins instance where the agent is running.
+         * @param commandLineArgs Additional command line arguments to pass to the agent.
+         */
+        public AgentArguments(
+                @NonNull File agentJar,
+                @NonNull String url,
+                @NonNull String name,
+                @NonNull String secret,
+                int numberOfNodes,
+                @NonNull List<String> commandLineArgs) {
+            this.agentJar = agentJar;
+            this.url = url;
+            this.name = name;
+            this.secret = secret;
+            this.numberOfNodes = numberOfNodes;
+            this.commandLineArgs = commandLineArgs;
+        }
+
+        @NonNull
+        public File agentJar() {
+            return agentJar;
+        }
+
+        @NonNull
+        public String url() {
+            return url;
+        }
+
+        @NonNull
+        public String name() {
+            return name;
+        }
+
+        @NonNull
+        public String secret() {
+            return secret;
+        }
+
+        public int numberOfNodes() {
+            return numberOfNodes;
+        }
+
+        @NonNull
+        public List<String> commandLineArgs() {
+            return commandLineArgs;
+        }
+    }
 
     public static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
         Node node = r.jenkins.getNode(name);

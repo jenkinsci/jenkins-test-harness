@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.fixtures.InboundAgentFixture.Options;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
@@ -48,7 +49,7 @@ class InboundAgentFixtureTest {
     void waitOnline() throws Exception {
         assertTrue(fixture.createAgent(
                         r,
-                        InboundAgentFixture.Options.newBuilder()
+                        Options.newBuilder()
                                 .color(PrefixedOutputStream.Color.MAGENTA.bold())
                                 .name("remote")
                                 .build())

@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.InboundAgentRule.Options;
 
 public class RealJenkinsRuleHttpsTest {
     private static final Logger LOGGER = Logger.getLogger(RealJenkinsRuleHttpsTest.class.getName());
@@ -56,10 +57,7 @@ public class RealJenkinsRuleHttpsTest {
 
     @Test
     public void inboundAgent() throws Throwable {
-        var options = InboundAgentRule.Options.newBuilder()
-                .name("remote")
-                .webSocket()
-                .color(PrefixedOutputStream.Color.YELLOW);
+        var options = Options.newBuilder().name("remote").webSocket().color(PrefixedOutputStream.Color.YELLOW);
         iar.createAgent(rr, options.build());
     }
 

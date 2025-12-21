@@ -28,9 +28,10 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Slave;
 import java.io.File;
-import java.io.Serializable;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,28 +58,21 @@ public final class InboundAgentRule extends ExternalResource {
     /**
      * The options used to (re)start an inbound agent.
      */
-    public static final class Options implements Serializable {
+    public static final class Options extends InboundAgentFixture.Options<Options> {
 
-        private final InboundAgentFixture.Options delegate = new InboundAgentFixture.Options();
-
-        public String getName() {
-            return delegate.getName();
-        }
-
-        public boolean isWebSocket() {
-            return delegate.isWebSocket();
-        }
-
-        public String getTunnel() {
-            return delegate.getTunnel();
-        }
-
-        public boolean isStart() {
-            return delegate.isStart();
-        }
-
-        public String getLabel() {
-            return delegate.getLabel();
+        private Options(InboundAgentFixture.Options<Options> source) {
+            this.name = source.getName();
+            this.webSocket = source.isWebSocket();
+            this.tunnel = source.getTunnel();
+            this.javaOptions = source.getJavaOptions();
+            this.start = source.isStart();
+            this.loggers = source.getLoggers();
+            this.label = source.getLabel();
+            this.prefixedOutputStreamBuilder = source.getPrefixedOutputStreamBuilder();
+            this.trustStorePath = source.getTrustStorePath();
+            this.trustStorePassword = source.getTrustStorePassword();
+            this.cert = source.getCert();
+            this.noCertificateCheck = source.isNoCertificateCheck();
         }
 
         /**
@@ -87,149 +81,16 @@ public final class InboundAgentRule extends ExternalResource {
          * <p>Instances of {@link Options.Builder} are created by calling {@link
          * Options#newBuilder}.
          */
-        public static final class Builder {
+        public static final class Builder extends InboundAgentFixture.Options.Builder<Builder, Options> {
 
-            private final Options options = new Options();
-
-            private Builder() {}
-
-            /**
-             * Set the name of the agent.
-             *
-             * @param name the name
-             * @return this builder
-             */
-            public Options.Builder name(String name) {
-                options.delegate.setName(name);
-                return this;
-            }
-
-            /**
-             * Set a color for agent logs.
-             *
-             * @param color the color
-             * @return this builder
-             */
-            public Options.Builder color(PrefixedOutputStream.AnsiColor color) {
-                options.delegate.getPrefixedOutputStreamBuilder().withColor(color);
-                return this;
-            }
-
-            /**
-             * Use WebSocket when connecting.
-             *
-             * @return this builder
-             */
-            public Options.Builder webSocket() {
-                return webSocket(true);
-            }
-
-            /**
-             * Configure usage of WebSocket when connecting.
-             *
-             * @param websocket use websocket if true, otherwise use inbound TCP
-             * @return this builder
-             */
-            public Options.Builder webSocket(boolean websocket) {
-                options.delegate.setWebSocket(websocket);
-                return this;
-            }
-
-            /**
-             * Set a tunnel for the agent
-             *
-             * @return this builder
-             */
-            public Options.Builder tunnel(String tunnel) {
-                options.delegate.setTunnel(tunnel);
-                return this;
-            }
-
-            public Options.Builder javaOptions(String... opts) {
-                options.delegate.getJavaOptions().addAll(List.of(opts));
-                return this;
-            }
-
-            /**
-             * Provide a custom truststore for the agent JVM. Can be useful when using a setup with a reverse proxy.
-             *
-             * @param path     the path to the truststore
-             * @param password the password for the truststore
-             * @return this builder
-             */
-            public Options.Builder trustStore(String path, String password) {
-                options.delegate.setTrustStorePath(path);
-                options.delegate.setTrustStorePassword(password);
-                return this;
-            }
-
-            /**
-             * Sets a custom certificate for the agent JVM, passed as the Remoting `-cert` CLI argument.
-             * When using {@code RealJenkinsRule}, use {@link RealJenkinsRule#getRootCAPem()} to obtain the required value to pass to this method.
-             *
-             * @param cert the certificate to use
-             * @return this builder
-             */
-            public Options.Builder cert(String cert) {
-                options.delegate.setCert(cert);
-                return this;
-            }
-
-            /**
-             * Disables certificate verification for the agent JVM, passed as the Remoting `-noCertificateCheck` CLI argument.
-             *
-             * @return this builder
-             */
-            public Options.Builder noCertificateCheck() {
-                options.delegate.setNoCertificateCheck(true);
-                return this;
-            }
-
-            /**
-             * Skip starting the agent.
-             *
-             * @return this builder
-             */
-            public Options.Builder skipStart() {
-                options.delegate.setStart(false);
-                return this;
-            }
-
-            /**
-             * Set a label for the agent.
-             *
-             * @return this builder.
-             */
-            public Options.Builder label(String label) {
-                options.delegate.setLabel(label);
-                return this;
-            }
-
-            public Options.Builder withLogger(Class<?> clazz, Level level) {
-                return withLogger(clazz.getName(), level);
-            }
-
-            public Options.Builder withPackageLogger(Class<?> clazz, Level level) {
-                return withLogger(clazz.getPackageName(), level);
-            }
-
-            public Options.Builder withLogger(String logger, Level level) {
-                options.delegate.getLoggers().put(logger, level);
-                return this;
-            }
-
-            /**
-             * Build and return an {@link Options}.
-             *
-             * @return a new {@link Options}
-             */
+            @Override
             public Options build() {
-                return options;
+                return new Options(options);
             }
         }
 
-        public static Options.Builder newBuilder() {
-            return new Options.Builder();
+        public static Builder newBuilder() {
+            return new Builder();
         }
     }
 
@@ -248,7 +109,7 @@ public final class InboundAgentRule extends ExternalResource {
      * @param options the options
      */
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
-        return fixture.createAgent(r, options.delegate);
+        return fixture.createAgent(r, options);
     }
 
     public void createAgent(@NonNull RealJenkinsRule rr, @CheckForNull String name) throws Throwable {
@@ -256,8 +117,8 @@ public final class InboundAgentRule extends ExternalResource {
     }
 
     public void createAgent(@NonNull RealJenkinsRule rr, Options options) throws Throwable {
-        var nameAndWorkDir = rr.runRemotely(InboundAgentFixture::createAgentRJR, options.delegate);
-        options.delegate.setName(nameAndWorkDir[0]);
+        var nameAndWorkDir = rr.runRemotely(InboundAgentRule::createAgentRJR, options);
+        options.setName(nameAndWorkDir[0]);
         fixture.getWorkDirs().add(nameAndWorkDir[1]);
         if (options.isStart()) {
             start(rr, options);
@@ -275,7 +136,7 @@ public final class InboundAgentRule extends ExternalResource {
      * (Re-)starts an existing inbound agent.
      */
     public void start(@NonNull JenkinsRule r, Options options) throws Exception {
-        fixture.start(r, options.delegate);
+        fixture.start(r, options);
     }
 
     /**
@@ -286,7 +147,7 @@ public final class InboundAgentRule extends ExternalResource {
         Objects.requireNonNull(name);
         stop(r, name);
         startOnly(r, options);
-        r.runRemotely(InboundAgentFixture::waitForAgentOnline, name, (LinkedHashMap) options.delegate.getLoggers());
+        r.runRemotely(InboundAgentRule::waitForAgentOnline, name, (LinkedHashMap) options.getLoggers());
     }
 
     /**
@@ -294,14 +155,14 @@ public final class InboundAgentRule extends ExternalResource {
      */
     public void startOnly(@NonNull RealJenkinsRule r, Options options) throws Throwable {
         Objects.requireNonNull(options.getName());
-        var args = r.runRemotely(InboundAgentFixture::getAgentArguments, options.getName());
+        var args = r.runRemotely(InboundAgentRule::getAgentArguments, options.getName());
         fixture.getJars().add(args.agentJar());
-        options.delegate.computeJavaOptions(List.of(r.getTruststoreJavaOptions()));
-        fixture.start(args, options.delegate, false);
+        options.computeJavaOptions(List.of(r.getTruststoreJavaOptions()));
+        fixture.start(args, options, false);
     }
 
     public void start(AgentArguments agentArguments, Options options) throws Exception {
-        fixture.start(agentArguments.delegate, options.delegate, true);
+        fixture.start(agentArguments, options, true);
     }
 
     /**
@@ -317,7 +178,7 @@ public final class InboundAgentRule extends ExternalResource {
     public void stop(@NonNull RealJenkinsRule rjr, @NonNull String name) throws Throwable {
         stop(name);
         if (rjr.isAlive()) {
-            rjr.runRemotely(InboundAgentFixture::waitForAgentOffline, name);
+            rjr.runRemotely(InboundAgentRule::waitForAgentOffline, name);
         } else {
             LOGGER.warning(
                     () -> "Controller seems to have already shut down; not waiting for " + name + " to go offline");
@@ -345,10 +206,16 @@ public final class InboundAgentRule extends ExternalResource {
         fixture.tearDown();
     }
 
-    public static class AgentArguments implements Serializable {
+    public static class AgentArguments extends InboundAgentFixture.AgentArguments {
 
-        private final InboundAgentFixture.AgentArguments delegate;
-
+        /**
+         * @param agentJar        A reference to the agent jar
+         * @param url             the controller root URL
+         * @param name            the agent name
+         * @param secret          The secret the agent should use to connect.
+         * @param numberOfNodes   The number of nodes in the Jenkins instance where the agent is running.
+         * @param commandLineArgs Additional command line arguments to pass to the agent.
+         */
         public AgentArguments(
                 @NonNull File agentJar,
                 @NonNull String url,
@@ -356,8 +223,33 @@ public final class InboundAgentRule extends ExternalResource {
                 @NonNull String secret,
                 int numberOfNodes,
                 @NonNull List<String> commandLineArgs) {
-            delegate =
-                    new InboundAgentFixture.AgentArguments(agentJar, url, name, secret, numberOfNodes, commandLineArgs);
+            super(agentJar, url, name, secret, numberOfNodes, commandLineArgs);
         }
+
+        private AgentArguments(InboundAgentFixture.AgentArguments source) {
+            this(
+                    source.agentJar(),
+                    source.url(),
+                    source.name(),
+                    source.secret(),
+                    source.numberOfNodes(),
+                    source.commandLineArgs());
+        }
+    }
+
+    public static AgentArguments getAgentArguments(JenkinsRule r, String name) throws IOException {
+        return new AgentArguments(InboundAgentFixture.getAgentArguments(r, name));
+    }
+
+    public static void waitForAgentOnline(JenkinsRule r, String name, Map<String, Level> loggers) throws Exception {
+        InboundAgentFixture.waitForAgentOnline(r, name, loggers);
+    }
+
+    public static void waitForAgentOffline(JenkinsRule r, String name) throws InterruptedException {
+        InboundAgentFixture.waitForAgentOffline(r, name);
+    }
+
+    public static String[] createAgentRJR(JenkinsRule r, Options options) throws Throwable {
+        return InboundAgentFixture.createAgentRJR(r, options);
     }
 }

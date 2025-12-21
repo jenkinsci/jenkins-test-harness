@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.fixtures.InboundAgentFixture.Options;
 
 class RealJenkinsFixtureHttpsTest {
     private static final Logger LOGGER = Logger.getLogger(RealJenkinsFixtureHttpsTest.class.getName());
@@ -65,10 +66,7 @@ class RealJenkinsFixtureHttpsTest {
     @Test
     @Disabled("Not supported as of now")
     void inboundAgent() throws Throwable {
-        var options = InboundAgentFixture.Options.newBuilder()
-                .name("remote")
-                .webSocket()
-                .color(PrefixedOutputStream.Color.YELLOW);
+        var options = Options.newBuilder().name("remote").webSocket().color(PrefixedOutputStream.Color.YELLOW);
         // TODO: iaf.createAgent(fixture, options.build());
     }
 
