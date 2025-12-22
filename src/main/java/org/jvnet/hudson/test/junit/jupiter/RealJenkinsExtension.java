@@ -97,7 +97,7 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
      * Other configuration such as {@link #javaOptions(String...)} may be applied to both, but that is your choice.
      */
     public RealJenkinsExtension(RealJenkinsExtension source) {
-        fixture = source.fixture;
+        fixture = new RealJenkinsFixture(source.fixture);
         extensionContext = source.extensionContext;
     }
 
