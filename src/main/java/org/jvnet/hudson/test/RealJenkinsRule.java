@@ -34,7 +34,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -416,9 +415,7 @@ public final class RealJenkinsRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    Method method = description.getTestClass().getMethod(description.getMethodName());
-                    LocalData localData = description.getAnnotation(LocalData.class);
-                    fixture.setUp(method, localData != null ? localData.value() : null);
+                    fixture.setUp(description);
                     base.evaluate();
                 } finally {
                     fixture.tearDown();
@@ -511,9 +508,7 @@ public final class RealJenkinsRule implements TestRule {
         if (description == null) {
             throw new IllegalStateException("RealJenkinsRule must be registered via @Rule");
         }
-        Method method = description.getTestClass().getMethod(description.getMethodName());
-        LocalData localData = description.getAnnotation(LocalData.class);
-        fixture.then(method, localData != null ? localData.value() : null, steps);
+        fixture.then(steps);
     }
 
     /**
@@ -622,9 +617,7 @@ public final class RealJenkinsRule implements TestRule {
         if (description == null) {
             throw new IllegalStateException("RealJenkinsRule must be registered via @Rule");
         }
-        Method method = description.getTestClass().getMethod(description.getMethodName());
-        LocalData localData = description.getAnnotation(LocalData.class);
-        fixture.startJenkins(method, localData != null ? localData.value() : null);
+        fixture.startJenkins();
     }
 
     @CheckForNull

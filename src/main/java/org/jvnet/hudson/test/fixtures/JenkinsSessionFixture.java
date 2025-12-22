@@ -50,8 +50,6 @@ public class JenkinsSessionFixture {
 
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
 
-    private Description description;
-
     /**
      * JENKINS_HOME needs to survive restarts, so we allocate our own.
      */
@@ -62,6 +60,8 @@ public class JenkinsSessionFixture {
      * Like the home directory, this will be consistent across restarts.
      */
     private int port;
+
+    private Description description;
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
@@ -102,6 +102,9 @@ public class JenkinsSessionFixture {
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
+        if (description == null) {
+            throw new IllegalStateException("JenkinsSessionFixture must be initialized via #setUp");
+        }
         CustomJenkinsRule r = new CustomJenkinsRule(home, port);
         r.apply(
                         new Statement() {

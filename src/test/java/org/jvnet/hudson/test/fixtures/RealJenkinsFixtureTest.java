@@ -60,6 +60,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -81,6 +83,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.runner.Description;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -100,7 +103,10 @@ class RealJenkinsFixtureTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) throws Exception {
-        fixture.setUp(info.getTestMethod().orElseThrow(), null);
+        fixture.setUp(Description.createTestDescription(
+                info.getTestClass().map(Class::getName).orElse(null),
+                info.getTestMethod().map(Method::getName).orElse(null),
+                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
     }
 
     @AfterEach
@@ -109,12 +115,12 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void smokes(TestInfo info) throws Throwable {
+    void smokes() throws Throwable {
         fixture.addPlugins("plugins/structs.hpi");
         fixture.extraEnv("SOME_ENV_VAR", "value")
                 .extraEnv("NOT_SET", null)
                 .withLogger(Jenkins.class, Level.FINEST)
-                .then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::_smokes);
+                .then(RealJenkinsFixtureTest::_smokes);
     }
 
     private static void _smokes(JenkinsRule r) throws Throwable {
@@ -125,14 +131,14 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void testReturnObject(TestInfo info) throws Throwable {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void testReturnObject() throws Throwable {
+        fixture.startJenkins();
         assertThatLocalAndRemoteUrlEquals();
     }
 
     @Test
-    void customPrefix(TestInfo info) throws Throwable {
-        fixture.withPrefix("/foo").startJenkins(info.getTestMethod().orElseThrow(), null);
+    void customPrefix() throws Throwable {
+        fixture.withPrefix("/foo").startJenkins();
         assertThat(fixture.getUrl().getPath(), equalTo("/foo/"));
         assertThatLocalAndRemoteUrlEquals();
         fixture.runRemotely(r -> {
@@ -141,8 +147,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void complexPrefix(TestInfo info) throws Throwable {
-        fixture.withPrefix("/foo/bar").startJenkins(info.getTestMethod().orElseThrow(), null);
+    void complexPrefix() throws Throwable {
+        fixture.withPrefix("/foo/bar").startJenkins();
         assertThat(fixture.getUrl().getPath(), equalTo("/foo/bar/"));
         assertThatLocalAndRemoteUrlEquals();
         fixture.runRemotely(r -> {
@@ -151,8 +157,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void noPrefix(TestInfo info) throws Throwable {
-        fixture.withPrefix("").startJenkins(info.getTestMethod().orElseThrow(), null);
+    void noPrefix() throws Throwable {
+        fixture.withPrefix("").startJenkins();
         assertThat(fixture.getUrl().getPath(), equalTo("/"));
         assertThatLocalAndRemoteUrlEquals();
         fixture.runRemotely(r -> {
@@ -167,10 +173,10 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void ipv6(TestInfo info) throws Throwable {
+    void ipv6() throws Throwable {
         // Use -Djava.net.preferIPv6Addresses=true if dualstack
         assumeTrue(InetAddress.getLoopbackAddress() instanceof Inet6Address);
-        fixture.withHost("::1").startJenkins(info.getTestMethod().orElseThrow(), null);
+        fixture.withHost("::1").startJenkins();
         assertThatLocalAndRemoteUrlEquals();
     }
 
@@ -181,21 +187,18 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void testThrowsException(TestInfo info) {
+    void testThrowsException() {
         assertThat(
                 assertThrows(
                                 RealJenkinsFixture.StepException.class,
-                                () -> fixture.then(
-                                        info.getTestMethod().orElseThrow(),
-                                        null,
-                                        RealJenkinsFixtureTest::throwsException))
+                                () -> fixture.then(RealJenkinsFixtureTest::throwsException))
                         .getMessage(),
                 containsString("IllegalStateException: something is wrong"));
     }
 
     @Test
-    void killedExternally(TestInfo info) throws Exception {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void killedExternally() throws Exception {
+        fixture.startJenkins();
         try {
             fixture.getProcess().destroy();
         } finally {
@@ -208,8 +211,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void testFilter(TestInfo info) throws Throwable {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void testFilter() throws Throwable {
+        fixture.startJenkins();
         fixture.runRemotely(RealJenkinsFixtureTest::_testFilter1);
         // Now run another step, body irrelevant just making sure it is not broken
         // (do *not* combine into one runRemotely call):
@@ -237,8 +240,8 @@ class RealJenkinsFixtureTest {
     private static void _testFilter2(JenkinsRule jenkinsRule) throws Throwable {}
 
     @Test
-    void chainedSteps(TestInfo info) throws Throwable {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void chainedSteps() throws Throwable {
+        fixture.startJenkins();
         fixture.runRemotely(RealJenkinsFixtureTest::chainedSteps1, RealJenkinsFixtureTest::chainedSteps2);
     }
 
@@ -251,10 +254,10 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void error(TestInfo info) {
+    void error() {
         boolean erred = false;
         try {
-            fixture.then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::_error);
+            fixture.then(RealJenkinsFixtureTest::_error);
         } catch (Throwable t) {
             erred = true;
             t.printStackTrace();
@@ -268,9 +271,9 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void agentBuild(TestInfo info) throws Throwable {
+    void agentBuild() throws Throwable {
         try (var tailLog = new TailLog(fixture, "p", 1).withColor(PrefixedOutputStream.Color.MAGENTA)) {
-            fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+            fixture.then(r -> {
                 var p = r.createFreeStyleProject("p");
                 var ran = new AtomicBoolean();
                 p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> ran.set(true)));
@@ -283,8 +286,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void htmlUnit(TestInfo info) throws Throwable {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void htmlUnit() throws Throwable {
+        fixture.startJenkins();
         fixture.runRemotely(r -> {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
@@ -308,8 +311,8 @@ class RealJenkinsFixtureTest {
 
     @LocalData
     @Test
-    void localData(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), "", RealJenkinsFixtureTest::_localData);
+    void localData() throws Throwable {
+        fixture.then(RealJenkinsFixtureTest::_localData);
     }
 
     private static void _localData(JenkinsRule r) throws Throwable {
@@ -317,8 +320,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void restart(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+    void restart() throws Throwable {
+        fixture.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
             Files.writeString(
                     r.jenkins.getRootDir().toPath().resolve("url.txt"),
@@ -326,7 +329,7 @@ class RealJenkinsFixtureTest {
                     StandardCharsets.UTF_8);
             r.jenkins.getExtensionList(ItemListener.class).add(0, new ShutdownListener());
         });
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+        fixture.then(r -> {
             assertEquals(r.jenkins.getRootUrl(), r.getURL().toString());
             assertEquals(
                     r.jenkins.getRootUrl(),
@@ -349,9 +352,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void stepsDoNotRunOnHttpWorkerThread(TestInfo info) throws Throwable {
-        fixture.then(
-                info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::_stepsDoNotRunOnHttpWorkerThread);
+    void stepsDoNotRunOnHttpWorkerThread() throws Throwable {
+        fixture.then(RealJenkinsFixtureTest::_stepsDoNotRunOnHttpWorkerThread);
     }
 
     private static void _stepsDoNotRunOnHttpWorkerThread(JenkinsRule r) throws Throwable {
@@ -359,12 +361,12 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+    void stepsDoNotOverwriteJenkinsLocationConfigurationIfOtherwiseSet() throws Throwable {
+        fixture.then(r -> {
             assertNotNull(JenkinsLocationConfiguration.get().getUrl());
             JenkinsLocationConfiguration.get().setUrl("https://example.com/");
         });
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+        fixture.then(r -> {
             assertEquals(
                     "https://example.com/", JenkinsLocationConfiguration.get().getUrl());
         });
@@ -411,52 +413,42 @@ class RealJenkinsFixtureTest {
      * }
      */
     @Test
-    void whenUsingFailurePlugin(TestInfo info) throws Throwable {
+    void whenUsingFailurePlugin() throws Throwable {
         RealJenkinsFixture.JenkinsStartupException jse = assertThrows(
-                RealJenkinsFixture.JenkinsStartupException.class, () -> fixture.addPlugins("plugins/failure.hpi")
-                        .startJenkins(info.getTestMethod().orElseThrow(), null));
+                RealJenkinsFixture.JenkinsStartupException.class,
+                () -> fixture.addPlugins("plugins/failure.hpi").startJenkins());
         assertThat(jse.getMessage(), containsString("Error</h1><pre>java.io.IOException: oops"));
     }
 
     @Test
-    void whenUsingWrongJavaHome(TestInfo info) throws Throwable {
-        IOException ex = assertThrows(IOException.class, () -> fixture.withJavaHome("/noexists")
-                .startJenkins(info.getTestMethod().orElseThrow(), null));
+    void whenUsingWrongJavaHome() throws Throwable {
+        IOException ex = assertThrows(
+                IOException.class, () -> fixture.withJavaHome("/noexists").startJenkins());
         assertThat(
                 ex.getMessage(),
                 containsString(File.separator + "noexists" + File.separator + "bin" + File.separator + "java"));
     }
 
     @Test
-    void smokesJavaHome(TestInfo info) throws Throwable {
+    void smokesJavaHome() throws Throwable {
         String altJavaHome = System.getProperty("java.home");
         fixture.addPlugins("plugins/structs.hpi");
         fixture.extraEnv("SOME_ENV_VAR", "value")
                 .extraEnv("NOT_SET", null)
                 .withJavaHome(altJavaHome)
                 .withLogger(Jenkins.class, Level.FINEST)
-                .then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::_smokes);
+                .then(RealJenkinsFixtureTest::_smokes);
     }
 
     @Issue("https://github.com/jenkinsci/jenkins-test-harness/issues/359")
     @Test
-    void assumptions(TestInfo info) throws Throwable {
+    void assumptions() throws Throwable {
         assertThat(
-                assertThrows(
-                                TestAbortedException.class,
-                                () -> fixture.then(
-                                        info.getTestMethod().orElseThrow(),
-                                        null,
-                                        RealJenkinsFixtureTest::_assumptions1))
+                assertThrows(TestAbortedException.class, () -> fixture.then(RealJenkinsFixtureTest::_assumptions1))
                         .getMessage(),
                 is("Assumption failed: assumption is not true"));
         assertThat(
-                assertThrows(
-                                TestAbortedException.class,
-                                () -> fixture.then(
-                                        info.getTestMethod().orElseThrow(),
-                                        null,
-                                        RealJenkinsFixtureTest::_assumptions2))
+                assertThrows(TestAbortedException.class, () -> fixture.then(RealJenkinsFixtureTest::_assumptions2))
                         .getMessage(),
                 is("Assumption failed: oops"));
     }
@@ -470,12 +462,11 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void timeoutDuringStep(TestInfo info) throws Throwable {
+    void timeoutDuringStep() throws Throwable {
         fixture.withTimeout(10);
         assertThat(
                 Functions.printThrowable(assertThrows(
-                        RealJenkinsFixture.StepException.class,
-                        () -> fixture.then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::hangs))),
+                        RealJenkinsFixture.StepException.class, () -> fixture.then(RealJenkinsFixtureTest::hangs))),
                 containsString(
                         "\tat " + RealJenkinsFixtureTest.class.getName() + ".hangs(RealJenkinsFixtureTest.java:"));
     }
@@ -486,9 +477,9 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void noDetachedPlugins(TestInfo info) throws Throwable {
+    void noDetachedPlugins() throws Throwable {
         // we should be the only plugin in Jenkins.
-        fixture.then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureTest::_noDetachedPlugins);
+        fixture.then(RealJenkinsFixtureTest::_noDetachedPlugins);
     }
 
     private static void _noDetachedPlugins(JenkinsRule r) throws Throwable {
@@ -499,8 +490,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void safeExit(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+    void safeExit() throws Throwable {
+        fixture.then(r -> {
             var p = r.createFreeStyleProject();
             p.getBuildersList().add(TestBuilder.of((build, launcher, listener) -> Thread.sleep(Long.MAX_VALUE)));
             p.scheduleBuild2(0).waitForStart();
@@ -508,8 +499,8 @@ class RealJenkinsFixtureTest {
     }
 
     @Test
-    void xStreamSerializable(TestInfo info) throws Throwable {
-        fixture.startJenkins(info.getTestMethod().orElseThrow(), null);
+    void xStreamSerializable() throws Throwable {
+        fixture.startJenkins();
         // Neither ParametersDefinitionProperty nor ParametersAction could be passed directly.
         // (In this case, ParameterDefinition and ParameterValue could have been used raw.
         // But even List<ParameterValue> cannot be typed here, only e.g. ArrayList<ParameterValue>.)
@@ -544,8 +535,8 @@ class RealJenkinsFixtureTest {
     @Disabled(
             "inner class inside lambda breaks with an opaque NotSerializableException: RealJenkinsExtensionTest; use TestBuilder.of instead")
     @Test
-    void lambduh(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+    void lambduh() throws Throwable {
+        fixture.then(r -> {
             r.createFreeStyleProject().getBuildersList().add(new TestBuilder() {
                 @Override
                 public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)

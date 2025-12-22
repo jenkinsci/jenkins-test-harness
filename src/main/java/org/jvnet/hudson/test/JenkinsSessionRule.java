@@ -44,6 +44,7 @@ import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 public class JenkinsSessionRule implements TestRule {
 
     private final JenkinsSessionFixture fixture = new JenkinsSessionFixture();
+    private Description description;
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
@@ -54,6 +55,7 @@ public class JenkinsSessionRule implements TestRule {
 
     @Override
     public Statement apply(final Statement base, Description description) {
+        this.description = description;
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
@@ -77,6 +79,9 @@ public class JenkinsSessionRule implements TestRule {
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
+        if (description == null) {
+            throw new IllegalStateException("JenkinsSessionRule must be registered via @Rule");
+        }
         fixture.then(s);
     }
 }

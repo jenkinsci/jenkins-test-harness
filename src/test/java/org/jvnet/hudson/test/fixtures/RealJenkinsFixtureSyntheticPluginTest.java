@@ -28,6 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.logging.Level;
 import jenkins.model.Jenkins;
 import jenkins.security.ClassFilterImpl;
@@ -35,6 +37,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.runner.Description;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.sample.plugin.CustomJobProperty;
 import org.jvnet.hudson.test.sample.plugin.Stuff;
@@ -45,7 +48,10 @@ class RealJenkinsFixtureSyntheticPluginTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) throws Exception {
-        fixture.setUp(info.getTestMethod().orElseThrow(), null);
+        fixture.setUp(Description.createTestDescription(
+                info.getTestClass().map(Class::getName).orElse(null),
+                info.getTestMethod().map(Method::getName).orElse(null),
+                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
     }
 
     @AfterEach
@@ -54,9 +60,9 @@ class RealJenkinsFixtureSyntheticPluginTest {
     }
 
     @Test
-    void smokes(TestInfo info) throws Throwable {
+    void smokes() throws Throwable {
         fixture.addSyntheticPlugin(new RealJenkinsFixture.SyntheticPlugin(Stuff.class));
-        fixture.then(info.getTestMethod().orElseThrow(), null, RealJenkinsFixtureSyntheticPluginTest::_smokes);
+        fixture.then(RealJenkinsFixtureSyntheticPluginTest::_smokes);
     }
 
     private static void _smokes(JenkinsRule r) throws Throwable {
@@ -66,10 +72,10 @@ class RealJenkinsFixtureSyntheticPluginTest {
     }
 
     @Test
-    void classFilter(TestInfo info) throws Throwable {
+    void classFilter() throws Throwable {
         fixture.addSyntheticPlugin(new RealJenkinsFixture.SyntheticPlugin(CustomJobProperty.class))
                 .withLogger(ClassFilterImpl.class, Level.FINE);
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+        fixture.then(r -> {
             var p = r.createFreeStyleProject();
             p.addProperty(new CustomJobProperty("expected in XML"));
             assertThat(p.getConfigFile().asString(), containsString("expected in XML"));
@@ -77,9 +83,9 @@ class RealJenkinsFixtureSyntheticPluginTest {
     }
 
     @Test
-    void dynamicLoad(TestInfo info) throws Throwable {
+    void dynamicLoad() throws Throwable {
         var pluginJpi = fixture.createSyntheticPlugin(new RealJenkinsFixture.SyntheticPlugin(Stuff.class));
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+        fixture.then(r -> {
             r.jenkins.pluginManager.dynamicLoad(pluginJpi);
             assertThat(
                     r.createWebClient()

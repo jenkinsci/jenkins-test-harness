@@ -258,6 +258,8 @@ public class RealJenkinsFixture {
     @NonNull
     private String prefix = "/jenkins";
 
+    private Description description;
+
     public RealJenkinsFixture() {
         home = new AtomicReference<>();
     }
@@ -623,7 +625,8 @@ public class RealJenkinsFixture {
                 .toList();
     }
 
-    public void setUp(Method testMethod, String localData) throws Exception {
+    public void setUp(Description description) throws Exception {
+        this.description = description;
         jenkinsOptions(
                 "--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
         if (war == null) {
@@ -632,7 +635,7 @@ public class RealJenkinsFixture {
         if (home.get() == null) {
             home.set(tmp.allocate());
             if (!prepareHomeLazily) {
-                provision(testMethod, localData);
+                provision();
             }
         }
     }
@@ -651,13 +654,22 @@ public class RealJenkinsFixture {
      * Initializes {@code JENKINS_HOME}, but does not start Jenkins.
      */
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "irrelevant")
-    private void provision(Method method, String localData) throws Exception {
+    private void provision() throws Exception {
         provisioned = true;
         if (home.get() == null) {
             home.set(tmp.allocate());
         }
-        if (localData != null) {
-            new HudsonHomeLoader.Local(method, localData).copy(getHome());
+        try {
+            if (description == null) {
+                throw new IllegalStateException("RealJenkinsFixture must be initialized via #setUp");
+            }
+            Method method = description.getTestClass().getDeclaredMethod(description.getMethodName());
+            LocalData localData = description.getAnnotation(LocalData.class);
+            if (localData != null) {
+                new HudsonHomeLoader.Local(method, localData.value()).copy(getHome());
+            }
+        } catch (NoSuchMethodException e) {
+            //
         }
 
         File plugins = new File(getHome(), "plugins");
@@ -849,15 +861,15 @@ public class RealJenkinsFixture {
     /**
      * Run one Jenkins session, send one or more test thunks, and shut down.
      */
-    public void then(Method method, String localData, Step... steps) throws Throwable {
-        then(method, localData, new StepsToStep2(steps));
+    public void then(Step... steps) throws Throwable {
+        then(new StepsToStep2(steps));
     }
 
     /**
      * Run one Jenkins session, send a test thunk, and shut down.
      */
-    public <T extends Serializable> T then(Method method, String localData, Step2<T> s) throws Throwable {
-        startJenkins(method, localData);
+    public <T extends Serializable> T then(Step2<T> s) throws Throwable {
+        startJenkins();
         try {
             return runRemotely(s);
         } finally {
@@ -866,7 +878,7 @@ public class RealJenkinsFixture {
     }
 
     /**
-     * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins(Method, String)}.
+     * Similar to {@link JenkinsRule#getURL}. Requires Jenkins to be started before using {@link #startJenkins()}.
      * <p>
      * Always ends with a '/'.
      */
@@ -1035,13 +1047,13 @@ public class RealJenkinsFixture {
     @SuppressFBWarnings(
             value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD", "COMMAND_INJECTION"},
             justification = "irrelevant")
-    public void startJenkins(Method method, String localData) throws Exception {
+    public void startJenkins() throws Exception {
         Path portFile;
         if (proc != null) {
             throw new IllegalStateException("Jenkins is (supposedly) already running");
         }
         if (prepareHomeLazily && !provisioned) {
-            provision(method, localData);
+            provision();
         }
         var metadata = createTempDirectory("RealJenkinsFixture");
         var cpFile = metadata.resolve("cp.txt");
@@ -1060,7 +1072,7 @@ public class RealJenkinsFixture {
                                 .getProtectionDomain()
                                 .getCodeSource()
                                 .getLocation(),
-                "-DRealJenkinsFixture.description=" + method.getClass().getName() + "#" + method.getName(),
+                "-DRealJenkinsFixture.description=" + description.getDisplayName(),
                 "-DRealJenkinsFixture.token=" + token));
         argv.addAll(getJacocoAgentOptions());
         for (Map.Entry<String, Level> e : loggers.entrySet()) {
@@ -1125,7 +1137,7 @@ public class RealJenkinsFixture {
         pb.redirectErrorStream(true);
         proc = pb.start();
         new StreamCopyThread(
-                        method.getClass().getName() + "#" + method.getName(),
+                        description.getDisplayName(),
                         proc.getInputStream(),
                         prefixedOutputStreamBuilder.build(System.err))
                 .start();

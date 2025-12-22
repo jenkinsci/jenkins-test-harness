@@ -26,6 +26,7 @@ package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -48,6 +49,7 @@ import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
 
     private final JenkinsSessionFixture fixture = new JenkinsSessionFixture();
+    private ExtensionContext extensionContext;
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
@@ -58,10 +60,11 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
 
     @Override
     public void beforeEach(@NonNull ExtensionContext context) {
+        extensionContext = context;
         fixture.setUp(Description.createTestDescription(
-                context.getTestClass().map(Class::getName).orElse(null),
-                context.getTestMethod().map(Method::getName).orElse(null),
-                context.getTestMethod().map(Method::getAnnotations).orElse(null)));
+                extensionContext.getTestClass().map(Class::getName).orElse(null),
+                extensionContext.getTestMethod().map(Method::getName).orElse(null),
+                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
     }
 
     @Override
@@ -79,6 +82,9 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
+        if (extensionContext == null) {
+            throw new IllegalStateException("JenkinsSessionExtension must be registered via @RegisterExtension");
+        }
         fixture.then(s);
     }
 }

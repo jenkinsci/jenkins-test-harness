@@ -401,6 +401,7 @@ public class InboundAgentFixture {
      *
      * @param options the options
      */
+    @SuppressWarnings("rawtypes")
     public Slave createAgent(@NonNull JenkinsRule r, Options options) throws Exception {
         Slave s = createAgentJR(r, options);
         workDirs.add(s.getRemoteFS());
@@ -420,6 +421,7 @@ public class InboundAgentFixture {
     /**
      * (Re-)starts an existing inbound agent.
      */
+    @SuppressWarnings("rawtypes")
     public void start(@NonNull JenkinsRule r, Options options) throws Exception {
         String name = options.getName();
         Objects.requireNonNull(name);
@@ -430,10 +432,12 @@ public class InboundAgentFixture {
         waitForAgentOnline(r, name, options.loggers);
     }
 
+    @SuppressWarnings("rawtypes")
     public void start(AgentArguments agentArguments, Options options) throws Exception {
         start(agentArguments, options, true);
     }
 
+    @SuppressWarnings("rawtypes")
     @SuppressFBWarnings(value = "COMMAND_INJECTION", justification = "just for test code")
     public void start(AgentArguments agentArguments, Options options, boolean stop) throws IOException {
         Objects.requireNonNull(options.getName());
@@ -687,11 +691,13 @@ public class InboundAgentFixture {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     public static String[] createAgentRJR(JenkinsRule r, Options options) throws Throwable {
         var agent = createAgentJR(r, options);
         return new String[] {options.getName(), agent.getRemoteFS()};
     }
 
+    @SuppressWarnings("rawtypes")
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "just for test code")
     private static Slave createAgentJR(JenkinsRule r, Options options)
             throws Descriptor.FormException, IOException, InterruptedException {

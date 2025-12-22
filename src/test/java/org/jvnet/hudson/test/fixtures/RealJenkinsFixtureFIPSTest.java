@@ -29,6 +29,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.jenkins.test.fips.FIPSTestBundleProvider;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.runner.Description;
 
 class RealJenkinsFixtureFIPSTest {
 
@@ -51,7 +54,10 @@ class RealJenkinsFixtureFIPSTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) throws Exception {
-        fixture.setUp(info.getTestMethod().orElseThrow(), null);
+        fixture.setUp(Description.createTestDescription(
+                info.getTestClass().map(Class::getName).orElse(null),
+                info.getTestMethod().map(Method::getName).orElse(null),
+                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
     }
 
     @AfterEach
@@ -60,8 +66,8 @@ class RealJenkinsFixtureFIPSTest {
     }
 
     @Test
-    void fipsMode(TestInfo info) throws Throwable {
-        fixture.then(info.getTestMethod().orElseThrow(), null, r -> {
+    void fipsMode() throws Throwable {
+        fixture.then(r -> {
             Provider[] providers = Security.getProviders();
             System.out.println("fipsMode providers:" + Arrays.asList(providers));
 
