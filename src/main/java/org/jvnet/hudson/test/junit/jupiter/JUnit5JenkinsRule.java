@@ -2,6 +2,7 @@ package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.security.ACL;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -22,7 +23,7 @@ class JUnit5JenkinsRule extends JenkinsRule {
         this.testDescription = Description.createTestDescription(
                 extensionContext.getTestClass().map(Class::getName).orElse(null),
                 extensionContext.getTestMethod().map(Method::getName).orElse(null),
-                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(null));
+                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0]));
     }
 
     @Override
