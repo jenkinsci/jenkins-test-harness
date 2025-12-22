@@ -181,7 +181,7 @@ public abstract class InjectedTestBase {
             if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
                 boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
                 boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
-                assertTrue(!isUtf8 && !isIso88591, resource + " must be either valid UTF-8 or valid ISO-8859-1.");
+                assertTrue(isUtf8 || isIso88591, resource + " must be either valid UTF-8 or valid ISO-8859-1.");
             }
         }
 
