@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2020 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,35 +22,38 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.fixtures;
 
-import org.junit.rules.ExternalResource;
-import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * This is the JUnit 4 implementation of {@link BuildWatcherFixture}.
- * Usage: <pre>{@code
- * @ClassRule
- * public static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcher();
- * }</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionRule}.
- *
- * @see BuildWatcherFixture
- * @see JenkinsRule
- * @see JenkinsSessionRule
- * @since 1.607
- */
-public final class BuildWatcher extends ExternalResource {
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-    private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
+class FlagFixtureNoReplacementTest {
 
-    @Override
-    protected void before() throws Throwable {
+    private static boolean FLAG;
+
+    @BeforeAll
+    static void beforeAll() {
+        assertFalse(FLAG);
         FIXTURE.setUp();
+        assertFalse(FLAG);
     }
 
-    @Override
-    protected void after() {
+    @AfterAll
+    static void afterAll() {
+        assertTrue(FLAG);
         FIXTURE.tearDown();
+        assertFalse(FLAG);
+    }
+
+    private static final FlagFixture<Boolean> FIXTURE = new FlagFixture<>(() -> FLAG, x -> FLAG = x);
+
+    @Test
+    void smokes() {
+        assertFalse(FLAG);
+        FLAG = true;
     }
 }

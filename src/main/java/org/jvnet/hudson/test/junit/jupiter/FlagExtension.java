@@ -22,53 +22,56 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.junit.jupiter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.jvnet.hudson.test.fixtures.FlagFixture;
 
 /**
- * This is the JUnit 4 implementation of {@link FlagFixture}.
+ * This is the JUnit Jupiter implementation of {@link FlagFixture}.
  * Usage: <pre>{@code
- * @ClassRule
- * public static final FlagRule<String> FLAG_RULE = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
+ * @RegisterExtension
+ * private static final FlagExtension<String> FLAG_EXTENSION = new FlagExtension<>(() -> FLAG, x -> FLAG = x, true);
  * }</pre>
  *
  * @see FlagFixture
  */
-public final class FlagRule<T> extends ExternalResource {
+public class FlagExtension<T> implements BeforeEachCallback, AfterEachCallback {
 
     private final FlagFixture<T> fixture;
 
-    private FlagRule(FlagFixture<T> fixture) {
+    private FlagExtension(FlagFixture<T> fixture) {
         this.fixture = fixture;
     }
 
-    public FlagRule(Supplier<T> getter, Consumer<T> setter) {
+    public FlagExtension(Supplier<T> getter, Consumer<T> setter) {
         fixture = new FlagFixture<>(getter, setter);
     }
 
-    public FlagRule(Supplier<T> getter, Consumer<T> setter, T replacement) {
+    public FlagExtension(Supplier<T> getter, Consumer<T> setter, T replacement) {
         fixture = new FlagFixture<>(getter, setter, replacement);
     }
 
     @Override
-    protected void before() throws Throwable {
+    public void beforeEach(@NonNull ExtensionContext context) {
         fixture.setUp();
     }
 
     @Override
-    protected void after() {
+    public void afterEach(@NonNull ExtensionContext context) {
         fixture.tearDown();
     }
 
-    public static FlagRule<String> systemProperty(String key) {
-        return new FlagRule<>(FlagFixture.systemProperty(key));
+    public static FlagExtension<String> systemProperty(String key) {
+        return new FlagExtension<>(FlagFixture.systemProperty(key));
     }
 
-    public static FlagRule<String> systemProperty(String key, String replacement) {
-        return new FlagRule<>(FlagFixture.systemProperty(key, replacement));
+    public static FlagExtension<String> systemProperty(String key, String replacement) {
+        return new FlagExtension<>(FlagFixture.systemProperty(key, replacement));
     }
 }

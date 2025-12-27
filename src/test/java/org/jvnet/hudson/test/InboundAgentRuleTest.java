@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.InboundAgentRule.Options;
 
 public final class InboundAgentRuleTest {
 
@@ -42,7 +43,7 @@ public final class InboundAgentRuleTest {
         assertTrue(inboundAgents
                 .createAgent(
                         r,
-                        InboundAgentRule.Options.newBuilder()
+                        Options.newBuilder()
                                 .color(PrefixedOutputStream.Color.MAGENTA.bold())
                                 .name("remote")
                                 .build())

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.junit.jupiter.InboundAgentExtension.Options;
 
 @WithJenkins
 class InboundAgentExtensionTest {
@@ -50,7 +51,7 @@ class InboundAgentExtensionTest {
         assertTrue(inboundAgents
                 .createAgent(
                         r,
-                        InboundAgentExtension.Options.newBuilder()
+                        Options.newBuilder()
                                 .color(PrefixedOutputStream.Color.MAGENTA.bold())
                                 .name("remote")
                                 .build())
