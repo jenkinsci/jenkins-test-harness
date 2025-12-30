@@ -61,7 +61,7 @@ import org.jvnet.hudson.test.recipes.LocalData;
 /**
  * This is the JUnit 4 implementation of {@link RealJenkinsFixture}.
  * Usage: <pre>{@code
- * @RegisterExtension
+ * @Rule
  * public static final RealJenkinsRule REAL_JENKINS = new RealJenkinsRule();
  * }</pre>
  *
