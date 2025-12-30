@@ -106,7 +106,6 @@ public abstract class InjectedTestBase {
      * @param outputDirectory a build output directory
      * @param requirePi if {@link ProcessingInstruction} are required
      */
-    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     protected InjectedTestBase(
             String groupId, String artifactId, String version, String outputDirectory, boolean requirePi) {
         this(groupId, artifactId, version, outputDirectory, requirePi, false);
