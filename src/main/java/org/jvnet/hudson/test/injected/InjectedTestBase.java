@@ -85,7 +85,12 @@ public abstract class InjectedTestBase {
      */
     @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     protected InjectedTestBase(
-            String groupId, String artifactId, String version, String outputDirectory, boolean requirePi, boolean prohibitInlineJS) {
+            String groupId,
+            String artifactId,
+            String version,
+            String outputDirectory,
+            boolean requirePi,
+            boolean prohibitInlineJS) {
         Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTestBase.groupId'");
         this.artifactId =
                 Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTestBase.artifactId'");
@@ -194,16 +199,20 @@ public abstract class InjectedTestBase {
             Attribute checkUrl = element.attribute("checkUrl");
             Attribute checkDependsOn = element.attribute("checkDependsOn");
             if (checkUrl != null && checkDependsOn == null) {
-                inlineJs.set(inlineJs.get() || reportInlineJSUsage("Usage of 'checkUrl' without 'checkDependsOn' in " + jelly, errors));
+                inlineJs.set(inlineJs.get()
+                        || reportInlineJSUsage("Usage of 'checkUrl' without 'checkDependsOn' in " + jelly, errors));
             }
             if (onclick != null && element.getNamespace() != Namespace.NO_NAMESPACE) {
-                inlineJs.set(inlineJs.get() || reportInlineJSUsage("Usage of 'onclick' from a taglib in " + jelly, errors));
+                inlineJs.set(
+                        inlineJs.get() || reportInlineJSUsage("Usage of 'onclick' from a taglib in " + jelly, errors));
             }
             List<Attribute> attributes = element.attributes();
             if (element.getNamespace() == Namespace.NO_NAMESPACE && !attributes.isEmpty()) {
                 attributes.forEach(a -> {
                     if (a.getName().startsWith("on")) {
-                        inlineJs.set(inlineJs.get() || reportInlineJSUsage("Usage of inline event handler '" + a.getName() + "' in " + jelly, errors));
+                        inlineJs.set(inlineJs.get()
+                                || reportInlineJSUsage(
+                                        "Usage of inline event handler '" + a.getName() + "' in " + jelly, errors));
                     }
                 });
             }
@@ -218,8 +227,7 @@ public abstract class InjectedTestBase {
             Element element = (Element) n;
             String typeAttribute = element.attributeValue("type");
             if (element.attributeValue("src") == null
-                    && (typeAttribute == null
-                    || !"application/json".equals(typeAttribute.toLowerCase(Locale.US)))) {
+                    && (typeAttribute == null || !"application/json".equals(typeAttribute.toLowerCase(Locale.US)))) {
                 inlineJs.set(inlineJs.get() || reportInlineJSUsage("inline <script> element in " + jelly, errors));
             }
         });
