@@ -42,7 +42,7 @@ import org.jvnet.hudson.test.fixtures.InboundAgentFixture;
  * This is the JUnit 4 implementation of {@link InboundAgentFixture}.
  * Usage: <pre>{@code
  * @Rule
- * public final InboundAgentRule inboundAgent = InboundAgentRule.newBuilder().build();
+ * public final InboundAgentRule inboundAgent = new InboundAgentRule();
  * }</pre>
  *
  * @see InboundAgentFixture

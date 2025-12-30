@@ -32,8 +32,8 @@ import org.jvnet.hudson.test.fixtures.FlagFixture;
 /**
  * This is the JUnit 4 implementation of {@link FlagFixture}.
  * Usage: <pre>{@code
- * @ClassRule
- * public static final FlagRule<String> FLAG_RULE = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
+ * @Rule
+ * public final FlagRule<String> flag = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
  * }</pre>
  *
  * @see FlagFixture
