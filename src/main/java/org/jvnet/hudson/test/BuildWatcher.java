@@ -31,7 +31,7 @@ import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
  * This is the JUnit 4 implementation of {@link BuildWatcherFixture}.
  * Usage: <pre>{@code
  * @ClassRule
- * public static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcher();
+ * public static final BuildWatcherExtension buildWatcher = new BuildWatcher();
  * }</pre>
  * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionRule}.
  *
