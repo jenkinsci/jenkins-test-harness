@@ -12,6 +12,7 @@ import hudson.cli.CLICommand;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -28,7 +29,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.PropertyResourceBundle;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -269,21 +269,21 @@ public abstract class InjectedTestBase {
             }
         };
 
+        boolean isUtf8;
         try (InputStream is = resource.openStream()) {
             byte[] contents = is.readAllBytes();
-            if (!isEncoded(contents, StandardCharsets.US_ASCII)) {
-                boolean isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
+            if (isEncoded(contents, StandardCharsets.US_ASCII)) {
+                isUtf8 = false;
+            } else {
+                isUtf8 = isEncoded(contents, StandardCharsets.UTF_8);
                 boolean isIso88591 = isEncoded(contents, StandardCharsets.ISO_8859_1);
                 assertTrue(isUtf8 || isIso88591, resource + " must be either valid UTF-8 or valid ISO-8859-1.");
             }
         }
 
-        try (InputStream is = resource.openStream()) {
-            PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(is);
-            propertyResourceBundle
-                    .getKeys()
-                    .asIterator()
-                    .forEachRemaining(key -> props.setProperty(key, propertyResourceBundle.getString(key)));
+        try (var is = resource.openStream();
+                var r = new InputStreamReader(is, isUtf8 ? StandardCharsets.UTF_8 : StandardCharsets.ISO_8859_1)) {
+            props.load(r);
         }
     }
 
