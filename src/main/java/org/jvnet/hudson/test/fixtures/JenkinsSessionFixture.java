@@ -38,6 +38,15 @@ import org.jvnet.hudson.test.TemporaryDirectoryAllocator;
  * whereas a test method using {@link JenkinsRule} directly will only run after Jenkins has started and must complete before Jenkins terminates.
  * Usage: <pre>{@code
  * private static final JenkinsSessionFixture FIXTURE = new JenkinsSessionFixture();
+ *
+ * public void method() {
+ *     try {
+ *         FIXTURE.setUp([…]);
+ *         FIXTURE.then(() -> […]);
+ *     } finally {
+ *         FIXTURE.tearDown();
+ *     }
+ * }
  * }</pre>
  *
  * @see JenkinsRule

@@ -44,6 +44,15 @@ import org.jvnet.hudson.test.DeltaSupportLogFormatter;
  * Echoes build output to standard error as it arrives.
  * Usage: <pre>{@code
  * private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
+ *
+ * public void method() {
+ *     try {
+ *         FIXTURE.setUp();
+ *         […]
+ *     } finally {
+ *         FIXTURE.tearDown();
+ *     }
+ * }
  * }</pre>
  *
  * @see org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension

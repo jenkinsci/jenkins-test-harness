@@ -66,6 +66,15 @@ import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
  * While these run on the local host, they are launched outside of Jenkins.
  * Usage: <pre>{@code
  * private static final InboundAgentFixture FIXTURE = InboundAgentFixture.newBuilder().build();
+ *
+ * public void method() {
+ *     try {
+ *         Slave agent = FIXTURE.createAgent(r, […]);
+ *         […]
+ *     } finally {
+ *         FIXTURE.tearDown();
+ *     }
+ * }
  * }</pre>
  *
  * <p>To avoid flakiness when tearing down the test, ensure that the agent has gone offline with:

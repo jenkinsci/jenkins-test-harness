@@ -166,6 +166,15 @@ import org.opentest4j.TestAbortedException;
  * the setup wizard is suppressed, the update center is not checked, etc.
  * Usage: <pre>{@code
  * private static final RealJenkinsFixture FIXTURE = new RealJenkinsFixture();
+ *
+ * public void method() {
+ *     try {
+ *         FIXTURE.setUp([…]);
+ *         FIXTURE.runRemotely(() -> […]);
+ *     } finally {
+ *         FIXTURE.tearDown();
+ *     }
+ * }
  * }</pre>
  *
  * <p>Known limitations:

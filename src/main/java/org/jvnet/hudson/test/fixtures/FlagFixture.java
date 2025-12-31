@@ -29,7 +29,19 @@ import java.util.function.Supplier;
 
 /**
  * Saves and restores sort of a flag, such as a {@code static} field or system property.
+ * Usage: <pre>{@code
+ * @RegisterExtension
+ * private static final FlagExtension<String> FLAG_EXTENSION = new FlagExtension<>(() -> FLAG, x -> FLAG = x, true);
  *
+ * public void method() {
+ *     try {
+ *         FIXTURE.setUp();
+ *         […]
+ *     } finally {
+ *         FIXTURE.tearDown();
+ *     }
+ * }
+ * }</pre>
  * @see org.jvnet.hudson.test.junit.jupiter.FlagExtension
  * @see org.jvnet.hudson.test.FlagRule
  */
