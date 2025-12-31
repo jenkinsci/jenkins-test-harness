@@ -31,7 +31,6 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import io.jenkins.test.fips.FIPSTestBundleProvider;
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.*;
 import java.nio.file.Files;
@@ -50,7 +49,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.rules.ErrorCollector;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.Description;
 import org.jvnet.hudson.test.*;
 import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 import org.jvnet.hudson.test.fixtures.RealJenkinsFixture;
@@ -416,10 +414,10 @@ public class RealJenkinsExtension implements BeforeEachCallback, AfterEachCallba
     @Override
     public void beforeEach(@NonNull ExtensionContext context) throws Exception {
         extensionContext = context;
-        fixture.setUp(Description.createTestDescription(
+        fixture.setUp(
                 context.getTestClass().map(Class::getName).orElse(null),
                 context.getTestMethod().map(Method::getName).orElse(null),
-                context.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
+                context.getTestMethod().map(Method::getAnnotations).orElse(null));
     }
 
     @Override

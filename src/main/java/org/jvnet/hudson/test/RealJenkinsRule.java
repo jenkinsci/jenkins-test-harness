@@ -34,6 +34,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.annotation.Annotation;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -415,7 +416,10 @@ public final class RealJenkinsRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    fixture.setUp(description);
+                    fixture.setUp(
+                            description.getClassName(),
+                            description.getMethodName(),
+                            description.getAnnotations().toArray(new Annotation[0]));
                     base.evaluate();
                 } finally {
                     fixture.tearDown();

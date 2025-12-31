@@ -50,6 +50,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
@@ -634,8 +635,8 @@ public class RealJenkinsFixture {
                 .toList();
     }
 
-    public void setUp(Description description) throws Exception {
-        this.description = description;
+    public void setUp(String className, String name, Annotation... annotations) throws Exception {
+        this.description = Description.createTestDescription(className, name, annotations);
         jenkinsOptions(
                 "--webroot=" + createTempDirectory("webroot"), "--pluginroot=" + createTempDirectory("pluginroot"));
         if (war == null) {

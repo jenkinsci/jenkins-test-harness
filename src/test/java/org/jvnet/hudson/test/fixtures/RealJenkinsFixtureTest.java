@@ -60,7 +60,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.Inet6Address;
@@ -83,7 +82,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.runner.Description;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -103,10 +101,10 @@ class RealJenkinsFixtureTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) throws Exception {
-        fixture.setUp(Description.createTestDescription(
+        fixture.setUp(
                 info.getTestClass().map(Class::getName).orElse(null),
                 info.getTestMethod().map(Method::getName).orElse(null),
-                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
+                info.getTestMethod().map(Method::getAnnotations).orElse(null));
     }
 
     @AfterEach

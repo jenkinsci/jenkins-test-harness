@@ -42,15 +42,15 @@ import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
  */
 public final class BuildWatcher extends ExternalResource {
 
-    private final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
+    private final BuildWatcherFixture fixture = new BuildWatcherFixture();
 
     @Override
     protected void before() throws Throwable {
-        FIXTURE.setUp();
+        fixture.setUp();
     }
 
     @Override
     protected void after() {
-        FIXTURE.tearDown();
+        fixture.tearDown();
     }
 }

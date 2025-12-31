@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test.fixtures;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.junit.runner.Description;
@@ -82,8 +83,8 @@ public class JenkinsSessionFixture {
         return home;
     }
 
-    public void setUp(Description description) {
-        this.description = description;
+    public void setUp(String className, String name, Annotation... annotations) {
+        this.description = Description.createTestDescription(className, name, annotations);
         try {
             home = tmp.allocate();
         } catch (Exception x) {

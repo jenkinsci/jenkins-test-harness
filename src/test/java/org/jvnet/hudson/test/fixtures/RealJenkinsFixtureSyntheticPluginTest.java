@@ -28,7 +28,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.logging.Level;
 import jenkins.model.Jenkins;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.runner.Description;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.sample.plugin.CustomJobProperty;
 import org.jvnet.hudson.test.sample.plugin.Stuff;
@@ -48,10 +46,10 @@ class RealJenkinsFixtureSyntheticPluginTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) throws Exception {
-        fixture.setUp(Description.createTestDescription(
+        fixture.setUp(
                 info.getTestClass().map(Class::getName).orElse(null),
                 info.getTestMethod().map(Method::getName).orElse(null),
-                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
+                info.getTestMethod().map(Method::getAnnotations).orElse(null));
     }
 
     @AfterEach

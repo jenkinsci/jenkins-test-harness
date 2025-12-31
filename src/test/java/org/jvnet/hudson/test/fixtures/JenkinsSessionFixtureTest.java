@@ -29,14 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.URL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.runner.Description;
 import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
@@ -49,10 +47,10 @@ class JenkinsSessionFixtureTest {
 
     @BeforeEach
     void beforeEach(TestInfo info) {
-        fixture.setUp(Description.createTestDescription(
+        fixture.setUp(
                 info.getTestClass().map(Class::getName).orElse(null),
                 info.getTestMethod().map(Method::getName).orElse(null),
-                info.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
+                info.getTestMethod().map(Method::getAnnotations).orElse(null));
         assertNotNull(fixture.getHome());
         assertTrue(fixture.getHome().exists());
     }

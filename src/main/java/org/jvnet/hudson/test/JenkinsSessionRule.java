@@ -25,6 +25,7 @@
 package org.jvnet.hudson.test;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -60,7 +61,10 @@ public class JenkinsSessionRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    fixture.setUp(description);
+                    fixture.setUp(
+                            description.getClassName(),
+                            description.getMethodName(),
+                            description.getAnnotations().toArray(new Annotation[0]));
                     base.evaluate();
                 } finally {
                     fixture.tearDown();

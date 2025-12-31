@@ -26,12 +26,10 @@ package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.runner.Description;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
@@ -61,10 +59,10 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
     @Override
     public void beforeEach(@NonNull ExtensionContext context) {
         extensionContext = context;
-        fixture.setUp(Description.createTestDescription(
+        fixture.setUp(
                 extensionContext.getTestClass().map(Class::getName).orElse(null),
                 extensionContext.getTestMethod().map(Method::getName).orElse(null),
-                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(new Annotation[0])));
+                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(null));
     }
 
     @Override
