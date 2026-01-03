@@ -21,17 +21,25 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Attribute;
 import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.Namespace;
+import org.dom4j.Node;
 import org.dom4j.ProcessingInstruction;
 import org.dom4j.io.SAXReader;
 import org.junit.jupiter.api.BeforeAll;
@@ -64,6 +72,36 @@ public abstract class InjectedTestBase {
     private final String artifactId;
     private final File outputDirectory;
     private final boolean requirePi;
+    private final boolean prohibitInlineJS;
+
+    /**
+     * Default constructor for initialization.
+     * @param groupId a plugin groupId
+     * @param artifactId a plugin artifactId
+     * @param version a plugin version
+     * @param outputDirectory a build output directory
+     * @param requirePi if {@link ProcessingInstruction} are required
+     * @param prohibitInlineJS if inline Javascript is prohibited
+     */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    protected InjectedTestBase(
+            String groupId,
+            String artifactId,
+            String version,
+            String outputDirectory,
+            boolean requirePi,
+            boolean prohibitInlineJS) {
+        Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTestBase.groupId'");
+        this.artifactId =
+                Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTestBase.artifactId'");
+        Objects.requireNonNull(version, "Missing configuration value for 'InjectedTestBase.version'");
+        this.outputDirectory = new File(Objects.requireNonNull(
+                outputDirectory, "Missing configuration value for 'InjectedTestBase.outputDirectory'"));
+        this.requirePi = requirePi;
+        this.prohibitInlineJS = prohibitInlineJS;
+
+        System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
+    }
 
     /**
      * Default constructor for initialization.
@@ -73,18 +111,9 @@ public abstract class InjectedTestBase {
      * @param outputDirectory a build output directory
      * @param requirePi if {@link ProcessingInstruction} are required
      */
-    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     protected InjectedTestBase(
             String groupId, String artifactId, String version, String outputDirectory, boolean requirePi) {
-        Objects.requireNonNull(groupId, "Missing configuration value for 'InjectedTestBase.groupId'");
-        this.artifactId =
-                Objects.requireNonNull(artifactId, "Missing configuration value for 'InjectedTestBase.artifactId'");
-        Objects.requireNonNull(version, "Missing configuration value for 'InjectedTestBase.version'");
-        this.outputDirectory = new File(Objects.requireNonNull(
-                outputDirectory, "Missing configuration value for 'InjectedTestBase.outputDirectory'"));
-        this.requirePi = requirePi;
-
-        System.out.println("Running InjectedTest for " + groupId + ":" + artifactId + ":" + version);
+        this(groupId, artifactId, version, outputDirectory, requirePi, false);
     }
 
     /**
@@ -136,17 +165,81 @@ public abstract class InjectedTestBase {
         assumeFalse(resource.toURI().equals(new URI("file:///empty.jelly")), "No jelly file found - skipping test");
 
         jenkinsRule.executeOnServer(() -> {
+            final List<String> errors = new ArrayList<>();
+            boolean inlineJs = false;
             JCT.createContext().compileScript(resource);
             Document dom = new SAXReader().read(resource);
             if (requirePi) {
                 ProcessingInstruction pi = dom.processingInstruction("jelly");
                 if (pi == null || !pi.getText().contains("escape-by-default")) {
-                    fail("<?jelly escape-by-default='true'?> is missing in " + resource);
+                    errors.add("<?jelly escape-by-default='true'?> is missing in " + resource);
                 }
             }
+            inlineJs = checkJavaScriptAttributes(dom, resource, errors);
+            inlineJs = inlineJs || checkScriptElement(dom, resource, errors);
+            if (!errors.isEmpty()) {
+                if (inlineJs) {
+                    errors.add("Please visit https://www.jenkins.io/doc/developer/security/csp/ for more details.");
+                }
+                String message = String.join("\n", errors);
+                fail(message);
+            }
+
             return null;
         });
         // TODO: what else can we check statically? use of taglibs?
+    }
+
+    private boolean checkJavaScriptAttributes(Document dom, URL jelly, List<String> errors) {
+        List<Node> allNodes = dom.selectNodes("//*");
+        AtomicBoolean inlineJs = new AtomicBoolean(false);
+        allNodes.forEach(n -> {
+            Element element = (Element) n;
+            Attribute onclick = element.attribute("onclick");
+            Attribute checkUrl = element.attribute("checkUrl");
+            Attribute checkDependsOn = element.attribute("checkDependsOn");
+            if (checkUrl != null && checkDependsOn == null) {
+                inlineJs.set(inlineJs.get()
+                        || reportInlineJSUsage("Usage of 'checkUrl' without 'checkDependsOn' in " + jelly, errors));
+            }
+            if (onclick != null && element.getNamespace() != Namespace.NO_NAMESPACE) {
+                inlineJs.set(
+                        inlineJs.get() || reportInlineJSUsage("Usage of 'onclick' from a taglib in " + jelly, errors));
+            }
+            List<Attribute> attributes = element.attributes();
+            if (element.getNamespace() == Namespace.NO_NAMESPACE && !attributes.isEmpty()) {
+                attributes.forEach(a -> {
+                    if (a.getName().startsWith("on")) {
+                        inlineJs.set(inlineJs.get()
+                                || reportInlineJSUsage(
+                                        "Usage of inline event handler '" + a.getName() + "' in " + jelly, errors));
+                    }
+                });
+            }
+        });
+        return inlineJs.get();
+    }
+
+    private boolean checkScriptElement(Document dom, URL jelly, List<String> errors) {
+        List<Node> scriptTags = dom.selectNodes("//script");
+        AtomicBoolean inlineJs = new AtomicBoolean(false);
+        scriptTags.forEach(n -> {
+            Element element = (Element) n;
+            String typeAttribute = element.attributeValue("type");
+            if (element.attributeValue("src") == null
+                    && (typeAttribute == null || !"application/json".equals(typeAttribute.toLowerCase(Locale.US)))) {
+                inlineJs.set(inlineJs.get() || reportInlineJSUsage("inline <script> element in " + jelly, errors));
+            }
+        });
+        return inlineJs.get();
+    }
+
+    private boolean reportInlineJSUsage(String message, List<String> errors) {
+        if (prohibitInlineJS) {
+            errors.add(message);
+            return true;
+        }
+        return false;
     }
 
     Stream<Arguments> propertiesResources() throws Exception {
