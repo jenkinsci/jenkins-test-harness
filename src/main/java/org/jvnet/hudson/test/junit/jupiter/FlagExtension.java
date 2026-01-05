@@ -25,44 +25,41 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import java.io.File;
-import java.lang.reflect.Method;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
+import org.jvnet.hudson.test.fixtures.FlagFixture;
 
 /**
- * This is the JUnit Jupiter implementation of {@link JenkinsSessionFixture}.
+ * This is the JUnit Jupiter implementation of {@link FlagFixture}.
  * Usage: <pre>{@code
  * @RegisterExtension
- * private final JenkinsSessionExtension jenkinsSession = new JenkinsSessionExtension();
+ * private static final FlagExtension<String> FLAG_EXTENSION = new FlagExtension<>(() -> FLAG, x -> FLAG = x, true);
  * }</pre>
  *
- * @see JenkinsSessionFixture
- * @see JenkinsRule#createComputerLauncher
- * @see JenkinsRule#createSlave()
+ * @see FlagFixture
  */
-public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCallback {
+public class FlagExtension<T> implements BeforeEachCallback, AfterEachCallback {
 
-    private final JenkinsSessionFixture fixture = new JenkinsSessionFixture();
-    private ExtensionContext extensionContext;
+    private final FlagFixture<T> fixture;
 
-    /**
-     * Get the Jenkins home directory, which is consistent across restarts.
-     */
-    public File getHome() {
-        return fixture.getHome();
+    private FlagExtension(FlagFixture<T> fixture) {
+        this.fixture = fixture;
+    }
+
+    public FlagExtension(Supplier<T> getter, Consumer<T> setter) {
+        fixture = new FlagFixture<>(getter, setter);
+    }
+
+    public FlagExtension(Supplier<T> getter, Consumer<T> setter, T replacement) {
+        fixture = new FlagFixture<>(getter, setter, replacement);
     }
 
     @Override
     public void beforeEach(@NonNull ExtensionContext context) {
-        extensionContext = context;
-        fixture.setUp(
-                extensionContext.getTestClass().map(Class::getName).orElse(null),
-                extensionContext.getTestMethod().map(Method::getName).orElse(null),
-                extensionContext.getTestMethod().map(Method::getAnnotations).orElse(null));
+        fixture.setUp();
     }
 
     @Override
@@ -70,19 +67,11 @@ public class JenkinsSessionExtension implements BeforeEachCallback, AfterEachCal
         fixture.tearDown();
     }
 
-    /**
-     * One step to run, intended to be a SAM for lambdas with {@link #then}.
-     */
-    @FunctionalInterface
-    public interface Step extends JenkinsSessionFixture.Step {}
+    public static FlagExtension<String> systemProperty(String key) {
+        return new FlagExtension<>(FlagFixture.systemProperty(key));
+    }
 
-    /**
-     * Run one Jenkins session and shut down.
-     */
-    public void then(Step s) throws Throwable {
-        if (extensionContext == null) {
-            throw new IllegalStateException("JenkinsSessionExtension must be registered via @RegisterExtension");
-        }
-        fixture.then(s);
+    public static FlagExtension<String> systemProperty(String key, String replacement) {
+        return new FlagExtension<>(FlagFixture.systemProperty(key, replacement));
     }
 }
