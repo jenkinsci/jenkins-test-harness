@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2023 CloudBees, Inc.
+ * Copyright 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,41 +21,51 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package org.jvnet.hudson.test.fixtures;
 
-package org.jvnet.hudson.test.junit.jupiter;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.PrefixedOutputStream;
-import org.jvnet.hudson.test.junit.jupiter.InboundAgentExtension.Options;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
-class InboundAgentExtensionTest {
+class BuildWatcherFixtureTest {
 
-    @RegisterExtension
-    private final InboundAgentExtension inboundAgents = new InboundAgentExtension();
+    private static final BuildWatcherFixture FIXTURE = new BuildWatcherFixture();
 
-    private JenkinsRule r;
+    private JenkinsRule j;
 
     @BeforeEach
-    void setUp(JenkinsRule rule) {
-        r = rule;
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+        FIXTURE.setUp();
+    }
+
+    @AfterEach
+    void afterEach() {
+        FIXTURE.tearDown();
     }
 
     @Test
-    void waitOnline() throws Exception {
-        assertTrue(inboundAgents
-                .createAgent(
-                        r,
-                        Options.newBuilder()
-                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
-                                .name("remote")
-                                .build())
-                .toComputer()
-                .isOnline());
+    void testBuildWatcher() throws Exception {
+        PrintStream originalErr = System.err;
+
+        try {
+            ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(errContent));
+
+            j.buildAndAssertSuccess(j.createFreeStyleProject());
+            String output = errContent.toString();
+            assertThat(output, allOf(containsString("Running as SYSTEM"), containsString("Finished: SUCCESS")));
+        } finally {
+            System.setErr(originalErr); // restore
+        }
     }
 }

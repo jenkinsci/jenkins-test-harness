@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2023 CloudBees, Inc.
+ * Copyright 2020 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,32 +22,38 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.fixtures;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.InboundAgentRule.Options;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-public final class InboundAgentRuleTest {
+class FlagFixtureNoReplacementTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private static boolean FLAG;
 
-    @Rule
-    public InboundAgentRule inboundAgents = new InboundAgentRule();
+    @BeforeAll
+    static void beforeAll() {
+        assertFalse(FLAG);
+        FIXTURE.setUp();
+        assertFalse(FLAG);
+    }
+
+    @AfterAll
+    static void afterAll() {
+        assertTrue(FLAG);
+        FIXTURE.tearDown();
+        assertFalse(FLAG);
+    }
+
+    private static final FlagFixture<Boolean> FIXTURE = new FlagFixture<>(() -> FLAG, x -> FLAG = x);
 
     @Test
-    public void waitOnline() throws Exception {
-        assertTrue(inboundAgents
-                .createAgent(
-                        r,
-                        Options.newBuilder()
-                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
-                                .name("remote")
-                                .build())
-                .toComputer()
-                .isOnline());
+    void smokes() {
+        assertFalse(FLAG);
+        FLAG = true;
     }
 }

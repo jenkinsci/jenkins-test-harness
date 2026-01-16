@@ -25,45 +25,33 @@
 package org.jvnet.hudson.test;
 
 import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.annotation.Annotation;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.jvnet.hudson.test.fixtures.JenkinsSessionFixture;
 
 /**
- * {@link JenkinsRule} derivative which allows Jenkins to be restarted in the middle of a test.
- * It also supports running test code before, between, or after Jenkins sessions,
- * whereas a test method using {@link JenkinsRule} directly
- * will only run after Jenkins has started and must complete before Jenkins terminates.
+ * This is the JUnit 4 implementation of {@link JenkinsSessionFixture}.
+ * Usage: <pre>{@code
+ * @Rule
+ * public final JenkinsSessionRule jenkinsSession = new JenkinsSessionRule();
+ * }</pre>
+ *
+ * @see JenkinsSessionFixture
+ * @see JenkinsRule#createComputerLauncher
+ * @see JenkinsRule#createSlave()
  */
 public class JenkinsSessionRule implements TestRule {
 
-    private static final Logger LOGGER = Logger.getLogger(JenkinsSessionRule.class.getName());
-
+    private final JenkinsSessionFixture fixture = new JenkinsSessionFixture();
     private Description description;
-
-    private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
-
-    /**
-     * JENKINS_HOME needs to survive restarts, so we allocate our own.
-     */
-    private File home;
-
-    /**
-     * TCP/IP port that the server is listening on.
-     * Like the home directory, this will be consistent across restarts.
-     */
-    private int port;
 
     /**
      * Get the Jenkins home directory, which is consistent across restarts.
      */
     public File getHome() {
-        if (home == null) {
-            throw new IllegalStateException("JENKINS_HOME has not been allocated yet");
-        }
-        return home;
+        return fixture.getHome();
     }
 
     @Override
@@ -73,14 +61,13 @@ public class JenkinsSessionRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    home = tmp.allocate();
+                    fixture.setUp(
+                            description.getClassName(),
+                            description.getMethodName(),
+                            description.getAnnotations().toArray(new Annotation[0]));
                     base.evaluate();
                 } finally {
-                    try {
-                        tmp.dispose();
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, null, x);
-                    }
+                    fixture.tearDown();
                 }
             }
         };
@@ -90,35 +77,15 @@ public class JenkinsSessionRule implements TestRule {
      * One step to run, intended to be a SAM for lambdas with {@link #then}.
      */
     @FunctionalInterface
-    public interface Step {
-        void run(JenkinsRule r) throws Throwable;
-    }
+    public interface Step extends JenkinsSessionFixture.Step {}
 
     /**
      * Run one Jenkins session and shut down.
      */
     public void then(Step s) throws Throwable {
-        CustomJenkinsRule r = new CustomJenkinsRule(home, port);
-        r.apply(
-                        new Statement() {
-                            @Override
-                            public void evaluate() throws Throwable {
-                                port = r.getPort();
-                                s.run(r);
-                            }
-                        },
-                        description)
-                .evaluate();
-    }
-
-    private static final class CustomJenkinsRule extends JenkinsRule {
-        CustomJenkinsRule(File home, int port) {
-            with(() -> home);
-            localPort = port;
+        if (description == null) {
+            throw new IllegalStateException("JenkinsSessionRule must be registered via @Rule");
         }
-
-        int getPort() {
-            return localPort;
-        }
+        fixture.then(s);
     }
 }

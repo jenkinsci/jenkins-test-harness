@@ -27,58 +27,48 @@ package org.jvnet.hudson.test;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.rules.ExternalResource;
+import org.jvnet.hudson.test.fixtures.FlagFixture;
 
 /**
- * Saves and restores sort of a flag, such as a {@code static} field or system property.
+ * This is the JUnit 4 implementation of {@link FlagFixture}.
+ * Usage: <pre>{@code
+ * @Rule
+ * public final FlagRule<String> flag = new FlagRule<>(() -> FLAG, x -> FLAG = x, true);
+ * }</pre>
+ *
+ * @see FlagFixture
  */
 public final class FlagRule<T> extends ExternalResource {
 
-    private final Supplier<T> getter;
-    private final Consumer<T> setter;
-    private final boolean replace;
-    private final T replacement;
-    private T orig;
+    private final FlagFixture<T> fixture;
+
+    private FlagRule(FlagFixture<T> fixture) {
+        this.fixture = fixture;
+    }
 
     public FlagRule(Supplier<T> getter, Consumer<T> setter) {
-        this.getter = getter;
-        this.setter = setter;
-        replace = false;
-        replacement = null;
+        fixture = new FlagFixture<>(getter, setter);
     }
 
     public FlagRule(Supplier<T> getter, Consumer<T> setter, T replacement) {
-        this.getter = getter;
-        this.setter = setter;
-        replace = true;
-        this.replacement = replacement;
+        fixture = new FlagFixture<>(getter, setter, replacement);
     }
 
     @Override
     protected void before() throws Throwable {
-        orig = getter.get();
-        if (replace) {
-            setter.accept(replacement);
-        }
+        fixture.setUp();
     }
 
     @Override
     protected void after() {
-        setter.accept(orig);
+        fixture.tearDown();
     }
 
     public static FlagRule<String> systemProperty(String key) {
-        return new FlagRule<>(() -> System.getProperty(key), value -> setProperty(key, value));
+        return new FlagRule<>(FlagFixture.systemProperty(key));
     }
 
     public static FlagRule<String> systemProperty(String key, String replacement) {
-        return new FlagRule<>(() -> System.getProperty(key), value -> setProperty(key, value), replacement);
-    }
-
-    private static String setProperty(String key, String value) {
-        if (value != null) {
-            return System.setProperty(key, value);
-        } else {
-            return (String) System.getProperties().remove(key);
-        }
+        return new FlagRule<>(FlagFixture.systemProperty(key, replacement));
     }
 }

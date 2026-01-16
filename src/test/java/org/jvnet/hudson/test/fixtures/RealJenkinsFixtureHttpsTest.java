@@ -22,43 +22,56 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.fixtures;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.logging.Logger;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.InboundAgentRule.Options;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.fixtures.InboundAgentFixture.Options;
 
-public class RealJenkinsRuleHttpsTest {
-    private static final Logger LOGGER = Logger.getLogger(RealJenkinsRuleHttpsTest.class.getName());
+class RealJenkinsFixtureHttpsTest {
+    private static final Logger LOGGER = Logger.getLogger(RealJenkinsFixtureHttpsTest.class.getName());
 
-    @Rule
-    public final RealJenkinsRule rr = new RealJenkinsRule().https();
+    private final RealJenkinsFixture fixture = new RealJenkinsFixture().https();
 
-    @Rule
-    public InboundAgentRule iar = new InboundAgentRule();
+    private final InboundAgentFixture iaf = new InboundAgentFixture();
 
-    @Before
-    public void setUp() throws Throwable {
-        rr.startJenkins();
+    @BeforeEach
+    void beforeEach(TestInfo info) throws Exception {
+        fixture.setUp(
+                info.getTestClass().map(Class::getName).orElse(null),
+                info.getTestMethod().map(Method::getName).orElse(null),
+                info.getTestMethod().map(Method::getAnnotations).orElse(null));
+        fixture.startJenkins();
+    }
+
+    @AfterEach
+    void afterEach() throws Exception {
+        fixture.tearDown();
     }
 
     @Test
-    public void runningStepAndUsingHtmlUnit() throws Throwable {
+    void runningStepAndUsingHtmlUnit() throws Throwable {
         // We can run steps
-        rr.runRemotely(RealJenkinsRuleHttpsTest::log);
+        fixture.runRemotely(RealJenkinsFixtureHttpsTest::log);
         // web client trusts the cert
-        try (var wc = rr.createWebClient()) {
-            wc.getPage(rr.getUrl());
+        try (var wc = fixture.createWebClient()) {
+            wc.getPage(fixture.getUrl());
         }
     }
 
     @Test
-    public void inboundAgent() throws Throwable {
+    @Disabled("Not supported as of now")
+    void inboundAgent() throws Throwable {
         var options = Options.newBuilder().name("remote").webSocket().color(PrefixedOutputStream.Color.YELLOW);
-        iar.createAgent(rr, options.build());
+        // TODO: iaf.createAgent(fixture, options.build());
     }
 
     private static void log(JenkinsRule r) throws IOException {

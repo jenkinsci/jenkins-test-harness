@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2020 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,34 @@
 
 package org.jvnet.hudson.test.junit.jupiter;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import static org.junit.Assert.assertFalse;
 
-/**
- * This is the JUnit Jupiter implementation of {@link BuildWatcherFixture}.
- * Usage: <pre>{@code
- * @RegisterExtension
- * private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
- * }</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
- *
- * @see BuildWatcherFixture
- * @see JenkinsRule
- * @see JenkinsSessionExtension
- */
-public class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-    private final BuildWatcherFixture fixture = new BuildWatcherFixture();
+class FlagExtensionNoReplacementTest {
 
-    @Override
-    public void beforeAll(@NonNull ExtensionContext extensionContext) {
-        fixture.setUp();
+    private static boolean FLAG;
+
+    @BeforeAll
+    static void beforeAll() {
+        assertFalse(FLAG);
     }
 
-    @Override
-    public void afterAll(@NonNull ExtensionContext extensionContext) {
-        fixture.tearDown();
+    @AfterAll
+    static void afterAll() {
+        assertFalse(FLAG);
+    }
+
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final FlagExtension<Boolean> EXTENSION = new FlagExtension<>(() -> FLAG, x -> FLAG = x);
+
+    @Test
+    void smokes() {
+        assertFalse(FLAG);
+        FLAG = true;
     }
 }

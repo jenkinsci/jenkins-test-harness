@@ -13,8 +13,8 @@ import org.junit.jupiter.api.io.TempDir;
 class PluginUtilsTest {
 
     @Test
-    void createRealJenkinsRulePlugin(@TempDir File tmpDir) throws IOException {
-        File plugin = PluginUtils.createRealJenkinsRulePlugin(tmpDir, "3.6666");
+    void createRealJenkinsFixturePlugin(@TempDir File tmpDir) throws IOException {
+        File plugin = PluginUtils.createRealJenkinsFixturePlugin(tmpDir, "3.6666");
         assertThat(plugin, FileMatchers.anExistingFile());
         try (JarFile hpi = new JarFile(plugin)) {
             assertThat(hpi.getManifest().getMainAttributes(), hasEntry(hasToString("Jenkins-Version"), is("3.6666")));

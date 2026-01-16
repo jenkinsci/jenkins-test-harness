@@ -42,6 +42,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
+import org.jvnet.hudson.test.fixtures.RealJenkinsFixture;
 import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
@@ -89,6 +90,15 @@ public final class TailLog implements AutoCloseable {
      */
     public TailLog(RealJenkinsExtension rje, String job, int number) {
         this(runRootDir(rje.getHome(), job, number), job, number);
+    }
+
+    /**
+     * Watch a build expected to be loaded in a controller JVM.
+     * <em>Note</em>: this constructor will not work for a branch project (child of {@code MultiBranchProject}).
+     * @param job a {@link Job#getFullName}
+     */
+    public TailLog(RealJenkinsFixture rjf, String job, int number) {
+        this(runRootDir(rjf.getHome(), job, number), job, number);
     }
 
     private static File runRootDir(File home, String job, int number) {
