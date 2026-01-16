@@ -63,6 +63,8 @@ THE SOFTWARE.
     <jenkins.insaneHook>--patch-module=java.base=${project.build.outputDirectory}/netbeans/harness/modules/ext/org-netbeans-insane-hook.jar --add-exports=java.base/org.netbeans.insane.hook=ALL-UNNAMED</jenkins.insaneHook>
     <jetty.version>12.1.5</jetty.version>
     <spotless.check.skip>false</spotless.check.skip>
+    <!-- override parent version so we can be used on a plugin targetting Jenkins 2.479 --> 
+    <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
   <dependencyManagement>
