@@ -131,7 +131,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>io.jenkins.test.fips</groupId>
       <artifactId>fips-bundle-test</artifactId>
-      <version>27.va_f689db_8c5ea_</version>
+      <version>31.va_249066133ed</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
