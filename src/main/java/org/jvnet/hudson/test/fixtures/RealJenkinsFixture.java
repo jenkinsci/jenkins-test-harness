@@ -202,6 +202,13 @@ public class RealJenkinsFixture {
 
     private static final String REAL_JENKINS_FIXTURE_LOGGING = "RealJenkinsFixture.logging.";
 
+    /**
+     * Variables which, if present in the test environment, should not be passed along to the forked process.
+     * ({@code JENKINS_HOME} will be overridden anyway.)
+     */
+    private static final List<String> ERASED_VARIABLES =
+            List.of("JENKINS_URL", "JOB_URL", "BUILD_URL", "BUILD_NUMBER", "BUILD_ID", "BUILD_TAG");
+
     private final TemporaryDirectoryAllocator tmp = new TemporaryDirectoryAllocator();
 
     /**
@@ -1141,7 +1148,14 @@ public class RealJenkinsFixture {
         System.err.println(env.entrySet().stream().map(Map.Entry::toString).collect(Collectors.joining(" ")) + " "
                 + String.join(" ", argv));
         ProcessBuilder pb = new ProcessBuilder(argv);
-        pb.environment().putAll(env);
+        var pbEnv = pb.environment();
+        for (var e : ERASED_VARIABLES) {
+            if (pbEnv.containsKey(e)) {
+                LOGGER.info(() -> "Suppressing system-defined environment variable " + e + "=" + pbEnv.get(e));
+                pbEnv.remove(e);
+            }
+        }
+        pbEnv.putAll(env);
         // TODO options to set Winstone options, etc.
         // TODO pluggable launcher interface to support a Dockerized Jenkins JVM
         pb.redirectErrorStream(true);
