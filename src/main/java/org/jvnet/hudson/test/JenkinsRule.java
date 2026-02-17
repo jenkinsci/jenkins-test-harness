@@ -642,7 +642,15 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
             // request has been made to not create the instance for this test method
             return base;
         }
-        Statement wrapped = new Statement() {
+        Statement wrappedBase;
+        final int testTimeout = getTestTimeoutOverride(description);
+        if (testTimeout <= 0) {
+            System.out.println("Test timeout disabled.");
+            wrappedBase = base;
+        } else {
+            wrappedBase = Timeout.seconds(testTimeout).apply(base, description);
+        }
+        return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 testDescription = description;
@@ -656,7 +664,12 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                     // so that test code has all the access to the system
                     ACL.impersonate(ACL.SYSTEM);
                     try {
-                        base.evaluate();
+                        wrappedBase.evaluate();
+                    } catch (TestTimedOutException x) {
+                        // withLookingForStuckThread does not work well; better to just have a full thread dump.
+                        LOGGER.warning(String.format("Test timed out (after %d seconds).", testTimeout));
+                        dumpThreads();
+                        throw x;
                     } catch (Throwable th) {
                         testFailure = th;
                         // allow the late attachment of a debugger in case of a failure. Useful
@@ -691,26 +704,6 @@ public class JenkinsRule implements TestRule, MethodRule, RootAction {
                 }
             }
         };
-        final int testTimeout = getTestTimeoutOverride(description);
-        if (testTimeout <= 0) {
-            System.out.println("Test timeout disabled.");
-            return wrapped;
-        } else {
-            final Statement timeoutStatement = Timeout.seconds(testTimeout).apply(wrapped, description);
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    try {
-                        timeoutStatement.evaluate();
-                    } catch (TestTimedOutException x) {
-                        // withLookingForStuckThread does not work well; better to just have a full thread dump.
-                        LOGGER.warning(String.format("Test timed out (after %d seconds).", testTimeout));
-                        dumpThreads();
-                        throw x;
-                    }
-                }
-            };
-        }
     }
 
     private int getTestTimeoutOverride(Description description) {
