@@ -382,7 +382,7 @@ THE SOFTWARE.
                 <artifactItem>
                   <groupId>org.jenkins-ci.plugins</groupId>
                   <artifactId>structs</artifactId>
-                  <version>324.va_f5d6774f3a_d</version>
+                  <version>362.va_b_695ef4fdf9</version>
                   <type>hpi</type>
                 </artifactItem>
               </artifactItems>
