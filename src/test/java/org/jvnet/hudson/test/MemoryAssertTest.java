@@ -33,6 +33,8 @@ import static org.junit.Assume.assumeTrue;
 import static org.jvnet.hudson.test.MemoryAssert.assertGC;
 import static org.jvnet.hudson.test.MemoryAssert.assertHeapUsage;
 
+import java.lang.ref.Reference;
+import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,5 +77,21 @@ public class MemoryAssertTest {
                                 .collect(Collectors.joining(", "))
                         + "]: {}; apparent weak references: {}",
                 actual.getMessage());
+    }
+
+    @Test
+    public void gcFailsForSoftReferenceWithoutStrongRef() {
+        Runtime.Version runtimeVersion = Runtime.version();
+        assumeTrue("TODO JENKINS-67974 works on Java 17 but not 11", runtimeVersion.feature() >= 17);
+        // object held only by a soft reference (no strong ref), so the weak ref
+        // will be collected under memory pressure, but allowSoft=false should still fail
+        Object obj = new Object();
+        SoftReference<Object> soft = new SoftReference<>(obj);
+        WeakReference<Object> weak = new WeakReference<>(obj);
+        // clear strong stack root so object is only reachable via soft ref
+        obj = null;
+        assertThrows(AssertionError.class, () -> assertGC(weak, false));
+        // prevent JIT from collecting soft before assertGC finishes
+        Reference.reachabilityFence(soft);
     }
 }
