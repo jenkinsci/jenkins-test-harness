@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2020 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,35 +22,36 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test;
+package org.jvnet.hudson.test.fixtures;
 
-import org.junit.rules.ExternalResource;
-import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * This is the JUnit 4 implementation of {@link BuildWatcherFixture}.
- * Usage: <pre>{@code
- * @ClassRule
- * public static final BuildWatcher buildWatcher = new BuildWatcher();
- * }</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionRule}.
- *
- * @see BuildWatcherFixture
- * @see JenkinsRule
- * @see JenkinsSessionRule
- * @since 1.607
- */
-public final class BuildWatcher extends ExternalResource {
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+;
 
-    private final BuildWatcherFixture fixture = new BuildWatcherFixture();
+class FlagFixtureSystemPropertyTest {
 
-    @Override
-    protected void before() throws Throwable {
-        fixture.setUp();
+    @BeforeAll
+    static void beforeAll() {
+        assertNull(System.getProperty("some.key"));
+        FIXTURE.setUp();
+        assertEquals("value", System.getProperty("some.key"));
     }
 
-    @Override
-    protected void after() {
-        fixture.tearDown();
+    @AfterAll
+    static void afterAll() {
+        assertEquals("value", System.getProperty("some.key"));
+        FIXTURE.tearDown();
+        assertNull(System.getProperty("some.key"));
+    }
+
+    private static final FlagFixture<String> FIXTURE = FlagFixture.systemProperty("some.key", "value");
+
+    @Test
+    void smokes() {
+        assertEquals("value", System.getProperty("some.key"));
     }
 }

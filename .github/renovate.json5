@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>jenkinsci/renovate-config"
+  ],
+  packageRules: [
+    // ignore Jenkins-related dependencies
+    {
+      matchManagers: [
+        "maven"
+      ],
+      matchPackageNames: [
+        "io.jenkins.plugins.*",
+        "org.jenkins-ci.main:jenkins-bom",
+        "org.jenkins-ci.main:jenkins-core",
+        "org.jenkins-ci.main:jenkins-war",
+        "org.jenkins-ci.plugins.*",
+        "org.jenkins-ci.modules:instance-identity" // FIPS mismatches
+      ],
+      enabled: false
+    },
+    // INFRA-2914 – specific NetBeans versions
+    {
+      matchManagers: [
+        "maven"
+      ],
+      matchPackageNames: [
+        "org.netbeans.modules:org-netbeans-insane"
+      ],
+      allowedVersions: "!/RELEASE(65|67|68|69|691|70|701|71|711|712|72|721|73|731|74|80|801|802|81|82)$/",
+      enabled: false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^Jenkinsfile$/"
+      ],
+      "matchStrings": [
+        "jenkins: '(?<currentValue>.*?)'"
+      ],
+      "depNameTemplate": "org.jenkins-ci.main:jenkins-war",
+      "datasourceTemplate": "maven",
+      "registryUrlTemplate": "https://repo.jenkins-ci.org/releases/"
+    }
+  ]
+}

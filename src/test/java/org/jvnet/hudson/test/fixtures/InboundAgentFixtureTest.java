@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 Jesse Glick.
+ * Copyright 2023 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,38 +22,38 @@
  * THE SOFTWARE.
  */
 
-package org.jvnet.hudson.test.junit.jupiter;
+package org.jvnet.hudson.test.fixtures;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.fixtures.BuildWatcherFixture;
+import org.jvnet.hudson.test.PrefixedOutputStream;
+import org.jvnet.hudson.test.fixtures.InboundAgentFixture.Options;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-/**
- * This is the JUnit Jupiter implementation of {@link BuildWatcherFixture}.
- * Usage: <pre>{@code
- * @RegisterExtension
- * private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
- * }</pre>
- * Works in combination with {@link JenkinsRule} or {@link JenkinsSessionExtension}.
- *
- * @see BuildWatcherFixture
- * @see JenkinsRule
- * @see JenkinsSessionExtension
- */
-public class BuildWatcherExtension implements BeforeAllCallback, AfterAllCallback {
+@WithJenkins
+class InboundAgentFixtureTest {
 
-    private final BuildWatcherFixture fixture = new BuildWatcherFixture();
+    private final InboundAgentFixture fixture = new InboundAgentFixture();
 
-    @Override
-    public void beforeAll(@NonNull ExtensionContext extensionContext) {
-        fixture.setUp();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule) {
+        r = rule;
     }
 
-    @Override
-    public void afterAll(@NonNull ExtensionContext extensionContext) {
-        fixture.tearDown();
+    @Test
+    void waitOnline() throws Exception {
+        assertTrue(fixture.createAgent(
+                        r,
+                        Options.newBuilder()
+                                .color(PrefixedOutputStream.Color.MAGENTA.bold())
+                                .name("remote")
+                                .build())
+                .toComputer()
+                .isOnline());
     }
 }
