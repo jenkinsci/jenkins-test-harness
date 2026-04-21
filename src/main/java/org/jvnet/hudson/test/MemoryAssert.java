@@ -161,7 +161,7 @@ public class MemoryAssert {
 
     /**
      * Forces GC by causing an OOM and then verifies the given {@link WeakReference} has been garbage collected.
-     * <p>Beware that failures messages can be misleading and you may need to use heap dumps to diagnose issues.
+     * <p>Beware that failure messages can be misleading, and you may need to use heap dumps to diagnose issues.
      * @param reference object used to verify garbage collection.
      * @param allowSoft if true, pass even if {@link SoftReference}s apparently needed to be cleared by forcing an {@link OutOfMemoryError};
      *                  if false, fail in such a case (though the failure will be slow)
