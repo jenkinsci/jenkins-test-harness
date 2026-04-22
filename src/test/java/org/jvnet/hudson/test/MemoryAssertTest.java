@@ -81,8 +81,6 @@ public class MemoryAssertTest {
 
     @Test
     public void gcFailsForSoftReferenceWithoutStrongRef() {
-        Runtime.Version runtimeVersion = Runtime.version();
-        assumeTrue("TODO JENKINS-67974 works on Java 17 but not 11", runtimeVersion.feature() >= 17);
         // object held only by a soft reference (no strong ref), so the weak ref
         // will be collected under memory pressure, but allowSoft=false should still fail
         Object obj = new Object();
