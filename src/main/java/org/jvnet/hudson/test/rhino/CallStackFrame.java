@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import org.htmlunit.corejs.javascript.Context;
 import org.htmlunit.corejs.javascript.Scriptable;
+import org.htmlunit.corejs.javascript.VarScope;
 import org.htmlunit.corejs.javascript.debug.DebugFrame;
 import org.htmlunit.corejs.javascript.debug.DebuggableScript;
 
@@ -45,8 +46,9 @@ public class CallStackFrame implements DebugFrame {
      */
     public final DebuggableScript fnOrScript;
 
-    private Scriptable activation;
+    private VarScope activation;
     private Scriptable thisObj;
+
     private Object[] args;
     private int line;
 
@@ -56,7 +58,7 @@ public class CallStackFrame implements DebugFrame {
     }
 
     @Override
-    public void onEnter(Context cx, Scriptable activation, Scriptable thisObj, Object[] args) {
+    public void onEnter(Context cx, VarScope activation, Scriptable thisObj, Object[] args) {
         this.activation = activation;
         this.thisObj = thisObj;
         this.args = args;
