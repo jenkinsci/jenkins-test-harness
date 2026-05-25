@@ -48,7 +48,6 @@ public class CallStackFrame implements DebugFrame {
 
     private VarScope activation;
     private Scriptable thisObj;
-
     private Object[] args;
     private int line;
 
