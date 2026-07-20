@@ -1,6 +1,7 @@
 package org.jvnet.hudson.test.junit.jupiter;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -35,6 +36,9 @@ public class JenkinsExtension implements ParameterResolver, AfterEachCallback {
     }
 
     @Override
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification = "Exception is handled by catch(Throwable)")
     public Object resolveParameter(
             @NonNull ParameterContext parameterContext, @NonNull ExtensionContext extensionContext)
             throws ParameterResolutionException {
