@@ -69,6 +69,15 @@
     <Class name="org.jvnet.hudson.test.RestartableJenkinsRule"/>
     <Field name="j"/>
   </Match>
+  <Match>
+    <!-- https://github.com/jenkinsci/plugin-pom/pull/1416  -->
+    <Or>
+      <Bug pattern="USO_UNSAFE_ACCESSIBLE_OBJECT_SYNCHRONIZATION"/>
+      <Bug pattern="USO_UNSAFE_METHOD_SYNCHRONIZATION"/>
+      <Bug pattern="USO_UNSAFE_OBJECT_SYNCHRONIZATION"/>
+      <Bug pattern="USO_UNSAFE_STATIC_METHOD_SYNCHRONIZATION"/>
+    </Or>
+  </Match>
   <!--
     Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
     on this section, pick an exclusion to triage, then:
