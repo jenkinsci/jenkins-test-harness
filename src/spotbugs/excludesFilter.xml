@@ -4,10 +4,6 @@
     Exclusions in this section have been triaged and determined to be false positives.
   -->
   <Match>
-    <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
-    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
-  </Match>
-  <Match>
     <!-- Retain API compatibility -->
     <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
     <Class name="hudson.slaves.DummyCloudImpl"/>
