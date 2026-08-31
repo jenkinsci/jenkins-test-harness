@@ -1,16 +1,15 @@
 package org.jenkinsci.test;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Optional;
+import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.engine.FilterResult;
 import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.TestSource;
 import org.junit.platform.engine.support.descriptor.ClassSource;
 import org.junit.platform.engine.support.descriptor.MethodSource;
-import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.launcher.PostDiscoveryFilter;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.util.Optional;
 
 /**
  * PostDiscoveryFilter that excludes tests (when enabled) which are annotated with
