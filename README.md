@@ -14,3 +14,10 @@ See https://javadoc.jenkins.io/component/jenkins-test-harness/
 
 * See [GitHub Releases](https://github.com/jenkinsci/jenkins-test-harness/releases).
 * For releases before `2.49`, see [this archive](./docs/CHANGELOG-OLD.md)
+
+## Fast-tests opt-in filter
+
+A JUnit Platform PostDiscoveryFilter is provided to allow excluding tests that boot a real Jenkins instance
+(i.e., tests annotated with `@WithJenkins` or `@WithJenkinsConfiguredWithCode` whose method declares the
+corresponding rule parameter). To enable exclusion set `-Djenkins.tests.excludeJenkins=true` in Surefire/Failsafe
+when running tests (opt-in). By default the filter is disabled.
